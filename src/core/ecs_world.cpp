@@ -61,6 +61,7 @@ void ECSWorld::RegisterComponents() {
     world_.component<Position>();
     world_.component<Velocity>();
     world_.component<Actor>();
+    world_.component<Person>();
     world_.component<BuildingComponent>();
     world_.component<TimeManager>();
     world_.component<DailySchedule>();
@@ -69,7 +70,7 @@ void ECSWorld::RegisterComponents() {
     world_.component<FacilityEconomics>();
     world_.component<TowerEconomy>();
     
-    std::cout << "  Registered components: Position, Velocity, Actor, BuildingComponent, TimeManager, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy" << std::endl;
+    std::cout << "  Registered components: Position, Velocity, Actor, Person, BuildingComponent, TimeManager, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy" << std::endl;
 }
 
 void ECSWorld::RegisterSystems() {
@@ -229,7 +230,7 @@ void ECSWorld::RegisterSystems() {
             
             // Noise penalty based on facility type and occupancy
             if (facility.type == BuildingComponent::Type::Restaurant || 
-                facility.type == BuildingComponent::Type::Shop) {
+                facility.type == BuildingComponent::Type::RetailShop) {
                 satisfaction.noise_penalty = occupancy_rate * 5.0f;
             }
             
@@ -340,12 +341,13 @@ void ECSWorld::RegisterSystems() {
                  const BuildingComponent& facility) {
             const char* type_name = "Unknown";
             switch(facility.type) {
-                case BuildingComponent::Type::Office:     type_name = "Office"; break;
-                case BuildingComponent::Type::Restaurant: type_name = "Restaurant"; break;
-                case BuildingComponent::Type::Shop:       type_name = "Shop"; break;
-                case BuildingComponent::Type::Hotel:      type_name = "Hotel"; break;
-                case BuildingComponent::Type::Elevator:   type_name = "Elevator"; break;
-                case BuildingComponent::Type::Lobby:      type_name = "Lobby"; break;
+                case BuildingComponent::Type::Office:      type_name = "Office"; break;
+                case BuildingComponent::Type::Restaurant:  type_name = "Restaurant"; break;
+                case BuildingComponent::Type::RetailShop:  type_name = "RetailShop"; break;
+                case BuildingComponent::Type::Residential: type_name = "Residential"; break;
+                case BuildingComponent::Type::Hotel:       type_name = "Hotel"; break;
+                case BuildingComponent::Type::Elevator:    type_name = "Elevator"; break;
+                case BuildingComponent::Type::Lobby:       type_name = "Lobby"; break;
             }
             
             std::cout << "  [Economics] " << type_name << " Floor " << facility.floor
@@ -355,7 +357,105 @@ void ECSWorld::RegisterSystems() {
                       << std::endl;
         });
     
-    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting" << std::endl;
+    // Person horizontal movement system
+    // Handles walking on the same floor towards a destination
+    world_.system<Person>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, Person& person) {
+            float delta_time = e.world().delta_time();
+            
+            if (person.state == PersonState::Walking) {
+                // Calculate direction to destination
+                float direction = (person.destination_column > person.current_column) ? 1.0f : -1.0f;
+                float distance_to_dest = std::abs(person.destination_column - person.current_column);
+                
+                // Move towards destination
+                float move_amount = person.move_speed * delta_time;
+                
+                if (move_amount >= distance_to_dest) {
+                    // Reached destination this frame
+                    person.current_column = person.destination_column;
+                    
+                    // Check if we've also reached vertical destination
+                    if (person.HasReachedVerticalDestination()) {
+                        person.state = PersonState::AtDestination;
+                    } else {
+                        // Need to change floors
+                        person.state = PersonState::WaitingForElevator;
+                    }
+                } else {
+                    // Continue moving
+                    person.current_column += direction * move_amount;
+                }
+            }
+        });
+    
+    // Person waiting system
+    // Tracks wait time for people waiting for elevators
+    world_.system<Person>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, Person& person) {
+            float delta_time = e.world().delta_time();
+            
+            if (person.state == PersonState::WaitingForElevator) {
+                person.wait_time += delta_time;
+                
+                // TODO: This will be replaced with actual elevator system integration
+                // For now, simulate elevator arrival after 5 seconds
+                if (person.wait_time > 5.0f) {
+                    person.state = PersonState::InElevator;
+                    person.wait_time = 0.0f;
+                }
+            }
+        });
+    
+    // Person elevator riding system
+    // Simulates being in an elevator (temporary implementation)
+    world_.system<Person>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, Person& person) {
+            float delta_time = e.world().delta_time();
+            
+            if (person.state == PersonState::InElevator) {
+                person.wait_time += delta_time;
+                
+                // TODO: This will be replaced with actual elevator system integration
+                // For now, simulate elevator travel taking 3 seconds
+                if (person.wait_time > 3.0f) {
+                    // Arrive at destination floor
+                    person.current_floor = person.destination_floor;
+                    person.wait_time = 0.0f;
+                    
+                    // Check if we need to walk to horizontal destination
+                    if (!person.HasReachedHorizontalDestination()) {
+                        person.state = PersonState::Walking;
+                    } else {
+                        person.state = PersonState::AtDestination;
+                    }
+                }
+            }
+        });
+    
+    // Person state logging system
+    // Logs person state changes for debugging
+    world_.system<const Person>()
+        .kind(flecs::OnUpdate)
+        .interval(5.0f)  // Log every 5 seconds
+        .each([](flecs::entity e, const Person& person) {
+            std::cout << "  [Person] " << person.name 
+                      << " - State: " << person.GetStateString()
+                      << ", Floor: " << person.current_floor << " (" << person.current_column << ")"
+                      << ", Dest: Floor " << person.destination_floor << " (" << person.destination_column << ")"
+                      << ", Need: " << person.current_need;
+            
+            if (person.state == PersonState::WaitingForElevator || person.state == PersonState::InElevator) {
+                std::cout << ", Wait: " << static_cast<int>(person.wait_time) << "s";
+            }
+            
+            std::cout << std::endl;
+        });
+    
+    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging" << std::endl;
 }
 
 } // namespace Core

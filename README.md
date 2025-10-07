@@ -89,6 +89,7 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - `Position`: 2D position in space
 - `Velocity`: Movement velocity
 - `Actor`: Represents people in the building (name, destination floor, speed)
+- `Person`: Advanced person entity with state machine (Idle, Walking, WaitingForElevator, InElevator, AtDestination)
 - `BuildingComponent`: Represents building facilities (offices, restaurants, shops, etc.)
 - `TimeManager`: Global singleton for simulation time management (hours, days, weeks, speed control)
 - `DailySchedule`: Component for entities with time-based routines (work hours, breaks, etc.)
@@ -116,6 +117,10 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - **Daily Economy Processing System**: Processes daily financial transactions
 - **Revenue Collection System**: Collects revenue and expenses from all facilities
 - **Economic Status Reporting System**: Reports economic status for each facility
+- **Person Horizontal Movement System**: Handles walking on same floor
+- **Person Waiting System**: Tracks elevator wait times
+- **Person Elevator Riding System**: Simulates elevator travel
+- **Person State Logging System**: Debug logging for person states
 
 **ECS World** (`include/core/ecs_world.hpp`):
 - Wrapper around flecs world for clean API
@@ -170,6 +175,65 @@ facility_mgr.RemoveFacilityAt(1, 2);
 ![Facility System Demo](docs/facility_demo_screenshot.png)
 
 *Demo showing different facility types with distinct colors*
+
+### Person Movement System
+
+The Person Movement System simulates individuals moving through the tower with a complete state machine. See [docs/PERSON_MOVEMENT_SYSTEM.md](docs/PERSON_MOVEMENT_SYSTEM.md) for detailed documentation.
+
+**Person State Machine**:
+- **Idle**: Standing still, no destination
+- **Walking**: Moving horizontally on same floor
+- **WaitingForElevator**: Waiting for elevator to arrive
+- **InElevator**: Currently in an elevator
+- **AtDestination**: Reached final destination
+
+**Person Component**:
+```cpp
+struct Person {
+    std::string name;
+    PersonState state;
+    
+    // Current location
+    int current_floor;
+    float current_column;
+    
+    // Destination
+    int destination_floor;
+    float destination_column;
+    
+    // Movement & needs
+    float move_speed;
+    float wait_time;
+    std::string current_need;
+};
+```
+
+**Creating People**:
+```cpp
+// Spawn person in lobby going to office
+auto person = ecs_world.CreateEntity("Alice");
+Person alice("Alice", 0, 2.0f);  // Floor 0, column 2
+alice.SetDestination(5, 10.0f, "Going to work");
+person.set<Person>(alice);
+person.set<Satisfaction>({80.0f});
+
+// Person will:
+// 1. WaitingForElevator (different floor)
+// 2. InElevator (elevator arrives)
+// 3. Walking (arrived at floor, walking to destination)
+// 4. AtDestination (reached column 10)
+```
+
+**Movement Features**:
+- Smooth horizontal movement (2.0 columns/second default)
+- Automatic state transitions based on destination
+- Visual representation with color-coded states
+- Debug visualization showing state and destination
+- Integration ready for elevator system
+
+![Person Movement System Demo](docs/person_movement_screenshot.png)
+
+*Demo showing people in different states with destination indicators*
 
 ### Using the ECS
 
@@ -360,14 +424,20 @@ grid.RemoveFacility(facility_id);
 
 ### What's Working
 - ✅ Flecs ECS integrated and operational
-- ✅ Core module with components (Actor, BuildingComponent, Position, Velocity, TimeManager, DailySchedule, Satisfaction, FacilityEconomics, TowerEconomy)
+- ✅ Core module with components (Actor, Person, BuildingComponent, Position, Velocity, TimeManager, DailySchedule, Satisfaction, FacilityEconomics, TowerEconomy)
 - ✅ Time simulation system with configurable speed
 - ✅ Daily/weekly scheduling system for entities
+- ✅ **Person Movement System with State Machine**
+  - 5-state machine (Idle, Walking, WaitingForElevator, InElevator, AtDestination)
+  - Smooth horizontal movement on floors
+  - Vertical movement request system (elevator integration ready)
+  - Visual representation with color-coded states
+  - Debug visualization with destination indicators
 - ✅ Tenant satisfaction system with dynamic updates based on crowding, noise, and quality
 - ✅ Tower economy system with revenue collection, operating costs, and balance tracking
 - ✅ Satisfaction-driven tenant behavior (tenants join/leave based on satisfaction)
 - ✅ Quality multipliers for rent based on satisfaction levels
-- ✅ Example systems (Time simulation, Schedule execution, Movement, Actor logging, Building occupancy, Satisfaction, Economics)
+- ✅ Example systems (Time simulation, Schedule execution, Movement, Actor logging, Building occupancy, Satisfaction, Economics, Person movement)
 - ✅ Demo application showing ECS in action
 - ✅ Basic project structure
 - ✅ Raylib integration with 2D vector rendering

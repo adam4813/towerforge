@@ -101,7 +101,36 @@ int main(int argc, char* argv[]) {
     auto shop = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1);
     auto restaurant = facility_mgr.CreateFacility(BuildingComponent::Type::Restaurant, 4, 8);
     
-    // Create some example actors (people) with schedules and satisfaction
+    // Create some example people using the new Person component
+    // Person 1: Spawning in lobby, going to office on floor 1
+    auto person1 = ecs_world.CreateEntity("Alice");
+    Person alice("Alice", 0, 2.0f);  // Start at floor 0, column 2
+    alice.SetDestination(1, 8.0f, "Going to work");  // Go to floor 1, column 8
+    person1.set<Person>(alice);
+    person1.set<Satisfaction>({80.0f});
+    
+    // Person 2: Starting on floor 2, going to lobby
+    auto person2 = ecs_world.CreateEntity("Bob");
+    Person bob("Bob", 2, 12.0f);  // Start at floor 2, column 12
+    bob.SetDestination(0, 3.0f, "Going home");  // Go to floor 0 (lobby), column 3
+    person2.set<Person>(bob);
+    person2.set<Satisfaction>({75.0f});
+    
+    // Person 3: Walking on same floor
+    auto person3 = ecs_world.CreateEntity("Charlie");
+    Person charlie("Charlie", 3, 5.0f);  // Start at floor 3, column 5
+    charlie.SetDestination(3, 15.0f, "Going to shop");  // Go to same floor, column 15
+    person3.set<Person>(charlie);
+    person3.set<Satisfaction>({70.0f});
+    
+    // Person 4: At destination (idle)
+    auto person4 = ecs_world.CreateEntity("Diana");
+    Person diana("Diana", 4, 10.0f);  // Start at floor 4, column 10
+    // No destination set, will be idle
+    person4.set<Person>(diana);
+    person4.set<Satisfaction>({90.0f});
+    
+    // Keep old actors for compatibility
     auto actor1 = ecs_world.CreateEntity("John");
     actor1.set<Position>({10.0f, 0.0f});
     actor1.set<Velocity>({0.5f, 0.0f});
@@ -129,24 +158,30 @@ int main(int argc, char* argv[]) {
     actor2.set<DailySchedule>(sarah_schedule);
     
     // Create facilities with economics
-    auto lobby = ecs_world.CreateEntity("Lobby");
-    lobby.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
-    lobby.set<Satisfaction>({90.0f});
-    lobby.set<FacilityEconomics>({50.0f, 10.0f, 50});
+    auto lobby_econ = ecs_world.CreateEntity("Lobby_Economics");
+    lobby_econ.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
+    lobby_econ.set<Satisfaction>({90.0f});
+    lobby_econ.set<FacilityEconomics>({50.0f, 10.0f, 50});
     
-    auto office = ecs_world.CreateEntity("Office");
-    office.set<BuildingComponent>({BuildingComponent::Type::Office, 1, 8, 20});
-    office.set<Satisfaction>({75.0f});
-    office.set<FacilityEconomics>({150.0f, 30.0f, 20});
+    auto office_econ = ecs_world.CreateEntity("Office_Economics");
+    office_econ.set<BuildingComponent>({BuildingComponent::Type::Office, 1, 8, 20});
+    office_econ.set<Satisfaction>({75.0f});
+    office_econ.set<FacilityEconomics>({150.0f, 30.0f, 20});
     
-    auto restaurant = ecs_world.CreateEntity("Restaurant");
-    restaurant.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 2, 6, 30});
-    restaurant.set<Satisfaction>({70.0f});
-    restaurant.set<FacilityEconomics>({200.0f, 60.0f, 30});
+    auto restaurant_econ = ecs_world.CreateEntity("Restaurant_Economics");
+    restaurant_econ.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 2, 6, 30});
+    restaurant_econ.set<Satisfaction>({70.0f});
+    restaurant_econ.set<FacilityEconomics>({200.0f, 60.0f, 30});
     
-    // Render a few frames to ensure everything is drawn
-    for (int i = 0; i < 5; i++) {
+    // Render frames to allow people to move and show different states
+    // Run simulation for 3 seconds (180 frames at 60 FPS) to capture mid-movement
+    for (int i = 0; i < 180; i++) {
         ecs_world.Update(1.0f / 60.0f);
+        
+        // Only render the last few frames to capture the movement state
+        if (i < 175) {
+            continue;  // Skip rendering for performance
+        }
         
         renderer.BeginFrame();
         renderer.Clear(DARKGRAY);
@@ -204,8 +239,49 @@ int main(int argc, char* argv[]) {
             }
         }
         
+        // Draw people (Person entities)
+        auto person_query = ecs_world.GetWorld().query<const Person>();
+        person_query.each([&](flecs::entity e, const Person& person) {
+            // Calculate screen position from floor and column
+            int person_x = grid_offset_x + static_cast<int>(person.current_column * cell_width);
+            int person_y = grid_offset_y + person.current_floor * cell_height + cell_height / 2;
+            
+            // Draw person as a circle
+            Color person_color;
+            switch (person.state) {
+                case PersonState::Idle:
+                    person_color = LIGHTGRAY;
+                    break;
+                case PersonState::Walking:
+                    person_color = BLUE;
+                    break;
+                case PersonState::WaitingForElevator:
+                    person_color = ORANGE;
+                    break;
+                case PersonState::InElevator:
+                    person_color = PURPLE;
+                    break;
+                case PersonState::AtDestination:
+                    person_color = GREEN;
+                    break;
+                default:
+                    person_color = WHITE;
+                    break;
+            }
+            
+            DrawCircle(person_x, person_y, 8, person_color);
+            DrawCircle(person_x, person_y, 6, BLACK);  // Inner circle
+            DrawCircle(person_x, person_y, 4, person_color);
+            
+            // Draw destination indicator
+            int dest_x = grid_offset_x + static_cast<int>(person.destination_column * cell_width);
+            int dest_y = grid_offset_y + person.destination_floor * cell_height + cell_height / 2;
+            DrawLine(person_x, person_y, dest_x, dest_y, Color{255, 255, 255, 100});
+            DrawCircle(dest_x, dest_y, 4, Color{person_color.r, person_color.g, person_color.b, 150});
+        });
+        
         // Draw title and legend
-        DrawText("TowerForge - Time Simulation & Grid System", 50, 10, 20, WHITE);
+        DrawText("TowerForge - Person Movement System", 50, 10, 20, WHITE);
         
         // Display current simulation time (top-left panel)
         const auto& time_mgr = ecs_world.GetWorld().get<TimeManager>();
@@ -238,10 +314,45 @@ int main(int argc, char* argv[]) {
         DrawRectangle(50, 415, 20, 15, RED);
         DrawText("Restaurant", 80, 415, 14, WHITE);
         
+        // Person state legend
+        DrawText("Person States:", 50, 450, 14, WHITE);
+        DrawCircle(60, 473, 6, BLUE);
+        DrawText("Walking", 75, 468, 12, WHITE);
+        DrawCircle(155, 473, 6, ORANGE);
+        DrawText("Waiting", 170, 468, 12, WHITE);
+        DrawCircle(60, 493, 6, PURPLE);
+        DrawText("In Elevator", 75, 488, 12, WHITE);
+        DrawCircle(155, 493, 6, GREEN);
+        DrawText("At Dest", 170, 488, 12, WHITE);
+        
         // Draw info panel
-        DrawText(TextFormat("Occupied cells: %d", grid.GetOccupiedCellCount()), 50, 450, 16, LIGHTGRAY);
-        DrawText(TextFormat("Floors: %d | Columns: %d", grid.GetFloorCount(), grid.GetColumnCount()), 50, 470, 16, LIGHTGRAY);
-        DrawText("Actors: 2 (John, Sarah)", 50, 490, 16, LIGHTGRAY);
+        DrawText(TextFormat("Occupied cells: %d", grid.GetOccupiedCellCount()), 50, 520, 16, LIGHTGRAY);
+        DrawText(TextFormat("Floors: %d | Columns: %d", grid.GetFloorCount(), grid.GetColumnCount()), 50, 540, 16, LIGHTGRAY);
+        
+        // Person debug info panel
+        DrawRectangle(520, 170, 250, 180, Color{0, 0, 0, 180});
+        DrawText("People Status:", 530, 180, 16, YELLOW);
+        
+        int person_info_y = 205;
+        auto person_debug_query = ecs_world.GetWorld().query<const Person>();
+        person_debug_query.each([&](flecs::entity e, const Person& person) {
+            if (person_info_y < 340) {  // Don't overflow panel
+                std::string info = person.name + ": " + std::string(person.GetStateString());
+                DrawText(info.c_str(), 530, person_info_y, 12, WHITE);
+                person_info_y += 15;
+                
+                std::string location = "  F" + std::to_string(person.current_floor) + 
+                                     " C" + std::to_string(static_cast<int>(person.current_column)) +
+                                     " -> F" + std::to_string(person.destination_floor) +
+                                     " C" + std::to_string(static_cast<int>(person.destination_column));
+                DrawText(location.c_str(), 530, person_info_y, 10, LIGHTGRAY);
+                person_info_y += 15;
+                
+                std::string need = "  Need: " + person.current_need;
+                DrawText(need.c_str(), 530, person_info_y, 10, LIGHTGRAY);
+                person_info_y += 20;
+            }
+        });
         
         renderer.EndFrame();
     }
