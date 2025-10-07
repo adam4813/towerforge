@@ -67,17 +67,9 @@ This implementation adds a comprehensive star rating system that evaluates overa
    - Integrated rating calculation in game loop
    - Real-time statistics collection from ECS
 
-4. **CMakeLists.txt**
-   - Added `star_rating_demo` target for testing
-
 ### Files Added
 
-1. **star_rating_demo.cpp**
-   - Standalone demo application
-   - Shows 3-star tower with realistic statistics
-   - Generates screenshot for documentation
-
-2. **star_rating_demo.png**
+1. **star_rating_demo.png**
    - Visual demonstration of the system
    - Shows HUD with star rating overlay
    - Included in README.md
