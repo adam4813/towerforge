@@ -189,6 +189,12 @@ grid.RemoveFacility(facility_id);
 - ✅ Modular renderer design for ECS integration
 - ✅ Working demo window with test shapes
 - ✅ Comprehensive unit tests for Tower Grid System
+- ✅ **HUD and Information Display System**
+  - Top bar with funds, population, time, and speed display
+  - Info panels for facilities, people, and elevators
+  - Notification system with auto-expiry
+  - Build menu for selecting facilities
+  - Speed controls UI (pause, 1x, 2x, 4x)
 
 ### Tower Grid System Demo
 
@@ -202,7 +208,7 @@ The screenshot above shows the Tower Grid System in action with:
 
 ### Running the Demo
 
-After building, run the demo to see the ECS simulation:
+After building, run the main demo to see the ECS simulation:
 
 ```bash
 cd build
@@ -213,6 +219,26 @@ The demo creates example actors and building components, then runs a 30-second s
 - Actors moving with velocity
 - Periodic logging of actor positions
 - Building occupancy monitoring
+- **Interactive HUD with real-time game information**
+
+#### HUD System Demo
+
+To see the full HUD system in action, run the dedicated HUD demo:
+
+```bash
+cd build
+./bin/hud_demo
+```
+
+The HUD demo showcases:
+- Top bar with funds, population, time, and simulation speed
+- Info panels for facilities, people, and elevators (press 1-4 to toggle)
+- Notification system (press N to add test notifications)
+- Build menu with facility types and costs
+- Speed controls (press SPACE to pause/resume)
+- Interactive UI elements
+
+For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/HUD_SYSTEM.md).
 
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 
