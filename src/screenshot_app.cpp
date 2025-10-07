@@ -52,7 +52,7 @@
  * 
  * TROUBLESHOOTING:
  * ---------------
- * - If screenshot is blank: Increase the frame count (line 43) to allow more
+ * - If screenshot is blank: Increase the frame count (line 110) to allow more
  *   rendering time
  * 
  * - If colors don't match: Verify the facility IDs in the switch statement
