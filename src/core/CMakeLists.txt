@@ -2,6 +2,7 @@
 add_library(towerforge_core
     ecs_world.cpp
     tower_grid.cpp
+    facility_manager.cpp
 )
 
 # Find flecs package
