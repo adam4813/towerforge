@@ -527,6 +527,13 @@ grid.RemoveFacility(facility_id);
   - Undo/redo stack (up to 20 actions)
   - Keyboard shortcuts (D, Ctrl+Z, Ctrl+Y)
   - Economy integration with costs and refunds
+- ✅ **In-Game Pause Menu**
+  - ESC key to toggle pause overlay
+  - Simulation pauses when menu is open
+  - Menu options: Resume, Save, Load, Settings, Quit to Title
+  - Confirmation dialog for quitting with unsaved changes
+  - Keyboard and mouse navigation
+  - Professional UI with animations
 
 ### Tower Grid System Demo
 
@@ -550,6 +557,20 @@ The interactive building and placement system provides a complete mouse-driven i
 - **Keyboard Shortcuts**: D for demolish, Ctrl+Z/Y for undo/redo
 
 See [docs/PLACEMENT_SYSTEM.md](docs/PLACEMENT_SYSTEM.md) for complete documentation.
+
+### In-Game Pause Menu
+
+![Pause Menu](pause_menu.png)
+
+The pause menu provides full game control during gameplay:
+- **ESC Key**: Toggles pause menu overlay
+- **Pause Simulation**: Game freezes while menu is open
+- **Menu Options**: Resume, Save, Load, Settings, Quit to Title
+- **Quit Confirmation**: Prevents accidental exits with warning dialog
+
+![Quit Confirmation Dialog](pause_menu_quit_confirmation.png)
+
+See [docs/PAUSE_MENU_IMPLEMENTATION.md](docs/PAUSE_MENU_IMPLEMENTATION.md) for complete documentation.
 
 ### Running the Demo
 
