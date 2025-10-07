@@ -3,14 +3,19 @@ add_library(towerforge_core
     ecs_world.cpp
     tower_grid.cpp
     facility_manager.cpp
+    save_load_manager.cpp
 )
 
 # Find flecs package
 find_package(flecs CONFIG REQUIRED)
 
-# Link flecs to the core library
+# Find nlohmann-json package
+find_package(nlohmann_json CONFIG REQUIRED)
+
+# Link flecs and nlohmann-json to the core library
 target_link_libraries(towerforge_core 
     PUBLIC flecs::flecs_static
+    PUBLIC nlohmann_json::nlohmann_json
 )
 
 # Include directories

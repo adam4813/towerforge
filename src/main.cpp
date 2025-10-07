@@ -3,11 +3,13 @@
 #include "rendering/camera.h"
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
+#include "core/save_load_manager.hpp"
 #include "ui/hud.h"
 #include "ui/build_menu.h"
 #include "ui/placement_system.h"
 #include "ui/main_menu.h"
 #include "ui/pause_menu.h"
+#include "ui/save_load_menu.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
@@ -183,6 +185,16 @@ int main(int argc, char* argv[]) {
     ECSWorld ecs_world;
     ecs_world.Initialize();
     
+    // Create and initialize save/load manager
+    TowerForge::Core::SaveLoadManager save_load_manager;
+    save_load_manager.Initialize();
+    save_load_manager.SetAutosaveEnabled(true);
+    save_load_manager.SetAutosaveInterval(120.0f);  // Auto-save every 2 minutes
+    
+    // Create save/load menu
+    SaveLoadMenu save_load_menu;
+    save_load_menu.SetSaveLoadManager(&save_load_manager);
+    
     // Create the global TimeManager as a singleton
     // Start at 8:00 AM on Monday, Week 1
     // Simulation runs at 60x speed (60 in-game hours per real-time second)
@@ -343,6 +355,9 @@ int main(int argc, char* argv[]) {
         
         // Only update simulation if not paused
         if (!is_paused) {
+            // Update autosave
+            save_load_manager.UpdateAutosave(time_step, ecs_world);
+            
             if (!ecs_world.Update(time_step)) {
                 break;
             }
@@ -708,6 +723,15 @@ int main(int argc, char* argv[]) {
     }
     
     // Cleanup
+    // Perform final autosave before exiting
+    if (save_load_manager.IsAutosaveEnabled()) {
+        std::cout << "Performing final autosave before exit..." << std::endl;
+        auto result = save_load_manager.Autosave(ecs_world);
+        if (result.success) {
+            std::cout << "Final autosave completed successfully" << std::endl;
+        }
+    }
+    
     renderer.Shutdown();
     
     std::cout << std::endl << "Simulation completed after " << elapsed_time << " seconds" << std::endl;
