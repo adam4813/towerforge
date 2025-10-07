@@ -123,6 +123,13 @@ int main(int argc, char* argv[]) {
     person3.set<Person>(charlie);
     person3.set<Satisfaction>({70.0f});
     
+    // Person 4: At destination (idle)
+    auto person4 = ecs_world.CreateEntity("Diana");
+    Person diana("Diana", 4, 10.0f);  // Start at floor 4, column 10
+    // No destination set, will be idle
+    person4.set<Person>(diana);
+    person4.set<Satisfaction>({90.0f});
+    
     // Keep old actors for compatibility
     auto actor1 = ecs_world.CreateEntity("John");
     actor1.set<Position>({10.0f, 0.0f});
@@ -167,12 +174,12 @@ int main(int argc, char* argv[]) {
     restaurant_econ.set<FacilityEconomics>({200.0f, 60.0f, 30});
     
     // Render frames to allow people to move and show different states
-    // Run simulation for 10 seconds (600 frames at 60 FPS) to see movement
-    for (int i = 0; i < 600; i++) {
+    // Run simulation for 3 seconds (180 frames at 60 FPS) to capture mid-movement
+    for (int i = 0; i < 180; i++) {
         ecs_world.Update(1.0f / 60.0f);
         
-        // Only render the last few frames to capture the final state
-        if (i < 595) {
+        // Only render the last few frames to capture the movement state
+        if (i < 175) {
             continue;  // Skip rendering for performance
         }
         
