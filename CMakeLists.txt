@@ -24,9 +24,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Main executable
 set(SOURCE_FILES
     src/main.cpp
+    src/rendering/renderer.cpp
 )
 
 add_executable(towerforge ${SOURCE_FILES})
+
+# Find and link dependencies
+find_package(raylib CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+target_link_libraries(towerforge PRIVATE raylib glfw)
 
 # Subdirectories for future modules (uncomment as needed)
 # add_subdirectory(src/core)
