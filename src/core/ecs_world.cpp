@@ -1,6 +1,7 @@
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
 #include "core/tower_grid.hpp"
+#include "core/facility_manager.hpp"
 #include <iostream>
 
 namespace TowerForge {
@@ -18,6 +19,9 @@ void ECSWorld::Initialize() {
     
     RegisterComponents();
     RegisterSystems();
+    
+    // Create facility manager after world is initialized
+    facility_manager_ = std::make_unique<FacilityManager>(world_, *tower_grid_);
     
     std::cout << "ECS World initialized successfully" << std::endl;
 }
@@ -45,6 +49,10 @@ flecs::entity ECSWorld::CreateEntity(const char* name) {
 
 TowerGrid& ECSWorld::GetTowerGrid() {
     return *tower_grid_;
+}
+
+FacilityManager& ECSWorld::GetFacilityManager() {
+    return *facility_manager_;
 }
 
 void ECSWorld::RegisterComponents() {
@@ -86,15 +94,7 @@ void ECSWorld::RegisterSystems() {
         .kind(flecs::OnUpdate)
         .interval(10.0f)  // Run every 10 seconds
         .each([](flecs::entity e, const BuildingComponent& component) {
-            const char* type_name = "Unknown";
-            switch(component.type) {
-                case BuildingComponent::Type::Office:     type_name = "Office"; break;
-                case BuildingComponent::Type::Restaurant: type_name = "Restaurant"; break;
-                case BuildingComponent::Type::Shop:       type_name = "Shop"; break;
-                case BuildingComponent::Type::Hotel:      type_name = "Hotel"; break;
-                case BuildingComponent::Type::Elevator:   type_name = "Elevator"; break;
-                case BuildingComponent::Type::Lobby:      type_name = "Lobby"; break;
-            }
+            const char* type_name = FacilityManager::GetTypeName(component.type);
             
             std::cout << "  " << type_name 
                       << " on floor " << component.floor 

@@ -45,19 +45,29 @@ struct Actor {
 };
 
 /**
- * @brief Component for building components (offices, restaurants, etc.)
+ * @brief Component for building components (offices, residences, shops, etc.)
  * 
  * BuildingComponents represent the various facilities and rooms
  * that can be placed in the tower.
+ * 
+ * Facility Types:
+ * - Office: Commercial workspace for office workers. Generates rent income.
+ * - Residential: Condominiums for tower residents. Provides housing and generates rent.
+ * - RetailShop: Commercial shops selling goods/services. Generates retail income.
+ * - Lobby: Main entrance/exit point for the tower. Required on ground floor.
+ * - Restaurant: Food service facility (legacy type, kept for compatibility)
+ * - Hotel: Temporary lodging (legacy type, kept for compatibility)
+ * - Elevator: Vertical transportation (legacy type, kept for compatibility)
  */
 struct BuildingComponent {
     enum class Type {
-        Office,
-        Restaurant,
-        Shop,
-        Hotel,
-        Elevator,
-        Lobby
+        Office,        // Commercial office space
+        Residential,   // Residential condominiums
+        RetailShop,    // Retail shop
+        Lobby,         // Main entrance/lobby
+        Restaurant,    // Food service (legacy)
+        Hotel,         // Hotel rooms (legacy)
+        Elevator       // Vertical transport (legacy)
     };
 
     Type type;

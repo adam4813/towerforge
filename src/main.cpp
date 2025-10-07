@@ -34,34 +34,24 @@ int main(int argc, char* argv[]) {
     actor2.set<Velocity>({-0.3f, 0.0f});
     actor2.set<Actor>({"Sarah", 3, 0.8f});
     
-    // Create some example building components
-    auto lobby = ecs_world.CreateEntity("Lobby");
-    lobby.set<Position>({0.0f, 0.0f});
-    lobby.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
+    std::cout << "  Created 2 actors" << std::endl;
     
-    auto office1 = ecs_world.CreateEntity("Office_Floor_5");
-    office1.set<Position>({0.0f, 50.0f});
-    office1.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
-    
-    auto restaurant = ecs_world.CreateEntity("Restaurant_Floor_3");
-    restaurant.set<Position>({0.0f, 30.0f});
-    restaurant.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
-    
-    std::cout << "  Created 2 actors and 3 building components" << std::endl;
-    
-    // Demonstrate Tower Grid System
-    std::cout << std::endl << "Demonstrating Tower Grid System..." << std::endl;
+    // Demonstrate Tower Grid System and Facility Manager
+    std::cout << std::endl << "Demonstrating Tower Grid System and Facility Manager..." << std::endl;
     auto& grid = ecs_world.GetTowerGrid();
+    auto& facility_mgr = ecs_world.GetFacilityManager();
     
     std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x " 
               << grid.GetColumnCount() << " columns" << std::endl;
     
-    // Place facilities on the grid
-    std::cout << "  Placing facilities on grid..." << std::endl;
-    grid.PlaceFacility(0, 0, 10, 1);   // Lobby on floor 0
-    grid.PlaceFacility(1, 2, 8, 2);    // Office on floor 1
-    grid.PlaceFacility(2, 5, 6, 3);    // Restaurant on floor 2
-    grid.PlaceFacility(3, 1, 4, 4);    // Shop on floor 3
+    // Create and place facilities using FacilityManager
+    std::cout << "  Creating facilities..." << std::endl;
+    auto lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0, 0, "MainLobby");
+    auto office1 = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2, 0, "Office_Floor_1");
+    auto residential1 = facility_mgr.CreateFacility(BuildingComponent::Type::Residential, 2, 5, 0, "Condo_Floor_2");
+    auto shop1 = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1, 0, "Shop_Floor_3");
+    
+    std::cout << "  Created 4 facilities (Lobby, Office, Residential, RetailShop)" << std::endl;
     
     std::cout << "  Occupied cells: " << grid.GetOccupiedCellCount() << std::endl;
     std::cout << "  Facility at (0, 0): " << grid.GetFacilityAt(0, 0) << std::endl;
