@@ -1,0 +1,1 @@
+cmake_minimum_required(VERSION 3.20)\nset(CMAKE_CXX_STANDARD 20)\n\nproject(towerforge)\n\n# Specify the vcpkg toolchain\nset(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake)\n\n# Include subdirectories for libs and src\nset(SOURCE_FILES src/main.cpp)\n\nadd_executable(towerforge ${SOURCE_FILES})\n
