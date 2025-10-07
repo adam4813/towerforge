@@ -49,14 +49,6 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp src/ui/main_menu.cpp src/ui/pause_menu.cpp src/ui/save_load_menu.cpp src/ui/achievements_menu.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
-# Achievements screenshot application
-add_executable(achievements_screenshot src/achievements_screenshot.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/achievements_menu.cpp)
-target_link_libraries(achievements_screenshot PRIVATE raylib glfw towerforge_core)
-
-# Main menu screenshot application
-add_executable(main_menu_screenshot src/main_menu_screenshot.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/main_menu.cpp)
-target_link_libraries(main_menu_screenshot PRIVATE raylib glfw towerforge_core)
-
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
