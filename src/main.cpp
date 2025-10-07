@@ -67,23 +67,23 @@ int main(int argc, char* argv[]) {
     std::cout << "  Created 2 actors" << std::endl;
     
     // Create some example building components with economics
-    auto lobby = ecs_world.CreateEntity("Lobby");
-    lobby.set<Position>({0.0f, 0.0f});
-    lobby.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
-    lobby.set<Satisfaction>({85.0f});  // Lobbies generally have good satisfaction
-    lobby.set<FacilityEconomics>({50.0f, 10.0f, 50});  // Low rent, low cost, high capacity
+    auto lobby_entity = ecs_world.CreateEntity("Lobby");
+    lobby_entity.set<Position>({0.0f, 0.0f});
+    lobby_entity.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
+    lobby_entity.set<Satisfaction>({85.0f});  // Lobbies generally have good satisfaction
+    lobby_entity.set<FacilityEconomics>({50.0f, 10.0f, 50});  // Low rent, low cost, high capacity
     
-    auto office1 = ecs_world.CreateEntity("Office_Floor_5");
-    office1.set<Position>({0.0f, 50.0f});
-    office1.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
-    office1.set<Satisfaction>({70.0f});
-    office1.set<FacilityEconomics>({150.0f, 30.0f, 20});  // Medium rent, medium cost
+    auto office1_entity = ecs_world.CreateEntity("Office_Floor_5");
+    office1_entity.set<Position>({0.0f, 50.0f});
+    office1_entity.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
+    office1_entity.set<Satisfaction>({70.0f});
+    office1_entity.set<FacilityEconomics>({150.0f, 30.0f, 20});  // Medium rent, medium cost
     
-    auto restaurant = ecs_world.CreateEntity("Restaurant_Floor_3");
-    restaurant.set<Position>({0.0f, 30.0f});
-    restaurant.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
-    restaurant.set<Satisfaction>({65.0f});
-    restaurant.set<FacilityEconomics>({200.0f, 60.0f, 30});  // High rent, high cost
+    auto restaurant_entity = ecs_world.CreateEntity("Restaurant_Floor_3");
+    restaurant_entity.set<Position>({0.0f, 30.0f});
+    restaurant_entity.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
+    restaurant_entity.set<Satisfaction>({65.0f});
+    restaurant_entity.set<FacilityEconomics>({200.0f, 60.0f, 30});  // High rent, high cost
     
     std::cout << "  Created 2 actors and 3 building components with satisfaction and economics" << std::endl;
     

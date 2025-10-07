@@ -129,20 +129,20 @@ int main(int argc, char* argv[]) {
     actor2.set<DailySchedule>(sarah_schedule);
     
     // Create facilities with economics
-    auto lobby = ecs_world.CreateEntity("Lobby");
-    lobby.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
-    lobby.set<Satisfaction>({90.0f});
-    lobby.set<FacilityEconomics>({50.0f, 10.0f, 50});
+    auto lobby_econ = ecs_world.CreateEntity("Lobby_Economics");
+    lobby_econ.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
+    lobby_econ.set<Satisfaction>({90.0f});
+    lobby_econ.set<FacilityEconomics>({50.0f, 10.0f, 50});
     
-    auto office = ecs_world.CreateEntity("Office");
-    office.set<BuildingComponent>({BuildingComponent::Type::Office, 1, 8, 20});
-    office.set<Satisfaction>({75.0f});
-    office.set<FacilityEconomics>({150.0f, 30.0f, 20});
+    auto office_econ = ecs_world.CreateEntity("Office_Economics");
+    office_econ.set<BuildingComponent>({BuildingComponent::Type::Office, 1, 8, 20});
+    office_econ.set<Satisfaction>({75.0f});
+    office_econ.set<FacilityEconomics>({150.0f, 30.0f, 20});
     
-    auto restaurant = ecs_world.CreateEntity("Restaurant");
-    restaurant.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 2, 6, 30});
-    restaurant.set<Satisfaction>({70.0f});
-    restaurant.set<FacilityEconomics>({200.0f, 60.0f, 30});
+    auto restaurant_econ = ecs_world.CreateEntity("Restaurant_Economics");
+    restaurant_econ.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 2, 6, 30});
+    restaurant_econ.set<Satisfaction>({70.0f});
+    restaurant_econ.set<FacilityEconomics>({200.0f, 60.0f, 30});
     
     // Render a few frames to ensure everything is drawn
     for (int i = 0; i < 5; i++) {
