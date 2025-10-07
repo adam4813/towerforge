@@ -21,6 +21,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+# Subdirectories for modules
+add_subdirectory(src/core)
+
 # Main executable
 set(SOURCE_FILES
     src/main.cpp
@@ -28,8 +31,10 @@ set(SOURCE_FILES
 
 add_executable(towerforge ${SOURCE_FILES})
 
-# Subdirectories for future modules (uncomment as needed)
-# add_subdirectory(src/core)
+# Link core library to the executable
+target_link_libraries(towerforge PRIVATE towerforge_core)
+
+# Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
 # add_subdirectory(third_party)
