@@ -93,7 +93,6 @@ int main(int argc, char* argv[]) {
     hud.AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
     hud.AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
     
-    std::cout << "  Created 2 actors and 3 building components" << std::endl;
     
     // Demonstrate Tower Grid System
     std::cout << std::endl << "Demonstrating Tower Grid System..." << std::endl;
