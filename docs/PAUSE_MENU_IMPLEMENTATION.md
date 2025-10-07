@@ -19,9 +19,6 @@ The pause menu is an overlay that appears when the player presses ESC during gam
 ### Implementation File
 - `src/ui/pause_menu.cpp` - PauseMenu class implementation
 
-### Screenshot Application
-- `src/pause_menu_screenshot.cpp` - Standalone app to generate pause menu screenshots
-
 ## Architecture
 
 The implementation follows the existing TowerForge UI architecture:
@@ -222,11 +219,6 @@ The pause menu can be tested by:
    - Navigate with arrow keys or mouse
    - Test each menu option
    - Try the quit confirmation dialog
-
-4. **Generate screenshots:**
-   ```bash
-   xvfb-run -a ./bin/pause_menu_screenshot
-   ```
 
 ## Notes
 
