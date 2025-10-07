@@ -46,7 +46,7 @@
  * - Grid layout (lines 117-120): Modify grid_offset_x/y, cell_width/height to
  *   change the visual grid dimensions
  * 
- * - Legend (lines 92-102): Update to reflect new facility types or colors
+ * - Legend (lines 156-169): Update to reflect new facility types or colors
  * 
  * - Text/Labels (lines 157-173): Modify to update title, descriptions, or stats
  * 
