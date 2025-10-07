@@ -48,7 +48,7 @@
  * 
  * - Legend (lines 92-102): Update to reflect new facility types or colors
  * 
- * - Text/Labels (lines 90-106): Modify to update title, descriptions, or stats
+ * - Text/Labels (lines 157-173): Modify to update title, descriptions, or stats
  * 
  * TROUBLESHOOTING:
  * ---------------
