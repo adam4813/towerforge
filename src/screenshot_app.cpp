@@ -40,7 +40,7 @@
  * - Facility placement (lines 92-96): Add/modify grid.PlaceFacility() calls
  *   to change which facilities are displayed
  * 
- * - Colors (lines 76-82): Update the switch statement to change facility colors
+ * - Colors (lines 143-149): Update the switch statement to change facility colors
  *   or add new facility types
  * 
  * - Grid layout (lines 50-64): Modify grid_offset_x/y, cell_width/height to
