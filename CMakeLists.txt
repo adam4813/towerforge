@@ -50,6 +50,10 @@ target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 add_executable(title_screen_screenshot src/title_screen_screenshot.cpp src/rendering/renderer.cpp src/ui/main_menu.cpp)
 target_link_libraries(title_screen_screenshot PRIVATE raylib glfw)
 
+# Credits screen screenshot application
+add_executable(credits_screen_screenshot src/credits_screen_screenshot.cpp src/rendering/renderer.cpp)
+target_link_libraries(credits_screen_screenshot PRIVATE raylib glfw)
+
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
