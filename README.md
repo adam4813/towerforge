@@ -213,6 +213,23 @@ cd build
 ./bin/tower_grid_test
 ```
 
+### Running the Grid System Demo
+
+To see the Tower Grid System in action:
+
+```bash
+cd build
+./bin/grid_demo
+```
+
+This demo showcases:
+- Grid initialization and state management
+- Facility placement with collision detection
+- Spatial queries and availability checks
+- Dynamic grid expansion (adding floors and columns)
+- Facility removal and space reclamation
+- Integration with ECS entities
+
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 
 ## License
