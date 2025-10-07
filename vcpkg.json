@@ -1,8 +1,9 @@
 {
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "towerforge",
   "version": "0.1.0",
-  "description": "Tower Defense Game Engine",
-  "homepage": "https://github.com/adam4813/towerforge",
-  "dependencies": [],
-  "builtin-baseline": "latest"
+  "dependencies": [
+    "flecs",
+    "raylib"
+  ]
 }

@@ -1,112 +1,60 @@
 # TowerForge
 
-A modular tower defense game engine built with C++ and CMake.
+A modern open-source SimTower-inspired skyscraper simulation game built with C++20.
 
-## Requirements
+## Tech Stack
+
+- **Language**: C++20
+- **ECS**: [flecs](https://github.com/SanderMertens/flecs)
+- **Rendering**: [Raylib](https://www.raylib.com/)
+- **Build System**: CMake 3.20+
+- **Package Manager**: vcpkg
+
+## Building
+
+### Prerequisites
 
 - CMake 3.20 or higher
 - C++20 compatible compiler (GCC 10+, Clang 10+, MSVC 2019+)
-- vcpkg (for dependency management)
+- vcpkg (clone next to this repo or set VCPKG_ROOT)
 
-## Building the Project
-
-### 1. Install vcpkg
-
-First, clone and bootstrap vcpkg in the project directory:
+### Build Steps
 
 ```bash
-# Clone vcpkg
+# Clone the repository
+git clone https://github.com/adam4813/towerforge.git
+cd towerforge
+
+# Clone vcpkg if you haven't already
 git clone https://github.com/microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh  # or bootstrap-vcpkg.bat on Windows
 
-# Bootstrap vcpkg (Linux/macOS)
-./vcpkg/bootstrap-vcpkg.sh
-
-# Bootstrap vcpkg (Windows)
-.\vcpkg\bootstrap-vcpkg.bat
-```
-
-### 2. Configure and Build
-
-#### Linux/macOS
-
-```bash
-# Create build directory
+# Build the project
 mkdir build
 cd build
-
-# Configure with CMake
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake
-
-# Build
 cmake --build .
-
-# Run the executable
-./bin/towerforge
 ```
 
-#### Windows
+### Cross-Platform Support
 
-```bash
-# Create build directory
-mkdir build
-cd build
+- **Windows**: Visual Studio 2019+ or MinGW-w64
+- **Linux**: GCC 10+ or Clang 10+
+- **macOS**: Xcode 12+ or Clang 10+
 
-# Configure with CMake
-cmake .. -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake
+## Architecture
 
-# Build
-cmake --build .
+TowerForge is designed with a modular architecture to support future multiplayer features:
 
-# Run the executable
-.\bin\Debug\towerforge.exe
-```
+- **Core**: Headless simulation library (ECS-based)
+- **Renderer**: 2D vector graphics using Raylib
+- **Simulation**: Tower management, tenants, elevators, people AI
 
-## Project Structure
+## Current Status
 
-```
-towerforge/
-├── CMakeLists.txt          # Root CMake configuration
-├── vcpkg.json              # vcpkg dependency manifest
-├── README.md               # This file
-├── .gitignore              # Git ignore rules
-├── src/                    # Source files
-│   └── main.cpp            # Application entry point
-├── include/                # Public header files
-│   └── towerforge/         # Project headers
-└── third_party/            # Third-party dependencies
-```
+🚧 **Early Development** - Basic project structure in place
 
-## Adding Dependencies
-
-To add a new dependency via vcpkg, edit `vcpkg.json` and add it to the `dependencies` array:
-
-```json
-{
-  "dependencies": [
-    "sdl2",
-    "glm"
-  ]
-}
-```
-
-Then reconfigure CMake and the dependencies will be automatically installed.
-
-## Future Modules
-
-The project is structured to support future expansion with these planned modules:
-
-- **Core** - Game logic and engine foundation
-- **Rendering** - Graphics and visualization
-- **Simulation** - Physics and game mechanics
-- **Audio** - Sound and music systems
-- **UI** - User interface components
-
-## Cross-Platform Support
-
-This project is designed to build on:
-- **Windows** (MSVC, MinGW)
-- **Linux** (GCC, Clang)
-- **macOS** (Clang)
+See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 
 ## License
 
