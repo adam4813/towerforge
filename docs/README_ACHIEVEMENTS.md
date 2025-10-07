@@ -124,8 +124,6 @@ The game checks for achievements every frame when not paused, ensuring immediate
 - `src/core/achievement_manager.cpp` - Achievement manager implementation
 - `include/ui/achievements_menu.h` - Achievements menu header
 - `src/ui/achievements_menu.cpp` - Achievements menu implementation
-- `src/achievements_screenshot.cpp` - Screenshot tool for achievements menu
-- `src/main_menu_screenshot.cpp` - Screenshot tool for main menu
 - `achievements_menu.png` - Screenshot of achievements menu
 - `main_menu_with_achievements.png` - Screenshot of main menu
 
