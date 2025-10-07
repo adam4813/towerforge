@@ -6,10 +6,20 @@
 #include "ui/hud.h"
 #include "ui/build_menu.h"
 #include "ui/placement_system.h"
+#include "ui/main_menu.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
 using namespace towerforge::rendering;
+
+// Game modes
+enum class GameMode {
+    TitleScreen,
+    InGame,
+    Settings,
+    Credits,
+    Quit
+};
 
 int main(int argc, char* argv[]) {
     std::cout << "TowerForge - Tower Simulation Game" << std::endl;
@@ -18,7 +28,155 @@ int main(int argc, char* argv[]) {
     
     // Create and initialize the renderer
     towerforge::rendering::Renderer renderer;
-    renderer.Initialize(800, 600, "TowerForge - 2D Vector Rendering Demo");
+    renderer.Initialize(800, 600, "TowerForge");
+    
+    // Game mode management
+    GameMode current_mode = GameMode::TitleScreen;
+    bool game_initialized = false;
+    
+    // Create main menu
+    MainMenu main_menu;
+    
+    // Title screen loop
+    while (current_mode == GameMode::TitleScreen && !renderer.ShouldClose()) {
+        float delta_time = GetFrameTime();
+        
+        // Update menu
+        main_menu.Update(delta_time);
+        
+        // Handle input
+        int keyboard_selection = main_menu.HandleKeyboard();
+        int mouse_selection = main_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                     IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+        
+        int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+        
+        if (selected >= 0) {
+            MenuOption option = static_cast<MenuOption>(selected);
+            switch (option) {
+                case MenuOption::NewGame:
+                    current_mode = GameMode::InGame;
+                    std::cout << "Starting new game..." << std::endl;
+                    break;
+                case MenuOption::LoadGame:
+                    std::cout << "Load game not yet implemented" << std::endl;
+                    // For now, just start a new game
+                    current_mode = GameMode::InGame;
+                    break;
+                case MenuOption::Settings:
+                    current_mode = GameMode::Settings;
+                    std::cout << "Settings screen not yet implemented, returning to menu..." << std::endl;
+                    // For now, stay on title screen
+                    current_mode = GameMode::TitleScreen;
+                    break;
+                case MenuOption::Credits:
+                    current_mode = GameMode::Credits;
+                    break;
+                case MenuOption::Quit:
+                    current_mode = GameMode::Quit;
+                    break;
+            }
+        }
+        
+        // Render
+        renderer.BeginFrame();
+        main_menu.Render();
+        renderer.EndFrame();
+    }
+    
+    // Handle credits screen
+    if (current_mode == GameMode::Credits) {
+        while (current_mode == GameMode::Credits && !renderer.ShouldClose()) {
+            // Simple credits screen
+            renderer.BeginFrame();
+            ClearBackground(Color{20, 20, 30, 255});
+            
+            int screen_width = GetScreenWidth();
+            int y = 100;
+            
+            DrawText("CREDITS", (screen_width - MeasureText("CREDITS", 40)) / 2, y, 40, GOLD);
+            y += 80;
+            
+            DrawText("TowerForge v0.1.0", (screen_width - MeasureText("TowerForge v0.1.0", 24)) / 2, y, 24, WHITE);
+            y += 50;
+            
+            DrawText("A modern SimTower-inspired skyscraper simulation", 
+                     (screen_width - MeasureText("A modern SimTower-inspired skyscraper simulation", 18)) / 2, 
+                     y, 18, LIGHTGRAY);
+            y += 60;
+            
+            DrawText("Built with:", (screen_width - MeasureText("Built with:", 20)) / 2, y, 20, LIGHTGRAY);
+            y += 40;
+            DrawText("- C++20", (screen_width - MeasureText("- C++20", 18)) / 2, y, 18, WHITE);
+            y += 30;
+            DrawText("- Raylib (rendering)", (screen_width - MeasureText("- Raylib (rendering)", 18)) / 2, y, 18, WHITE);
+            y += 30;
+            DrawText("- Flecs (ECS framework)", (screen_width - MeasureText("- Flecs (ECS framework)", 18)) / 2, y, 18, WHITE);
+            y += 60;
+            
+            DrawText("Press ESC or ENTER to return to menu", 
+                     (screen_width - MeasureText("Press ESC or ENTER to return to menu", 16)) / 2, 
+                     y, 16, GRAY);
+            
+            renderer.EndFrame();
+            
+            // Check for return to menu
+            if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+                current_mode = GameMode::TitleScreen;
+            }
+        }
+        
+        // Return to title screen if not quitting
+        if (current_mode != GameMode::Quit && !renderer.ShouldClose()) {
+            current_mode = GameMode::TitleScreen;
+            // Restart title screen loop
+            while (current_mode == GameMode::TitleScreen && !renderer.ShouldClose()) {
+                float delta_time = GetFrameTime();
+                main_menu.Update(delta_time);
+                
+                int keyboard_selection = main_menu.HandleKeyboard();
+                int mouse_selection = main_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                             IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                
+                int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+                
+                if (selected >= 0) {
+                    MenuOption option = static_cast<MenuOption>(selected);
+                    switch (option) {
+                        case MenuOption::NewGame:
+                            current_mode = GameMode::InGame;
+                            break;
+                        case MenuOption::LoadGame:
+                            current_mode = GameMode::InGame;
+                            break;
+                        case MenuOption::Settings:
+                            current_mode = GameMode::TitleScreen;
+                            break;
+                        case MenuOption::Credits:
+                            current_mode = GameMode::Credits;
+                            break;
+                        case MenuOption::Quit:
+                            current_mode = GameMode::Quit;
+                            break;
+                    }
+                }
+                
+                renderer.BeginFrame();
+                main_menu.Render();
+                renderer.EndFrame();
+            }
+        }
+    }
+    
+    // Exit if user chose quit or closed window
+    if (current_mode == GameMode::Quit || renderer.ShouldClose()) {
+        renderer.Shutdown();
+        std::cout << "Exiting TowerForge..." << std::endl;
+        return 0;
+    }
+    
+    // Initialize game (only when entering InGame mode)
+    std::cout << "Initializing game..." << std::endl;
     
     // Create and initialize the ECS world
     ECSWorld ecs_world;
