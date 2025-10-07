@@ -1,3 +1,70 @@
+/**
+ * @file screenshot_app.cpp
+ * @brief Screenshot generation tool for TowerForge Tower Grid System documentation
+ * 
+ * USAGE INSTRUCTIONS FOR FUTURE MAINTENANCE:
+ * ==========================================
+ * 
+ * WHEN TO UPDATE THIS TOOL:
+ * ------------------------
+ * - When the Tower Grid System API changes (new methods, different behavior)
+ * - When adding new facility types to the system
+ * - When the grid dimensions or layout need to be visualized differently
+ * - When the visual style or color scheme needs updating
+ * - When documentation screenshots need to be regenerated
+ * 
+ * HOW TO USE THIS TOOL:
+ * --------------------
+ * 1. Build the project:
+ *    ```bash
+ *    mkdir build && cd build
+ *    cmake .. -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake
+ *    cmake --build .
+ *    ```
+ * 
+ * 2. Run with Xvfb (headless X server) to generate screenshots:
+ *    ```bash
+ *    xvfb-run -a ./bin/screenshot_app
+ *    ```
+ *    This creates: towerforge_screenshot.png in the current directory
+ * 
+ * 3. Copy the screenshot to the docs folder:
+ *    ```bash
+ *    cp towerforge_screenshot.png ../docs/grid_demo_screenshot.png
+ *    ```
+ * 
+ * 4. Update the PR/README with the new screenshot if needed
+ * 
+ * HOW TO UPDATE THE VISUALIZATION:
+ * --------------------------------
+ * - Facility placement (lines 25-29): Add/modify grid.PlaceFacility() calls
+ *   to change which facilities are displayed
+ * 
+ * - Colors (lines 76-82): Update the switch statement to change facility colors
+ *   or add new facility types
+ * 
+ * - Grid layout (lines 50-64): Modify grid_offset_x/y, cell_width/height to
+ *   change the visual grid dimensions
+ * 
+ * - Legend (lines 92-102): Update to reflect new facility types or colors
+ * 
+ * - Text/Labels (lines 90-106): Modify to update title, descriptions, or stats
+ * 
+ * TROUBLESHOOTING:
+ * ---------------
+ * - If screenshot is blank: Increase the frame count (line 43) to allow more
+ *   rendering time
+ * 
+ * - If colors don't match: Verify the facility IDs in the switch statement
+ *   match the IDs used in PlaceFacility() calls
+ * 
+ * - If running without Xvfb fails: Install xvfb-run or run on a system with
+ *   an X server (display)
+ * 
+ * - If screenshot path fails: Check write permissions for /tmp or modify the
+ *   path in line 113
+ */
+
 #include <iostream>
 #include "rendering/renderer.h"
 #include "core/ecs_world.hpp"
