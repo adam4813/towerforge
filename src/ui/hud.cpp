@@ -29,6 +29,7 @@ void HUD::Update(float delta_time) {
 
 void HUD::Render() {
     RenderTopBar();
+    RenderStarRating();
     
     if (show_facility_panel_) {
         RenderFacilityPanel();
@@ -44,6 +45,11 @@ void HUD::Render() {
     
     RenderNotifications();
     RenderSpeedControls();
+    
+    // Render end-game summary if max stars achieved
+    if (game_state_.rating.stars >= 5) {
+        RenderEndGameSummary();
+    }
 }
 
 void HUD::SetGameState(const GameState& state) {
@@ -155,6 +161,95 @@ void HUD::RenderTopBar() {
         speed_text = std::to_string(game_state_.speed_multiplier) + "x";
     }
     DrawText(speed_text.c_str(), x, y, 20, game_state_.paused ? RED : YELLOW);
+}
+
+void HUD::RenderStarRating() {
+    int screen_width = GetScreenWidth();
+    int panel_x = screen_width - STAR_RATING_WIDTH - 10;
+    int panel_y = TOP_BAR_HEIGHT + 10;
+    
+    // Draw panel background
+    DrawRectangle(panel_x, panel_y, STAR_RATING_WIDTH, STAR_RATING_HEIGHT, ColorAlpha(BLACK, 0.8f));
+    DrawRectangle(panel_x, panel_y, STAR_RATING_WIDTH, 2, GOLD);
+    
+    int x = panel_x + PANEL_PADDING;
+    int y = panel_y + PANEL_PADDING;
+    
+    // Title with stars
+    std::string stars_display;
+    for (int i = 0; i < 5; i++) {
+        if (i < game_state_.rating.stars) {
+            stars_display += "*";  // Filled star
+        } else {
+            stars_display += "o";  // Empty star (using 'o' as placeholder)
+        }
+    }
+    
+    DrawText(stars_display.c_str(), x, y, 20, GOLD);
+    DrawText("Tower Rating", x + 110, y + 2, 16, WHITE);
+    y += 30;
+    
+    // Satisfaction
+    std::stringstream sat_ss;
+    sat_ss << "Satisfaction: " << std::fixed << std::setprecision(0) 
+           << game_state_.rating.average_satisfaction << "%";
+    DrawText(sat_ss.str().c_str(), x, y, 14, LIGHTGRAY);
+    y += 20;
+    
+    // Tenants
+    std::stringstream tenants_ss;
+    tenants_ss << "Tenants: " << game_state_.rating.total_tenants;
+    DrawText(tenants_ss.str().c_str(), x, y, 14, LIGHTGRAY);
+    y += 20;
+    
+    // Floors
+    std::stringstream floors_ss;
+    floors_ss << "Floors: " << game_state_.rating.total_floors;
+    DrawText(floors_ss.str().c_str(), x, y, 14, LIGHTGRAY);
+    y += 20;
+    
+    // Income
+    std::stringstream income_ss;
+    income_ss << "Income: $" << std::fixed << std::setprecision(0) 
+              << game_state_.rating.hourly_income << "/hr";
+    DrawText(income_ss.str().c_str(), x, y, 14, GREEN);
+    y += 25;
+    
+    // Next milestone (only if not at max stars)
+    if (game_state_.rating.stars < 5) {
+        DrawRectangle(panel_x + 5, y, STAR_RATING_WIDTH - 10, 1, DARKGRAY);
+        y += 10;
+        
+        std::string next_star = "Next star:";
+        DrawText(next_star.c_str(), x, y, 14, YELLOW);
+        y += 20;
+        
+        // Show the most relevant requirement
+        if (game_state_.rating.next_star_tenants > 0) {
+            std::stringstream next_ss;
+            int needed = game_state_.rating.next_star_tenants - game_state_.rating.total_tenants;
+            if (needed > 0) {
+                next_ss << "  +" << needed << " tenants";
+                DrawText(next_ss.str().c_str(), x, y, 12, GRAY);
+                y += 18;
+            }
+        }
+        
+        if (game_state_.rating.next_star_satisfaction > 0) {
+            std::stringstream next_ss;
+            float needed = game_state_.rating.next_star_satisfaction - game_state_.rating.average_satisfaction;
+            if (needed > 0) {
+                next_ss << "  " << std::fixed << std::setprecision(0) 
+                       << needed << "% satisfaction";
+                DrawText(next_ss.str().c_str(), x, y, 12, GRAY);
+                y += 18;
+            }
+        }
+    } else {
+        DrawRectangle(panel_x + 5, y, STAR_RATING_WIDTH - 10, 1, GOLD);
+        y += 10;
+        DrawText("MAX RATING!", x + 45, y, 16, GOLD);
+    }
 }
 
 void HUD::RenderFacilityPanel() {
@@ -402,6 +497,72 @@ std::string HUD::GetSatisfactionEmoji(float satisfaction) {
     if (satisfaction >= 60) return ":|";
     if (satisfaction >= 40) return ":/";
     return ":(";
+}
+
+void HUD::RenderEndGameSummary() {
+    int screen_width = GetScreenWidth();
+    int screen_height = GetScreenHeight();
+    
+    // Semi-transparent overlay
+    DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.7f));
+    
+    // Summary box
+    int box_width = 400;
+    int box_height = 300;
+    int box_x = (screen_width - box_width) / 2;
+    int box_y = (screen_height - box_height) / 2;
+    
+    DrawRectangle(box_x, box_y, box_width, box_height, ColorAlpha(BLACK, 0.95f));
+    DrawRectangle(box_x, box_y, box_width, 3, GOLD);
+    DrawRectangle(box_x, box_y + box_height - 3, box_width, 3, GOLD);
+    
+    int x = box_x + 20;
+    int y = box_y + 20;
+    
+    // Title
+    DrawText("CONGRATULATIONS!", x + 50, y, 24, GOLD);
+    y += 40;
+    
+    // Stars
+    DrawText("*****", x + 140, y, 32, GOLD);
+    y += 50;
+    
+    // Achievement message
+    DrawText("You've achieved the maximum", x + 40, y, 16, WHITE);
+    y += 25;
+    DrawText("5-star tower rating!", x + 90, y, 16, WHITE);
+    y += 40;
+    
+    // Final statistics
+    std::stringstream stats_ss;
+    stats_ss << "Final Statistics:";
+    DrawText(stats_ss.str().c_str(), x + 20, y, 14, SKYBLUE);
+    y += 25;
+    
+    stats_ss.str("");
+    stats_ss << "  Tenants: " << game_state_.rating.total_tenants;
+    DrawText(stats_ss.str().c_str(), x + 30, y, 14, LIGHTGRAY);
+    y += 20;
+    
+    stats_ss.str("");
+    stats_ss << "  Floors: " << game_state_.rating.total_floors;
+    DrawText(stats_ss.str().c_str(), x + 30, y, 14, LIGHTGRAY);
+    y += 20;
+    
+    stats_ss.str("");
+    stats_ss << "  Satisfaction: " << std::fixed << std::setprecision(0) 
+             << game_state_.rating.average_satisfaction << "%";
+    DrawText(stats_ss.str().c_str(), x + 30, y, 14, LIGHTGRAY);
+    y += 20;
+    
+    stats_ss.str("");
+    stats_ss << "  Income: $" << std::fixed << std::setprecision(0) 
+             << game_state_.rating.hourly_income << "/hr";
+    DrawText(stats_ss.str().c_str(), x + 30, y, 14, GREEN);
+    y += 30;
+    
+    // Continue message
+    DrawText("(Continue playing to build more!)", x + 55, y, 12, GRAY);
 }
 
 } // namespace ui

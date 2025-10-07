@@ -8,6 +8,23 @@ namespace towerforge {
 namespace ui {
 
 /**
+ * @brief Structure to hold tower rating information
+ */
+struct TowerRating {
+    int stars = 1;                    // Current star rating (1-5)
+    float average_satisfaction = 0.0f; // Average satisfaction across all tenants
+    int total_tenants = 0;            // Total number of tenants
+    int total_floors = 1;             // Total number of floors
+    float hourly_income = 0.0f;       // Net income per hour
+    
+    // Next milestone info
+    int next_star_tenants = 25;       // Tenants needed for next star
+    float next_star_satisfaction = 0.0f; // Satisfaction needed for next star
+    int next_star_floors = 0;         // Floors needed for next star
+    float next_star_income = 0.0f;    // Income needed for next star
+};
+
+/**
  * @brief Structure to hold game state information for HUD display
  */
 struct GameState {
@@ -18,6 +35,7 @@ struct GameState {
     float current_time = 8.5f;  // 8:30 AM represented as 8.5
     int speed_multiplier = 1;   // 1x, 2x, 4x
     bool paused = false;
+    TowerRating rating;           // Tower rating and progression
 };
 
 /**
@@ -137,11 +155,13 @@ public:
     
 private:
     void RenderTopBar();
+    void RenderStarRating();
     void RenderFacilityPanel();
     void RenderPersonPanel();
     void RenderElevatorPanel();
     void RenderNotifications();
     void RenderSpeedControls();
+    void RenderEndGameSummary();
     
     std::string FormatTime(float time);
     std::string GetSatisfactionEmoji(float satisfaction);
@@ -168,6 +188,8 @@ private:
     static constexpr int NOTIFICATION_HEIGHT = 30;
     static constexpr int SPEED_CONTROL_WIDTH = 200;
     static constexpr int SPEED_CONTROL_HEIGHT = 40;
+    static constexpr int STAR_RATING_WIDTH = 230;
+    static constexpr int STAR_RATING_HEIGHT = 180;
 };
 
 } // namespace ui
