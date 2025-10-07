@@ -1,5 +1,6 @@
 #include <iostream>
 #include "rendering/renderer.h"
+#include "rendering/camera.h"
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
 #include "ui/hud.h"
@@ -7,6 +8,7 @@
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
+using namespace towerforge::rendering;
 
 int main(int argc, char* argv[]) {
     std::cout << "TowerForge - Tower Simulation Game" << std::endl;
@@ -91,6 +93,10 @@ int main(int argc, char* argv[]) {
     HUD hud;
     BuildMenu build_menu;
     
+    // Create and initialize camera
+    towerforge::rendering::Camera camera;
+    camera.Initialize(800, 600, 1200.0f, 800.0f);  // Tower is 1200x800 world units
+    
     // Set initial game state
     GameState game_state;
     game_state.funds = 25000.0f;
@@ -163,19 +169,32 @@ int main(int argc, char* argv[]) {
         hud.SetGameState(game_state);
         hud.Update(time_step);
         
+        // Update camera
+        camera.Update(time_step);
+        
         // Handle mouse clicks for demo
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             int mouse_x = GetMouseX();
             int mouse_y = GetMouseY();
             
+            bool hud_handled = false;
+            
             // Check if click is on build menu
             if (build_menu.HandleClick(mouse_x, mouse_y) >= 0) {
                 hud.AddNotification(Notification::Type::Info, "Facility selected from menu", 3.0f);
+                hud_handled = true;
             }
             // Check if click is on HUD
-            else if (!hud.HandleClick(mouse_x, mouse_y)) {
+            else if (hud.HandleClick(mouse_x, mouse_y)) {
+                hud_handled = true;
+            }
+            else {
                 // Click is in game area - show example info panels
-                if (mouse_x > 250 && mouse_x < 550 && mouse_y > 200 && mouse_y < 280) {
+                // Convert screen to world coordinates
+                float world_x, world_y;
+                camera.ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+                
+                if (world_x > 250 && world_x < 550 && world_y > 200 && world_y < 280) {
                     // Clicked on building
                     FacilityInfo info;
                     info.type = "OFFICE";
@@ -186,8 +205,8 @@ int main(int argc, char* argv[]) {
                     info.satisfaction = 85.0f;
                     info.tenant_count = 8;
                     hud.ShowFacilityInfo(info);
-                } else if (mouse_x > 370 && mouse_x < 430 && mouse_y > 370 && mouse_y < 430) {
-                    // Clicked on person
+                } else if (world_x > 370 && world_x < 430 && world_y > 370 && world_y < 430) {
+                    // Clicked on person - enable follow mode
                     PersonInfo info;
                     info.id = 42;
                     info.state = "WaitingElevator";
@@ -197,14 +216,24 @@ int main(int argc, char* argv[]) {
                     info.needs = "Work";
                     info.satisfaction = 60.0f;
                     hud.ShowPersonInfo(info);
+                    
+                    // Follow the entity
+                    camera.FollowEntity(400.0f, 400.0f, 42);
                 }
             }
         }
+        
+        // Handle camera input
+        bool hud_handled_input = false;  // Could be updated based on mouse position over HUD
+        camera.HandleInput(hud_handled_input);
         
         renderer.BeginFrame();
         
         // Clear background to dark gray
         renderer.Clear(DARKGRAY);
+        
+        // Begin camera mode for world rendering
+        camera.BeginMode();
         
         // Draw a test rectangle (representing a building floor)
         renderer.DrawRectangle(250, 200, 300, 80, SKYBLUE);
@@ -212,10 +241,17 @@ int main(int argc, char* argv[]) {
         // Draw a test circle (representing a person or elevator)
         renderer.DrawCircle(400, 400, 30.0f, RED);
         
-        // Render HUD and build menu
+        // End camera mode
+        camera.EndMode();
+        
+        // Render HUD and build menu (these are in screen space, not world space)
         hud.Render();
         build_menu.Render();
         
+        // Render camera controls overlay
+        camera.RenderControlsOverlay();
+        camera.RenderFollowIndicator();
+
         // Display tower economy status
         const auto& tower_economy = ecs_world.GetWorld().get<TowerEconomy>();
         renderer.DrawRectangle(10, 140, 280, 100, Color{0, 0, 0, 180});
