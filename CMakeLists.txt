@@ -27,12 +27,15 @@ add_subdirectory(src/core)
 # Main executable
 set(SOURCE_FILES
     src/main.cpp
+    src/rendering/renderer.cpp
 )
 
 add_executable(towerforge ${SOURCE_FILES})
 
-# Link core library to the executable
-target_link_libraries(towerforge PRIVATE towerforge_core)
+# Find and link dependencies
+find_package(raylib CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)

@@ -1,4 +1,5 @@
 #include <iostream>
+#include "rendering/renderer.h"
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
 
@@ -7,13 +8,20 @@ using namespace TowerForge::Core;
 int main(int argc, char* argv[]) {
     std::cout << "TowerForge - Tower Simulation Game" << std::endl;
     std::cout << "Version: 0.1.0" << std::endl;
-    std::cout << std::endl;
+    std::cout << "Initializing Raylib renderer..." << std::endl;
+    
+    // Create and initialize the renderer
+    towerforge::rendering::Renderer renderer;
+    renderer.Initialize(800, 600, "TowerForge - 2D Vector Rendering Demo");
     
     // Create and initialize the ECS world
     ECSWorld ecs_world;
     ecs_world.Initialize();
     
-    std::cout << std::endl << "Creating example entities..." << std::endl;
+    std::cout << std::endl << "Creating example entities..." << std::endl;    
+    std::cout << "Renderer initialized. Window opened." << std::endl;
+    std::cout << "Press ESC or close window to exit." << std::endl;
+    std::cout << std::endl;
     
     // Create some example actors (people)
     auto actor1 = ecs_world.CreateEntity("John");
@@ -48,16 +56,31 @@ int main(int argc, char* argv[]) {
     const float total_time = 30.0f;
     float elapsed_time = 0.0f;
     
-    while (elapsed_time < total_time) {
+    while (elapsed_time < total_time && !renderer.ShouldClose()) {
         if (!ecs_world.Update(time_step)) {
             break;
         }
         elapsed_time += time_step;
+        renderer.BeginFrame();
+        
+        // Clear background to dark gray
+        renderer.Clear(DARKGRAY);
+        
+        // Draw a test rectangle (representing a building floor)
+        renderer.DrawRectangle(250, 200, 300, 80, SKYBLUE);
+        
+        // Draw a test circle (representing a person or elevator)
+        renderer.DrawCircle(400, 400, 30.0f, RED);
+        
+        renderer.EndFrame();
     }
+    
+    // Cleanup
+    renderer.Shutdown();
     
     std::cout << std::endl << "Simulation completed after " << elapsed_time << " seconds" << std::endl;
     std::cout << "ECS test successful!" << std::endl;
-    
+    std::cout << "Renderer shut down. Exiting." << std::endl;
     return 0;
 }
 
