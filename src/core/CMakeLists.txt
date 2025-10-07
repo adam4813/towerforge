@@ -1,6 +1,7 @@
 # Core library - headless simulation module
 add_library(towerforge_core
     ecs_world.cpp
+    tower_grid.cpp
 )
 
 # Find flecs package
@@ -18,3 +19,8 @@ target_include_directories(towerforge_core
 
 # Set C++20 standard for the library
 target_compile_features(towerforge_core PUBLIC cxx_std_20)
+
+# Test executable
+add_executable(tower_grid_test tower_grid_test.cpp)
+target_link_libraries(tower_grid_test PRIVATE towerforge_core)
+target_compile_features(tower_grid_test PUBLIC cxx_std_20)

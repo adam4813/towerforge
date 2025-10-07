@@ -2,6 +2,7 @@
 
 #include <flecs.h>
 #include <memory>
+#include "core/tower_grid.hpp"
 
 namespace TowerForge {
 namespace Core {
@@ -41,12 +42,19 @@ public:
      * @return The created entity
      */
     flecs::entity CreateEntity(const char* name = nullptr);
+    
+    /**
+     * @brief Get the tower grid instance
+     * @return Reference to the tower grid
+     */
+    TowerGrid& GetTowerGrid();
 
 private:
     void RegisterComponents();
     void RegisterSystems();
 
     flecs::world world_;
+    std::unique_ptr<TowerGrid> tower_grid_;
 };
 
 } // namespace Core

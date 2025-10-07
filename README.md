@@ -90,6 +90,14 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - `Velocity`: Movement velocity
 - `Actor`: Represents people in the building (name, destination floor, speed)
 - `BuildingComponent`: Represents building facilities (offices, restaurants, shops, etc.)
+- `GridPosition`: Grid-based position (floor, column, width)
+
+**Tower Grid System** (`include/core/tower_grid.hpp`):
+- 2D grid system for spatial management of the tower
+- Supports adding/removing floors and columns dynamically
+- Facility placement and removal with collision detection
+- Spatial query functions for grid operations
+- Integrated with ECS for seamless tower management
 
 **Systems** (`src/core/ecs_world.cpp`):
 - **Movement System**: Updates entity positions based on velocity
@@ -131,19 +139,56 @@ float delta_time = 1.0f / 60.0f;
 world.Update(delta_time);
 ```
 
+### Using the Tower Grid
+
+```cpp
+#include "core/ecs_world.hpp"
+#include "core/tower_grid.hpp"
+
+// Create and initialize ECS world
+TowerForge::Core::ECSWorld world;
+world.Initialize();
+
+// Access the tower grid
+auto& grid = world.GetTowerGrid();
+
+// Add floors and columns
+grid.AddFloors(5);   // Add 5 more floors
+grid.AddColumns(10); // Add 10 more columns
+
+// Place a facility on the grid
+int facility_id = 1;
+bool placed = grid.PlaceFacility(
+    3,           // floor
+    5,           // column
+    8,           // width (in grid cells)
+    facility_id  // entity ID
+);
+
+// Query the grid
+bool occupied = grid.IsOccupied(3, 5);
+int id = grid.GetFacilityAt(3, 5);
+bool available = grid.IsSpaceAvailable(2, 10, 5);
+
+// Remove a facility
+grid.RemoveFacility(facility_id);
+```
+
 ## Current Status
 
 🚧 **Early Development** - Basic ECS integration complete
 
 ### What's Working
 - ✅ Flecs ECS integrated and operational
-- ✅ Core module with example components (Actor, BuildingComponent, Position, Velocity)
+- ✅ Core module with example components (Actor, BuildingComponent, Position, Velocity, GridPosition)
+- ✅ Tower Grid System for spatial management
 - ✅ Example systems (Movement, Actor logging, Building occupancy)
 - ✅ Demo application showing ECS in action
 - ✅ Basic project structure
 - ✅ Raylib integration with 2D vector rendering
 - ✅ Modular renderer design for ECS integration
 - ✅ Working demo window with test shapes
+- ✅ Comprehensive unit tests for Tower Grid System
 
 ### Running the Demo
 
@@ -158,6 +203,15 @@ The demo creates example actors and building components, then runs a 30-second s
 - Actors moving with velocity
 - Periodic logging of actor positions
 - Building occupancy monitoring
+
+### Running the Tests
+
+After building, run the unit tests to verify the Tower Grid System:
+
+```bash
+cd build
+./bin/tower_grid_test
+```
 
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 

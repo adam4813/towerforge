@@ -1,9 +1,13 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 namespace TowerForge {
 namespace Core {
+
+// Forward declaration
+class TowerGrid;
 
 /**
  * @brief Component for entities with a position in 2D space
@@ -64,6 +68,20 @@ struct BuildingComponent {
 
     BuildingComponent(Type t = Type::Office, int f = 0, int w = 1, int cap = 10)
         : type(t), floor(f), width(w), capacity(cap), current_occupancy(0) {}
+};
+
+/**
+ * @brief Component for grid-based position
+ * 
+ * Represents a position in the tower's grid system.
+ */
+struct GridPosition {
+    int floor;
+    int column;
+    int width;  // Width occupied in grid cells
+    
+    GridPosition(int f = 0, int c = 0, int w = 1)
+        : floor(f), column(c), width(w) {}
 };
 
 } // namespace Core
