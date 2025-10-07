@@ -134,6 +134,16 @@ int main(int argc, char* argv[]) {
     
     std::cout << "  Created 4 facilities (Lobby, Office, Residential, RetailShop)" << std::endl;
     
+    // Create elevator system
+    std::cout << "  Creating elevator system..." << std::endl;
+    auto elevator_shaft = ecs_world.CreateEntity("MainElevatorShaft");
+    elevator_shaft.set<ElevatorShaft>({10, 0, 5, 1});  // Column 10, floors 0-5, 1 car
+    
+    auto elevator_car = ecs_world.CreateEntity("Elevator1");
+    elevator_car.set<ElevatorCar>({static_cast<int>(elevator_shaft.id()), 0, 8});  // Start at floor 0, capacity 8
+    
+    std::cout << "  Created elevator shaft at column 10 serving floors 0-5" << std::endl;
+    
     std::cout << "  Occupied cells: " << grid.GetOccupiedCellCount() << std::endl;
     std::cout << "  Facility at (0, 0): " << grid.GetFacilityAt(0, 0) << std::endl;
     std::cout << "  Facility at (1, 5): " << grid.GetFacilityAt(1, 5) << std::endl;
@@ -297,6 +307,63 @@ int main(int argc, char* argv[]) {
             int y = grid_offset_y + floor * cell_height;
             DrawText(TextFormat("F%d", floor), grid_offset_x - 30, y + 15, 12, LIGHTGRAY);
         }
+        
+        // Draw elevator shafts
+        auto shaft_query = ecs_world.GetWorld().query<const ElevatorShaft>();
+        shaft_query.each([&](flecs::entity e, const ElevatorShaft& shaft) {
+            // Draw shaft as vertical column
+            for (int floor = shaft.bottom_floor; floor <= shaft.top_floor; ++floor) {
+                int x = grid_offset_x + shaft.column * cell_width;
+                int y = grid_offset_y + floor * cell_height;
+                
+                // Draw shaft background
+                DrawRectangle(x + 4, y + 4, cell_width - 8, cell_height - 8, Color{60, 60, 70, 255});
+                DrawRectangleLines(x + 4, y + 4, cell_width - 8, cell_height - 8, Color{100, 100, 120, 255});
+            }
+        });
+        
+        // Draw elevator cars
+        auto car_query = ecs_world.GetWorld().query<const ElevatorCar>();
+        car_query.each([&](flecs::entity e, const ElevatorCar& car) {
+            // Find the shaft for this car
+            auto shaft_entity = ecs_world.GetWorld().entity(car.shaft_entity_id);
+            if (shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
+                const ElevatorShaft& shaft = shaft_entity.ensure<ElevatorShaft>();
+                
+                int x = grid_offset_x + shaft.column * cell_width;
+                int y = grid_offset_y + static_cast<int>(car.current_floor * cell_height);
+                
+                // Color based on state
+                Color car_color;
+                switch (car.state) {
+                    case ElevatorState::Idle:
+                        car_color = GRAY;
+                        break;
+                    case ElevatorState::MovingUp:
+                        car_color = SKYBLUE;
+                        break;
+                    case ElevatorState::MovingDown:
+                        car_color = PURPLE;
+                        break;
+                    case ElevatorState::DoorsOpening:
+                    case ElevatorState::DoorsClosing:
+                        car_color = YELLOW;
+                        break;
+                    case ElevatorState::DoorsOpen:
+                        car_color = GREEN;
+                        break;
+                }
+                
+                // Draw car as rectangle
+                DrawRectangle(x + 6, y + 6, cell_width - 12, cell_height - 12, car_color);
+                
+                // Draw occupancy indicator
+                if (car.current_occupancy > 0) {
+                    DrawText(TextFormat("%d", car.current_occupancy), x + 16, y + 18, 14, BLACK);
+                }
+            }
+        });
+        
         // Begin camera mode for world rendering
         camera.BeginMode();
         
