@@ -99,26 +99,11 @@ case MenuOption::Settings:
 - Credits screen displays and returns to menu ✓
 - Quit option exits cleanly ✓
 
-### Screenshot Tools
-
-Two screenshot applications were created for documentation:
-- `title_screen_screenshot` - Captures the main menu
-- `credits_screen_screenshot` - Captures the credits screen
-
-Usage:
-```bash
-cd build
-xvfb-run -a ./bin/title_screen_screenshot
-xvfb-run -a ./bin/credits_screen_screenshot
-```
-
 ## Files Modified/Added
 
 ### Added Files
 - `include/ui/main_menu.h` - Main menu class header
 - `src/ui/main_menu.cpp` - Main menu implementation
-- `src/title_screen_screenshot.cpp` - Screenshot tool for title screen
-- `src/credits_screen_screenshot.cpp` - Screenshot tool for credits
 - `title_screen.png` - Title screen screenshot
 - `credits_screen.png` - Credits screen screenshot
 
