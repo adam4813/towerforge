@@ -68,19 +68,7 @@ Updated rendering code to use facility types consistently:
 - Hotel: DARKBLUE (luxurious, calm)
 - Elevator: GRAY (utilitarian, neutral)
 
-### 6. Testing (`src/test_facilities.cpp`)
-Comprehensive test suite with 7 test cases:
-1. ✅ Create facilities using FacilityManager
-2. ✅ Verify grid placement
-3. ✅ Verify facility attributes
-4. ✅ Remove facility by entity
-5. ✅ Remove facility by grid position
-6. ✅ Attempt to create facility in occupied space (collision detection)
-7. ✅ Create facility with custom width
-
-All tests pass successfully!
-
-### 7. Example Applications
+### 6. Example Applications
 - **main.cpp**: Updated to use FacilityManager for creating facilities
 - **screenshot_app.cpp**: Updated to demonstrate all core facility types with proper colors
 
@@ -122,8 +110,6 @@ All tests pass successfully!
 - `docs/FACILITIES.md` - New comprehensive documentation
 - `docs/facility_demo_screenshot.png` - Visual demonstration
 - `README.md` - Added Facility System section
-- `src/test_facilities.cpp` - New comprehensive test suite
-- `CMakeLists.txt` - Added test_facilities executable
 
 ## Technical Highlights
 

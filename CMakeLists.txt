@@ -41,10 +41,6 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
-# Facility test application
-add_executable(test_facilities src/test_facilities.cpp)
-target_link_libraries(test_facilities PRIVATE towerforge_core)
-
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
