@@ -439,6 +439,52 @@ office.set<FacilityEconomics>({
 - Automatic tenant count adjustment based on satisfaction
 - Daily financial reports with balance tracking
 
+### Star Rating & Tower Progression System
+
+The star rating system evaluates overall tower quality and provides progression milestones:
+
+**Rating Display:**
+```
+┌──────────────────────┐
+│ ***oo Tower Rating  │
+│ Satisfaction: 88%    │
+│ Tenants: 230         │
+│ Floors: 15           │
+│ Income: $12,000/hr   │
+│ Next star:           │
+│   +70 tenants        │
+└──────────────────────┘
+```
+
+**Star Rating Thresholds:**
+- **1 Star**: Starting level
+- **2 Stars**: 25+ tenants
+- **3 Stars**: 50+ tenants AND 70%+ satisfaction
+- **4 Stars**: 100+ tenants AND 75%+ satisfaction AND 20+ floors
+- **5 Stars**: 200+ tenants AND 80%+ satisfaction AND 40+ floors AND $10,000+/hr income
+
+**Features:**
+- Real-time rating updates based on tower statistics
+- Visual star display in HUD (top-right corner)
+- Next milestone indicators showing requirements for next star
+- End-of-game congratulations summary when 5 stars achieved
+- Statistics collected from ECS components (FacilityEconomics, Satisfaction, TowerGrid)
+
+**Implementation:**
+```cpp
+// Tower rating is calculated automatically each frame
+TowerRating& rating = game_state.rating;
+
+// Statistics are collected from ECS world
+// - Total tenants from all FacilityEconomics components
+// - Average satisfaction from all Satisfaction components
+// - Floor count from TowerGrid
+// - Hourly income from game state
+
+// Stars are awarded based on thresholds
+// Rating display updates in real-time in the HUD
+```
+
 ### Using the Tower Grid
 
 ```cpp
@@ -519,6 +565,14 @@ grid.RemoveFacility(facility_id);
   - Notification system with auto-expiry
   - Build menu for selecting facilities
   - Speed controls UI (pause, 1x, 2x, 4x)
+  - **Star rating overlay with real-time updates**
+- ✅ **Star Rating & Tower Progression System**
+  - Real-time tower quality evaluation
+  - 5-star rating system based on satisfaction, tenants, floors, and income
+  - Visual star display in HUD with current statistics
+  - Next milestone indicators showing requirements
+  - End-of-game congratulations summary at 5 stars
+  - Automatic statistics collection from ECS components
 - ✅ **Interactive Building and Placement System**
   - Mouse-driven facility placement with preview
   - Green/red validation feedback for placement
@@ -572,6 +626,19 @@ The pause menu provides full game control during gameplay:
 
 See [docs/PAUSE_MENU_IMPLEMENTATION.md](docs/PAUSE_MENU_IMPLEMENTATION.md) for complete documentation.
 
+### Star Rating System Demo
+
+![Star Rating System](star_rating_demo.png)
+
+The star rating system provides progression feedback and goals:
+- **Star Display**: Top-right corner shows current rating (1-5 stars)
+- **Tower Statistics**: Real-time display of satisfaction, tenants, floors, and income
+- **Next Milestone**: Clear indicators showing requirements for the next star
+- **End-Game Summary**: Congratulations overlay when reaching 5 stars
+- **Dynamic Updates**: Rating recalculates each frame based on tower performance
+
+The system encourages players to balance tenant satisfaction, growth, and profitability to achieve the maximum 5-star rating.
+
 ### Running the Demo
 
 After building, run the main application to see the simulation with HUD:
@@ -588,8 +655,10 @@ The application demonstrates:
 - Interactive building and placement with the mouse
 - Real-time construction progress
 - Undo/redo functionality
+- **Star rating system with progression tracking**
 - **Interactive HUD with real-time game information**
   - Top bar with funds, population, time, and simulation speed
+  - Star rating overlay with tower statistics and next milestone
   - Info panels for facilities, people, and elevators
   - Notification system
   - Build menu with facility types and costs

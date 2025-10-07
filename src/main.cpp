@@ -15,6 +15,95 @@ using namespace TowerForge::Core;
 using namespace towerforge::ui;
 using namespace towerforge::rendering;
 
+// Helper function to calculate tower rating based on statistics
+void CalculateTowerRating(TowerRating& rating, ECSWorld& ecs_world, float income_rate) {
+    // Collect statistics from ECS world
+    int total_tenants = 0;
+    float total_satisfaction = 0.0f;
+    int satisfaction_count = 0;
+    
+    // Count tenants and satisfaction from facilities
+    ecs_world.GetWorld().each([&](const FacilityEconomics& econ, const Satisfaction& sat) {
+        total_tenants += econ.current_tenants;
+        total_satisfaction += sat.satisfaction_score;
+        satisfaction_count++;
+    });
+    
+    // Calculate average satisfaction
+    float avg_satisfaction = (satisfaction_count > 0) ? (total_satisfaction / satisfaction_count) : 0.0f;
+    
+    // Get floor count from tower grid
+    int floor_count = ecs_world.GetTowerGrid().GetFloorCount();
+    
+    // Update rating structure
+    rating.total_tenants = total_tenants;
+    rating.average_satisfaction = avg_satisfaction;
+    rating.total_floors = floor_count;
+    rating.hourly_income = income_rate;
+    
+    // Calculate star rating based on thresholds
+    int new_stars = 1;  // Start with 1 star
+    
+    // 2 stars: 25+ tenants
+    if (total_tenants >= 25) {
+        new_stars = 2;
+        rating.next_star_tenants = 50;
+        rating.next_star_satisfaction = 70.0f;
+        rating.next_star_floors = 0;
+        rating.next_star_income = 0.0f;
+    } else {
+        rating.next_star_tenants = 25;
+        rating.next_star_satisfaction = 0.0f;
+        rating.next_star_floors = 0;
+        rating.next_star_income = 0.0f;
+    }
+    
+    // 3 stars: 50+ tenants AND 70%+ satisfaction
+    if (total_tenants >= 50 && avg_satisfaction >= 70.0f) {
+        new_stars = 3;
+        rating.next_star_tenants = 100;
+        rating.next_star_satisfaction = 75.0f;
+        rating.next_star_floors = 20;
+        rating.next_star_income = 0.0f;
+    } else if (new_stars >= 2) {
+        rating.next_star_tenants = 50;
+        rating.next_star_satisfaction = 70.0f;
+        rating.next_star_floors = 0;
+        rating.next_star_income = 0.0f;
+    }
+    
+    // 4 stars: 100+ tenants AND 75%+ satisfaction AND 20+ floors
+    if (total_tenants >= 100 && avg_satisfaction >= 75.0f && floor_count >= 20) {
+        new_stars = 4;
+        rating.next_star_tenants = 200;
+        rating.next_star_satisfaction = 80.0f;
+        rating.next_star_floors = 40;
+        rating.next_star_income = 10000.0f;
+    } else if (new_stars >= 3) {
+        rating.next_star_tenants = 100;
+        rating.next_star_satisfaction = 75.0f;
+        rating.next_star_floors = 20;
+        rating.next_star_income = 0.0f;
+    }
+    
+    // 5 stars: 200+ tenants AND 80%+ satisfaction AND 40+ floors AND $10k+/hr income
+    if (total_tenants >= 200 && avg_satisfaction >= 80.0f && 
+        floor_count >= 40 && income_rate >= 10000.0f) {
+        new_stars = 5;
+        rating.next_star_tenants = 0;
+        rating.next_star_satisfaction = 0.0f;
+        rating.next_star_floors = 0;
+        rating.next_star_income = 0.0f;
+    } else if (new_stars >= 4) {
+        rating.next_star_tenants = 200;
+        rating.next_star_satisfaction = 80.0f;
+        rating.next_star_floors = 40;
+        rating.next_star_income = 10000.0f;
+    }
+    
+    rating.stars = new_stars;
+}
+
 // Game modes
 enum class GameMode {
     TitleScreen,
@@ -376,6 +465,9 @@ int main(int argc, char* argv[]) {
         if (!is_paused) {
             game_state.funds += (game_state.income_rate / 3600.0f) * time_step;
         }
+        
+        // Calculate tower rating
+        CalculateTowerRating(game_state.rating, ecs_world, game_state.income_rate);
         
         hud.SetGameState(game_state);
         hud.Update(time_step);
