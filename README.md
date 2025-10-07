@@ -97,6 +97,9 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - `Satisfaction`: Tracks tenant satisfaction levels based on wait times, crowding, noise, and facility quality
 - `FacilityEconomics`: Tracks revenue, costs, rent, and occupancy for building facilities
 - `TowerEconomy`: Global singleton for tower-wide economy tracking (balance, revenue, expenses)
+- `ElevatorShaft`: Vertical shaft containing elevator cars (column, floor range, car count)
+- `ElevatorCar`: Individual elevator car with state machine (position, capacity, stop queue)
+- `PersonElevatorRequest`: Links person entities to elevators for boarding and riding
 
 **Tower Grid System** (`include/core/tower_grid.hpp`):
 - 2D grid system for spatial management of the tower
@@ -118,9 +121,13 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - **Revenue Collection System**: Collects revenue and expenses from all facilities
 - **Economic Status Reporting System**: Reports economic status for each facility
 - **Person Horizontal Movement System**: Handles walking on same floor
-- **Person Waiting System**: Tracks elevator wait times
-- **Person Elevator Riding System**: Simulates elevator travel
+- **Person Waiting System**: Creates elevator requests and manages waiting
+- **Person Elevator Riding System**: Fallback for backward compatibility
 - **Person State Logging System**: Debug logging for person states
+- **Elevator Car Movement System**: Handles elevator movement and state transitions
+- **Elevator Call System**: Assigns people to elevator cars
+- **Person Elevator Boarding System**: Handles boarding and exiting elevators
+- **Elevator Logging System**: Debug logging for elevator states
 
 **ECS World** (`include/core/ecs_world.hpp`):
 - Wrapper around flecs world for clean API
@@ -234,6 +241,55 @@ person.set<Satisfaction>({80.0f});
 ![Person Movement System Demo](docs/person_movement_screenshot.png)
 
 *Demo showing people in different states with destination indicators*
+
+### Elevator System
+
+The Elevator System provides vertical transportation for person entities in the tower. It features realistic elevator behavior with state machines, passenger queuing, and smart scheduling. See [docs/ELEVATOR_SYSTEM.md](docs/ELEVATOR_SYSTEM.md) for detailed documentation.
+
+**Core Components:**
+- **ElevatorShaft**: Vertical shafts serving multiple floors (configurable floor range)
+- **ElevatorCar**: Individual cars with state machines (Idle, MovingUp, MovingDown, DoorsOpen, etc.)
+- **PersonElevatorRequest**: Links people to elevators for boarding and riding
+
+**Elevator State Machine:**
+```
+Idle → MovingUp/MovingDown → DoorsOpening → DoorsOpen → DoorsClosing → Idle
+```
+
+**Creating Elevators:**
+```cpp
+// Create elevator shaft serving floors 0-5 at column 10
+auto shaft = ecs_world.CreateEntity("MainElevatorShaft");
+shaft.set<ElevatorShaft>({10, 0, 5, 1});  // column, bottom, top, car_count
+
+// Create elevator car
+auto car = ecs_world.CreateEntity("Elevator1");
+car.set<ElevatorCar>({
+    static_cast<int>(shaft.id()),  // shaft reference
+    0,   // start at floor 0
+    8    // capacity: 8 passengers
+});
+
+// People automatically use elevators when changing floors
+auto person = ecs_world.CreateEntity("Alice");
+Person alice("Alice", 0, 2.0f);  // Floor 0, column 2
+alice.SetDestination(5, 10.0f, "Going to work");
+person.set<Person>(alice);
+// Alice will automatically walk to shaft, board elevator, ride to floor 5, exit
+```
+
+**Features:**
+- Smooth movement between floors (configurable speed: default 2 floors/second)
+- Realistic door operation (opening, open, closing states)
+- Passenger capacity limits (default 8 passengers)
+- Stop queue management with sorted ordering
+- Automatic person boarding and exiting
+- Integration with Person Movement System
+- Visual state indicators (color-coded by state)
+
+![Elevator System Demo](docs/elevator_demo_screenshot.png)
+
+*Demo showing elevator cars in different states, transporting people between floors*
 
 ### Using the ECS
 
@@ -424,20 +480,30 @@ grid.RemoveFacility(facility_id);
 
 ### What's Working
 - ✅ Flecs ECS integrated and operational
-- ✅ Core module with components (Actor, Person, BuildingComponent, Position, Velocity, TimeManager, DailySchedule, Satisfaction, FacilityEconomics, TowerEconomy)
+- ✅ Core module with components (Actor, Person, BuildingComponent, Position, Velocity, TimeManager, DailySchedule, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest)
 - ✅ Time simulation system with configurable speed
 - ✅ Daily/weekly scheduling system for entities
 - ✅ **Person Movement System with State Machine**
   - 5-state machine (Idle, Walking, WaitingForElevator, InElevator, AtDestination)
   - Smooth horizontal movement on floors
-  - Vertical movement request system (elevator integration ready)
+  - Vertical movement with actual elevator integration
   - Visual representation with color-coded states
   - Debug visualization with destination indicators
+- ✅ **Elevator System**
+  - Elevator shafts with configurable floor ranges
+  - Elevator cars with 6-state machine (Idle, MovingUp, MovingDown, DoorsOpening, DoorsOpen, DoorsClosing)
+  - Smooth movement between floors (2 floors/second)
+  - Realistic door operation with timing
+  - Passenger capacity management (default 8 passengers)
+  - Stop queue with sorted ordering
+  - Automatic person boarding and exiting
+  - Integration with Person Movement System
+  - Visual state indicators
 - ✅ Tenant satisfaction system with dynamic updates based on crowding, noise, and quality
 - ✅ Tower economy system with revenue collection, operating costs, and balance tracking
 - ✅ Satisfaction-driven tenant behavior (tenants join/leave based on satisfaction)
 - ✅ Quality multipliers for rent based on satisfaction levels
-- ✅ Example systems (Time simulation, Schedule execution, Movement, Actor logging, Building occupancy, Satisfaction, Economics, Person movement)
+- ✅ Example systems (Time simulation, Schedule execution, Movement, Actor logging, Building occupancy, Satisfaction, Economics, Person movement, Elevator systems)
 - ✅ Demo application showing ECS in action
 - ✅ Basic project structure
 - ✅ Raylib integration with 2D vector rendering
@@ -508,6 +574,22 @@ The application demonstrates:
 ```
 
 This dedicated demo showcases the interactive placement system features and automatically generates a screenshot after 5 seconds.
+
+**Elevator Demo Application:**
+```bash
+./bin/elevator_demo_app
+```
+
+This demo showcases the complete elevator system with:
+- Two elevator shafts at different locations
+- Multiple elevator cars with realistic state machines
+- Four people using elevators to travel between floors
+- Visual representation of elevator states and movement
+- Live status display showing elevator and person states
+- Automatic screenshot generation after 10 seconds
+
+Screenshot output: `docs/elevator_demo_screenshot.png`
+
 - Daily financial reports showing balance changes
 - Periodic logging of actor positions and building occupancy
 - Building occupancy monitoring

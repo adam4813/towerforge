@@ -46,6 +46,10 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
+# Elevator demo application
+add_executable(elevator_demo_app src/elevator_demo_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp)
+target_link_libraries(elevator_demo_app PRIVATE raylib glfw towerforge_core)
+
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
