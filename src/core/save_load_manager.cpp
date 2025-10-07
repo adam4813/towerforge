@@ -348,6 +348,30 @@ nlohmann::json SaveLoadManager::SerializeGameState(ECSWorld& ecs_world,
         json["metadata"]["total_balance"] = economy.total_balance;
     }
     
+    // Serialize ResearchTree
+    if (world.has<ResearchTree>()) {
+        const auto& research = world.get<ResearchTree>();
+        json["research"] = {
+            {"research_points", research.research_points},
+            {"total_points_earned", research.total_points_earned},
+            {"income_multiplier", research.income_multiplier},
+            {"satisfaction_bonus", research.satisfaction_bonus},
+            {"construction_speed_multiplier", research.construction_speed_multiplier},
+            {"cost_reduction", research.cost_reduction},
+            {"elevator_speed_multiplier", research.elevator_speed_multiplier},
+            {"elevator_capacity_bonus", research.elevator_capacity_bonus}
+        };
+        
+        // Serialize unlocked nodes
+        nlohmann::json nodes = nlohmann::json::array();
+        for (const auto& node : research.nodes) {
+            if (node.state == ResearchNodeState::Unlocked) {
+                nodes.push_back(node.id);
+            }
+        }
+        json["research"]["unlocked_nodes"] = nodes;
+    }
+    
     // Serialize TowerGrid
     TowerGrid& grid = ecs_world.GetTowerGrid();
     json["grid"] = {
@@ -542,7 +566,7 @@ bool SaveLoadManager::DeserializeGameState(const nlohmann::json& json,
         
         world.each([](flecs::entity e) {
             // Skip singleton components
-            if (!e.has<TimeManager>() && !e.has<TowerEconomy>()) {
+            if (!e.has<TimeManager>() && !e.has<TowerEconomy>() && !e.has<ResearchTree>()) {
                 e.destruct();
             }
         });
@@ -572,6 +596,41 @@ bool SaveLoadManager::DeserializeGameState(const nlohmann::json& json,
             economy.daily_expenses = econ_json.value("daily_expenses", 0.0f);
             economy.last_processed_day = econ_json.value("last_processed_day", -1);
             world.set<TowerEconomy>(economy);
+        }
+        
+        // Deserialize ResearchTree
+        if (json.contains("research")) {
+            auto& research_json = json["research"];
+            ResearchTree research;
+            
+            // Initialize default tree first
+            research.InitializeDefaultTree();
+            
+            // Load saved values
+            research.research_points = research_json.value("research_points", 0);
+            research.total_points_earned = research_json.value("total_points_earned", 0);
+            research.income_multiplier = research_json.value("income_multiplier", 1.0f);
+            research.satisfaction_bonus = research_json.value("satisfaction_bonus", 0.0f);
+            research.construction_speed_multiplier = research_json.value("construction_speed_multiplier", 1.0f);
+            research.cost_reduction = research_json.value("cost_reduction", 0.0f);
+            research.elevator_speed_multiplier = research_json.value("elevator_speed_multiplier", 1.0f);
+            research.elevator_capacity_bonus = research_json.value("elevator_capacity_bonus", 0);
+            
+            // Restore unlocked nodes
+            if (research_json.contains("unlocked_nodes")) {
+                for (const auto& node_id : research_json["unlocked_nodes"]) {
+                    std::string id = node_id.get<std::string>();
+                    ResearchNode* node = research.FindNode(id);
+                    if (node) {
+                        node->state = ResearchNodeState::Unlocked;
+                    }
+                }
+            }
+            
+            // Update node states based on unlocked nodes
+            research.UpdateNodeStates();
+            
+            world.set<ResearchTree>(research);
         }
         
         // Deserialize TowerGrid dimensions
