@@ -62,7 +62,7 @@
  *   an X server (display)
  * 
  * - If screenshot path fails: Check write permissions for /tmp or modify the
- *   path in line 113
+ *   path in line 180
  */
 
 #include <iostream>
