@@ -37,16 +37,16 @@
  * 
  * HOW TO UPDATE THE VISUALIZATION:
  * --------------------------------
- * - Facility placement (lines 92-96): Add/modify grid.PlaceFacility() calls
+ * - Facility placement (lines ~90-100): Use facility_mgr.CreateFacility() calls
  *   to change which facilities are displayed
  * 
- * - Colors (lines 143-149): Update the switch statement to change facility colors
+ * - Colors (lines ~140-165): Update the switch statement to change facility colors
  *   or add new facility types
  * 
- * - Grid layout (lines 117-120): Modify grid_offset_x/y, cell_width/height to
+ * - Grid layout (lines ~117-120): Modify grid_offset_x/y, cell_width/height to
  *   change the visual grid dimensions
  * 
- * - Legend (lines 156-169): Update to reflect new facility types or colors
+ * - Legend (lines ~175-190): Update to reflect new facility types or colors
  * 
  * - Text/Labels (lines 157-173): Modify to update title, descriptions, or stats
  * 
