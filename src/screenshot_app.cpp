@@ -157,21 +157,15 @@ int main(int argc, char* argv[]) {
     sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);
     actor2.set<DailySchedule>(sarah_schedule);
     
-    // Create facilities with economics
-    auto lobby_econ = ecs_world.CreateEntity("Lobby_Economics");
-    lobby_econ.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
-    lobby_econ.set<Satisfaction>({90.0f});
-    lobby_econ.set<FacilityEconomics>({50.0f, 10.0f, 50});
+    // Add economics to facilities
+    lobby.set<FacilityEconomics>({50.0f, 10.0f, 50});
+    lobby.set<Satisfaction>({90.0f});
     
-    auto office_econ = ecs_world.CreateEntity("Office_Economics");
-    office_econ.set<BuildingComponent>({BuildingComponent::Type::Office, 1, 8, 20});
-    office_econ.set<Satisfaction>({75.0f});
-    office_econ.set<FacilityEconomics>({150.0f, 30.0f, 20});
+    office.set<FacilityEconomics>({150.0f, 30.0f, 20});
+    office.set<Satisfaction>({75.0f});
     
-    auto restaurant_econ = ecs_world.CreateEntity("Restaurant_Economics");
-    restaurant_econ.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 2, 6, 30});
-    restaurant_econ.set<Satisfaction>({70.0f});
-    restaurant_econ.set<FacilityEconomics>({200.0f, 60.0f, 30});
+    restaurant.set<FacilityEconomics>({200.0f, 60.0f, 30});
+    restaurant.set<Satisfaction>({70.0f});
     
     // Render frames to allow people to move and show different states
     // Run simulation for 3 seconds (180 frames at 60 FPS) to capture mid-movement

@@ -5,6 +5,7 @@
 #include "core/components.hpp"
 #include "ui/hud.h"
 #include "ui/build_menu.h"
+#include "ui/placement_system.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
@@ -118,13 +119,16 @@ int main(int argc, char* argv[]) {
     auto& grid = ecs_world.GetTowerGrid();
     auto& facility_mgr = ecs_world.GetFacilityManager();
     
+    // Create placement system now that we have grid and facility_mgr
+    PlacementSystem placement_system(grid, facility_mgr, build_menu);
+    
     std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x " 
               << grid.GetColumnCount() << " columns" << std::endl;
     
     // Create and place facilities using FacilityManager
     std::cout << "  Creating facilities..." << std::endl;
-    auto lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0, 0, "MainLobby");
-    auto office1 = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2, 0, "Office_Floor_1");
+    auto grid_lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0, 0, "MainLobby");
+    auto grid_office1 = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2, 0, "Office_Floor_1");
     auto residential1 = facility_mgr.CreateFacility(BuildingComponent::Type::Residential, 2, 5, 0, "Condo_Floor_2");
     auto shop1 = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1, 0, "Shop_Floor_3");
     
@@ -144,6 +148,12 @@ int main(int argc, char* argv[]) {
     
     std::cout << std::endl << "Running simulation..." << std::endl;
     std::cout << std::endl;
+    
+    // Grid rendering constants
+    const int grid_offset_x = 300;
+    const int grid_offset_y = 100;
+    const int cell_width = 40;
+    const int cell_height = 50;
     
     // Run the simulation for 30 seconds (simulated time)
     const float time_step = 1.0f / 60.0f;  // 60 FPS
@@ -169,6 +179,11 @@ int main(int argc, char* argv[]) {
         hud.SetGameState(game_state);
         hud.Update(time_step);
         
+        // Update placement system
+        placement_system.Update(time_step);
+        
+        // Handle keyboard shortcuts
+        placement_system.HandleKeyboard();
         // Update camera
         camera.Update(time_step);
         
@@ -180,45 +195,68 @@ int main(int argc, char* argv[]) {
             bool hud_handled = false;
             
             // Check if click is on build menu
-            if (build_menu.HandleClick(mouse_x, mouse_y) >= 0) {
+            int menu_result = build_menu.HandleClick(mouse_x, mouse_y, 
+                                                     placement_system.CanUndo(), 
+                                                     placement_system.CanRedo());
+            if (menu_result >= 0) {
                 hud.AddNotification(Notification::Type::Info, "Facility selected from menu", 3.0f);
-                hud_handled = true;
+            } else if (menu_result == -2) {
+                // Demolish mode
+                placement_system.SetDemolishMode(!placement_system.IsDemolishMode());
+                hud.AddNotification(Notification::Type::Info, 
+                    placement_system.IsDemolishMode() ? "Demolish mode ON" : "Demolish mode OFF", 3.0f);
+            } else if (menu_result == -3) {
+                // Undo
+                placement_system.Undo();
+                hud.AddNotification(Notification::Type::Info, "Undid last action", 2.0f);
+            } else if (menu_result == -4) {
+                // Redo
+                placement_system.Redo();
+                hud.AddNotification(Notification::Type::Info, "Redid action", 2.0f);
             }
             // Check if click is on HUD
-            else if (hud.HandleClick(mouse_x, mouse_y)) {
-                hud_handled = true;
-            }
-            else {
-                // Click is in game area - show example info panels
-                // Convert screen to world coordinates
-                float world_x, world_y;
-                camera.ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+            else if (!hud.HandleClick(mouse_x, mouse_y)) {
+                // Click is in game area - try placement/demolition first
+                int cost_change = placement_system.HandleClick(mouse_x, mouse_y,
+                    grid_offset_x, grid_offset_y, cell_width, cell_height, game_state.funds);
                 
-                if (world_x > 250 && world_x < 550 && world_y > 200 && world_y < 280) {
-                    // Clicked on building
-                    FacilityInfo info;
-                    info.type = "OFFICE";
-                    info.floor = 5;
-                    info.occupancy = 8;
-                    info.max_occupancy = 10;
-                    info.revenue = 80.0f;
-                    info.satisfaction = 85.0f;
-                    info.tenant_count = 8;
-                    hud.ShowFacilityInfo(info);
-                } else if (world_x > 370 && world_x < 430 && world_y > 370 && world_y < 430) {
-                    // Clicked on person - enable follow mode
-                    PersonInfo info;
-                    info.id = 42;
-                    info.state = "WaitingElevator";
-                    info.current_floor = 1;
-                    info.destination_floor = 8;
-                    info.wait_time = 45.0f;
-                    info.needs = "Work";
-                    info.satisfaction = 60.0f;
-                    hud.ShowPersonInfo(info);
+                if (cost_change != 0) {
+                    game_state.funds += cost_change;
+                    if (cost_change < 0) {
+                        hud.AddNotification(Notification::Type::Success, 
+                            TextFormat("Facility placed! Cost: $%d", -cost_change), 3.0f);
+                    } else {
+                        hud.AddNotification(Notification::Type::Info, 
+                            TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
+                    }
+                } else {
+                    // No placement/demolition occurred - check if user clicked on a facility or person to view info
+                    // Convert mouse position to grid coordinates
+                    int rel_x = mouse_x - grid_offset_x;
+                    int rel_y = mouse_y - grid_offset_y;
                     
-                    // Follow the entity
-                    camera.FollowEntity(400.0f, 400.0f, 42);
+                    if (rel_x >= 0 && rel_y >= 0) {
+                        int clicked_floor = rel_y / cell_height;
+                        int clicked_column = rel_x / cell_width;
+                        
+                        // Check if clicked on a facility
+                        if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
+                            clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
+                            
+                            if (grid.IsOccupied(clicked_floor, clicked_column)) {
+                                // Clicked on a facility - show info
+                                FacilityInfo info;
+                                info.type = "FACILITY";
+                                info.floor = clicked_floor;
+                                info.occupancy = 0;
+                                info.max_occupancy = 10;
+                                info.revenue = 100.0f;
+                                info.satisfaction = 75.0f;
+                                info.tenant_count = 0;
+                                hud.ShowFacilityInfo(info);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -232,21 +270,46 @@ int main(int argc, char* argv[]) {
         // Clear background to dark gray
         renderer.Clear(DARKGRAY);
         
+        // Draw grid
+        for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
+            for (int col = 0; col < grid.GetColumnCount(); ++col) {
+                int x = grid_offset_x + col * cell_width;
+                int y = grid_offset_y + floor * cell_height;
+                
+                // Draw grid cell outline
+                DrawRectangleLines(x, y, cell_width, cell_height, ColorAlpha(WHITE, 0.2f));
+                
+                // Draw facility if present
+                if (grid.IsOccupied(floor, col)) {
+                    int facility_id = grid.GetFacilityAt(floor, col);
+                    // Color based on facility type (simplified)
+                    Color facility_color = SKYBLUE;
+                    if (facility_id % 3 == 0) facility_color = PURPLE;
+                    else if (facility_id % 3 == 1) facility_color = GREEN;
+                    
+                    DrawRectangle(x + 2, y + 2, cell_width - 4, cell_height - 4, facility_color);
+                }
+            }
+        }
+        
+        // Draw floor labels
+        for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
+            int y = grid_offset_y + floor * cell_height;
+            DrawText(TextFormat("F%d", floor), grid_offset_x - 30, y + 15, 12, LIGHTGRAY);
+        }
         // Begin camera mode for world rendering
         camera.BeginMode();
         
-        // Draw a test rectangle (representing a building floor)
-        renderer.DrawRectangle(250, 200, 300, 80, SKYBLUE);
-        
-        // Draw a test circle (representing a person or elevator)
-        renderer.DrawCircle(400, 400, 30.0f, RED);
+        // Render placement system (preview and construction)
+        placement_system.Render(grid_offset_x, grid_offset_y, cell_width, cell_height);
         
         // End camera mode
         camera.EndMode();
         
         // Render HUD and build menu (these are in screen space, not world space)
         hud.Render();
-        build_menu.Render();
+        build_menu.Render(placement_system.CanUndo(), placement_system.CanRedo(), 
+                         placement_system.IsDemolishMode());
         
         // Render camera controls overlay
         camera.RenderControlsOverlay();

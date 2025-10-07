@@ -31,16 +31,21 @@ public:
     
     /**
      * @brief Render the build menu
+     * @param can_undo Whether undo is available
+     * @param can_redo Whether redo is available
+     * @param demolish_mode Whether demolish mode is active
      */
-    void Render();
+    void Render(bool can_undo = false, bool can_redo = false, bool demolish_mode = false);
     
     /**
      * @brief Handle mouse click
      * @param mouse_x Mouse X position
      * @param mouse_y Mouse Y position
-     * @return Index of selected facility type, or -1 if nothing selected
+     * @param can_undo Whether undo is available
+     * @param can_redo Whether redo is available
+     * @return Index of selected facility type, -2 for demolish, -3 for undo, -4 for redo, -1 for nothing
      */
-    int HandleClick(int mouse_x, int mouse_y);
+    int HandleClick(int mouse_x, int mouse_y, bool can_undo = false, bool can_redo = false);
     
     /**
      * @brief Get the currently selected facility type

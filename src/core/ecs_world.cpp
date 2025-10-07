@@ -348,6 +348,7 @@ void ECSWorld::RegisterSystems() {
                 case BuildingComponent::Type::Hotel:       type_name = "Hotel"; break;
                 case BuildingComponent::Type::Elevator:    type_name = "Elevator"; break;
                 case BuildingComponent::Type::Lobby:       type_name = "Lobby"; break;
+                case BuildingComponent::Type::Residential: type_name = "Residential"; break;
             }
             
             std::cout << "  [Economics] " << type_name << " Floor " << facility.floor
