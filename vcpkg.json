@@ -1,0 +1,8 @@
+{
+  "name": "towerforge",
+  "version": "0.1.0",
+  "description": "Tower Defense Game Engine",
+  "homepage": "https://github.com/adam4813/towerforge",
+  "dependencies": [],
+  "builtin-baseline": "latest"
+}
