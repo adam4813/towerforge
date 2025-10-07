@@ -93,6 +93,9 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - `TimeManager`: Global singleton for simulation time management (hours, days, weeks, speed control)
 - `DailySchedule`: Component for entities with time-based routines (work hours, breaks, etc.)
 - `GridPosition`: Grid-based position (floor, column, width)
+- `Satisfaction`: Tracks tenant satisfaction levels based on wait times, crowding, noise, and facility quality
+- `FacilityEconomics`: Tracks revenue, costs, rent, and occupancy for building facilities
+- `TowerEconomy`: Global singleton for tower-wide economy tracking (balance, revenue, expenses)
 
 **Tower Grid System** (`include/core/tower_grid.hpp`):
 - 2D grid system for spatial management of the tower
@@ -107,11 +110,66 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - **Movement System**: Updates entity positions based on velocity
 - **Actor Logging System**: Monitors and logs actor activity
 - **Building Occupancy Monitor**: Tracks occupancy of building components
+- **Satisfaction Update System**: Updates tenant satisfaction based on crowding, noise, and facility quality
+- **Satisfaction Reporting System**: Periodically reports satisfaction levels for tenants
+- **Facility Economics System**: Manages tenant counts based on satisfaction levels
+- **Daily Economy Processing System**: Processes daily financial transactions
+- **Revenue Collection System**: Collects revenue and expenses from all facilities
+- **Economic Status Reporting System**: Reports economic status for each facility
 
 **ECS World** (`include/core/ecs_world.hpp`):
 - Wrapper around flecs world for clean API
 - Manages component and system registration
 - Provides entity creation and simulation update methods
+- Integrated with FacilityManager for high-level facility operations
+
+### Facility System
+
+The Facility System provides a comprehensive framework for creating and managing building facilities in the tower. See [docs/FACILITIES.md](docs/FACILITIES.md) for detailed documentation.
+
+**Core Facility Types**:
+- **Office**: Commercial office space (generates rent, holds ~20 workers)
+- **Residential**: Condominium units (housing for residents, holds ~4 people per unit)
+- **RetailShop**: Retail shops (provides shopping, holds ~15 customers)
+- **Lobby**: Main entrance (required on ground floor, holds ~50 people)
+
+**Legacy Types** (for compatibility):
+- Restaurant, Hotel, Elevator
+
+**Facility Manager** (`include/core/facility_manager.hpp`):
+- High-level API for creating and removing facilities
+- Automatic default attributes (width, capacity) for each facility type
+- Integration with tower grid for placement validation
+- Color management for rendering
+
+**Example Usage**:
+```cpp
+auto& facility_mgr = ecs_world.GetFacilityManager();
+
+// Create a lobby on ground floor
+auto lobby = facility_mgr.CreateFacility(
+    BuildingComponent::Type::Lobby, 
+    0,     // floor
+    0,     // column
+    0,     // width (0 = use default)
+    "MainLobby"
+);
+
+// Create an office on floor 1
+auto office = facility_mgr.CreateFacility(
+    BuildingComponent::Type::Office,
+    1, 2   // floor 1, column 2
+);
+
+// Remove a facility
+facility_mgr.RemoveFacility(office);
+// or by position
+facility_mgr.RemoveFacilityAt(1, 2);
+```
+
+![Facility System Demo](docs/facility_demo_screenshot.png)
+
+*Demo showing different facility types with distinct colors*
 
 ### Using the ECS
 
@@ -191,6 +249,76 @@ schedule.AddWeekendAction(ScheduledAction::Type::Idle, 10.0f);
 
 // Attach to entity
 entity.set<DailySchedule>(schedule);
+```
+
+### Tenant Satisfaction System
+
+The satisfaction system simulates tenant happiness based on various environmental factors:
+
+**Satisfaction Component:**
+```cpp
+// Add satisfaction to a tenant
+auto tenant = world.CreateEntity("Tenant");
+tenant.set<Satisfaction>({75.0f});  // Start with 75% satisfaction
+
+// Get satisfaction level
+const auto& sat = tenant.get<Satisfaction>();
+std::cout << "Satisfaction: " << sat.satisfaction_score << "% - " 
+          << sat.GetLevelString() << std::endl;
+```
+
+**Factors Affecting Satisfaction:**
+- **Crowding**: High occupancy (>90%) or low occupancy (<30%) reduces satisfaction
+- **Noise**: Restaurants and shops generate noise that affects nearby tenants
+- **Facility Quality**: Different facility types provide quality bonuses
+- **Wait Times**: Elevator delays add penalties (extensible for future features)
+
+**Satisfaction Levels:**
+- Very Poor: 0-20%
+- Poor: 21-40%
+- Average: 41-60%
+- Good: 61-80%
+- Excellent: 81-100%
+
+### Tower Economy System
+
+The economy system tracks revenue, expenses, and financial performance:
+
+**Tower Economy Singleton:**
+```cpp
+// Initialize tower economy with starting balance
+world.GetWorld().set<TowerEconomy>({10000.0f});  // $10,000 starting balance
+
+// Access tower economy
+const auto& economy = world.GetWorld().get<TowerEconomy>();
+std::cout << "Balance: $" << economy.total_balance << std::endl;
+std::cout << "Daily Revenue: $" << economy.daily_revenue << std::endl;
+std::cout << "Daily Expenses: $" << economy.daily_expenses << std::endl;
+```
+
+**Facility Economics:**
+```cpp
+// Add economics to a facility
+auto office = world.CreateEntity("Office");
+office.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
+office.set<FacilityEconomics>({
+    150.0f,  // base rent per tenant per day
+    30.0f,   // daily operating cost
+    20       // max tenants
+});
+
+// Economics are influenced by satisfaction
+// High satisfaction (>70%) attracts more tenants
+// Low satisfaction (<30%) causes tenants to leave
+```
+
+**Economic Features:**
+- Daily revenue collection based on rent and occupancy
+- Operating costs for each facility
+- Quality multiplier based on tenant satisfaction (0.5x - 2.0x)
+- Automatic tenant count adjustment based on satisfaction
+- Daily financial reports with balance tracking
+
 ### Using the Tower Grid
 
 ```cpp
@@ -232,16 +360,22 @@ grid.RemoveFacility(facility_id);
 
 ### What's Working
 - ✅ Flecs ECS integrated and operational
-- ✅ Core module with components (Actor, BuildingComponent, Position, Velocity, TimeManager, DailySchedule)
+- ✅ Core module with components (Actor, BuildingComponent, Position, Velocity, TimeManager, DailySchedule, Satisfaction, FacilityEconomics, TowerEconomy)
 - ✅ Time simulation system with configurable speed
 - ✅ Daily/weekly scheduling system for entities
-- ✅ Example systems (Time simulation, Schedule execution, Movement, Actor logging, Building occupancy)
+- ✅ Tenant satisfaction system with dynamic updates based on crowding, noise, and quality
+- ✅ Tower economy system with revenue collection, operating costs, and balance tracking
+- ✅ Satisfaction-driven tenant behavior (tenants join/leave based on satisfaction)
+- ✅ Quality multipliers for rent based on satisfaction levels
+- ✅ Example systems (Time simulation, Schedule execution, Movement, Actor logging, Building occupancy, Satisfaction, Economics)
 - ✅ Demo application showing ECS in action
 - ✅ Basic project structure
 - ✅ Raylib integration with 2D vector rendering
 - ✅ Modular renderer design for ECS integration
 - ✅ Working demo window with test shapes
 - ✅ UI display of current simulation time and day/night cycle
+- ✅ UI display of satisfaction levels with color-coded indicators
+- ✅ UI display of tower economics (balance, revenue, expenses)
 - ✅ Comprehensive unit tests for Tower Grid System
 - ✅ **HUD and Information Display System**
   - Top bar with funds, population, time, and speed display
@@ -271,7 +405,10 @@ cd build
 
 The application demonstrates:
 - Actors moving with velocity
-- Periodic logging of actor positions
+- Tenant satisfaction levels changing based on facility conditions
+- Economic simulation with revenue collection and expense tracking
+- Daily financial reports showing balance changes
+- Periodic logging of actor positions and building occupancy
 - Building occupancy monitoring
 - **Interactive HUD with real-time game information**
   - Top bar with funds, population, time, and simulation speed

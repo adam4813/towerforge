@@ -1,6 +1,7 @@
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
 #include "core/tower_grid.hpp"
+#include "core/facility_manager.hpp"
 #include <iostream>
 
 namespace TowerForge {
@@ -18,6 +19,9 @@ void ECSWorld::Initialize() {
     
     RegisterComponents();
     RegisterSystems();
+    
+    // Create facility manager after world is initialized
+    facility_manager_ = std::make_unique<FacilityManager>(world_, *tower_grid_);
     
     std::cout << "ECS World initialized successfully" << std::endl;
 }
@@ -47,6 +51,10 @@ TowerGrid& ECSWorld::GetTowerGrid() {
     return *tower_grid_;
 }
 
+FacilityManager& ECSWorld::GetFacilityManager() {
+    return *facility_manager_;
+}
+
 void ECSWorld::RegisterComponents() {
     // Register components with the ECS
     // This allows flecs to track and manage component metadata
@@ -57,8 +65,11 @@ void ECSWorld::RegisterComponents() {
     world_.component<TimeManager>();
     world_.component<DailySchedule>();
     world_.component<GridPosition>();
+    world_.component<Satisfaction>();
+    world_.component<FacilityEconomics>();
+    world_.component<TowerEconomy>();
     
-    std::cout << "  Registered components: Position, Velocity, Actor, BuildingComponent, TimeManager, DailySchedule, GridPosition" << std::endl;
+    std::cout << "  Registered components: Position, Velocity, Actor, BuildingComponent, TimeManager, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy" << std::endl;
 }
 
 void ECSWorld::RegisterSystems() {
@@ -188,15 +199,7 @@ void ECSWorld::RegisterSystems() {
         .kind(flecs::OnUpdate)
         .interval(10.0f)  // Run every 10 seconds
         .each([](flecs::entity e, const BuildingComponent& component) {
-            const char* type_name = "Unknown";
-            switch(component.type) {
-                case BuildingComponent::Type::Office:     type_name = "Office"; break;
-                case BuildingComponent::Type::Restaurant: type_name = "Restaurant"; break;
-                case BuildingComponent::Type::Shop:       type_name = "Shop"; break;
-                case BuildingComponent::Type::Hotel:      type_name = "Hotel"; break;
-                case BuildingComponent::Type::Elevator:   type_name = "Elevator"; break;
-                case BuildingComponent::Type::Lobby:      type_name = "Lobby"; break;
-            }
+            const char* type_name = FacilityManager::GetTypeName(component.type);
             
             std::cout << "  " << type_name 
                       << " on floor " << component.floor 
@@ -205,7 +208,154 @@ void ECSWorld::RegisterSystems() {
                       << std::endl;
         });
     
-    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor" << std::endl;
+    // Satisfaction update system
+    // Updates tenant satisfaction based on various factors
+    world_.system<Satisfaction, const BuildingComponent>()
+        .kind(flecs::OnUpdate)
+        .interval(1.0f)  // Update every second
+        .each([](flecs::entity e, Satisfaction& satisfaction, const BuildingComponent& facility) {
+            // Calculate crowding penalty based on occupancy
+            float occupancy_rate = static_cast<float>(facility.current_occupancy) / facility.capacity;
+            if (occupancy_rate > 0.9f) {
+                // Overcrowded - high penalty
+                satisfaction.crowding_penalty = (occupancy_rate - 0.9f) * 50.0f;
+            } else if (occupancy_rate < 0.3f) {
+                // Too empty - small penalty (feels abandoned)
+                satisfaction.crowding_penalty = (0.3f - occupancy_rate) * 10.0f;
+            } else {
+                // Good occupancy
+                satisfaction.crowding_penalty *= 0.9f;  // Decay existing penalty
+            }
+            
+            // Noise penalty based on facility type and occupancy
+            if (facility.type == BuildingComponent::Type::Restaurant || 
+                facility.type == BuildingComponent::Type::Shop) {
+                satisfaction.noise_penalty = occupancy_rate * 5.0f;
+            }
+            
+            // Quality bonus based on facility type
+            switch (facility.type) {
+                case BuildingComponent::Type::Hotel:
+                    satisfaction.quality_bonus = 15.0f;
+                    break;
+                case BuildingComponent::Type::Restaurant:
+                    satisfaction.quality_bonus = 10.0f;
+                    break;
+                case BuildingComponent::Type::Office:
+                    satisfaction.quality_bonus = 5.0f;
+                    break;
+                default:
+                    satisfaction.quality_bonus = 2.0f;
+                    break;
+            }
+            
+            // Update the overall satisfaction score
+            satisfaction.UpdateScore();
+        });
+    
+    // Satisfaction reporting system
+    // Periodically reports satisfaction levels
+    world_.system<const Satisfaction, const Actor>()
+        .kind(flecs::OnUpdate)
+        .interval(15.0f)  // Report every 15 seconds
+        .each([](flecs::entity e, const Satisfaction& satisfaction, const Actor& actor) {
+            std::cout << "  [Satisfaction] " << actor.name 
+                      << ": " << static_cast<int>(satisfaction.satisfaction_score) << "% ("
+                      << satisfaction.GetLevelString() << ")"
+                      << std::endl;
+        });
+    
+    // Facility economics update system
+    // Processes revenue and costs for facilities
+    world_.system<FacilityEconomics, const BuildingComponent, const Satisfaction>()
+        .kind(flecs::OnUpdate)
+        .interval(1.0f)  // Update every second
+        .each([](flecs::entity e, FacilityEconomics& economics, 
+                 const BuildingComponent& facility, const Satisfaction& satisfaction) {
+            // Update current tenants based on satisfaction and capacity
+            // High satisfaction attracts more tenants
+            if (satisfaction.satisfaction_score > 70.0f && 
+                economics.current_tenants < economics.max_tenants) {
+                // Chance to gain a tenant
+                if (facility.current_occupancy < facility.capacity) {
+                    economics.current_tenants++;
+                }
+            } else if (satisfaction.satisfaction_score < 30.0f && 
+                       economics.current_tenants > 0) {
+                // Chance to lose a tenant
+                economics.current_tenants--;
+            }
+            
+            // Adjust quality multiplier based on satisfaction
+            economics.quality_multiplier = 0.5f + (satisfaction.satisfaction_score / 100.0f) * 1.5f;
+        });
+    
+    // Daily economy processing system
+    // Processes daily transactions at the start of each new day
+    world_.system<TowerEconomy, const TimeManager>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, TowerEconomy& economy, const TimeManager& time_mgr) {
+            int current_day = time_mgr.current_week * 7 + time_mgr.current_day;
+            
+            // Check if it's a new day
+            if (current_day != economy.last_processed_day) {
+                if (economy.last_processed_day >= 0) {
+                    // Process yesterday's transactions
+                    economy.ProcessDailyTransactions();
+                    
+                    std::cout << "  === Daily Economics Report ===" << std::endl;
+                    std::cout << "  Day Revenue: $" << economy.daily_revenue << std::endl;
+                    std::cout << "  Day Expenses: $" << economy.daily_expenses << std::endl;
+                    std::cout << "  Balance: $" << economy.total_balance << std::endl;
+                    std::cout << "  ==============================" << std::endl;
+                }
+                economy.last_processed_day = current_day;
+            }
+        });
+    
+    // Revenue collection system
+    // Collects revenue from all facilities daily
+    world_.system<const FacilityEconomics>()
+        .kind(flecs::OnUpdate)
+        .interval(1.0f)  // Check every second
+        .each([](flecs::entity e, const FacilityEconomics& economics) {
+            // Get tower economy singleton (mutable reference)
+            auto& mut_economy = e.world().ensure<TowerEconomy>();
+            
+            // Calculate revenue for this tick (1 second interval)
+            // Daily revenue is spread over 24 hours
+            float revenue_per_second = economics.CalculateDailyRevenue() / (24.0f * 3600.0f);
+            mut_economy.daily_revenue += revenue_per_second;
+            
+            // Add operating costs
+            float cost_per_second = economics.operating_cost / (24.0f * 3600.0f);
+            mut_economy.daily_expenses += cost_per_second;
+        });
+    
+    // Economic status reporting system
+    world_.system<const FacilityEconomics, const BuildingComponent>()
+        .kind(flecs::OnUpdate)
+        .interval(20.0f)  // Report every 20 seconds
+        .each([](flecs::entity e, const FacilityEconomics& economics, 
+                 const BuildingComponent& facility) {
+            const char* type_name = "Unknown";
+            switch(facility.type) {
+                case BuildingComponent::Type::Office:     type_name = "Office"; break;
+                case BuildingComponent::Type::Restaurant: type_name = "Restaurant"; break;
+                case BuildingComponent::Type::Shop:       type_name = "Shop"; break;
+                case BuildingComponent::Type::Hotel:      type_name = "Hotel"; break;
+                case BuildingComponent::Type::Elevator:   type_name = "Elevator"; break;
+                case BuildingComponent::Type::Lobby:      type_name = "Lobby"; break;
+            }
+            
+            std::cout << "  [Economics] " << type_name << " Floor " << facility.floor
+                      << ": Occupancy " << static_cast<int>(economics.GetOccupancyRate()) << "%"
+                      << ", Daily Profit: $" << static_cast<int>(economics.CalculateNetProfit())
+                      << " (Quality: " << static_cast<int>(economics.quality_multiplier * 100) << "%)"
+                      << std::endl;
+        });
+    
+    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting" << std::endl;
 }
 
 } // namespace Core
