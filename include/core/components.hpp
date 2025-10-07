@@ -200,5 +200,171 @@ struct GridPosition {
         : floor(f), column(c), width(w) {}
 };
 
+/**
+ * @brief Component for tenant satisfaction
+ * 
+ * Tracks satisfaction levels for tenants based on various factors
+ * like wait times, noise, facility quality, and crowding.
+ */
+struct Satisfaction {
+    enum class Level {
+        VeryPoor,     // 0-20%
+        Poor,         // 21-40%
+        Average,      // 41-60%
+        Good,         // 61-80%
+        Excellent     // 81-100%
+    };
+    
+    float satisfaction_score;  // 0.0 to 100.0
+    float wait_time_penalty;   // Accumulated penalty from elevator wait times
+    float crowding_penalty;    // Penalty from facility overcrowding
+    float noise_penalty;       // Penalty from noise levels
+    float quality_bonus;       // Bonus from facility quality
+    
+    Satisfaction(float initial_score = 75.0f)
+        : satisfaction_score(initial_score),
+          wait_time_penalty(0.0f),
+          crowding_penalty(0.0f),
+          noise_penalty(0.0f),
+          quality_bonus(0.0f) {}
+    
+    /**
+     * @brief Get the satisfaction level category
+     */
+    Level GetLevel() const {
+        if (satisfaction_score <= 20.0f) return Level::VeryPoor;
+        if (satisfaction_score <= 40.0f) return Level::Poor;
+        if (satisfaction_score <= 60.0f) return Level::Average;
+        if (satisfaction_score <= 80.0f) return Level::Good;
+        return Level::Excellent;
+    }
+    
+    /**
+     * @brief Get the satisfaction level as a string
+     */
+    const char* GetLevelString() const {
+        switch (GetLevel()) {
+            case Level::VeryPoor: return "Very Poor";
+            case Level::Poor: return "Poor";
+            case Level::Average: return "Average";
+            case Level::Good: return "Good";
+            case Level::Excellent: return "Excellent";
+            default: return "Unknown";
+        }
+    }
+    
+    /**
+     * @brief Update satisfaction based on accumulated factors
+     */
+    void UpdateScore() {
+        // Calculate total penalty/bonus
+        float total_change = quality_bonus - (wait_time_penalty + crowding_penalty + noise_penalty);
+        satisfaction_score += total_change * 0.1f;  // Gradual change
+        
+        // Clamp to valid range
+        if (satisfaction_score < 0.0f) satisfaction_score = 0.0f;
+        if (satisfaction_score > 100.0f) satisfaction_score = 100.0f;
+        
+        // Decay penalties over time
+        wait_time_penalty *= 0.95f;
+        crowding_penalty *= 0.95f;
+        noise_penalty *= 0.95f;
+    }
+};
+
+/**
+ * @brief Component for facility economics
+ * 
+ * Tracks revenue, costs, and rent for building facilities.
+ */
+struct FacilityEconomics {
+    float base_rent;           // Base rent per tenant per day
+    float revenue;             // Accumulated revenue
+    float operating_cost;      // Daily operating cost
+    float quality_multiplier;  // Multiplier for rent based on quality (0.5 - 2.0)
+    int max_tenants;           // Maximum number of tenants
+    int current_tenants;       // Current number of tenants
+    
+    FacilityEconomics(float rent = 100.0f, float cost = 20.0f, int max_ten = 10)
+        : base_rent(rent),
+          revenue(0.0f),
+          operating_cost(cost),
+          quality_multiplier(1.0f),
+          max_tenants(max_ten),
+          current_tenants(0) {}
+    
+    /**
+     * @brief Calculate daily revenue based on current occupancy and quality
+     */
+    float CalculateDailyRevenue() const {
+        return base_rent * current_tenants * quality_multiplier;
+    }
+    
+    /**
+     * @brief Calculate net profit (revenue - costs)
+     */
+    float CalculateNetProfit() const {
+        return CalculateDailyRevenue() - operating_cost;
+    }
+    
+    /**
+     * @brief Get occupancy percentage
+     */
+    float GetOccupancyRate() const {
+        if (max_tenants == 0) return 0.0f;
+        return (static_cast<float>(current_tenants) / max_tenants) * 100.0f;
+    }
+};
+
+/**
+ * @brief Global singleton component for tower-wide economy tracking
+ * 
+ * Tracks the overall financial status of the tower including
+ * total revenue, expenses, and balance.
+ */
+struct TowerEconomy {
+    float total_balance;       // Current cash balance
+    float total_revenue;       // Accumulated total revenue
+    float total_expenses;      // Accumulated total expenses
+    float daily_revenue;       // Revenue for current day
+    float daily_expenses;      // Expenses for current day
+    int last_processed_day;    // Last day when economics were processed
+    
+    TowerEconomy(float initial_balance = 10000.0f)
+        : total_balance(initial_balance),
+          total_revenue(0.0f),
+          total_expenses(0.0f),
+          daily_revenue(0.0f),
+          daily_expenses(0.0f),
+          last_processed_day(-1) {}
+    
+    /**
+     * @brief Process daily financial transactions
+     */
+    void ProcessDailyTransactions() {
+        total_balance += daily_revenue - daily_expenses;
+        total_revenue += daily_revenue;
+        total_expenses += daily_expenses;
+        
+        // Reset daily counters
+        daily_revenue = 0.0f;
+        daily_expenses = 0.0f;
+    }
+    
+    /**
+     * @brief Get the current profit/loss status
+     */
+    float GetNetProfit() const {
+        return total_revenue - total_expenses;
+    }
+    
+    /**
+     * @brief Check if tower is profitable
+     */
+    bool IsProfitable() const {
+        return daily_revenue > daily_expenses;
+    }
+};
+
 } // namespace Core
 } // namespace TowerForge
