@@ -48,6 +48,10 @@ target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 add_executable(placement_demo_app src/placement_demo_app.cpp src/rendering/renderer.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp)
 target_link_libraries(placement_demo_app PRIVATE raylib glfw towerforge_core)
 
+# Click test application
+add_executable(click_test_app src/click_test_app.cpp src/rendering/renderer.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp)
+target_link_libraries(click_test_app PRIVATE raylib glfw towerforge_core)
+
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)

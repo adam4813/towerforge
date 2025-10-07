@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
             }
             // Check if click is on HUD
             else if (!hud.HandleClick(mouse_x, mouse_y)) {
-                // Click is in game area - try placement/demolition
+                // Click is in game area - try placement/demolition first
                 int cost_change = placement_system.HandleClick(mouse_x, mouse_y,
                     grid_offset_x, grid_offset_y, cell_width, cell_height, game_state.funds);
                 
@@ -218,6 +218,34 @@ int main(int argc, char* argv[]) {
                     } else {
                         hud.AddNotification(Notification::Type::Info, 
                             TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
+                    }
+                } else {
+                    // No placement/demolition occurred - check if user clicked on a facility or person to view info
+                    // Convert mouse position to grid coordinates
+                    int rel_x = mouse_x - grid_offset_x;
+                    int rel_y = mouse_y - grid_offset_y;
+                    
+                    if (rel_x >= 0 && rel_y >= 0) {
+                        int clicked_floor = rel_y / cell_height;
+                        int clicked_column = rel_x / cell_width;
+                        
+                        // Check if clicked on a facility
+                        if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
+                            clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
+                            
+                            if (grid.IsOccupied(clicked_floor, clicked_column)) {
+                                // Clicked on a facility - show info
+                                FacilityInfo info;
+                                info.type = "FACILITY";
+                                info.floor = clicked_floor;
+                                info.occupancy = 0;
+                                info.max_occupancy = 10;
+                                info.revenue = 100.0f;
+                                info.satisfaction = 75.0f;
+                                info.tenant_count = 0;
+                                hud.ShowFacilityInfo(info);
+                            }
+                        }
                     }
                 }
             }
