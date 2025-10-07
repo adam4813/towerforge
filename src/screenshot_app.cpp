@@ -85,6 +85,9 @@ int main(int argc, char* argv[]) {
     ECSWorld ecs_world;
     ecs_world.Initialize();
     
+    // Set up global time manager (1x speed for screenshot)
+    ecs_world.GetWorld().set<TimeManager>({1.0f});
+    
     // Get the tower grid
     auto& grid = ecs_world.GetTowerGrid();
     
@@ -95,16 +98,30 @@ int main(int argc, char* argv[]) {
     grid.PlaceFacility(3, 1, 4, 4);    // Shop on floor 3
     grid.PlaceFacility(4, 8, 10, 5);   // Hotel on floor 4
     
-    // Create some example actors (people)
+    // Create some example actors (people) with schedules
     auto actor1 = ecs_world.CreateEntity("John");
     actor1.set<Position>({10.0f, 0.0f});
     actor1.set<Velocity>({0.5f, 0.0f});
     actor1.set<Actor>({"John", 5, 1.0f});
     
+    // Add a daily schedule for John
+    DailySchedule john_schedule;
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 9.0f);
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.0f);
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 17.0f);
+    actor1.set<DailySchedule>(john_schedule);
+    
     auto actor2 = ecs_world.CreateEntity("Sarah");
     actor2.set<Position>({20.0f, 0.0f});
     actor2.set<Velocity>({-0.3f, 0.0f});
     actor2.set<Actor>({"Sarah", 3, 0.8f});
+    
+    // Add a daily schedule for Sarah
+    DailySchedule sarah_schedule;
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 8.5f);
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.5f);
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);
+    actor2.set<DailySchedule>(sarah_schedule);
     
     // Render a few frames to ensure everything is drawn
     for (int i = 0; i < 5; i++) {
@@ -154,7 +171,26 @@ int main(int argc, char* argv[]) {
         }
         
         // Draw title and legend
-        DrawText("TowerForge - Tower Grid System", 50, 10, 24, WHITE);
+        DrawText("TowerForge - Time Simulation & Grid System", 50, 10, 20, WHITE);
+        
+        // Display current simulation time (top-left panel)
+        const auto& time_mgr = ecs_world.GetWorld().get<TimeManager>();
+        std::string time_str = "Time: " + time_mgr.GetTimeString();
+        std::string day_str = std::string("Day: ") + time_mgr.GetDayName();
+        std::string week_str = "Week: " + std::to_string(time_mgr.current_week);
+        
+        // Background panel for time display
+        DrawRectangle(520, 50, 250, 100, Color{0, 0, 0, 180});
+        DrawText(time_str.c_str(), 530, 60, 18, WHITE);
+        DrawText(day_str.c_str(), 530, 85, 18, WHITE);
+        DrawText(week_str.c_str(), 530, 110, 18, WHITE);
+        
+        // Day/night cycle indicator
+        Color cycle_color = time_mgr.IsBusinessHours() ? YELLOW : DARKBLUE;
+        const char* cycle_text = time_mgr.IsBusinessHours() ? "DAY" : "NIGHT";
+        DrawRectangle(530, 130, 80, 30, Color{0, 0, 0, 180});
+        DrawText(cycle_text, 540, 135, 16, cycle_color);
+        
         DrawText("Grid: 10 floors x 20 columns", 50, 280, 16, LIGHTGRAY);
         DrawText("Legend:", 50, 310, 16, WHITE);
         DrawRectangle(50, 335, 20, 15, GOLD);
@@ -171,14 +207,15 @@ int main(int argc, char* argv[]) {
         // Draw info panel
         DrawText(TextFormat("Occupied cells: %d", grid.GetOccupiedCellCount()), 50, 450, 16, LIGHTGRAY);
         DrawText(TextFormat("Floors: %d | Columns: %d", grid.GetFloorCount(), grid.GetColumnCount()), 50, 470, 16, LIGHTGRAY);
+        DrawText("Actors: 2 (John, Sarah)", 50, 490, 16, LIGHTGRAY);
         
         renderer.EndFrame();
     }
     
     // Take screenshot
     std::cout << "Taking screenshot..." << std::endl;
-    TakeScreenshot("/tmp/towerforge_screenshot.png");
-    std::cout << "Screenshot saved to /tmp/towerforge_screenshot.png" << std::endl;
+    TakeScreenshot("towerforge_screenshot.png");
+    std::cout << "Screenshot saved to towerforge_screenshot.png" << std::endl;
     
     // Cleanup
     renderer.Shutdown();
