@@ -383,6 +383,14 @@ grid.RemoveFacility(facility_id);
   - Notification system with auto-expiry
   - Build menu for selecting facilities
   - Speed controls UI (pause, 1x, 2x, 4x)
+- ✅ **Interactive Building and Placement System**
+  - Mouse-driven facility placement with preview
+  - Green/red validation feedback for placement
+  - Construction progress with visual indicators
+  - Demolish mode with 50% cost recovery
+  - Undo/redo stack (up to 20 actions)
+  - Keyboard shortcuts (D, Ctrl+Z, Ctrl+Y)
+  - Economy integration with costs and refunds
 
 ### Tower Grid System Demo
 
@@ -393,6 +401,19 @@ The screenshot above shows the Tower Grid System in action with:
 - 5 different facilities placed (Lobby, Office, Restaurant, Shop, Hotel)
 - Visual representation of occupied cells with color coding
 - Real-time grid statistics (38 occupied cells shown)
+
+### Interactive Placement System Demo
+
+![Placement System Demo](placement_system_demo.png)
+
+The interactive building and placement system provides a complete mouse-driven interface for building your tower:
+- **Build Menu**: Left sidebar with facility types, costs, and tool buttons
+- **Placement Preview**: Green/red highlights show valid/invalid placements
+- **Construction Progress**: Orange overlays with progress bars show ongoing construction
+- **Demolish Mode**: Red highlights for facilities that can be demolished
+- **Keyboard Shortcuts**: D for demolish, Ctrl+Z/Y for undo/redo
+
+See [docs/PLACEMENT_SYSTEM.md](docs/PLACEMENT_SYSTEM.md) for complete documentation.
 
 ### Running the Demo
 
@@ -407,6 +428,16 @@ The application demonstrates:
 - Actors moving with velocity
 - Tenant satisfaction levels changing based on facility conditions
 - Economic simulation with revenue collection and expense tracking
+- Interactive building and placement with the mouse
+- Real-time construction progress
+- Undo/redo functionality
+
+**Placement Demo Application:**
+```bash
+./bin/placement_demo_app
+```
+
+This dedicated demo showcases the interactive placement system features and automatically generates a screenshot after 5 seconds.
 - Daily financial reports showing balance changes
 - Periodic logging of actor positions and building occupancy
 - Building occupancy monitoring
