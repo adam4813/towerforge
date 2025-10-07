@@ -63,6 +63,8 @@ int main(int argc, char* argv[]) {
     sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);  // 4:30 PM
     sarah_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 11.0f);       // Idle on weekends
     actor2.set<DailySchedule>(sarah_schedule);
+  
+    std::cout << "  Created 2 actors" << std::endl;
     
     // Create some example building components with economics
     auto lobby = ecs_world.CreateEntity("Lobby");
@@ -105,20 +107,22 @@ int main(int argc, char* argv[]) {
     hud.AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
     hud.AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
     
-    
-    // Demonstrate Tower Grid System
-    std::cout << std::endl << "Demonstrating Tower Grid System..." << std::endl;
+    // Demonstrate Tower Grid System and Facility Manager
+    std::cout << std::endl << "Demonstrating Tower Grid System and Facility Manager..." << std::endl;
     auto& grid = ecs_world.GetTowerGrid();
+    auto& facility_mgr = ecs_world.GetFacilityManager();
     
     std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x " 
               << grid.GetColumnCount() << " columns" << std::endl;
     
-    // Place facilities on the grid
-    std::cout << "  Placing facilities on grid..." << std::endl;
-    grid.PlaceFacility(0, 0, 10, 1);   // Lobby on floor 0
-    grid.PlaceFacility(1, 2, 8, 2);    // Office on floor 1
-    grid.PlaceFacility(2, 5, 6, 3);    // Restaurant on floor 2
-    grid.PlaceFacility(3, 1, 4, 4);    // Shop on floor 3
+    // Create and place facilities using FacilityManager
+    std::cout << "  Creating facilities..." << std::endl;
+    auto lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0, 0, "MainLobby");
+    auto office1 = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2, 0, "Office_Floor_1");
+    auto residential1 = facility_mgr.CreateFacility(BuildingComponent::Type::Residential, 2, 5, 0, "Condo_Floor_2");
+    auto shop1 = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1, 0, "Shop_Floor_3");
+    
+    std::cout << "  Created 4 facilities (Lobby, Office, Residential, RetailShop)" << std::endl;
     
     std::cout << "  Occupied cells: " << grid.GetOccupiedCellCount() << std::endl;
     std::cout << "  Facility at (0, 0): " << grid.GetFacilityAt(0, 0) << std::endl;

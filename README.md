@@ -121,6 +121,55 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - Wrapper around flecs world for clean API
 - Manages component and system registration
 - Provides entity creation and simulation update methods
+- Integrated with FacilityManager for high-level facility operations
+
+### Facility System
+
+The Facility System provides a comprehensive framework for creating and managing building facilities in the tower. See [docs/FACILITIES.md](docs/FACILITIES.md) for detailed documentation.
+
+**Core Facility Types**:
+- **Office**: Commercial office space (generates rent, holds ~20 workers)
+- **Residential**: Condominium units (housing for residents, holds ~4 people per unit)
+- **RetailShop**: Retail shops (provides shopping, holds ~15 customers)
+- **Lobby**: Main entrance (required on ground floor, holds ~50 people)
+
+**Legacy Types** (for compatibility):
+- Restaurant, Hotel, Elevator
+
+**Facility Manager** (`include/core/facility_manager.hpp`):
+- High-level API for creating and removing facilities
+- Automatic default attributes (width, capacity) for each facility type
+- Integration with tower grid for placement validation
+- Color management for rendering
+
+**Example Usage**:
+```cpp
+auto& facility_mgr = ecs_world.GetFacilityManager();
+
+// Create a lobby on ground floor
+auto lobby = facility_mgr.CreateFacility(
+    BuildingComponent::Type::Lobby, 
+    0,     // floor
+    0,     // column
+    0,     // width (0 = use default)
+    "MainLobby"
+);
+
+// Create an office on floor 1
+auto office = facility_mgr.CreateFacility(
+    BuildingComponent::Type::Office,
+    1, 2   // floor 1, column 2
+);
+
+// Remove a facility
+facility_mgr.RemoveFacility(office);
+// or by position
+facility_mgr.RemoveFacilityAt(1, 2);
+```
+
+![Facility System Demo](docs/facility_demo_screenshot.png)
+
+*Demo showing different facility types with distinct colors*
 
 ### Using the ECS
 
