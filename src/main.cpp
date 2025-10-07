@@ -69,6 +69,33 @@ int main(int argc, char* argv[]) {
     restaurant.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
     
     std::cout << "  Created 2 actors and 3 building components" << std::endl;
+    
+    // Demonstrate Tower Grid System
+    std::cout << std::endl << "Demonstrating Tower Grid System..." << std::endl;
+    auto& grid = ecs_world.GetTowerGrid();
+    
+    std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x " 
+              << grid.GetColumnCount() << " columns" << std::endl;
+    
+    // Place facilities on the grid
+    std::cout << "  Placing facilities on grid..." << std::endl;
+    grid.PlaceFacility(0, 0, 10, 1);   // Lobby on floor 0
+    grid.PlaceFacility(1, 2, 8, 2);    // Office on floor 1
+    grid.PlaceFacility(2, 5, 6, 3);    // Restaurant on floor 2
+    grid.PlaceFacility(3, 1, 4, 4);    // Shop on floor 3
+    
+    std::cout << "  Occupied cells: " << grid.GetOccupiedCellCount() << std::endl;
+    std::cout << "  Facility at (0, 0): " << grid.GetFacilityAt(0, 0) << std::endl;
+    std::cout << "  Facility at (1, 5): " << grid.GetFacilityAt(1, 5) << std::endl;
+    std::cout << "  Space available at floor 1, column 12 for width 5: " 
+              << (grid.IsSpaceAvailable(1, 12, 5) ? "Yes" : "No") << std::endl;
+    
+    // Add more floors
+    std::cout << "  Adding 5 more floors..." << std::endl;
+    grid.AddFloors(5);
+    std::cout << "  New grid size: " << grid.GetFloorCount() << " floors x " 
+              << grid.GetColumnCount() << " columns" << std::endl;
+    
     std::cout << std::endl << "Running simulation..." << std::endl;
     std::cout << std::endl;
     

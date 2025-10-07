@@ -1,11 +1,13 @@
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
+#include "core/tower_grid.hpp"
 #include <iostream>
 
 namespace TowerForge {
 namespace Core {
 
-ECSWorld::ECSWorld() {
+ECSWorld::ECSWorld() 
+    : tower_grid_(std::make_unique<TowerGrid>(10, 20)) {  // 10 floors, 20 columns initial
 }
 
 ECSWorld::~ECSWorld() {
@@ -41,6 +43,10 @@ flecs::entity ECSWorld::CreateEntity(const char* name) {
     return world_.entity();
 }
 
+TowerGrid& ECSWorld::GetTowerGrid() {
+    return *tower_grid_;
+}
+
 void ECSWorld::RegisterComponents() {
     // Register components with the ECS
     // This allows flecs to track and manage component metadata
@@ -50,8 +56,9 @@ void ECSWorld::RegisterComponents() {
     world_.component<BuildingComponent>();
     world_.component<TimeManager>();
     world_.component<DailySchedule>();
+    world_.component<GridPosition>();
     
-    std::cout << "  Registered components: Position, Velocity, Actor, BuildingComponent, TimeManager, DailySchedule" << std::endl;
+    std::cout << "  Registered components: Position, Velocity, Actor, BuildingComponent, TimeManager, DailySchedule, GridPosition" << std::endl;
 }
 
 void ECSWorld::RegisterSystems() {

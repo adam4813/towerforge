@@ -92,6 +92,14 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - `BuildingComponent`: Represents building facilities (offices, restaurants, shops, etc.)
 - `TimeManager`: Global singleton for simulation time management (hours, days, weeks, speed control)
 - `DailySchedule`: Component for entities with time-based routines (work hours, breaks, etc.)
+- `GridPosition`: Grid-based position (floor, column, width)
+
+**Tower Grid System** (`include/core/tower_grid.hpp`):
+- 2D grid system for spatial management of the tower
+- Supports adding/removing floors and columns dynamically
+- Facility placement and removal with collision detection
+- Spatial query functions for grid operations
+- Integrated with ECS for seamless tower management
 
 **Systems** (`src/core/ecs_world.cpp`):
 - **Time Simulation System**: Advances simulation time based on configurable speed multiplier
@@ -183,6 +191,39 @@ schedule.AddWeekendAction(ScheduledAction::Type::Idle, 10.0f);
 
 // Attach to entity
 entity.set<DailySchedule>(schedule);
+### Using the Tower Grid
+
+```cpp
+#include "core/ecs_world.hpp"
+#include "core/tower_grid.hpp"
+
+// Create and initialize ECS world
+TowerForge::Core::ECSWorld world;
+world.Initialize();
+
+// Access the tower grid
+auto& grid = world.GetTowerGrid();
+
+// Add floors and columns
+grid.AddFloors(5);   // Add 5 more floors
+grid.AddColumns(10); // Add 10 more columns
+
+// Place a facility on the grid
+int facility_id = 1;
+bool placed = grid.PlaceFacility(
+    3,           // floor
+    5,           // column
+    8,           // width (in grid cells)
+    facility_id  // entity ID
+);
+
+// Query the grid
+bool occupied = grid.IsOccupied(3, 5);
+int id = grid.GetFacilityAt(3, 5);
+bool available = grid.IsSpaceAvailable(2, 10, 5);
+
+// Remove a facility
+grid.RemoveFacility(facility_id);
 ```
 
 ## Current Status
@@ -201,6 +242,17 @@ entity.set<DailySchedule>(schedule);
 - ✅ Modular renderer design for ECS integration
 - ✅ Working demo window with test shapes
 - ✅ UI display of current simulation time and day/night cycle
+- ✅ Comprehensive unit tests for Tower Grid System
+
+### Tower Grid System Demo
+
+![Tower Grid System Demo](docs/grid_demo_screenshot.png)
+
+The screenshot above shows the Tower Grid System in action with:
+- A 10 floors × 20 columns grid
+- 5 different facilities placed (Lobby, Office, Restaurant, Shop, Hotel)
+- Visual representation of occupied cells with color coding
+- Real-time grid statistics (38 occupied cells shown)
 
 ### Running the Demo
 

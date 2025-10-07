@@ -3,9 +3,13 @@
 #include <string>
 #include <vector>
 #include <cstdio>
+#include <memory>
 
 namespace TowerForge {
 namespace Core {
+
+// Forward declaration
+class TowerGrid;
 
 /**
  * @brief Component for entities with a position in 2D space
@@ -180,6 +184,20 @@ struct DailySchedule {
     const std::vector<ScheduledAction>& GetActiveSchedule(bool is_weekend) const {
         return is_weekend ? weekend_schedule : weekday_schedule;
     }
+};
+  
+/**
+ * @brief Component for grid-based position
+ * 
+ * Represents a position in the tower's grid system.
+ */
+struct GridPosition {
+    int floor;
+    int column;
+    int width;  // Width occupied in grid cells
+    
+    GridPosition(int f = 0, int c = 0, int w = 1)
+        : floor(f), column(c), width(w) {}
 };
 
 } // namespace Core

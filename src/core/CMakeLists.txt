@@ -1,6 +1,7 @@
 # Core library - headless simulation module
 add_library(towerforge_core
     ecs_world.cpp
+    tower_grid.cpp
 )
 
 # Find flecs package
