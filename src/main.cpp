@@ -4,12 +4,14 @@
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
 #include "core/save_load_manager.hpp"
+#include "core/achievement_manager.hpp"
 #include "ui/hud.h"
 #include "ui/build_menu.h"
 #include "ui/placement_system.h"
 #include "ui/main_menu.h"
 #include "ui/pause_menu.h"
 #include "ui/save_load_menu.h"
+#include "ui/achievements_menu.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
@@ -110,6 +112,7 @@ enum class GameMode {
     InGame,
     Settings,
     Credits,
+    Achievements,
     Quit
 };
 
@@ -128,6 +131,14 @@ int main(int argc, char* argv[]) {
     
     // Create main menu
     MainMenu main_menu;
+    
+    // Create achievement manager for persistent achievements
+    AchievementManager achievement_manager;
+    achievement_manager.Initialize();
+    
+    // Create achievements menu
+    AchievementsMenu achievements_menu;
+    achievements_menu.SetAchievementManager(&achievement_manager);
     
     // Title screen loop
     while (current_mode == GameMode::TitleScreen && !renderer.ShouldClose()) {
@@ -155,6 +166,9 @@ int main(int argc, char* argv[]) {
                     // For now, just start a new game
                     current_mode = GameMode::InGame;
                     break;
+                case MenuOption::Achievements:
+                    current_mode = GameMode::Achievements;
+                    break;
                 case MenuOption::Settings:
                     current_mode = GameMode::Settings;
                     std::cout << "Settings screen not yet implemented, returning to menu..." << std::endl;
@@ -174,6 +188,34 @@ int main(int argc, char* argv[]) {
         renderer.BeginFrame();
         main_menu.Render();
         renderer.EndFrame();
+    }
+    
+    // Handle achievements screen
+    if (current_mode == GameMode::Achievements) {
+        while (current_mode == GameMode::Achievements && !renderer.ShouldClose()) {
+            float delta_time = GetFrameTime();
+            
+            // Update achievements menu
+            achievements_menu.Update(delta_time);
+            
+            // Handle input
+            if (achievements_menu.HandleKeyboard()) {
+                current_mode = GameMode::TitleScreen;
+            }
+            achievements_menu.HandleMouse(GetMouseX(), GetMouseY(), GetMouseWheelMove());
+            
+            // Render
+            renderer.BeginFrame();
+            ClearBackground(Color{20, 20, 30, 255});
+            achievements_menu.Render();
+            renderer.EndFrame();
+        }
+        
+        // Return to title screen if not quitting
+        if (current_mode != GameMode::Quit && !renderer.ShouldClose()) {
+            current_mode = GameMode::TitleScreen;
+            // Restart title screen loop (code will continue below)
+        }
     }
     
     // Handle credits screen
@@ -241,6 +283,9 @@ int main(int argc, char* argv[]) {
                         case MenuOption::LoadGame:
                             current_mode = GameMode::InGame;
                             break;
+                        case MenuOption::Achievements:
+                            current_mode = GameMode::Achievements;
+                            break;
                         case MenuOption::Settings:
                             current_mode = GameMode::TitleScreen;
                             break;
@@ -279,6 +324,7 @@ int main(int argc, char* argv[]) {
     save_load_manager.Initialize();
     save_load_manager.SetAutosaveEnabled(true);
     save_load_manager.SetAutosaveInterval(120.0f);  // Auto-save every 2 minutes
+    save_load_manager.SetAchievementManager(&achievement_manager);  // Link achievement manager for persistence
     
     // Create save/load menu
     SaveLoadMenu save_load_menu;
@@ -471,6 +517,44 @@ int main(int argc, char* argv[]) {
         
         hud.SetGameState(game_state);
         hud.Update(time_step);
+        
+        // Check for achievements (only if not paused)
+        if (!is_paused) {
+            // Get economy singleton for total income
+            flecs::world& world = ecs_world.GetWorld();
+            float total_income = 0.0f;
+            if (world.has<TowerEconomy>()) {
+                const auto& economy = world.get<TowerEconomy>();
+                total_income = economy.total_revenue;
+            }
+            
+            // Get floor count
+            int floor_count = ecs_world.GetTowerGrid().GetFloorCount();
+            
+            // Calculate average satisfaction (simplified - just use game state population for now)
+            float avg_satisfaction = 75.0f;  // Default to 75% for now
+            
+            // Check achievements
+            achievement_manager.CheckAchievements(game_state.population, total_income, floor_count, avg_satisfaction);
+            
+            // Display notifications for newly unlocked achievements
+            if (achievement_manager.HasNewAchievements()) {
+                auto newly_unlocked = achievement_manager.PopNewlyUnlocked();
+                for (const auto& achievement_id : newly_unlocked) {
+                    // Find achievement to get its name
+                    for (const auto& achievement : achievement_manager.GetAllAchievements()) {
+                        if (achievement.id == achievement_id) {
+                            std::string message = "Achievement Unlocked: " + achievement.name;
+                            hud.AddNotification(Notification::Type::Success, message, 5.0f);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Update achievements menu with current stats
+            achievements_menu.SetGameStats(game_state.population, total_income, floor_count, avg_satisfaction);
+        }
         
         // Handle pause menu input
         if (is_paused) {
