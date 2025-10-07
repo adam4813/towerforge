@@ -7,6 +7,7 @@
 #include "ui/build_menu.h"
 #include "ui/placement_system.h"
 #include "ui/main_menu.h"
+#include "ui/pause_menu.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
@@ -251,6 +252,7 @@ int main(int argc, char* argv[]) {
     // Create HUD and build menu
     HUD hud;
     BuildMenu build_menu;
+    PauseMenu pause_menu;
     
     // Create and initialize camera
     towerforge::rendering::Camera camera;
@@ -328,13 +330,25 @@ int main(int argc, char* argv[]) {
     const float total_time = 30.0f;
     float elapsed_time = 0.0f;
     float sim_time = 0.0f;
+    bool is_paused = false;  // Track pause state
     
     while (elapsed_time < total_time && !renderer.ShouldClose()) {
-        if (!ecs_world.Update(time_step)) {
-            break;
+        // Handle ESC key to toggle pause menu
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            is_paused = !is_paused;
+            if (is_paused) {
+                game_state.paused = true;
+            }
         }
-        elapsed_time += time_step;
-        sim_time += time_step * game_state.speed_multiplier;
+        
+        // Only update simulation if not paused
+        if (!is_paused) {
+            if (!ecs_world.Update(time_step)) {
+                break;
+            }
+            elapsed_time += time_step;
+            sim_time += time_step * game_state.speed_multiplier;
+        }
         
         // Update game state for HUD
         game_state.current_time = 8.5f + (sim_time / 3600.0f);  // Increment time
@@ -342,21 +356,72 @@ int main(int argc, char* argv[]) {
             game_state.current_time -= 24.0f;
             game_state.current_day++;
         }
-        game_state.funds += (game_state.income_rate / 3600.0f) * time_step;
+        
+        // Only update game state if not paused
+        if (!is_paused) {
+            game_state.funds += (game_state.income_rate / 3600.0f) * time_step;
+        }
         
         hud.SetGameState(game_state);
         hud.Update(time_step);
         
+        // Handle pause menu input
+        if (is_paused) {
+            pause_menu.Update(time_step);
+            
+            // Handle quit confirmation if showing
+            int quit_result = pause_menu.HandleQuitConfirmation();
+            if (quit_result == 1) {
+                // User confirmed quit to title
+                current_mode = GameMode::TitleScreen;
+                break;  // Exit game loop
+            } else if (quit_result == 0) {
+                // User cancelled quit - just stay in pause menu
+            } else {
+                // No quit confirmation showing - handle regular menu input
+                int keyboard_selection = pause_menu.HandleKeyboard();
+                int mouse_selection = pause_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                             IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                
+                int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+                
+                if (selected >= 0) {
+                    PauseMenuOption option = static_cast<PauseMenuOption>(selected);
+                    switch (option) {
+                        case PauseMenuOption::Resume:
+                            is_paused = false;
+                            game_state.paused = false;
+                            break;
+                        case PauseMenuOption::SaveGame:
+                            hud.AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
+                            break;
+                        case PauseMenuOption::LoadGame:
+                            hud.AddNotification(Notification::Type::Info, "Load game not yet implemented", 3.0f);
+                            break;
+                        case PauseMenuOption::Settings:
+                            hud.AddNotification(Notification::Type::Info, "Settings not yet implemented", 3.0f);
+                            break;
+                        case PauseMenuOption::QuitToTitle:
+                            // Show confirmation dialog
+                            pause_menu.ShowQuitConfirmation(true);
+                            break;
+                    }
+                }
+            }
+        }
+        
         // Update placement system
         placement_system.Update(time_step);
         
-        // Handle keyboard shortcuts
-        placement_system.HandleKeyboard();
+        // Handle keyboard shortcuts (only if not paused)
+        if (!is_paused) {
+            placement_system.HandleKeyboard();
+        }
         // Update camera
         camera.Update(time_step);
         
-        // Handle mouse clicks for demo
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        // Handle mouse clicks for demo (only if not paused)
+        if (!is_paused && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             int mouse_x = GetMouseX();
             int mouse_y = GetMouseY();
             
@@ -592,7 +657,54 @@ int main(int argc, char* argv[]) {
             }
         });
         
+        // Render pause menu overlay if paused
+        if (is_paused) {
+            pause_menu.Render();
+        }
+        
         renderer.EndFrame();
+    }
+    
+    // Check if we should return to title screen
+    if (current_mode == GameMode::TitleScreen && !renderer.ShouldClose()) {
+        // Reset and restart title screen loop
+        while (current_mode == GameMode::TitleScreen && !renderer.ShouldClose()) {
+            float delta_time = GetFrameTime();
+            main_menu.Update(delta_time);
+            
+            int keyboard_selection = main_menu.HandleKeyboard();
+            int mouse_selection = main_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                         IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            
+            int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+            
+            if (selected >= 0) {
+                MenuOption option = static_cast<MenuOption>(selected);
+                switch (option) {
+                    case MenuOption::NewGame:
+                        std::cout << "New Game from pause menu not yet implemented" << std::endl;
+                        current_mode = GameMode::TitleScreen;  // Stay on title for now
+                        break;
+                    case MenuOption::LoadGame:
+                        std::cout << "Load Game from pause menu not yet implemented" << std::endl;
+                        current_mode = GameMode::TitleScreen;  // Stay on title for now
+                        break;
+                    case MenuOption::Settings:
+                        current_mode = GameMode::TitleScreen;
+                        break;
+                    case MenuOption::Credits:
+                        current_mode = GameMode::Credits;
+                        break;
+                    case MenuOption::Quit:
+                        current_mode = GameMode::Quit;
+                        break;
+                }
+            }
+            
+            renderer.BeginFrame();
+            main_menu.Render();
+            renderer.EndFrame();
+        }
     }
     
     // Cleanup
