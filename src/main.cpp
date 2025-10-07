@@ -21,6 +21,11 @@ int main(int argc, char* argv[]) {
     ECSWorld ecs_world;
     ecs_world.Initialize();
     
+    // Create the global TimeManager as a singleton
+    // Start at 8:00 AM on Monday, Week 1
+    // Simulation runs at 60x speed (60 in-game hours per real-time second)
+    ecs_world.GetWorld().set<TimeManager>({60.0f});
+    
     std::cout << std::endl << "Creating example entities..." << std::endl;    
     std::cout << "Renderer initialized. Window opened." << std::endl;
     std::cout << "Press ESC or close window to exit." << std::endl;
@@ -32,10 +37,26 @@ int main(int argc, char* argv[]) {
     actor1.set<Velocity>({0.5f, 0.0f});
     actor1.set<Actor>({"John", 5, 1.0f});
     
+    // Add a daily schedule for John
+    DailySchedule john_schedule;
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 9.0f);   // 9:00 AM
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.0f);  // 12:00 PM
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 17.0f);   // 5:00 PM
+    john_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 10.0f);        // Idle on weekends
+    actor1.set<DailySchedule>(john_schedule);
+    
     auto actor2 = ecs_world.CreateEntity("Sarah");
     actor2.set<Position>({20.0f, 0.0f});
     actor2.set<Velocity>({-0.3f, 0.0f});
     actor2.set<Actor>({"Sarah", 3, 0.8f});
+    
+    // Add a daily schedule for Sarah
+    DailySchedule sarah_schedule;
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 8.5f);  // 8:30 AM
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.5f); // 12:30 PM
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);  // 4:30 PM
+    sarah_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 11.0f);       // Idle on weekends
+    actor2.set<DailySchedule>(sarah_schedule);
     
     // Create some example building components
     auto lobby = ecs_world.CreateEntity("Lobby");

@@ -51,6 +51,23 @@ Currently, the project is in early development with basic structure in place.
 
 ## Build System
 
+### Prerequisites and Dependencies Setup
+
+Before building, ensure the following are installed:
+
+**Linux (Ubuntu/Debian):**
+```bash
+# Install build essentials and X11 libraries
+sudo apt-get update
+sudo apt-get install -y build-essential cmake pkg-config \
+    libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+    libgl1-mesa-dev libglu1-mesa-dev xvfb
+
+# vcpkg will automatically install flecs and raylib during first build
+```
+
+**Note:** When running in CI/CD or headless environments, `xvfb` is required for rendering screenshots.
+
 ### CMake Configuration
 
 - Minimum CMake version: 3.20
@@ -66,9 +83,16 @@ Currently, the project is in early development with basic structure in place.
 ```bash
 mkdir build
 cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build .
 ```
+
+**Note:** If vcpkg is installed locally, adjust the toolchain path:
+```bash
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake
+```
+
+The first build will take longer as vcpkg downloads and compiles dependencies (flecs, raylib, glfw3).
 
 ### Dependencies
 
