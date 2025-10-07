@@ -32,6 +32,7 @@ set(SOURCE_FILES
     src/ui/hud.cpp
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp
+    src/ui/main_menu.cpp
 )
 
 add_executable(towerforge ${SOURCE_FILES})
@@ -42,7 +43,7 @@ find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 
 # Screenshot application
-add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp)
+add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp src/ui/main_menu.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
 # Future modules (uncomment as needed)
