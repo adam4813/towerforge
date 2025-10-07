@@ -43,10 +43,6 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/ui/hud.cpp src/ui/build_menu.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
-# HUD Demo application
-add_executable(hud_demo src/hud_demo.cpp src/rendering/renderer.cpp src/ui/hud.cpp src/ui/build_menu.cpp)
-target_link_libraries(hud_demo PRIVATE raylib glfw towerforge_core)
-
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)

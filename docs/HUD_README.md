@@ -43,22 +43,18 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build .
 ```
 
-### Running the Demo
+### Running the Application
 
 ```bash
-./bin/hud_demo
+./bin/towerforge
 ```
 
-### Demo Controls
-
-- **1** - Show Facility Info Panel
-- **2** - Show Person Info Panel
-- **3** - Show Elevator Info Panel
-- **4** - Hide all info panels
-- **N** - Add test notification
-- **SPACE** - Toggle pause
-- **Mouse Click** - Interact with UI elements
-- **ESC** - Exit
+The main application includes integrated HUD features showing:
+- Real-time game statistics in the top bar
+- Interactive info panels when clicking entities
+- Notification system for important events
+- Build menu for facility selection
+- Speed controls for simulation
 
 ## Using in Your Code
 
@@ -180,14 +176,14 @@ src/ui/
   └── build_menu.cpp     # Build menu implementation
 
 src/
-  ├── hud_demo.cpp       # Demo application
   └── main.cpp           # Main app with HUD
 
 docs/
   ├── HUD_SYSTEM.md
   ├── HUD_VISUAL_LAYOUT.md
   ├── HUD_SCREENSHOT_REFERENCE.md
-  └── HUD_IMPLEMENTATION_SUMMARY.md
+  ├── HUD_IMPLEMENTATION_SUMMARY.md
+  └── DESIGN_DECISION_NO_DEMOS.md
 ```
 
 ## Data Structures
@@ -290,7 +286,7 @@ struct ElevatorInfo {
 
 ## Next Steps
 
-1. Build and run the demo: `./bin/hud_demo`
+1. Build and run the application: `./bin/towerforge`
 2. Explore the documentation in `docs/`
 3. Integrate into your game using the examples above
 4. Customize colors and layout as needed
@@ -299,8 +295,8 @@ struct ElevatorInfo {
 
 For questions or issues:
 - See full documentation in `docs/HUD_SYSTEM.md`
-- Review the demo application in `src/hud_demo.cpp`
-- Check examples in `src/main.cpp`
+- Review the integration in `src/main.cpp`
+- Check the design decision document in `docs/DESIGN_DECISION_NO_DEMOS.md`
 
 ## License
 

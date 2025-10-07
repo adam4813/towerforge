@@ -163,7 +163,7 @@ This document summarizes the HUD and Information Display System implementation f
 **Status:** COMPLETE
 - `HandleClick()` method detects clicks
 - Three panel types for different entity types
-- Example click handling in `hud_demo.cpp` lines 139-164
+- Example click handling integrated in `src/main.cpp`
 
 ### ✅ Info panels update dynamically as simulation runs
 **Status:** COMPLETE
@@ -227,17 +227,19 @@ While these systems may not be fully implemented yet, the HUD is ready to integr
 4. `src/ui/build_menu.cpp` - Build menu rendering and selection
 
 ### Applications
-5. `src/hud_demo.cpp` - Standalone demo application
-6. `src/main.cpp` - Updated with HUD integration
+5. `src/main.cpp` - Updated with HUD integration
 
 ### Documentation
-7. `docs/HUD_SYSTEM.md` - Comprehensive API documentation
-8. `docs/HUD_VISUAL_LAYOUT.md` - Visual layout guide
-9. `docs/HUD_SCREENSHOT_REFERENCE.md` - Screenshot reference
-10. `README.md` - Updated with HUD information
+6. `docs/HUD_SYSTEM.md` - Comprehensive API documentation
+7. `docs/HUD_VISUAL_LAYOUT.md` - Visual layout guide
+8. `docs/HUD_SCREENSHOT_REFERENCE.md` - Screenshot reference
+9. `docs/HUD_IMPLEMENTATION_SUMMARY.md` - Implementation details
+10. `docs/HUD_README.md` - Quick start guide
+11. `docs/DESIGN_DECISION_NO_DEMOS.md` - Design decision documentation
+12. `README.md` - Updated with HUD information
 
 ### Build Configuration
-11. `CMakeLists.txt` - Updated to include UI sources
+13. `CMakeLists.txt` - Updated to include UI sources
 
 ## Code Statistics
 
@@ -246,28 +248,22 @@ While these systems may not be fully implemented yet, the HUD is ready to integr
   - hud.cpp: 408 lines
   - build_menu.h: 82 lines
   - build_menu.cpp: 103 lines
-- **Documentation:** ~26,000 words across 3 documents
-- **Demo Application:** 288 lines (hud_demo.cpp)
+- **Documentation:** ~30,000 words across 6 documents
 
 ## Testing Strategy
 
-The implementation includes a comprehensive demo application (`hud_demo.cpp`) that:
+The HUD system is tested within the main `towerforge` application, which:
 
-1. Demonstrates all HUD features
-2. Allows interactive testing
-3. Provides keyboard shortcuts for testing different panels
-4. Shows example data for all info panels
-5. Demonstrates notification system
-6. Shows build menu interaction
+1. Demonstrates all HUD features in context
+2. Shows real integration with the game simulation
+3. Provides example data for all info panels
+4. Demonstrates the notification system
+5. Shows build menu interaction
+6. Tests all UI components working together
 
-### Demo Controls
-- **1:** Show Facility Info Panel
-- **2:** Show Person Info Panel
-- **3:** Show Elevator Info Panel
-- **4:** Hide all info panels
-- **N:** Add test notification
-- **SPACE:** Toggle pause
-- **Mouse:** Click UI elements
+### Design Decision
+
+We do not create standalone demo applications for features. Instead, features are demonstrated within the main application where they are used in context. This decision is documented in `docs/DESIGN_DECISION_NO_DEMOS.md`.
 
 ## Integration Points
 

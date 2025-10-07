@@ -192,19 +192,17 @@ Simulation speed buttons:
 - **Organized**: Logical grouping of information
 - **Accessible**: Clear visual hierarchy and icons
 
-## Demo Controls
+## Using the HUD
 
-To explore the HUD in the demo application:
+The HUD is integrated into the main `towerforge` application:
 
-1. Run `./bin/hud_demo`
-2. Press **1** to show Facility Info
-3. Press **2** to show Person Info
-4. Press **3** to show Elevator Info
-5. Press **4** to hide all panels
-6. Press **N** to add notifications
-7. Press **SPACE** to pause/resume
-8. Click build menu items to select facilities
-9. Click game area to interact
+1. Run `./bin/towerforge`
+2. Observe the top bar showing real-time game stats
+3. Click on facilities in the game view to see detailed info panels
+4. Click on people to see actor state and destination
+5. Use the build menu on the left to select facility types
+6. Use speed controls at the bottom right to control simulation
+7. Watch for notifications appearing at the bottom left
 
 ## Technical Notes
 

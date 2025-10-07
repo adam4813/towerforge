@@ -208,35 +208,23 @@ The screenshot above shows the Tower Grid System in action with:
 
 ### Running the Demo
 
-After building, run the main demo to see the ECS simulation:
+After building, run the main application to see the simulation with HUD:
 
 ```bash
 cd build
 ./bin/towerforge
 ```
 
-The demo creates example actors and building components, then runs a 30-second simulation showing:
+The application demonstrates:
 - Actors moving with velocity
 - Periodic logging of actor positions
 - Building occupancy monitoring
 - **Interactive HUD with real-time game information**
-
-#### HUD System Demo
-
-To see the full HUD system in action, run the dedicated HUD demo:
-
-```bash
-cd build
-./bin/hud_demo
-```
-
-The HUD demo showcases:
-- Top bar with funds, population, time, and simulation speed
-- Info panels for facilities, people, and elevators (press 1-4 to toggle)
-- Notification system (press N to add test notifications)
-- Build menu with facility types and costs
-- Speed controls (press SPACE to pause/resume)
-- Interactive UI elements
+  - Top bar with funds, population, time, and simulation speed
+  - Info panels for facilities, people, and elevators
+  - Notification system
+  - Build menu with facility types and costs
+  - Speed controls
 
 For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/HUD_SYSTEM.md).
 

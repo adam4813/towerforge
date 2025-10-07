@@ -270,28 +270,27 @@ while (!renderer.ShouldClose()) {
 }
 ```
 
-## Demo Application
+## Testing the HUD
 
-A standalone demo application is provided in `src/hud_demo.cpp` that showcases all HUD features:
+The HUD system is integrated into the main `towerforge` application. To test HUD features:
 
 ### Building and Running
 
 ```bash
 cd build
 cmake --build .
-./bin/hud_demo
+./bin/towerforge
 ```
 
-### Demo Controls
+### Interactive Features
 
-- **1**: Show Facility Info Panel
-- **2**: Show Person Info Panel
-- **3**: Show Elevator Info Panel
-- **4**: Hide all info panels
-- **N**: Add a test notification
-- **SPACE**: Toggle pause
-- **Mouse Click**: Interact with build menu and other UI elements
-- **ESC**: Exit demo
+The main application demonstrates all HUD features:
+- Real-time display of funds, population, time, and simulation speed
+- Click on facilities to view detailed info panels
+- Click on people to view actor state and destination
+- Notifications appear for important events
+- Build menu allows facility selection
+- Speed controls can pause or accelerate the simulation
 
 ## Visual Design
 
@@ -350,7 +349,11 @@ The HUD system depends on:
 
 ## Testing
 
-The HUD system can be tested independently from the full game simulation. The `hud_demo.cpp` application provides a complete test environment with simulated data.
+The HUD system is tested within the main `towerforge` application, which provides a complete environment with simulated data. See the Integration Points section above for examples of how to use the HUD in your game loop.
+
+## Design Decision
+
+We do not create standalone demo applications for individual features. The main application serves as the demonstration of all features working together. For the rationale behind this decision, see `docs/DESIGN_DECISION_NO_DEMOS.md`.
 
 ## License
 
