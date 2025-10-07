@@ -229,7 +229,7 @@ void ECSWorld::RegisterSystems() {
             
             // Noise penalty based on facility type and occupancy
             if (facility.type == BuildingComponent::Type::Restaurant || 
-                facility.type == BuildingComponent::Type::Shop) {
+                facility.type == BuildingComponent::Type::RetailShop) {
                 satisfaction.noise_penalty = occupancy_rate * 5.0f;
             }
             
@@ -342,10 +342,11 @@ void ECSWorld::RegisterSystems() {
             switch(facility.type) {
                 case BuildingComponent::Type::Office:     type_name = "Office"; break;
                 case BuildingComponent::Type::Restaurant: type_name = "Restaurant"; break;
-                case BuildingComponent::Type::Shop:       type_name = "Shop"; break;
+                case BuildingComponent::Type::RetailShop: type_name = "RetailShop"; break;
                 case BuildingComponent::Type::Hotel:      type_name = "Hotel"; break;
                 case BuildingComponent::Type::Elevator:   type_name = "Elevator"; break;
                 case BuildingComponent::Type::Lobby:      type_name = "Lobby"; break;
+                case BuildingComponent::Type::Residential: type_name = "Residential"; break;
             }
             
             std::cout << "  [Economics] " << type_name << " Floor " << facility.floor

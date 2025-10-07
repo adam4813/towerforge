@@ -128,21 +128,15 @@ int main(int argc, char* argv[]) {
     sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);
     actor2.set<DailySchedule>(sarah_schedule);
     
-    // Create facilities with economics
-    auto lobby = ecs_world.CreateEntity("Lobby");
-    lobby.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
-    lobby.set<Satisfaction>({90.0f});
+    // Add economics to facilities
     lobby.set<FacilityEconomics>({50.0f, 10.0f, 50});
+    lobby.set<Satisfaction>({90.0f});
     
-    auto office = ecs_world.CreateEntity("Office");
-    office.set<BuildingComponent>({BuildingComponent::Type::Office, 1, 8, 20});
-    office.set<Satisfaction>({75.0f});
     office.set<FacilityEconomics>({150.0f, 30.0f, 20});
+    office.set<Satisfaction>({75.0f});
     
-    auto restaurant = ecs_world.CreateEntity("Restaurant");
-    restaurant.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 2, 6, 30});
-    restaurant.set<Satisfaction>({70.0f});
     restaurant.set<FacilityEconomics>({200.0f, 60.0f, 30});
+    restaurant.set<Satisfaction>({70.0f});
     
     // Render a few frames to ensure everything is drawn
     for (int i = 0; i < 5; i++) {
