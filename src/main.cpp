@@ -2,8 +2,11 @@
 #include "rendering/renderer.h"
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
+#include "ui/hud.h"
+#include "ui/build_menu.h"
 
 using namespace TowerForge::Core;
+using namespace towerforge::ui;
 
 int main(int argc, char* argv[]) {
     std::cout << "TowerForge - Tower Simulation Game" << std::endl;
@@ -82,6 +85,27 @@ int main(int argc, char* argv[]) {
     
     std::cout << "  Created 2 actors and 3 building components with satisfaction and economics" << std::endl;
     
+    // Create HUD and build menu
+    HUD hud;
+    BuildMenu build_menu;
+    
+    // Set initial game state
+    GameState game_state;
+    game_state.funds = 25000.0f;
+    game_state.income_rate = 500.0f;
+    game_state.population = 2;
+    game_state.current_day = 1;
+    game_state.current_time = 8.5f;  // 8:30 AM
+    game_state.speed_multiplier = 1;
+    game_state.paused = false;
+    
+    hud.SetGameState(game_state);
+    
+    // Add some example notifications
+    hud.AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
+    hud.AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
+    
+    
     // Demonstrate Tower Grid System
     std::cout << std::endl << "Demonstrating Tower Grid System..." << std::endl;
     auto& grid = ecs_world.GetTowerGrid();
@@ -115,12 +139,64 @@ int main(int argc, char* argv[]) {
     const float time_step = 1.0f / 60.0f;  // 60 FPS
     const float total_time = 30.0f;
     float elapsed_time = 0.0f;
+    float sim_time = 0.0f;
     
     while (elapsed_time < total_time && !renderer.ShouldClose()) {
         if (!ecs_world.Update(time_step)) {
             break;
         }
         elapsed_time += time_step;
+        sim_time += time_step * game_state.speed_multiplier;
+        
+        // Update game state for HUD
+        game_state.current_time = 8.5f + (sim_time / 3600.0f);  // Increment time
+        if (game_state.current_time >= 24.0f) {
+            game_state.current_time -= 24.0f;
+            game_state.current_day++;
+        }
+        game_state.funds += (game_state.income_rate / 3600.0f) * time_step;
+        
+        hud.SetGameState(game_state);
+        hud.Update(time_step);
+        
+        // Handle mouse clicks for demo
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            int mouse_x = GetMouseX();
+            int mouse_y = GetMouseY();
+            
+            // Check if click is on build menu
+            if (build_menu.HandleClick(mouse_x, mouse_y) >= 0) {
+                hud.AddNotification(Notification::Type::Info, "Facility selected from menu", 3.0f);
+            }
+            // Check if click is on HUD
+            else if (!hud.HandleClick(mouse_x, mouse_y)) {
+                // Click is in game area - show example info panels
+                if (mouse_x > 250 && mouse_x < 550 && mouse_y > 200 && mouse_y < 280) {
+                    // Clicked on building
+                    FacilityInfo info;
+                    info.type = "OFFICE";
+                    info.floor = 5;
+                    info.occupancy = 8;
+                    info.max_occupancy = 10;
+                    info.revenue = 80.0f;
+                    info.satisfaction = 85.0f;
+                    info.tenant_count = 8;
+                    hud.ShowFacilityInfo(info);
+                } else if (mouse_x > 370 && mouse_x < 430 && mouse_y > 370 && mouse_y < 430) {
+                    // Clicked on person
+                    PersonInfo info;
+                    info.id = 42;
+                    info.state = "WaitingElevator";
+                    info.current_floor = 1;
+                    info.destination_floor = 8;
+                    info.wait_time = 45.0f;
+                    info.needs = "Work";
+                    info.satisfaction = 60.0f;
+                    hud.ShowPersonInfo(info);
+                }
+            }
+        }
+        
         renderer.BeginFrame();
         
         // Clear background to dark gray
@@ -132,28 +208,9 @@ int main(int argc, char* argv[]) {
         // Draw a test circle (representing a person or elevator)
         renderer.DrawCircle(400, 400, 30.0f, RED);
         
-        // Display current simulation time
-        const auto& time_mgr = ecs_world.GetWorld().get<TimeManager>();
-        // Draw time display in top-left corner
-        std::string time_str = "Time: " + time_mgr.GetTimeString();
-        std::string day_str = std::string("Day: ") + time_mgr.GetDayName();
-        std::string week_str = "Week: " + std::to_string(time_mgr.current_week);
-        std::string speed_str = "Speed: " + std::to_string(static_cast<int>(time_mgr.simulation_speed)) + "x";
-        
-        // Background panel for better readability
-        renderer.DrawRectangle(10, 10, 250, 120, Color{0, 0, 0, 180});
-        
-        // Draw text
-        renderer.DrawText(time_str.c_str(), 20, 20, 20, WHITE);
-        renderer.DrawText(day_str.c_str(), 20, 45, 20, WHITE);
-        renderer.DrawText(week_str.c_str(), 20, 70, 20, WHITE);
-        renderer.DrawText(speed_str.c_str(), 20, 95, 20, YELLOW);
-        
-        // Day/night cycle indicator
-        Color cycle_color = time_mgr.IsBusinessHours() ? YELLOW : DARKBLUE;
-        const char* cycle_text = time_mgr.IsBusinessHours() ? "DAY" : "NIGHT";
-        renderer.DrawRectangle(680, 10, 110, 40, Color{0, 0, 0, 180});
-        renderer.DrawText(cycle_text, 690, 20, 20, cycle_color);
+        // Render HUD and build menu
+        hud.Render();
+        build_menu.Render();
         
         // Display tower economy status
         const auto& tower_economy = ecs_world.GetWorld().get<TowerEconomy>();

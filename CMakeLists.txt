@@ -28,6 +28,8 @@ add_subdirectory(src/core)
 set(SOURCE_FILES
     src/main.cpp
     src/rendering/renderer.cpp
+    src/ui/hud.cpp
+    src/ui/build_menu.cpp
 )
 
 add_executable(towerforge ${SOURCE_FILES})
@@ -38,7 +40,7 @@ find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 
 # Screenshot application
-add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp)
+add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/ui/hud.cpp src/ui/build_menu.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
 # Demo screenshot application (satisfaction and economy)

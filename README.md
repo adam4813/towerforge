@@ -328,6 +328,12 @@ grid.RemoveFacility(facility_id);
 - ✅ UI display of satisfaction levels with color-coded indicators
 - ✅ UI display of tower economics (balance, revenue, expenses)
 - ✅ Comprehensive unit tests for Tower Grid System
+- ✅ **HUD and Information Display System**
+  - Top bar with funds, population, time, and speed display
+  - Info panels for facilities, people, and elevators
+  - Notification system with auto-expiry
+  - Build menu for selecting facilities
+  - Speed controls UI (pause, 1x, 2x, 4x)
 
 ### Tower Grid System Demo
 
@@ -341,25 +347,29 @@ The screenshot above shows the Tower Grid System in action with:
 
 ### Running the Demo
 
-After building, run the demo to see the ECS simulation:
+After building, run the main application to see the simulation with HUD:
 
 ```bash
 cd build
 ./bin/towerforge
 ```
 
-The demo creates example actors and building components, then runs a 30-second simulation showing:
-- Time advancing through multiple days and weeks
-- Scheduled actions triggered at specific times
-- Different behavior for weekdays vs. weekends
+The application demonstrates:
 - Actors moving with velocity
 - Tenant satisfaction levels changing based on facility conditions
 - Economic simulation with revenue collection and expense tracking
 - Daily financial reports showing balance changes
 - Periodic logging of actor positions and building occupancy
-- UI display of current time, day, week, and day/night cycle
-- UI display of satisfaction levels with color-coded indicators
-- UI display of tower economics (balance, revenue, expenses)
+- Building occupancy monitoring
+- **Interactive HUD with real-time game information**
+  - Top bar with funds, population, time, and simulation speed
+  - Info panels for facilities, people, and elevators
+  - Notification system
+  - Build menu with facility types and costs
+  - Speed controls
+  - UI display of current time
+
+For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/HUD_SYSTEM.md).
 
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 
