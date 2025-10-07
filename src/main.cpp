@@ -18,6 +18,11 @@ int main(int argc, char* argv[]) {
     ECSWorld ecs_world;
     ecs_world.Initialize();
     
+    // Create the global TimeManager as a singleton
+    // Start at 8:00 AM on Monday, Week 1
+    // Simulation runs at 60x speed (60 in-game hours per real-time second)
+    ecs_world.GetWorld().set<TimeManager>({60.0f});
+    
     std::cout << std::endl << "Creating example entities..." << std::endl;    
     std::cout << "Renderer initialized. Window opened." << std::endl;
     std::cout << "Press ESC or close window to exit." << std::endl;
@@ -29,11 +34,27 @@ int main(int argc, char* argv[]) {
     actor1.set<Velocity>({0.5f, 0.0f});
     actor1.set<Actor>({"John", 5, 1.0f});
     
+    // Add a daily schedule for John
+    DailySchedule john_schedule;
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 9.0f);   // 9:00 AM
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.0f);  // 12:00 PM
+    john_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 17.0f);   // 5:00 PM
+    john_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 10.0f);        // Idle on weekends
+    actor1.set<DailySchedule>(john_schedule);
+    
     auto actor2 = ecs_world.CreateEntity("Sarah");
     actor2.set<Position>({20.0f, 0.0f});
     actor2.set<Velocity>({-0.3f, 0.0f});
     actor2.set<Actor>({"Sarah", 3, 0.8f});
     
+    // Add a daily schedule for Sarah
+    DailySchedule sarah_schedule;
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 8.5f);  // 8:30 AM
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.5f); // 12:30 PM
+    sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);  // 4:30 PM
+    sarah_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 11.0f);       // Idle on weekends
+    actor2.set<DailySchedule>(sarah_schedule);
+  
     std::cout << "  Created 2 actors" << std::endl;
     
     // Demonstrate Tower Grid System and Facility Manager
@@ -88,6 +109,29 @@ int main(int argc, char* argv[]) {
         
         // Draw a test circle (representing a person or elevator)
         renderer.DrawCircle(400, 400, 30.0f, RED);
+        
+        // Display current simulation time
+        const auto& time_mgr = ecs_world.GetWorld().get<TimeManager>();
+        // Draw time display in top-left corner
+        std::string time_str = "Time: " + time_mgr.GetTimeString();
+        std::string day_str = std::string("Day: ") + time_mgr.GetDayName();
+        std::string week_str = "Week: " + std::to_string(time_mgr.current_week);
+        std::string speed_str = "Speed: " + std::to_string(static_cast<int>(time_mgr.simulation_speed)) + "x";
+        
+        // Background panel for better readability
+        renderer.DrawRectangle(10, 10, 250, 120, Color{0, 0, 0, 180});
+        
+        // Draw text
+        renderer.DrawText(time_str.c_str(), 20, 20, 20, WHITE);
+        renderer.DrawText(day_str.c_str(), 20, 45, 20, WHITE);
+        renderer.DrawText(week_str.c_str(), 20, 70, 20, WHITE);
+        renderer.DrawText(speed_str.c_str(), 20, 95, 20, YELLOW);
+        
+        // Day/night cycle indicator
+        Color cycle_color = time_mgr.IsBusinessHours() ? YELLOW : DARKBLUE;
+        const char* cycle_text = time_mgr.IsBusinessHours() ? "DAY" : "NIGHT";
+        renderer.DrawRectangle(680, 10, 110, 40, Color{0, 0, 0, 180});
+        renderer.DrawText(cycle_text, 690, 20, 20, cycle_color);
         
         renderer.EndFrame();
     }

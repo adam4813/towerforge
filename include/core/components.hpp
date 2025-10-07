@@ -1,7 +1,9 @@
 #pragma once
 
-#include <string>
+#include <cstdio>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace TowerForge {
 namespace Core {
@@ -80,6 +82,120 @@ struct BuildingComponent {
         : type(t), floor(f), width(w), capacity(cap), current_occupancy(0) {}
 };
 
+/**
+ * @brief Global singleton component for managing simulation time
+ * 
+ * This component tracks the current simulation time, including hours,
+ * days, and weeks. It also manages the simulation speed for pause
+ * and fast-forward functionality.
+ */
+struct TimeManager {
+    float current_hour;        // Current hour of the day (0.0 - 24.0)
+    int current_day;           // Current day of the week (0 = Monday, 6 = Sunday)
+    int current_week;          // Current week number
+    float simulation_speed;    // Speed multiplier (0.0 = paused, 1.0 = normal, 2.0 = 2x speed)
+    float hours_per_second;    // How many in-game hours pass per real-time second
+    
+    TimeManager(float hours_per_sec = 1.0f)
+        : current_hour(8.0f),      // Start at 8 AM
+          current_day(0),          // Start on Monday
+          current_week(1),         // Start at week 1
+          simulation_speed(1.0f),  // Normal speed
+          hours_per_second(hours_per_sec) {}
+    
+    /**
+     * @brief Get the current time as a formatted string (HH:MM)
+     */
+    std::string GetTimeString() const {
+        int hours = static_cast<int>(current_hour);
+        int minutes = static_cast<int>((current_hour - hours) * 60.0f);
+        char buffer[6];
+        snprintf(buffer, sizeof(buffer), "%02d:%02d", hours, minutes);
+        return std::string(buffer);
+    }
+    
+    /**
+     * @brief Get the current day name
+     */
+    const char* GetDayName() const {
+        static const char* day_names[] = {
+            "Monday", "Tuesday", "Wednesday", "Thursday", 
+            "Friday", "Saturday", "Sunday"
+        };
+        return day_names[current_day % 7];
+    }
+    
+    /**
+     * @brief Check if current time is within business hours (9 AM - 5 PM)
+     */
+    bool IsBusinessHours() const {
+        return current_hour >= 9.0f && current_hour < 17.0f;
+    }
+    
+    /**
+     * @brief Check if it's a weekend
+     */
+    bool IsWeekend() const {
+        return current_day == 5 || current_day == 6;  // Saturday or Sunday
+    }
+};
+
+/**
+ * @brief Scheduled action that can be triggered at a specific time
+ */
+struct ScheduledAction {
+    enum class Type {
+        ArriveWork,     // Arrive at work location
+        LeaveWork,      // Leave work and go home
+        LunchBreak,     // Take lunch break
+        Idle,           // No specific action, idle behavior
+        Custom          // Custom action (for future extensibility)
+    };
+    
+    Type type;
+    float trigger_hour;  // Hour of day when this action should trigger (0.0 - 24.0)
+    
+    ScheduledAction(Type t = Type::Idle, float hour = 9.0f)
+        : type(t), trigger_hour(hour) {}
+};
+
+/**
+ * @brief Component for entities with daily/weekly schedules
+ * 
+ * This component allows entities to have routines that trigger
+ * at specific times of day. Schedules can differ for weekdays
+ * and weekends.
+ */
+struct DailySchedule {
+    std::vector<ScheduledAction> weekday_schedule;  // Actions for Monday-Friday
+    std::vector<ScheduledAction> weekend_schedule;  // Actions for Saturday-Sunday
+    float last_triggered_hour;                      // Last hour when a schedule was triggered
+    
+    DailySchedule()
+        : last_triggered_hour(-1.0f) {}
+    
+    /**
+     * @brief Add an action to the weekday schedule
+     */
+    void AddWeekdayAction(ScheduledAction::Type type, float hour) {
+        weekday_schedule.push_back(ScheduledAction(type, hour));
+    }
+    
+    /**
+     * @brief Add an action to the weekend schedule
+     */
+    void AddWeekendAction(ScheduledAction::Type type, float hour) {
+        weekend_schedule.push_back(ScheduledAction(type, hour));
+    }
+    
+    /**
+     * @brief Get the appropriate schedule based on whether it's a weekend
+     */
+    const std::vector<ScheduledAction>& GetActiveSchedule(bool is_weekend) const {
+        return is_weekend ? weekend_schedule : weekday_schedule;
+    }
+};
+  
 /**
  * @brief Component for grid-based position
  * 

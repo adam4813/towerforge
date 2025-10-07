@@ -36,5 +36,9 @@ void Renderer::DrawCircle(int centerX, int centerY, float radius, Color color) {
     ::DrawCircle(centerX, centerY, radius, color);
 }
 
+void Renderer::DrawText(const char* text, int x, int y, int fontSize, Color color) {
+    ::DrawText(text, x, y, fontSize, color);
+}
+
 } // namespace rendering
 } // namespace towerforge
