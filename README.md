@@ -190,6 +190,16 @@ grid.RemoveFacility(facility_id);
 - ✅ Working demo window with test shapes
 - ✅ Comprehensive unit tests for Tower Grid System
 
+### Tower Grid System Demo
+
+![Tower Grid System Demo](docs/grid_demo_screenshot.png)
+
+The screenshot above shows the Tower Grid System in action with:
+- A 10 floors × 20 columns grid
+- 5 different facilities placed (Lobby, Office, Restaurant, Shop, Hotel)
+- Visual representation of occupied cells with color coding
+- Real-time grid statistics (38 occupied cells shown)
+
 ### Running the Demo
 
 After building, run the demo to see the ECS simulation:
