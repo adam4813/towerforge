@@ -10,6 +10,7 @@
 #include "ui/main_menu.h"
 #include "ui/pause_menu.h"
 #include "ui/save_load_menu.h"
+#include "ui/research_tree_menu.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
@@ -293,6 +294,12 @@ int main(int argc, char* argv[]) {
     // Start with $10,000 balance
     ecs_world.GetWorld().set<TowerEconomy>({10000.0f});
     
+    // Create the global ResearchTree as a singleton
+    ResearchTree research_tree;
+    research_tree.InitializeDefaultTree();
+    research_tree.AwardPoints(50);  // Give initial research points for testing
+    ecs_world.GetWorld().set<ResearchTree>(research_tree);
+    
     std::cout << std::endl << "Creating example entities..." << std::endl;    
     std::cout << "Renderer initialized. Window opened." << std::endl;
     std::cout << "Press ESC or close window to exit." << std::endl;
@@ -354,6 +361,7 @@ int main(int argc, char* argv[]) {
     HUD hud;
     BuildMenu build_menu;
     PauseMenu pause_menu;
+    ResearchTreeMenu research_menu;
     
     // Create and initialize camera
     towerforge::rendering::Camera camera;
@@ -436,10 +444,20 @@ int main(int argc, char* argv[]) {
     while (elapsed_time < total_time && !renderer.ShouldClose()) {
         // Handle ESC key to toggle pause menu
         if (IsKeyPressed(KEY_ESCAPE)) {
-            is_paused = !is_paused;
-            if (is_paused) {
-                game_state.paused = true;
+            // If research menu is open, close it instead of pausing
+            if (research_menu.IsVisible()) {
+                research_menu.SetVisible(false);
+            } else {
+                is_paused = !is_paused;
+                if (is_paused) {
+                    game_state.paused = true;
+                }
             }
+        }
+        
+        // Handle R key to toggle research menu (only if not paused)
+        if (!is_paused && IsKeyPressed(KEY_R)) {
+            research_menu.Toggle();
         }
         
         // Only update simulation if not paused
@@ -471,6 +489,20 @@ int main(int argc, char* argv[]) {
         
         hud.SetGameState(game_state);
         hud.Update(time_step);
+        
+        // Handle research menu input
+        if (research_menu.IsVisible()) {
+            research_menu.Update(time_step);
+            
+            // Get reference to research tree from ECS
+            ResearchTree& research_tree_ref = ecs_world.GetWorld().get_mut<ResearchTree>();
+            bool unlocked = research_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                     IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+                                                     research_tree_ref);
+            if (unlocked) {
+                hud.AddNotification(Notification::Type::Success, "Research unlocked!", 2.0f);
+            }
+        }
         
         // Handle pause menu input
         if (is_paused) {
@@ -767,6 +799,12 @@ int main(int argc, char* argv[]) {
         // Render pause menu overlay if paused
         if (is_paused) {
             pause_menu.Render();
+        }
+        
+        // Render research menu overlay if visible
+        if (research_menu.IsVisible()) {
+            ResearchTree& research_tree_ref = ecs_world.GetWorld().get_mut<ResearchTree>();
+            research_menu.Render(research_tree_ref);
         }
         
         renderer.EndFrame();
