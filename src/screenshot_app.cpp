@@ -86,7 +86,10 @@ int main(int argc, char* argv[]) {
     ecs_world.Initialize();
     // Set up global time manager (1x speed for screenshot)
     ecs_world.GetWorld().set<TimeManager>({1.0f});
-
+    
+    // Set up global tower economy
+    ecs_world.GetWorld().set<TowerEconomy>({10000.0f});
+  
     // Get the tower grid and facility manager
     auto& grid = ecs_world.GetTowerGrid();
     auto& facility_mgr = ecs_world.GetFacilityManager();
@@ -98,11 +101,12 @@ int main(int argc, char* argv[]) {
     auto shop = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1);
     auto restaurant = facility_mgr.CreateFacility(BuildingComponent::Type::Restaurant, 4, 8);
     
-    // Create some example actors (people) with schedules
+    // Create some example actors (people) with schedules and satisfaction
     auto actor1 = ecs_world.CreateEntity("John");
     actor1.set<Position>({10.0f, 0.0f});
     actor1.set<Velocity>({0.5f, 0.0f});
     actor1.set<Actor>({"John", 5, 1.0f});
+    actor1.set<Satisfaction>({85.0f});  // High satisfaction
     
     // Add a daily schedule for John
     DailySchedule john_schedule;
@@ -115,6 +119,7 @@ int main(int argc, char* argv[]) {
     actor2.set<Position>({20.0f, 0.0f});
     actor2.set<Velocity>({-0.3f, 0.0f});
     actor2.set<Actor>({"Sarah", 3, 0.8f});
+    actor2.set<Satisfaction>({65.0f});  // Average satisfaction
     
     // Add a daily schedule for Sarah
     DailySchedule sarah_schedule;
@@ -122,6 +127,22 @@ int main(int argc, char* argv[]) {
     sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.5f);
     sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);
     actor2.set<DailySchedule>(sarah_schedule);
+    
+    // Create facilities with economics
+    auto lobby = ecs_world.CreateEntity("Lobby");
+    lobby.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
+    lobby.set<Satisfaction>({90.0f});
+    lobby.set<FacilityEconomics>({50.0f, 10.0f, 50});
+    
+    auto office = ecs_world.CreateEntity("Office");
+    office.set<BuildingComponent>({BuildingComponent::Type::Office, 1, 8, 20});
+    office.set<Satisfaction>({75.0f});
+    office.set<FacilityEconomics>({150.0f, 30.0f, 20});
+    
+    auto restaurant = ecs_world.CreateEntity("Restaurant");
+    restaurant.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 2, 6, 30});
+    restaurant.set<Satisfaction>({70.0f});
+    restaurant.set<FacilityEconomics>({200.0f, 60.0f, 30});
     
     // Render a few frames to ensure everything is drawn
     for (int i = 0; i < 5; i++) {
