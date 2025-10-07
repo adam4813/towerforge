@@ -48,11 +48,113 @@ void ECSWorld::RegisterComponents() {
     world_.component<Velocity>();
     world_.component<Actor>();
     world_.component<BuildingComponent>();
+    world_.component<TimeManager>();
+    world_.component<DailySchedule>();
     
-    std::cout << "  Registered components: Position, Velocity, Actor, BuildingComponent" << std::endl;
+    std::cout << "  Registered components: Position, Velocity, Actor, BuildingComponent, TimeManager, DailySchedule" << std::endl;
 }
 
 void ECSWorld::RegisterSystems() {
+    // Time simulation system - runs first to update simulation time
+    // This system updates the global TimeManager singleton each frame
+    world_.system<TimeManager>()
+        .kind(flecs::PreUpdate)  // Run before other systems
+        .each([](flecs::entity e, TimeManager& time_mgr) {
+            // Get delta time from the world
+            float delta_time = e.world().delta_time();
+            
+            // Calculate how much simulation time passes this frame
+            float hours_elapsed = time_mgr.hours_per_second * time_mgr.simulation_speed * delta_time;
+            
+            // Update current hour
+            time_mgr.current_hour += hours_elapsed;
+            
+            // Handle day rollover
+            while (time_mgr.current_hour >= 24.0f) {
+                time_mgr.current_hour -= 24.0f;
+                time_mgr.current_day++;
+                
+                // Handle week rollover
+                if (time_mgr.current_day >= 7) {
+                    time_mgr.current_day = 0;
+                    time_mgr.current_week++;
+                }
+            }
+        });
+    
+    // Schedule execution system - triggers scheduled actions for entities
+    // This system runs for all entities that have both DailySchedule and Actor components
+    world_.system<DailySchedule, const Actor>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, DailySchedule& schedule, const Actor& actor) {
+            // Get the global time manager
+            const auto& time_mgr = e.world().get<TimeManager>();
+            
+            // Get the appropriate schedule based on weekend/weekday
+            const auto& active_schedule = schedule.GetActiveSchedule(time_mgr.IsWeekend());
+            
+            // Check each scheduled action
+            for (const auto& action : active_schedule) {
+                // Check if we've crossed the trigger time since last frame
+                bool should_trigger = false;
+                
+                if (schedule.last_triggered_hour < 0.0f) {
+                    // First frame, check if we're past the trigger time
+                    should_trigger = (time_mgr.current_hour >= action.trigger_hour);
+                } else {
+                    // Check if we crossed the trigger time
+                    // Handle wrap-around at midnight
+                    if (schedule.last_triggered_hour > time_mgr.current_hour) {
+                        // Day rolled over - only trigger if action time is less than current time
+                        // (i.e., action happens in the new day and we've passed it)
+                        should_trigger = (time_mgr.current_hour >= action.trigger_hour);
+                    } else if (schedule.last_triggered_hour < action.trigger_hour && 
+                               time_mgr.current_hour >= action.trigger_hour) {
+                        should_trigger = true;
+                    }
+                }
+                
+                if (should_trigger) {
+                    // Execute the scheduled action
+                    const char* action_name = "Unknown";
+                    switch (action.type) {
+                        case ScheduledAction::Type::ArriveWork:
+                            action_name = "Arriving at work";
+                            break;
+                        case ScheduledAction::Type::LeaveWork:
+                            action_name = "Leaving work";
+                            break;
+                        case ScheduledAction::Type::LunchBreak:
+                            action_name = "Taking lunch break";
+                            break;
+                        case ScheduledAction::Type::Idle:
+                            action_name = "Going idle";
+                            break;
+                        case ScheduledAction::Type::Custom:
+                            action_name = "Custom action";
+                            break;
+                    }
+                    
+                    std::cout << "  [" << time_mgr.GetTimeString() << "] "
+                              << actor.name << ": " << action_name << std::endl;
+                }
+            }
+            
+            // Update last triggered hour
+            schedule.last_triggered_hour = time_mgr.current_hour;
+        });
+    
+    // Time logging system - periodically logs the current simulation time
+    world_.system<const TimeManager>()
+        .kind(flecs::OnUpdate)
+        .interval(10.0f)  // Log every 10 real-time seconds
+        .each([](flecs::entity e, const TimeManager& time_mgr) {
+            std::cout << "  === Simulation Time: " << time_mgr.GetTimeString() 
+                      << " " << time_mgr.GetDayName() 
+                      << ", Week " << time_mgr.current_week
+                      << " (Speed: " << time_mgr.simulation_speed << "x) ===" << std::endl;
+        });
+    
     // Example system: Movement system that updates positions based on velocity
     // This system runs every frame for all entities that have both Position and Velocity
     world_.system<Position, const Velocity>()
@@ -96,7 +198,7 @@ void ECSWorld::RegisterSystems() {
                       << std::endl;
         });
     
-    std::cout << "  Registered systems: Movement, Actor Logging, Building Occupancy Monitor" << std::endl;
+    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor" << std::endl;
 }
 
 } // namespace Core

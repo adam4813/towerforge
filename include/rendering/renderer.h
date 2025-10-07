@@ -67,6 +67,16 @@ public:
      * @param color Circle color
      */
     void DrawCircle(int centerX, int centerY, float radius, Color color);
+    
+    /**
+     * @brief Draw text on the screen
+     * @param text Text to draw
+     * @param x X position
+     * @param y Y position
+     * @param fontSize Font size
+     * @param color Text color
+     */
+    void DrawText(const char* text, int x, int y, int fontSize, Color color);
 };
 
 } // namespace rendering

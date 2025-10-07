@@ -90,8 +90,12 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - `Velocity`: Movement velocity
 - `Actor`: Represents people in the building (name, destination floor, speed)
 - `BuildingComponent`: Represents building facilities (offices, restaurants, shops, etc.)
+- `TimeManager`: Global singleton for simulation time management (hours, days, weeks, speed control)
+- `DailySchedule`: Component for entities with time-based routines (work hours, breaks, etc.)
 
 **Systems** (`src/core/ecs_world.cpp`):
+- **Time Simulation System**: Advances simulation time based on configurable speed multiplier
+- **Schedule Execution System**: Triggers scheduled actions for entities at specific times
 - **Movement System**: Updates entity positions based on velocity
 - **Actor Logging System**: Monitors and logs actor activity
 - **Building Occupancy Monitor**: Tracks occupancy of building components
@@ -111,11 +115,21 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 TowerForge::Core::ECSWorld world;
 world.Initialize();
 
-// Create an actor entity
+// Set up global time manager (60x speed)
+world.GetWorld().set<TimeManager>({60.0f});
+
+// Create an actor entity with a daily schedule
 auto actor = world.CreateEntity("John");
 actor.set<Position>({10.0f, 0.0f});
 actor.set<Velocity>({0.5f, 0.0f});
 actor.set<Actor>({"John", 5, 1.0f});
+
+// Add daily schedule
+DailySchedule schedule;
+schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 9.0f);   // 9 AM
+schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.0f);  // 12 PM
+schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 17.0f);   // 5 PM
+actor.set<DailySchedule>(schedule);
 
 // Create a building component
 auto office = world.CreateEntity("Office");
@@ -131,19 +145,62 @@ float delta_time = 1.0f / 60.0f;
 world.Update(delta_time);
 ```
 
+### Time Simulation System
+
+The time simulation system enables scheduled routines and day/night cycles:
+
+**Features:**
+- Configurable simulation speed (pause, normal, fast-forward)
+- In-game time tracking (hours, days of week, weeks)
+- Daily/weekly schedules for entities
+- Automatic triggering of scheduled actions
+- Day/night cycle detection
+- Business hours tracking
+
+**Time Manager:**
+```cpp
+// Create time manager with custom speed (e.g., 120 in-game hours per real second)
+world.GetWorld().set<TimeManager>({120.0f});
+
+// Access time manager
+const auto& time_mgr = world.GetWorld().get<TimeManager>();
+std::string current_time = time_mgr.GetTimeString();  // "14:30"
+bool is_work_hours = time_mgr.IsBusinessHours();      // 9 AM - 5 PM
+bool is_weekend = time_mgr.IsWeekend();                // Saturday/Sunday
+```
+
+**Daily Schedules:**
+```cpp
+DailySchedule schedule;
+
+// Weekday schedule
+schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 9.0f);
+schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.0f);
+schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 17.0f);
+
+// Weekend schedule  
+schedule.AddWeekendAction(ScheduledAction::Type::Idle, 10.0f);
+
+// Attach to entity
+entity.set<DailySchedule>(schedule);
+```
+
 ## Current Status
 
 🚧 **Early Development** - Basic ECS integration complete
 
 ### What's Working
 - ✅ Flecs ECS integrated and operational
-- ✅ Core module with example components (Actor, BuildingComponent, Position, Velocity)
-- ✅ Example systems (Movement, Actor logging, Building occupancy)
+- ✅ Core module with components (Actor, BuildingComponent, Position, Velocity, TimeManager, DailySchedule)
+- ✅ Time simulation system with configurable speed
+- ✅ Daily/weekly scheduling system for entities
+- ✅ Example systems (Time simulation, Schedule execution, Movement, Actor logging, Building occupancy)
 - ✅ Demo application showing ECS in action
 - ✅ Basic project structure
 - ✅ Raylib integration with 2D vector rendering
 - ✅ Modular renderer design for ECS integration
 - ✅ Working demo window with test shapes
+- ✅ UI display of current simulation time and day/night cycle
 
 ### Running the Demo
 
@@ -155,9 +212,12 @@ cd build
 ```
 
 The demo creates example actors and building components, then runs a 30-second simulation showing:
+- Time advancing through multiple days and weeks
+- Scheduled actions triggered at specific times
+- Different behavior for weekdays vs. weekends
 - Actors moving with velocity
-- Periodic logging of actor positions
-- Building occupancy monitoring
+- Periodic logging of actor positions and building occupancy
+- UI display of current time, day, week, and day/night cycle
 
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 
