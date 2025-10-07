@@ -14,6 +14,7 @@ namespace Core {
 class ECSWorld;
 class TowerGrid;
 class FacilityManager;
+class AchievementManager;
 
 /**
  * @brief Metadata for a save slot
@@ -184,6 +185,12 @@ public:
      * @return True if autosave is enabled
      */
     bool IsAutosaveEnabled() const { return autosave_enabled_; }
+    
+    /**
+     * @brief Set the achievement manager for persistence
+     * @param manager Pointer to achievement manager
+     */
+    void SetAchievementManager(AchievementManager* manager);
 
 private:
     std::string GetSavePath(const std::string& slot_name) const;
@@ -199,6 +206,7 @@ private:
     float autosave_interval_;
     float time_since_last_save_;
     std::string last_save_slot_;
+    AchievementManager* achievement_manager_;  // Optional achievement manager for persistence
     
     static constexpr const char* SAVE_FILE_EXTENSION = ".tfsave";
     static constexpr const char* AUTOSAVE_SLOT_NAME = "_autosave";
