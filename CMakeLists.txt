@@ -47,6 +47,10 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp src/ui/main_menu.cpp src/ui/pause_menu.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
+# Pause menu screenshot application
+add_executable(pause_menu_screenshot src/pause_menu_screenshot.cpp src/rendering/renderer.cpp src/ui/pause_menu.cpp)
+target_link_libraries(pause_menu_screenshot PRIVATE raylib glfw)
+
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
