@@ -101,6 +101,13 @@ int main(int argc, char* argv[]) {
     auto shop = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1);
     auto restaurant = facility_mgr.CreateFacility(BuildingComponent::Type::Restaurant, 4, 8);
     
+    // Create elevator system for demonstration
+    auto elevator_shaft = ecs_world.CreateEntity("ElevatorShaft");
+    elevator_shaft.set<ElevatorShaft>({10, 0, 4, 1});  // Column 10, floors 0-4, 1 car
+    
+    auto elevator_car = ecs_world.CreateEntity("ElevatorCar");
+    elevator_car.set<ElevatorCar>({static_cast<int>(elevator_shaft.id()), 0, 8});  // Start at floor 0, capacity 8
+    
     // Create some example people using the new Person component
     // Person 1: Spawning in lobby, going to office on floor 1
     auto person1 = ecs_world.CreateEntity("Alice");
@@ -232,6 +239,62 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        
+        // Draw elevator shafts
+        auto shaft_query = ecs_world.GetWorld().query<const ElevatorShaft>();
+        shaft_query.each([&](flecs::entity e, const ElevatorShaft& shaft) {
+            // Draw shaft as vertical column
+            for (int floor = shaft.bottom_floor; floor <= shaft.top_floor; ++floor) {
+                int x = grid_offset_x + shaft.column * cell_width;
+                int y = grid_offset_y + floor * cell_height;
+                
+                // Draw shaft background
+                DrawRectangle(x + 4, y + 4, cell_width - 8, cell_height - 8, Color{60, 60, 70, 255});
+                DrawRectangleLines(x + 4, y + 4, cell_width - 8, cell_height - 8, Color{100, 100, 120, 255});
+            }
+        });
+        
+        // Draw elevator cars
+        auto car_query = ecs_world.GetWorld().query<const ElevatorCar>();
+        car_query.each([&](flecs::entity e, const ElevatorCar& car) {
+            // Find the shaft for this car
+            auto shaft_entity = ecs_world.GetWorld().entity(car.shaft_entity_id);
+            if (shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
+                const ElevatorShaft& shaft = shaft_entity.ensure<ElevatorShaft>();
+                
+                int x = grid_offset_x + shaft.column * cell_width;
+                int y = grid_offset_y + static_cast<int>(car.current_floor * cell_height);
+                
+                // Color based on state
+                Color car_color;
+                switch (car.state) {
+                    case ElevatorState::Idle:
+                        car_color = GRAY;
+                        break;
+                    case ElevatorState::MovingUp:
+                        car_color = SKYBLUE;
+                        break;
+                    case ElevatorState::MovingDown:
+                        car_color = PURPLE;
+                        break;
+                    case ElevatorState::DoorsOpening:
+                    case ElevatorState::DoorsClosing:
+                        car_color = YELLOW;
+                        break;
+                    case ElevatorState::DoorsOpen:
+                        car_color = GREEN;
+                        break;
+                }
+                
+                // Draw car as rectangle
+                DrawRectangle(x + 6, y + 6, cell_width - 12, cell_height - 12, car_color);
+                
+                // Draw occupancy indicator
+                if (car.current_occupancy > 0) {
+                    DrawText(TextFormat("%d", car.current_occupancy), x + 16, y + 18, 14, BLACK);
+                }
+            }
+        });
         
         // Draw people (Person entities)
         auto person_query = ecs_world.GetWorld().query<const Person>();

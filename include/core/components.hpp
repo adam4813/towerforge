@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -477,6 +478,202 @@ struct TowerEconomy {
     bool IsProfitable() const {
         return daily_revenue > daily_expenses;
     }
+};
+
+/**
+ * @brief State machine states for Elevator Car entities
+ * 
+ * Defines the possible states an elevator car can be in during operation.
+ */
+enum class ElevatorState {
+    Idle,           // Stationary, no pending requests
+    MovingUp,       // Moving upward between floors
+    MovingDown,     // Moving downward between floors
+    DoorsOpening,   // Doors are opening
+    DoorsOpen,      // Doors are open, passengers can board/exit
+    DoorsClosing    // Doors are closing
+};
+
+/**
+ * @brief Component for Elevator Shaft entities
+ * 
+ * Represents a vertical shaft that contains one or more elevator cars.
+ * The shaft defines the physical space and floors served by the elevator system.
+ */
+struct ElevatorShaft {
+    int column;              // Grid column where shaft is located
+    int bottom_floor;        // Lowest floor served
+    int top_floor;           // Highest floor served
+    int car_count;           // Number of cars in this shaft
+    
+    ElevatorShaft(int col = 0, int bottom = 0, int top = 0, int cars = 1)
+        : column(col),
+          bottom_floor(bottom),
+          top_floor(top),
+          car_count(cars) {}
+    
+    /**
+     * @brief Get the total number of floors served
+     */
+    int GetFloorRange() const {
+        return top_floor - bottom_floor + 1;
+    }
+    
+    /**
+     * @brief Check if a floor is served by this shaft
+     */
+    bool ServesFloor(int floor) const {
+        return floor >= bottom_floor && floor <= top_floor;
+    }
+};
+
+/**
+ * @brief Component for Elevator Car entities
+ * 
+ * Represents an individual elevator car that moves within a shaft.
+ * Handles passenger transport, movement, and scheduling.
+ */
+struct ElevatorCar {
+    int shaft_entity_id;      // Reference to the shaft this car belongs to
+    float current_floor;      // Current position (float for smooth movement between floors)
+    int target_floor;         // Next floor destination
+    ElevatorState state;      // Current state in the state machine
+    
+    // Capacity and occupancy
+    int max_capacity;         // Maximum number of passengers
+    int current_occupancy;    // Current number of passengers
+    
+    // Queue management
+    std::vector<int> stop_queue;      // Floors where car needs to stop (sorted)
+    std::vector<int> passenger_destinations;  // Destination floors of current passengers
+    
+    // Timing
+    float state_timer;        // Timer for current state (doors, movement)
+    float door_open_duration; // How long doors stay open (seconds)
+    float door_transition_duration;  // How long it takes doors to open/close (seconds)
+    float floors_per_second;  // Movement speed
+    
+    ElevatorCar(int shaft_id = -1, int start_floor = 0, int capacity = 8)
+        : shaft_entity_id(shaft_id),
+          current_floor(static_cast<float>(start_floor)),
+          target_floor(start_floor),
+          state(ElevatorState::Idle),
+          max_capacity(capacity),
+          current_occupancy(0),
+          state_timer(0.0f),
+          door_open_duration(2.0f),      // 2 seconds
+          door_transition_duration(1.0f), // 1 second
+          floors_per_second(2.0f) {}     // 2 floors/second
+    
+    /**
+     * @brief Get the current state as a string for debugging
+     */
+    const char* GetStateString() const {
+        switch (state) {
+            case ElevatorState::Idle:          return "Idle";
+            case ElevatorState::MovingUp:      return "MovingUp";
+            case ElevatorState::MovingDown:    return "MovingDown";
+            case ElevatorState::DoorsOpening:  return "DoorsOpening";
+            case ElevatorState::DoorsOpen:     return "DoorsOpen";
+            case ElevatorState::DoorsClosing:  return "DoorsClosing";
+            default:                           return "Unknown";
+        }
+    }
+    
+    /**
+     * @brief Check if the car is at a floor (within tolerance)
+     */
+    bool IsAtFloor() const {
+        return std::abs(current_floor - static_cast<float>(static_cast<int>(current_floor + 0.5f))) < 0.01f;
+    }
+    
+    /**
+     * @brief Get the current floor as an integer
+     */
+    int GetCurrentFloorInt() const {
+        return static_cast<int>(current_floor + 0.5f);
+    }
+    
+    /**
+     * @brief Check if the car has capacity for more passengers
+     */
+    bool HasCapacity() const {
+        return current_occupancy < max_capacity;
+    }
+    
+    /**
+     * @brief Add a stop to the queue (maintains sorted order)
+     */
+    void AddStop(int floor) {
+        // Check if floor is already in queue
+        for (int f : stop_queue) {
+            if (f == floor) return;
+        }
+        
+        // Add and sort based on direction
+        stop_queue.push_back(floor);
+        std::sort(stop_queue.begin(), stop_queue.end());
+    }
+    
+    /**
+     * @brief Get the next stop in the queue
+     */
+    int GetNextStop() const {
+        if (stop_queue.empty()) return GetCurrentFloorInt();
+        
+        int current = GetCurrentFloorInt();
+        
+        // Find closest stop in current direction
+        if (state == ElevatorState::MovingUp || state == ElevatorState::Idle) {
+            // Look for stops above current floor
+            for (int floor : stop_queue) {
+                if (floor >= current) return floor;
+            }
+        }
+        
+        if (state == ElevatorState::MovingDown || (state == ElevatorState::Idle && !stop_queue.empty())) {
+            // Look for stops below current floor (reverse order)
+            for (auto it = stop_queue.rbegin(); it != stop_queue.rend(); ++it) {
+                if (*it <= current) return *it;
+            }
+        }
+        
+        // No stops in current direction, return any stop
+        return stop_queue.empty() ? current : stop_queue[0];
+    }
+    
+    /**
+     * @brief Remove current floor from stop queue
+     */
+    void RemoveCurrentStop() {
+        int current = GetCurrentFloorInt();
+        stop_queue.erase(
+            std::remove(stop_queue.begin(), stop_queue.end(), current),
+            stop_queue.end()
+        );
+    }
+};
+
+/**
+ * @brief Component linking a Person to an Elevator
+ * 
+ * Attached to Person entities when they are waiting for or riding an elevator.
+ */
+struct PersonElevatorRequest {
+    int shaft_entity_id;      // Which shaft the person is using
+    int car_entity_id;        // Which car the person is in (-1 if waiting)
+    int call_floor;           // Floor where person called the elevator
+    int destination_floor;    // Where person wants to go
+    float wait_time;          // How long person has been waiting
+    bool is_boarding;         // True if person is currently boarding
+    
+    PersonElevatorRequest(int shaft_id = -1, int call = 0, int dest = 0)
+        : shaft_entity_id(shaft_id),
+          car_entity_id(-1),
+          call_floor(call),
+          destination_floor(dest),
+          wait_time(0.0f),
+          is_boarding(false) {}
 };
 
 } // namespace Core

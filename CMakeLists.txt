@@ -42,7 +42,6 @@ find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 
 # Screenshot application
-
 add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 

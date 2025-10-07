@@ -69,8 +69,11 @@ void ECSWorld::RegisterComponents() {
     world_.component<Satisfaction>();
     world_.component<FacilityEconomics>();
     world_.component<TowerEconomy>();
+    world_.component<ElevatorShaft>();
+    world_.component<ElevatorCar>();
+    world_.component<PersonElevatorRequest>();
     
-    std::cout << "  Registered components: Position, Velocity, Actor, Person, BuildingComponent, TimeManager, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy" << std::endl;
+    std::cout << "  Registered components: Position, Velocity, Actor, Person, BuildingComponent, TimeManager, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest" << std::endl;
 }
 
 void ECSWorld::RegisterSystems() {
@@ -348,7 +351,6 @@ void ECSWorld::RegisterSystems() {
                 case BuildingComponent::Type::Hotel:       type_name = "Hotel"; break;
                 case BuildingComponent::Type::Elevator:    type_name = "Elevator"; break;
                 case BuildingComponent::Type::Lobby:       type_name = "Lobby"; break;
-                case BuildingComponent::Type::Residential: type_name = "Residential"; break;
             }
             
             std::cout << "  [Economics] " << type_name << " Floor " << facility.floor
@@ -392,36 +394,63 @@ void ECSWorld::RegisterSystems() {
         });
     
     // Person waiting system
-    // Tracks wait time for people waiting for elevators
+    // Creates elevator requests for people who need to change floors
     world_.system<Person>()
         .kind(flecs::OnUpdate)
         .each([](flecs::entity e, Person& person) {
-            float delta_time = e.world().delta_time();
-            
-            if (person.state == PersonState::WaitingForElevator) {
-                person.wait_time += delta_time;
+            // If person is waiting for elevator but doesn't have a request, create one
+            if (person.state == PersonState::WaitingForElevator && 
+                !e.has<PersonElevatorRequest>()) {
                 
-                // TODO: This will be replaced with actual elevator system integration
-                // For now, simulate elevator arrival after 5 seconds
-                if (person.wait_time > 5.0f) {
-                    person.state = PersonState::InElevator;
-                    person.wait_time = 0.0f;
+                // Find nearest elevator shaft on current floor
+                // For now, create a request for shaft at column 0 (TODO: find nearest shaft)
+                int shaft_id = -1;
+                int shaft_column = -1;
+                
+                // Search for an elevator shaft
+                e.world().each<ElevatorShaft>([&](flecs::entity shaft_entity, const ElevatorShaft& shaft) {
+                    if (shaft_id == -1 && shaft.ServesFloor(person.current_floor) && 
+                        shaft.ServesFloor(person.destination_floor)) {
+                        shaft_id = static_cast<int>(shaft_entity.id());
+                        shaft_column = shaft.column;
+                    }
+                });
+                
+                if (shaft_id != -1) {
+                    // Create elevator request
+                    e.set<PersonElevatorRequest>({
+                        shaft_id,
+                        person.current_floor,
+                        person.destination_floor
+                    });
+                    
+                    // Person should walk to the elevator shaft column if not already there
+                    if (std::abs(person.current_column - static_cast<float>(shaft_column)) > 0.1f) {
+                        person.destination_column = static_cast<float>(shaft_column);
+                        person.state = PersonState::Walking;
+                    }
+                } else {
+                    // No elevator available, fallback to old behavior (for backward compatibility)
+                    person.wait_time += e.world().delta_time();
+                    if (person.wait_time > 5.0f) {
+                        person.state = PersonState::InElevator;
+                        person.wait_time = 0.0f;
+                    }
                 }
             }
         });
     
-    // Person elevator riding system
-    // Simulates being in an elevator (temporary implementation)
+    // Person elevator riding system (fallback for people without PersonElevatorRequest)
+    // This is for backward compatibility with existing code
     world_.system<Person>()
         .kind(flecs::OnUpdate)
         .each([](flecs::entity e, Person& person) {
-            float delta_time = e.world().delta_time();
-            
-            if (person.state == PersonState::InElevator) {
+            // Only run for people in elevator without an elevator request
+            if (person.state == PersonState::InElevator && !e.has<PersonElevatorRequest>()) {
+                float delta_time = e.world().delta_time();
                 person.wait_time += delta_time;
                 
-                // TODO: This will be replaced with actual elevator system integration
-                // For now, simulate elevator travel taking 3 seconds
+                // Simulate elevator travel taking 3 seconds
                 if (person.wait_time > 3.0f) {
                     // Arrive at destination floor
                     person.current_floor = person.destination_floor;
@@ -456,7 +485,187 @@ void ECSWorld::RegisterSystems() {
             std::cout << std::endl;
         });
     
-    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging" << std::endl;
+    // Elevator car movement system
+    // Handles elevator movement between floors and state transitions
+    world_.system<ElevatorCar>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, ElevatorCar& car) {
+            float delta_time = e.world().delta_time();
+            
+            // Update state timer
+            car.state_timer += delta_time;
+            
+            switch (car.state) {
+                case ElevatorState::Idle:
+                    // Check if there are any stops in the queue
+                    if (!car.stop_queue.empty()) {
+                        car.target_floor = car.GetNextStop();
+                        int current_floor = car.GetCurrentFloorInt();
+                        
+                        if (car.target_floor > current_floor) {
+                            car.state = ElevatorState::MovingUp;
+                        } else if (car.target_floor < current_floor) {
+                            car.state = ElevatorState::MovingDown;
+                        } else {
+                            // Already at target floor, open doors
+                            car.state = ElevatorState::DoorsOpening;
+                            car.state_timer = 0.0f;
+                        }
+                    }
+                    break;
+                
+                case ElevatorState::MovingUp:
+                case ElevatorState::MovingDown: {
+                    // Move towards target floor
+                    float direction = (car.state == ElevatorState::MovingUp) ? 1.0f : -1.0f;
+                    float distance_to_target = std::abs(car.target_floor - car.current_floor);
+                    float move_amount = car.floors_per_second * delta_time;
+                    
+                    if (move_amount >= distance_to_target) {
+                        // Arrived at target floor
+                        car.current_floor = static_cast<float>(car.target_floor);
+                        car.state = ElevatorState::DoorsOpening;
+                        car.state_timer = 0.0f;
+                    } else {
+                        // Continue moving
+                        car.current_floor += direction * move_amount;
+                    }
+                    break;
+                }
+                
+                case ElevatorState::DoorsOpening:
+                    if (car.state_timer >= car.door_transition_duration) {
+                        car.state = ElevatorState::DoorsOpen;
+                        car.state_timer = 0.0f;
+                        car.RemoveCurrentStop();
+                    }
+                    break;
+                
+                case ElevatorState::DoorsOpen:
+                    if (car.state_timer >= car.door_open_duration) {
+                        car.state = ElevatorState::DoorsClosing;
+                        car.state_timer = 0.0f;
+                    }
+                    break;
+                
+                case ElevatorState::DoorsClosing:
+                    if (car.state_timer >= car.door_transition_duration) {
+                        car.state = ElevatorState::Idle;
+                        car.state_timer = 0.0f;
+                    }
+                    break;
+            }
+        });
+    
+    // Elevator call system
+    // Assigns people waiting for elevators to elevator cars
+    world_.system<Person, PersonElevatorRequest>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity person_entity, Person& person, PersonElevatorRequest& request) {
+            float delta_time = person_entity.world().delta_time();
+            
+            // Update wait time
+            request.wait_time += delta_time;
+            
+            // If not yet assigned to a car, find the best car
+            if (request.car_entity_id == -1 && person.state == PersonState::WaitingForElevator) {
+                // Find the shaft entity
+                auto shaft_entity = person_entity.world().entity(request.shaft_entity_id);
+                if (shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
+                    // Find all cars in this shaft
+                    person_entity.world().each<ElevatorCar>([&](flecs::entity car_entity, ElevatorCar& car) {
+                        if (car.shaft_entity_id == request.shaft_entity_id && 
+                            request.car_entity_id == -1) {
+                            // Simple assignment: use first available car
+                            // TODO: Implement smarter scheduling (closest car, direction, etc.)
+                            request.car_entity_id = static_cast<int>(car_entity.id());
+                            car.AddStop(request.call_floor);
+                            car.AddStop(request.destination_floor);
+                        }
+                    });
+                }
+            }
+        });
+    
+    // Person elevator boarding system
+    // Handles people getting on and off elevators
+    world_.system<Person, PersonElevatorRequest>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity person_entity, Person& person, PersonElevatorRequest& request) {
+            if (request.car_entity_id == -1) return;
+            
+            // Get the car entity
+            auto car_entity = person_entity.world().entity(request.car_entity_id);
+            if (!car_entity.is_valid() || !car_entity.has<ElevatorCar>()) return;
+            
+            ElevatorCar& car = car_entity.ensure<ElevatorCar>();
+            
+            // Check if person is waiting and car has arrived
+            if (person.state == PersonState::WaitingForElevator && 
+                car.state == ElevatorState::DoorsOpen &&
+                car.GetCurrentFloorInt() == request.call_floor &&
+                car.HasCapacity()) {
+                // Board the elevator
+                person.state = PersonState::InElevator;
+                person.current_floor = car.GetCurrentFloorInt();
+                person.wait_time = 0.0f;
+                car.current_occupancy++;
+                car.passenger_destinations.push_back(request.destination_floor);
+                request.is_boarding = false;
+            }
+            
+            // Check if person is in elevator and has arrived at destination
+            if (person.state == PersonState::InElevator &&
+                car.state == ElevatorState::DoorsOpen &&
+                car.GetCurrentFloorInt() == request.destination_floor) {
+                // Exit the elevator
+                person.current_floor = car.GetCurrentFloorInt();
+                car.current_occupancy--;
+                
+                // Remove destination from car's passenger list
+                auto it = std::find(car.passenger_destinations.begin(), 
+                                   car.passenger_destinations.end(), 
+                                   request.destination_floor);
+                if (it != car.passenger_destinations.end()) {
+                    car.passenger_destinations.erase(it);
+                }
+                
+                // Remove the elevator request component
+                person_entity.remove<PersonElevatorRequest>();
+                
+                // Check if person needs to walk to final destination
+                if (!person.HasReachedHorizontalDestination()) {
+                    person.state = PersonState::Walking;
+                } else {
+                    person.state = PersonState::AtDestination;
+                }
+            }
+        });
+    
+    // Elevator logging system
+    // Logs elevator state for debugging
+    world_.system<const ElevatorCar>()
+        .kind(flecs::OnUpdate)
+        .interval(10.0f)  // Log every 10 seconds
+        .each([](flecs::entity e, const ElevatorCar& car) {
+            std::cout << "  [Elevator] Car " << e.name().c_str()
+                      << " - State: " << car.GetStateString()
+                      << ", Floor: " << car.current_floor
+                      << ", Occupancy: " << car.current_occupancy << "/" << car.max_capacity;
+            
+            if (!car.stop_queue.empty()) {
+                std::cout << ", Stops: [";
+                for (size_t i = 0; i < car.stop_queue.size(); i++) {
+                    std::cout << car.stop_queue[i];
+                    if (i < car.stop_queue.size() - 1) std::cout << ", ";
+                }
+                std::cout << "]";
+            }
+            
+            std::cout << std::endl;
+        });
+    
+    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging" << std::endl;
 }
 
 } // namespace Core
