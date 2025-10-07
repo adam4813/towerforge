@@ -47,6 +47,109 @@ struct Actor {
 };
 
 /**
+ * @brief State machine states for Person entities
+ * 
+ * Defines the possible states a person can be in while moving through the tower.
+ */
+enum class PersonState {
+    Idle,                  // Standing still, no destination
+    Walking,               // Moving horizontally on same floor
+    WaitingForElevator,    // Waiting for elevator to arrive
+    InElevator,            // Currently in an elevator
+    AtDestination          // Reached final destination
+};
+
+/**
+ * @brief Component for Person entities with state machine and movement tracking
+ * 
+ * This component extends Actor with detailed state tracking for simulation
+ * of individuals moving through the tower. People can walk on floors,
+ * use elevators, and have specific destinations.
+ */
+struct Person {
+    std::string name;
+    PersonState state;
+    
+    // Current location
+    int current_floor;
+    float current_column;     // Float for smooth horizontal movement
+    
+    // Destination
+    int destination_floor;
+    float destination_column;
+    
+    // Movement
+    float move_speed;         // Horizontal movement speed (columns per second)
+    float wait_time;          // Time spent waiting (e.g., for elevator)
+    
+    // Needs/goals
+    std::string current_need; // What the person is trying to do
+    
+    Person(const std::string& n = "Person", 
+           int floor = 0, 
+           float col = 0.0f,
+           float speed = 2.0f)
+        : name(n),
+          state(PersonState::Idle),
+          current_floor(floor),
+          current_column(col),
+          destination_floor(floor),
+          destination_column(col),
+          move_speed(speed),
+          wait_time(0.0f),
+          current_need("Idle") {}
+    
+    /**
+     * @brief Get the state as a string for debugging
+     */
+    const char* GetStateString() const {
+        switch (state) {
+            case PersonState::Idle:                return "Idle";
+            case PersonState::Walking:             return "Walking";
+            case PersonState::WaitingForElevator:  return "WaitingForElevator";
+            case PersonState::InElevator:          return "InElevator";
+            case PersonState::AtDestination:       return "AtDestination";
+            default:                               return "Unknown";
+        }
+    }
+    
+    /**
+     * @brief Check if person has reached their horizontal destination on current floor
+     */
+    bool HasReachedHorizontalDestination() const {
+        return std::abs(current_column - destination_column) < 0.1f;
+    }
+    
+    /**
+     * @brief Check if person has reached their vertical destination
+     */
+    bool HasReachedVerticalDestination() const {
+        return current_floor == destination_floor;
+    }
+    
+    /**
+     * @brief Set a new destination on a different floor
+     */
+    void SetDestination(int floor, float column, const std::string& need = "Moving") {
+        destination_floor = floor;
+        destination_column = column;
+        current_need = need;
+        
+        // Update state based on destination
+        if (floor != current_floor) {
+            // Need to change floors
+            state = PersonState::WaitingForElevator;
+        } else if (!HasReachedHorizontalDestination()) {
+            // Same floor, different column
+            state = PersonState::Walking;
+        } else {
+            // Already at destination
+            state = PersonState::AtDestination;
+        }
+    }
+};
+
+/**
  * @brief Component for building components (offices, residences, shops, etc.)
  * 
  * BuildingComponents represent the various facilities and rooms

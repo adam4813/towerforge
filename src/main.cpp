@@ -1,5 +1,6 @@
 #include <iostream>
 #include "rendering/renderer.h"
+#include "rendering/camera.h"
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
 #include "ui/hud.h"
@@ -8,6 +9,7 @@
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
+using namespace towerforge::rendering;
 
 int main(int argc, char* argv[]) {
     std::cout << "TowerForge - Tower Simulation Game" << std::endl;
@@ -68,29 +70,33 @@ int main(int argc, char* argv[]) {
     std::cout << "  Created 2 actors" << std::endl;
     
     // Create some example building components with economics
-    auto lobby = ecs_world.CreateEntity("Lobby");
-    lobby.set<Position>({0.0f, 0.0f});
-    lobby.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
-    lobby.set<Satisfaction>({85.0f});  // Lobbies generally have good satisfaction
-    lobby.set<FacilityEconomics>({50.0f, 10.0f, 50});  // Low rent, low cost, high capacity
+    auto lobby_entity = ecs_world.CreateEntity("Lobby");
+    lobby_entity.set<Position>({0.0f, 0.0f});
+    lobby_entity.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
+    lobby_entity.set<Satisfaction>({85.0f});  // Lobbies generally have good satisfaction
+    lobby_entity.set<FacilityEconomics>({50.0f, 10.0f, 50});  // Low rent, low cost, high capacity
     
-    auto office1 = ecs_world.CreateEntity("Office_Floor_5");
-    office1.set<Position>({0.0f, 50.0f});
-    office1.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
-    office1.set<Satisfaction>({70.0f});
-    office1.set<FacilityEconomics>({150.0f, 30.0f, 20});  // Medium rent, medium cost
+    auto office1_entity = ecs_world.CreateEntity("Office_Floor_5");
+    office1_entity.set<Position>({0.0f, 50.0f});
+    office1_entity.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
+    office1_entity.set<Satisfaction>({70.0f});
+    office1_entity.set<FacilityEconomics>({150.0f, 30.0f, 20});  // Medium rent, medium cost
     
-    auto restaurant = ecs_world.CreateEntity("Restaurant_Floor_3");
-    restaurant.set<Position>({0.0f, 30.0f});
-    restaurant.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
-    restaurant.set<Satisfaction>({65.0f});
-    restaurant.set<FacilityEconomics>({200.0f, 60.0f, 30});  // High rent, high cost
+    auto restaurant_entity = ecs_world.CreateEntity("Restaurant_Floor_3");
+    restaurant_entity.set<Position>({0.0f, 30.0f});
+    restaurant_entity.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
+    restaurant_entity.set<Satisfaction>({65.0f});
+    restaurant_entity.set<FacilityEconomics>({200.0f, 60.0f, 30});  // High rent, high cost
     
     std::cout << "  Created 2 actors and 3 building components with satisfaction and economics" << std::endl;
     
     // Create HUD and build menu
     HUD hud;
     BuildMenu build_menu;
+    
+    // Create and initialize camera
+    towerforge::rendering::Camera camera;
+    camera.Initialize(800, 600, 1200.0f, 800.0f);  // Tower is 1200x800 world units
     
     // Set initial game state
     GameState game_state;
@@ -178,11 +184,15 @@ int main(int argc, char* argv[]) {
         
         // Handle keyboard shortcuts
         placement_system.HandleKeyboard();
+        // Update camera
+        camera.Update(time_step);
         
         // Handle mouse clicks for demo
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             int mouse_x = GetMouseX();
             int mouse_y = GetMouseY();
+            
+            bool hud_handled = false;
             
             // Check if click is on build menu
             int menu_result = build_menu.HandleClick(mouse_x, mouse_y, 
@@ -251,6 +261,10 @@ int main(int argc, char* argv[]) {
             }
         }
         
+        // Handle camera input
+        bool hud_handled_input = false;  // Could be updated based on mouse position over HUD
+        camera.HandleInput(hud_handled_input);
+        
         renderer.BeginFrame();
         
         // Clear background to dark gray
@@ -283,15 +297,24 @@ int main(int argc, char* argv[]) {
             int y = grid_offset_y + floor * cell_height;
             DrawText(TextFormat("F%d", floor), grid_offset_x - 30, y + 15, 12, LIGHTGRAY);
         }
+        // Begin camera mode for world rendering
+        camera.BeginMode();
         
         // Render placement system (preview and construction)
         placement_system.Render(grid_offset_x, grid_offset_y, cell_width, cell_height);
         
-        // Render HUD and build menu
+        // End camera mode
+        camera.EndMode();
+        
+        // Render HUD and build menu (these are in screen space, not world space)
         hud.Render();
         build_menu.Render(placement_system.CanUndo(), placement_system.CanRedo(), 
                          placement_system.IsDemolishMode());
         
+        // Render camera controls overlay
+        camera.RenderControlsOverlay();
+        camera.RenderFollowIndicator();
+
         // Display tower economy status
         const auto& tower_economy = ecs_world.GetWorld().get<TowerEconomy>();
         renderer.DrawRectangle(10, 140, 280, 100, Color{0, 0, 0, 180});
