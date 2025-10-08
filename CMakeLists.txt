@@ -49,10 +49,6 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp src/ui/main_menu.cpp src/ui/pause_menu.cpp src/ui/save_load_menu.cpp src/ui/research_tree_menu.cpp)
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
-# Research tree demo application
-add_executable(research_tree_demo src/research_tree_demo.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/research_tree_menu.cpp)
-target_link_libraries(research_tree_demo PRIVATE raylib glfw towerforge_core)
-
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
