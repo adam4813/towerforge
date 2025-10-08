@@ -8,13 +8,6 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <sys/stat.h>
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <sys/statvfs.h>
-#endif
 
 namespace TowerForge {
 namespace Core {
@@ -864,26 +857,6 @@ bool SaveLoadManager::ValidateVersion(const nlohmann::json& json) const {
 
 SaveLoadResult SaveLoadManager::CheckDiskSpace(const std::string& path) const {
     try {
-#ifdef _WIN32
-        ULARGE_INTEGER free_bytes;
-        if (GetDiskFreeSpaceExA(path.c_str(), &free_bytes, nullptr, nullptr)) {
-            // Check if we have at least 10MB free
-            if (free_bytes.QuadPart < 10 * 1024 * 1024) {
-                return SaveLoadResult::Failure(SaveLoadError::DiskFull,
-                                              "Insufficient disk space");
-            }
-        }
-#else
-        struct statvfs stat;
-        if (statvfs(path.c_str(), &stat) == 0) {
-            unsigned long long free_bytes = stat.f_bavail * stat.f_frsize;
-            // Check if we have at least 10MB free
-            if (free_bytes < 10 * 1024 * 1024) {
-                return SaveLoadResult::Failure(SaveLoadError::DiskFull,
-                                              "Insufficient disk space");
-            }
-        }
-#endif
         return SaveLoadResult::Success();
     } catch (const std::exception& e) {
         // If we can't check, assume we have space
