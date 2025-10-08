@@ -102,6 +102,8 @@ Game::Game()
     : current_state_(GameState::TitleScreen)
     , previous_state_(GameState::TitleScreen)
     , audio_manager_(nullptr)
+    , tutorial_manager_(nullptr)
+    , tutorial_active_(false)
     , in_audio_settings_(false)
     , ecs_world_(nullptr)
     , save_load_manager_(nullptr)
@@ -177,6 +179,16 @@ void Game::Run() {
                 RenderTitleScreen();
                 break;
                 
+            case GameState::Tutorial:
+                if (!game_initialized_) {
+                    InitializeGameSystems();
+                    game_initialized_ = true;
+                    tutorial_active_ = true;
+                }
+                UpdateTutorial(delta_time);
+                RenderTutorial();
+                break;
+                
             case GameState::Achievements:
                 UpdateAchievementsScreen(delta_time);
                 RenderAchievementsScreen();
@@ -240,6 +252,10 @@ void Game::HandleTitleScreenInput() {
             case MenuOption::NewGame:
                 current_state_ = GameState::InGame;
                 std::cout << "Starting new game..." << std::endl;
+                break;
+            case MenuOption::Tutorial:
+                current_state_ = GameState::Tutorial;
+                std::cout << "Starting tutorial..." << std::endl;
                 break;
             case MenuOption::LoadGame:
                 std::cout << "Load game not yet implemented" << std::endl;
@@ -533,6 +549,18 @@ void Game::InitializeGameSystems() {
     
     std::cout << std::endl << "Running simulation..." << std::endl;
     std::cout << std::endl;
+    
+    // If this is a new game (not tutorial), create the starter tower
+    if (current_state_ == GameState::InGame && !tutorial_active_) {
+        CreateStarterTower();
+    }
+    
+    // If this is tutorial mode, initialize the tutorial manager
+    if (current_state_ == GameState::Tutorial) {
+        tutorial_manager_ = new TutorialManager();
+        tutorial_manager_->Initialize();
+        hud_->AddNotification(Notification::Type::Info, "Welcome to the tutorial!", 5.0f);
+    }
     
     // Reset timing
     elapsed_time_ = 0.0f;
@@ -996,6 +1024,7 @@ void Game::CleanupGameSystems() {
     delete hud_;
     delete save_load_manager_;
     delete ecs_world_;
+    delete tutorial_manager_;
     
     placement_system_ = nullptr;
     camera_ = nullptr;
@@ -1006,11 +1035,118 @@ void Game::CleanupGameSystems() {
     hud_ = nullptr;
     save_load_manager_ = nullptr;
     ecs_world_ = nullptr;
+    tutorial_manager_ = nullptr;
 }
 
 void Game::CalculateTowerRating() {
     if (ecs_world_) {
         CalculateTowerRatingHelper(game_state_.rating, *ecs_world_, game_state_.income_rate);
+    }
+}
+
+void Game::UpdateTutorial(float delta_time) {
+    // Initialize tutorial manager if needed
+    if (!tutorial_manager_) {
+        tutorial_manager_ = new TutorialManager();
+        tutorial_manager_->Initialize();
+    }
+    
+    tutorial_manager_->Update(delta_time);
+    
+    // Update game systems (same as InGame)
+    UpdateInGame(delta_time);
+    
+    // Handle tutorial-specific input
+    HandleTutorialInput();
+}
+
+void Game::RenderTutorial() {
+    // Render game (same as InGame)
+    RenderInGame();
+    
+    // Render tutorial overlay on top
+    if (tutorial_manager_) {
+        tutorial_manager_->Render();
+    }
+}
+
+void Game::HandleTutorialInput() {
+    if (tutorial_manager_) {
+        // Check if tutorial should be skipped/exited
+        if (tutorial_manager_->HandleInput()) {
+            // Tutorial skipped - transition to normal game with starter tower
+            tutorial_active_ = false;
+            delete tutorial_manager_;
+            tutorial_manager_ = nullptr;
+            CreateStarterTower();
+            current_state_ = GameState::InGame;
+            hud_->AddNotification(Notification::Type::Info, "Tutorial skipped - Good luck!", 5.0f);
+            return;
+        }
+        
+        // Check if tutorial is complete
+        if (tutorial_manager_->IsComplete()) {
+            tutorial_active_ = false;
+            delete tutorial_manager_;
+            tutorial_manager_ = nullptr;
+            current_state_ = GameState::InGame;
+            hud_->AddNotification(Notification::Type::Success, "Tutorial complete! Keep building!", 5.0f);
+            return;
+        }
+    }
+}
+
+void Game::CreateStarterTower() {
+    if (!ecs_world_) return;
+    
+    auto& grid = ecs_world_->GetTowerGrid();
+    auto& facility_mgr = ecs_world_->GetFacilityManager();
+    
+    std::cout << "Creating starter tower setup..." << std::endl;
+    
+    // Build the starter tower as specified:
+    // Floor 0: Lobby
+    // Floor 1: Business (Office)
+    // Floor 1 (different position): Shop (RetailShop)
+    // Floors 0-2: Stair (not implemented as separate type yet)
+    // Floor 2: Condo (Residential)
+    // Floors 0-2: Elevator
+    
+    try {
+        // Place Lobby at floor 0, column 0
+        auto lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0);
+        if (lobby) {
+            std::cout << "  Placed Lobby at (0,0)" << std::endl;
+        }
+        
+        // Place Office at floor 1, column 0
+        auto office = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 0);
+        if (office) {
+            std::cout << "  Placed Office at (1,0)" << std::endl;
+        }
+        
+        // Place RetailShop at floor 1, column 5
+        auto retail = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 1, 5);
+        if (retail) {
+            std::cout << "  Placed Retail at (1,5)" << std::endl;
+        }
+        
+        // Place Residential at floor 2, column 0
+        auto residential = facility_mgr.CreateFacility(BuildingComponent::Type::Residential, 2, 0);
+        if (residential) {
+            std::cout << "  Placed Residential at (2,0)" << std::endl;
+        }
+        
+        // Place Elevator at floor 0, column 8
+        auto elevator = facility_mgr.CreateFacility(BuildingComponent::Type::Elevator, 0, 8);
+        if (elevator) {
+            std::cout << "  Placed Elevator at (0,8)" << std::endl;
+        }
+        
+        std::cout << "Starter tower created successfully" << std::endl;
+        hud_->AddNotification(Notification::Type::Info, "Starter tower ready!", 5.0f);
+    } catch (const std::exception& e) {
+        std::cerr << "Error creating starter tower: " << e.what() << std::endl;
     }
 }
 

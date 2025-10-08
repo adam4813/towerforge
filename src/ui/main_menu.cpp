@@ -10,6 +10,7 @@ MainMenu::MainMenu()
     
     // Initialize menu items
     menu_items_.push_back({"New Game", MenuOption::NewGame});
+    menu_items_.push_back({"Tutorial", MenuOption::Tutorial});
     menu_items_.push_back({"Load Game", MenuOption::LoadGame});
     menu_items_.push_back({"Achievements", MenuOption::Achievements});
     menu_items_.push_back({"Settings", MenuOption::Settings});
@@ -176,6 +177,9 @@ int MainMenu::HandleKeyboard() {
     // Quick access keys
     if (IsKeyPressed(KEY_N)) {
         return static_cast<int>(MenuOption::NewGame);
+    }
+    if (IsKeyPressed(KEY_T)) {
+        return static_cast<int>(MenuOption::Tutorial);
     }
     if (IsKeyPressed(KEY_L)) {
         return static_cast<int>(MenuOption::LoadGame);

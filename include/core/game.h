@@ -15,6 +15,7 @@
 #include "ui/achievements_menu.h"
 #include "ui/general_settings_menu.h"
 #include "ui/audio_settings_menu.h"
+#include "ui/tutorial_manager.h"
 #include "audio/audio_manager.h"
 
 namespace towerforge {
@@ -25,6 +26,7 @@ namespace core {
  */
 enum class GameState {
     TitleScreen,
+    Tutorial,
     InGame,
     Settings,
     Credits,
@@ -78,9 +80,14 @@ private:
     void RenderInGame();
     void HandleInGameInput();
 
+    void UpdateTutorial(float delta_time);
+    void RenderTutorial();
+    void HandleTutorialInput();
+
     // Game initialization for InGame state
     void InitializeGameSystems();
     void CleanupGameSystems();
+    void CreateStarterTower();
 
     // Helper methods
     void CalculateTowerRating();
@@ -98,6 +105,10 @@ private:
     towerforge::ui::AchievementsMenu achievements_menu_;
     towerforge::ui::GeneralSettingsMenu general_settings_menu_;
     towerforge::ui::AudioSettingsMenu audio_settings_menu_;
+
+    // Tutorial system
+    towerforge::ui::TutorialManager* tutorial_manager_;
+    bool tutorial_active_;
 
     // Settings screen state
     bool in_audio_settings_;
