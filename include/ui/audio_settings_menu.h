@@ -54,10 +54,16 @@ private:
     void RenderBackground();
     void RenderHeader();
     void RenderVolumeControls();
+    void RenderToggleControls();
     void RenderBackButton();
     void RenderVolumeSlider(const char* label, float value, int y_pos, bool is_selected);
+    void RenderCheckbox(const char* label, bool checked, int y_pos, bool is_selected);
     
-    int selected_option_;  // Currently highlighted menu option (0=master, 1=music, 2=sfx, 3=back)
+    void LoadSettings();
+    void SaveSettings();
+    void ApplyAudioSettings();
+    
+    int selected_option_;  // Currently highlighted menu option (0=master, 1=music, 2=sfx, 3=mute_all, 4=mute_music, 5=mute_sfx, 6=ambient, 7=back)
     float animation_time_; // For animations
     
     // Volume levels (0.0 to 1.0)
@@ -65,14 +71,23 @@ private:
     float music_volume_;
     float sfx_volume_;
     
+    // Mute states
+    bool mute_all_;
+    bool mute_music_;
+    bool mute_sfx_;
+    bool enable_ambient_;
+    
     // Menu layout constants
     static constexpr int MENU_WIDTH = 500;
-    static constexpr int MENU_HEIGHT = 400;
+    static constexpr int MENU_HEIGHT = 550;
     static constexpr int HEADER_HEIGHT = 80;
     static constexpr int SLIDER_HEIGHT = 60;
     static constexpr int SLIDER_SPACING = 20;
     static constexpr int SLIDER_START_Y = 150;
-    static constexpr int BACK_BUTTON_Y = 450;
+    static constexpr int CHECKBOX_START_Y = 390;
+    static constexpr int CHECKBOX_HEIGHT = 30;
+    static constexpr int CHECKBOX_SPACING = 10;
+    static constexpr int BACK_BUTTON_Y = 580;
     static constexpr int BACK_BUTTON_WIDTH = 150;
     static constexpr int BACK_BUTTON_HEIGHT = 50;
 };
