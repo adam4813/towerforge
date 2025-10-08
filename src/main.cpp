@@ -4,6 +4,7 @@
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
 #include "core/save_load_manager.hpp"
+#include "core/achievement_manager.hpp"
 #include "ui/hud.h"
 #include "ui/build_menu.h"
 #include "ui/placement_system.h"
@@ -11,6 +12,10 @@
 #include "ui/pause_menu.h"
 #include "ui/save_load_menu.h"
 #include "ui/research_tree_menu.h"
+#include "ui/achievements_menu.h"
+#include "ui/general_settings_menu.h"
+#include "ui/audio_settings_menu.h"
+#include "audio/audio_manager.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
@@ -111,6 +116,7 @@ enum class GameMode {
     InGame,
     Settings,
     Credits,
+    Achievements,
     Quit
 };
 
@@ -123,6 +129,10 @@ int main(int argc, char* argv[]) {
     towerforge::rendering::Renderer renderer;
     renderer.Initialize(800, 600, "TowerForge");
     
+    // Initialize audio system
+    auto& audio_manager = towerforge::audio::AudioManager::GetInstance();
+    audio_manager.Initialize();
+    
     // Game mode management
     GameMode current_mode = GameMode::TitleScreen;
     bool game_initialized = false;
@@ -130,9 +140,23 @@ int main(int argc, char* argv[]) {
     // Create main menu
     MainMenu main_menu;
     
+    // Create achievement manager for persistent achievements
+    AchievementManager achievement_manager;
+    achievement_manager.Initialize();
+    
+    // Create achievements menu
+    AchievementsMenu achievements_menu;
+    achievements_menu.SetAchievementManager(&achievement_manager);
+    
+    // Play main theme music
+    audio_manager.PlayMusic(towerforge::audio::AudioCue::MainTheme, true, 1.0f);
+    
     // Title screen loop
     while (current_mode == GameMode::TitleScreen && !renderer.ShouldClose()) {
         float delta_time = GetFrameTime();
+        
+        // Update audio system
+        audio_manager.Update(delta_time);
         
         // Update menu
         main_menu.Update(delta_time);
@@ -145,6 +169,7 @@ int main(int argc, char* argv[]) {
         int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
         
         if (selected >= 0) {
+            audio_manager.PlaySFX(towerforge::audio::AudioCue::MenuConfirm);
             MenuOption option = static_cast<MenuOption>(selected);
             switch (option) {
                 case MenuOption::NewGame:
@@ -156,11 +181,11 @@ int main(int argc, char* argv[]) {
                     // For now, just start a new game
                     current_mode = GameMode::InGame;
                     break;
+                case MenuOption::Achievements:
+                    current_mode = GameMode::Achievements;
+                    break;
                 case MenuOption::Settings:
                     current_mode = GameMode::Settings;
-                    std::cout << "Settings screen not yet implemented, returning to menu..." << std::endl;
-                    // For now, stay on title screen
-                    current_mode = GameMode::TitleScreen;
                     break;
                 case MenuOption::Credits:
                     current_mode = GameMode::Credits;
@@ -175,6 +200,114 @@ int main(int argc, char* argv[]) {
         renderer.BeginFrame();
         main_menu.Render();
         renderer.EndFrame();
+    }
+    
+    // Handle achievements screen
+    if (current_mode == GameMode::Achievements) {
+        while (current_mode == GameMode::Achievements && !renderer.ShouldClose()) {
+            float delta_time = GetFrameTime();
+            
+            // Update audio system
+            audio_manager.Update(delta_time);
+            
+            // Update achievements menu
+            achievements_menu.Update(delta_time);
+            
+            // Handle input
+            if (achievements_menu.HandleKeyboard()) {
+                audio_manager.PlaySFX(towerforge::audio::AudioCue::MenuClose);
+                current_mode = GameMode::TitleScreen;
+            }
+            achievements_menu.HandleMouse(GetMouseX(), GetMouseY(), GetMouseWheelMove());
+            
+            // Render
+            renderer.BeginFrame();
+            ClearBackground(Color{20, 20, 30, 255});
+            achievements_menu.Render();
+            renderer.EndFrame();
+        }
+        
+        // Return to title screen if not quitting
+        if (current_mode != GameMode::Quit && !renderer.ShouldClose()) {
+            current_mode = GameMode::TitleScreen;
+            // Restart title screen loop (code will continue below)
+        }
+    }
+    
+    // Handle settings screen
+    if (current_mode == GameMode::Settings) {
+        GeneralSettingsMenu general_settings_menu;
+        AudioSettingsMenu audio_settings_menu;
+        bool in_audio_settings = false;
+        
+        while (current_mode == GameMode::Settings && !renderer.ShouldClose()) {
+            float delta_time = GetFrameTime();
+            
+            // Update audio system
+            audio_manager.Update(delta_time);
+            
+            if (in_audio_settings) {
+                // Update audio settings menu
+                audio_settings_menu.Update(delta_time);
+                
+                // Handle input
+                if (audio_settings_menu.HandleKeyboard()) {
+                    in_audio_settings = false;  // Go back to general settings
+                }
+                bool back_clicked = audio_settings_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                     IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                if (back_clicked) {
+                    in_audio_settings = false;  // Go back to general settings
+                }
+                
+                // Render
+                renderer.BeginFrame();
+                ClearBackground(Color{20, 20, 30, 255});
+                audio_settings_menu.Render();
+                renderer.EndFrame();
+            } else {
+                // Update general settings menu
+                general_settings_menu.Update(delta_time);
+                
+                // Handle input
+                int keyboard_selection = general_settings_menu.HandleKeyboard();
+                int mouse_selection = general_settings_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                        IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                
+                int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+                
+                if (selected >= 0) {
+                    SettingsOption option = static_cast<SettingsOption>(selected);
+                    switch (option) {
+                        case SettingsOption::Audio:
+                            in_audio_settings = true;
+                            break;
+                        case SettingsOption::Controls:
+                        case SettingsOption::Display:
+                        case SettingsOption::Accessibility:
+                        case SettingsOption::Gameplay:
+                            // Placeholder for future settings
+                            std::cout << "Settings option not yet implemented" << std::endl;
+                            break;
+                        case SettingsOption::Back:
+                            current_mode = GameMode::TitleScreen;
+                            break;
+                    }
+                }
+                
+                // Render
+                renderer.BeginFrame();
+                ClearBackground(Color{20, 20, 30, 255});
+                general_settings_menu.Render();
+                renderer.EndFrame();
+            }
+        }
+        
+        // Return to title screen if not quitting
+        if (current_mode != GameMode::Quit && !renderer.ShouldClose()) {
+            current_mode = GameMode::TitleScreen;
+            // Restart title screen loop (code will continue below)
+        }
     }
     
     // Handle credits screen
@@ -242,6 +375,9 @@ int main(int argc, char* argv[]) {
                         case MenuOption::LoadGame:
                             current_mode = GameMode::InGame;
                             break;
+                        case MenuOption::Achievements:
+                            current_mode = GameMode::Achievements;
+                            break;
                         case MenuOption::Settings:
                             current_mode = GameMode::TitleScreen;
                             break;
@@ -271,6 +407,10 @@ int main(int argc, char* argv[]) {
     // Initialize game (only when entering InGame mode)
     std::cout << "Initializing game..." << std::endl;
     
+    // Change music to gameplay theme
+    audio_manager.StopMusic(1.0f);  // Fade out main theme
+    audio_manager.PlayMusic(towerforge::audio::AudioCue::GameplayLoop, true, 2.0f);  // Fade in gameplay music
+    
     // Create and initialize the ECS world
     ECSWorld ecs_world;
     ecs_world.Initialize();
@@ -280,6 +420,7 @@ int main(int argc, char* argv[]) {
     save_load_manager.Initialize();
     save_load_manager.SetAutosaveEnabled(true);
     save_load_manager.SetAutosaveInterval(120.0f);  // Auto-save every 2 minutes
+    save_load_manager.SetAchievementManager(&achievement_manager);  // Link achievement manager for persistence
     
     // Create save/load menu
     SaveLoadMenu save_load_menu;
@@ -440,6 +581,12 @@ int main(int argc, char* argv[]) {
     float elapsed_time = 0.0f;
     float sim_time = 0.0f;
     bool is_paused = false;  // Track pause state
+    bool in_settings_from_pause = false;  // Track if we're in settings from pause menu
+    bool in_audio_settings_from_pause = false;  // Track if we're in audio settings submenu
+    
+    // Create settings menus for pause menu usage
+    GeneralSettingsMenu pause_general_settings_menu;
+    AudioSettingsMenu pause_audio_settings_menu;
     
     while (elapsed_time < total_time && !renderer.ShouldClose()) {
         // Handle ESC key to toggle pause menu
@@ -447,10 +594,14 @@ int main(int argc, char* argv[]) {
             // If research menu is open, close it instead of pausing
             if (research_menu.IsVisible()) {
                 research_menu.SetVisible(false);
-            } else {
+            } else if (!in_settings_from_pause && !in_audio_settings_from_pause) {
+                audio_manager.Update(time_step);
                 is_paused = !is_paused;
                 if (is_paused) {
+                    audio_manager.PlaySFX(towerforge::audio::AudioCue::MenuOpen);
                     game_state.paused = true;
+                } else {
+                    audio_manager.PlaySFX(towerforge::audio::AudioCue::MenuClose);
                 }
             }
         }
@@ -503,47 +654,132 @@ int main(int argc, char* argv[]) {
                 hud.AddNotification(Notification::Type::Success, "Research unlocked!", 2.0f);
             }
         }
+      
+        // Check for achievements (only if not paused)
+        if (!is_paused) {
+            // Get economy singleton for total income
+            flecs::world& world = ecs_world.GetWorld();
+            float total_income = 0.0f;
+            if (world.has<TowerEconomy>()) {
+                const auto& economy = world.get<TowerEconomy>();
+                total_income = economy.total_revenue;
+            }
+            
+            // Get floor count
+            int floor_count = ecs_world.GetTowerGrid().GetFloorCount();
+            
+            // Calculate average satisfaction (simplified - just use game state population for now)
+            float avg_satisfaction = 75.0f;  // Default to 75% for now
+            
+            // Check achievements
+            achievement_manager.CheckAchievements(game_state.population, total_income, floor_count, avg_satisfaction);
+            
+            // Display notifications for newly unlocked achievements
+            if (achievement_manager.HasNewAchievements()) {
+                auto newly_unlocked = achievement_manager.PopNewlyUnlocked();
+                for (const auto& achievement_id : newly_unlocked) {
+                    // Play achievement sound
+                    audio_manager.PlaySFX(towerforge::audio::AudioCue::Achievement);
+                    
+                    // Find achievement to get its name
+                    for (const auto& achievement : achievement_manager.GetAllAchievements()) {
+                        if (achievement.id == achievement_id) {
+                            std::string message = "Achievement Unlocked: " + achievement.name;
+                            hud.AddNotification(Notification::Type::Success, message, 5.0f);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Update achievements menu with current stats
+            achievements_menu.SetGameStats(game_state.population, total_income, floor_count, avg_satisfaction);
+        }
         
         // Handle pause menu input
         if (is_paused) {
-            pause_menu.Update(time_step);
-            
-            // Handle quit confirmation if showing
-            int quit_result = pause_menu.HandleQuitConfirmation();
-            if (quit_result == 1) {
-                // User confirmed quit to title
-                current_mode = GameMode::TitleScreen;
-                break;  // Exit game loop
-            } else if (quit_result == 0) {
-                // User cancelled quit - just stay in pause menu
-            } else {
-                // No quit confirmation showing - handle regular menu input
-                int keyboard_selection = pause_menu.HandleKeyboard();
-                int mouse_selection = pause_menu.HandleMouse(GetMouseX(), GetMouseY(), 
-                                                             IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            // Handle settings menu input if in settings
+            if (in_audio_settings_from_pause) {
+                pause_audio_settings_menu.Update(time_step);
+                
+                // Handle input
+                if (pause_audio_settings_menu.HandleKeyboard()) {
+                    in_audio_settings_from_pause = false;  // Go back to general settings
+                }
+                bool back_clicked = pause_audio_settings_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                           IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                if (back_clicked) {
+                    in_audio_settings_from_pause = false;  // Go back to general settings
+                }
+            } else if (in_settings_from_pause) {
+                pause_general_settings_menu.Update(time_step);
+                
+                // Handle input
+                int keyboard_selection = pause_general_settings_menu.HandleKeyboard();
+                int mouse_selection = pause_general_settings_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
                 
                 int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
                 
                 if (selected >= 0) {
-                    PauseMenuOption option = static_cast<PauseMenuOption>(selected);
+                    SettingsOption option = static_cast<SettingsOption>(selected);
                     switch (option) {
-                        case PauseMenuOption::Resume:
-                            is_paused = false;
-                            game_state.paused = false;
+                        case SettingsOption::Audio:
+                            in_audio_settings_from_pause = true;
                             break;
-                        case PauseMenuOption::SaveGame:
-                            hud.AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
+                        case SettingsOption::Controls:
+                        case SettingsOption::Display:
+                        case SettingsOption::Accessibility:
+                        case SettingsOption::Gameplay:
+                            // Placeholder for future settings
+                            hud.AddNotification(Notification::Type::Info, "Settings option not yet implemented", 3.0f);
                             break;
-                        case PauseMenuOption::LoadGame:
-                            hud.AddNotification(Notification::Type::Info, "Load game not yet implemented", 3.0f);
+                        case SettingsOption::Back:
+                            in_settings_from_pause = false;  // Go back to pause menu
                             break;
-                        case PauseMenuOption::Settings:
-                            hud.AddNotification(Notification::Type::Info, "Settings not yet implemented", 3.0f);
-                            break;
-                        case PauseMenuOption::QuitToTitle:
-                            // Show confirmation dialog
-                            pause_menu.ShowQuitConfirmation(true);
-                            break;
+                    }
+                }
+            } else {
+                // Regular pause menu input
+                pause_menu.Update(time_step);
+                
+                // Handle quit confirmation if showing
+                int quit_result = pause_menu.HandleQuitConfirmation();
+                if (quit_result == 1) {
+                    // User confirmed quit to title
+                    current_mode = GameMode::TitleScreen;
+                    break;  // Exit game loop
+                } else if (quit_result == 0) {
+                    // User cancelled quit - just stay in pause menu
+                } else {
+                    // No quit confirmation showing - handle regular menu input
+                    int keyboard_selection = pause_menu.HandleKeyboard();
+                    int mouse_selection = pause_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                 IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                    
+                    int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+                    
+                    if (selected >= 0) {
+                        PauseMenuOption option = static_cast<PauseMenuOption>(selected);
+                        switch (option) {
+                            case PauseMenuOption::Resume:
+                                is_paused = false;
+                                game_state.paused = false;
+                                break;
+                            case PauseMenuOption::SaveGame:
+                                hud.AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
+                                break;
+                            case PauseMenuOption::LoadGame:
+                                hud.AddNotification(Notification::Type::Info, "Load game not yet implemented", 3.0f);
+                                break;
+                            case PauseMenuOption::Settings:
+                                in_settings_from_pause = true;
+                                break;
+                            case PauseMenuOption::QuitToTitle:
+                                // Show confirmation dialog
+                                pause_menu.ShowQuitConfirmation(true);
+                                break;
+                        }
                     }
                 }
             }
@@ -595,9 +831,11 @@ int main(int argc, char* argv[]) {
                 if (cost_change != 0) {
                     game_state.funds += cost_change;
                     if (cost_change < 0) {
+                        audio_manager.PlaySFX(towerforge::audio::AudioCue::FacilityPlace);
                         hud.AddNotification(Notification::Type::Success, 
                             TextFormat("Facility placed! Cost: $%d", -cost_change), 3.0f);
                     } else {
+                        audio_manager.PlaySFX(towerforge::audio::AudioCue::FacilityDemolish);
                         hud.AddNotification(Notification::Type::Info, 
                             TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
                     }
@@ -798,7 +1036,13 @@ int main(int argc, char* argv[]) {
         
         // Render pause menu overlay if paused
         if (is_paused) {
-            pause_menu.Render();
+            if (in_audio_settings_from_pause) {
+                pause_audio_settings_menu.Render();
+            } else if (in_settings_from_pause) {
+                pause_general_settings_menu.Render();
+            } else {
+                pause_menu.Render();
+            }
         }
         
         // Render research menu overlay if visible

@@ -11,6 +11,7 @@ MainMenu::MainMenu()
     // Initialize menu items
     menu_items_.push_back({"New Game", MenuOption::NewGame});
     menu_items_.push_back({"Load Game", MenuOption::LoadGame});
+    menu_items_.push_back({"Achievements", MenuOption::Achievements});
     menu_items_.push_back({"Settings", MenuOption::Settings});
     menu_items_.push_back({"Credits", MenuOption::Credits});
     menu_items_.push_back({"Quit", MenuOption::Quit});

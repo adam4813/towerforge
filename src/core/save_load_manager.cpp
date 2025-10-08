@@ -3,6 +3,7 @@
 #include "core/components.hpp"
 #include "core/tower_grid.hpp"
 #include "core/facility_manager.hpp"
+#include "core/achievement_manager.hpp"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -21,7 +22,8 @@ namespace Core {
 SaveLoadManager::SaveLoadManager()
     : autosave_enabled_(true),
       autosave_interval_(120.0f),  // Default: 2 minutes
-      time_since_last_save_(0.0f) {
+      time_since_last_save_(0.0f),
+      achievement_manager_(nullptr) {
 }
 
 SaveLoadManager::~SaveLoadManager() {
@@ -297,6 +299,10 @@ float SaveLoadManager::GetTimeSinceLastSave() const {
     return time_since_last_save_;
 }
 
+void SaveLoadManager::SetAchievementManager(AchievementManager* manager) {
+    achievement_manager_ = manager;
+}
+
 nlohmann::json SaveLoadManager::SerializeGameState(ECSWorld& ecs_world,
                                                    const std::string& tower_name) {
     nlohmann::json json;
@@ -552,6 +558,11 @@ nlohmann::json SaveLoadManager::SerializeGameState(ECSWorld& ecs_world,
     
     json["entities"] = entities;
     json["metadata"]["population"] = population;
+    
+    // Serialize achievements if achievement manager is set
+    if (achievement_manager_) {
+        json["achievements"] = achievement_manager_->Serialize();
+    }
     
     return json;
 }
@@ -821,6 +832,11 @@ bool SaveLoadManager::DeserializeGameState(const nlohmann::json& json,
                     e.set<DailySchedule>(schedule);
                 }
             }
+        }
+        
+        // Deserialize achievements if present
+        if (json.contains("achievements") && achievement_manager_) {
+            achievement_manager_->Deserialize(json["achievements"]);
         }
         
         return true;

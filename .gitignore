@@ -44,3 +44,6 @@ vcpkg_installed/
 # Misc
 .DS_Store
 Thumbs.db
+
+# Assets (audio, textures, etc. - add manually if needed)
+assets/

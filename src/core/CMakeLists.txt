@@ -4,6 +4,7 @@ add_library(towerforge_core
     tower_grid.cpp
     facility_manager.cpp
     save_load_manager.cpp
+    achievement_manager.cpp
 )
 
 # Find flecs package
