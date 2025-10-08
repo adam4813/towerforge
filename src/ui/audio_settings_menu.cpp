@@ -27,7 +27,6 @@ AudioSettingsMenu::AudioSettingsMenu()
     , mute_music_(false)
     , mute_sfx_(false)
     , enable_ambient_(true) {
-    SyncWithAudioManager();
     LoadSettings();
     ApplyAudioSettings();
 }
@@ -454,6 +453,7 @@ void AudioSettingsMenu::ApplyAudioSettings() {
     // Apply master volume (this affects all audio)
     float effective_master = mute_all_ ? 0.0f : master_volume_;
     SetMasterVolume(effective_master);
+    SyncWithAudioManager();
     
     // Note: Raylib doesn't have separate SetMusicVolume/SetSoundVolume functions
     // that persist globally. Instead, you need to set volume on individual
