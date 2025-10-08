@@ -3,16 +3,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
-
-#ifdef _WIN32
-#include <windows.h>
-#include <shlobj.h>
-#else
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#endif
+#include <filesystem>
 
 namespace towerforge {
 namespace ui {
@@ -425,14 +416,10 @@ void AudioSettingsMenu::SaveSettings() {
         config_path = "audio_settings.cfg";
     }
 #endif
-    
+
     // Create directory if it doesn't exist
     if (!config_dir.empty()) {
-#ifdef _WIN32
-        CreateDirectoryA(config_dir.c_str(), NULL);
-#else
-        mkdir(config_dir.c_str(), 0755);
-#endif
+        std::filesystem::create_directory(config_dir.c_str());
     }
     
     // Save settings to file
