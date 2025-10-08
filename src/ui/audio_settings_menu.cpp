@@ -1,5 +1,17 @@
 #include "ui/audio_settings_menu.h"
 #include <cmath>
+#include <fstream>
+#include <iostream>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h>
+#else
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#endif
 
 namespace towerforge {
 namespace ui {
@@ -9,10 +21,17 @@ AudioSettingsMenu::AudioSettingsMenu()
     , animation_time_(0.0f)
     , master_volume_(0.7f)
     , music_volume_(0.5f)
-    , sfx_volume_(0.6f) {
+    , sfx_volume_(0.6f)
+    , mute_all_(false)
+    , mute_music_(false)
+    , mute_sfx_(false)
+    , enable_ambient_(true) {
+    LoadSettings();
+    ApplyAudioSettings();
 }
 
 AudioSettingsMenu::~AudioSettingsMenu() {
+    SaveSettings();
 }
 
 void AudioSettingsMenu::Update(float delta_time) {
@@ -23,6 +42,7 @@ void AudioSettingsMenu::Render() {
     RenderBackground();
     RenderHeader();
     RenderVolumeControls();
+    RenderToggleControls();
     RenderBackButton();
 }
 
@@ -35,7 +55,7 @@ void AudioSettingsMenu::RenderBackground() {
     
     // Main menu panel
     int menu_x = (screen_width - MENU_WIDTH) / 2;
-    int menu_y = (screen_height - MENU_HEIGHT) / 2 - 30;
+    int menu_y = (screen_height - (MENU_HEIGHT + 100)) / 2 - 30;
     
     DrawRectangle(menu_x, menu_y, MENU_WIDTH, MENU_HEIGHT + 100, ColorAlpha(Color{30, 30, 40, 255}, 0.95f));
     DrawRectangleLines(menu_x, menu_y, MENU_WIDTH, MENU_HEIGHT + 100, GOLD);
@@ -100,7 +120,7 @@ void AudioSettingsMenu::RenderBackButton() {
     int screen_width = GetScreenWidth();
     int button_x = (screen_width - BACK_BUTTON_WIDTH) / 2;
     
-    bool is_selected = (selected_option_ == 3);
+    bool is_selected = (selected_option_ == 7);
     
     // Button background
     Color bg_color = is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f);
@@ -126,10 +146,42 @@ void AudioSettingsMenu::RenderBackButton() {
     
     // Instructions
     int screen_height = GetScreenHeight();
-    const char* instruction = "Arrow Keys: Navigate | LEFT/RIGHT: Adjust | ESC/ENTER: Back";
-    int instruction_width = MeasureText(instruction, 16);
+    const char* instruction = "Arrow Keys: Navigate | LEFT/RIGHT: Adjust | SPACE: Toggle | ESC/ENTER: Back";
+    int instruction_width = MeasureText(instruction, 14);
     DrawText(instruction, (screen_width - instruction_width) / 2, 
-             screen_height - 50, 16, LIGHTGRAY);
+             screen_height - 50, 14, LIGHTGRAY);
+}
+
+void AudioSettingsMenu::RenderToggleControls() {
+    RenderCheckbox("[ ] Mute All", mute_all_, CHECKBOX_START_Y, selected_option_ == 3);
+    RenderCheckbox("[ ] Mute Music", mute_music_, CHECKBOX_START_Y + CHECKBOX_HEIGHT + CHECKBOX_SPACING, selected_option_ == 4);
+    RenderCheckbox("[ ] Mute SFX", mute_sfx_, CHECKBOX_START_Y + 2 * (CHECKBOX_HEIGHT + CHECKBOX_SPACING), selected_option_ == 5);
+    RenderCheckbox("[ ] Enable Ambient Sound", enable_ambient_, CHECKBOX_START_Y + 3 * (CHECKBOX_HEIGHT + CHECKBOX_SPACING), selected_option_ == 6);
+}
+
+void AudioSettingsMenu::RenderCheckbox(const char* label, bool checked, int y_pos, bool is_selected) {
+    int screen_width = GetScreenWidth();
+    int checkbox_x = (screen_width - 400) / 2;
+    
+    // Checkbox box
+    int box_size = 20;
+    Color box_color = is_selected ? GOLD : LIGHTGRAY;
+    DrawRectangleLines(checkbox_x, y_pos + 5, box_size, box_size, box_color);
+    
+    // Checkbox fill if checked
+    if (checked) {
+        DrawRectangle(checkbox_x + 4, y_pos + 9, box_size - 8, box_size - 8, is_selected ? GOLD : GRAY);
+    }
+    
+    // Label
+    Color label_color = is_selected ? GOLD : LIGHTGRAY;
+    DrawText(label, checkbox_x + box_size + 10, y_pos + 5, 18, label_color);
+    
+    // Selection indicator
+    if (is_selected) {
+        float pulse = 0.5f + 0.5f * sinf(animation_time_ * 4.0f);
+        DrawText(">", checkbox_x - 30, y_pos, 24, ColorAlpha(GOLD, pulse));
+    }
 }
 
 bool AudioSettingsMenu::HandleKeyboard() {
@@ -137,14 +189,14 @@ bool AudioSettingsMenu::HandleKeyboard() {
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
         selected_option_--;
         if (selected_option_ < 0) {
-            selected_option_ = 3;
+            selected_option_ = 7;
         }
     }
     
     // Navigate down
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         selected_option_++;
-        if (selected_option_ > 3) {
+        if (selected_option_ > 7) {
             selected_option_ = 0;
         }
     }
@@ -160,11 +212,27 @@ bool AudioSettingsMenu::HandleKeyboard() {
             if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
                 *volume_ptr -= 0.1f;
                 if (*volume_ptr < 0.0f) *volume_ptr = 0.0f;
+                ApplyAudioSettings();
+                SaveSettings();
             }
             if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
                 *volume_ptr += 0.1f;
                 if (*volume_ptr > 1.0f) *volume_ptr = 1.0f;
+                ApplyAudioSettings();
+                SaveSettings();
             }
+        }
+    }
+    
+    // Toggle checkboxes with space
+    if (selected_option_ >= 3 && selected_option_ <= 6) {
+        if (IsKeyPressed(KEY_SPACE)) {
+            if (selected_option_ == 3) mute_all_ = !mute_all_;
+            else if (selected_option_ == 4) mute_music_ = !mute_music_;
+            else if (selected_option_ == 5) mute_sfx_ = !mute_sfx_;
+            else if (selected_option_ == 6) enable_ambient_ = !enable_ambient_;
+            ApplyAudioSettings();
+            SaveSettings();
         }
     }
     
@@ -173,7 +241,7 @@ bool AudioSettingsMenu::HandleKeyboard() {
         return true;
     }
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-        if (selected_option_ == 3) {
+        if (selected_option_ == 7) {
             return true;
         }
     }
@@ -188,7 +256,7 @@ bool AudioSettingsMenu::HandleMouse(int mouse_x, int mouse_y, bool clicked) {
     // Check back button hover
     if (mouse_x >= button_x && mouse_x <= button_x + BACK_BUTTON_WIDTH &&
         mouse_y >= BACK_BUTTON_Y && mouse_y <= BACK_BUTTON_Y + BACK_BUTTON_HEIGHT) {
-        selected_option_ = 3;
+        selected_option_ = 7;
         if (clicked) {
             return true;
         }
@@ -215,11 +283,137 @@ bool AudioSettingsMenu::HandleMouse(int mouse_x, int mouse_y, bool clicked) {
                 if (i == 0) master_volume_ = new_value;
                 else if (i == 1) music_volume_ = new_value;
                 else if (i == 2) sfx_volume_ = new_value;
+                
+                ApplyAudioSettings();
+                SaveSettings();
+            }
+        }
+    }
+    
+    // Check checkboxes
+    int checkbox_x = (screen_width - 400) / 2;
+    int box_size = 20;
+    
+    for (int i = 0; i < 4; i++) {
+        int checkbox_y = CHECKBOX_START_Y + i * (CHECKBOX_HEIGHT + CHECKBOX_SPACING);
+        
+        if (mouse_x >= checkbox_x && mouse_x <= checkbox_x + 300 &&
+            mouse_y >= checkbox_y && mouse_y <= checkbox_y + CHECKBOX_HEIGHT) {
+            selected_option_ = i + 3;
+            
+            if (clicked) {
+                if (i == 0) mute_all_ = !mute_all_;
+                else if (i == 1) mute_music_ = !mute_music_;
+                else if (i == 2) mute_sfx_ = !mute_sfx_;
+                else if (i == 3) enable_ambient_ = !enable_ambient_;
+                
+                ApplyAudioSettings();
+                SaveSettings();
             }
         }
     }
     
     return false;
+}
+
+void AudioSettingsMenu::LoadSettings() {
+    // Determine config file path
+    std::string config_path;
+    
+#ifdef _WIN32
+    const char* appdata = std::getenv("APPDATA");
+    if (appdata) {
+        config_path = std::string(appdata) + "/TowerForge/audio_settings.cfg";
+    } else {
+        config_path = "audio_settings.cfg";
+    }
+#else
+    const char* home = std::getenv("HOME");
+    if (home) {
+        config_path = std::string(home) + "/.towerforge/audio_settings.cfg";
+    } else {
+        config_path = "audio_settings.cfg";
+    }
+#endif
+    
+    // Try to load settings from file
+    std::ifstream file(config_path);
+    if (file.is_open()) {
+        int master_vol_int = 70, music_vol_int = 50, sfx_vol_int = 60;
+        int mute_all_int = 0, mute_music_int = 0, mute_sfx_int = 0, enable_ambient_int = 1;
+        
+        file >> master_vol_int >> music_vol_int >> sfx_vol_int;
+        file >> mute_all_int >> mute_music_int >> mute_sfx_int >> enable_ambient_int;
+        
+        master_volume_ = master_vol_int / 100.0f;
+        music_volume_ = music_vol_int / 100.0f;
+        sfx_volume_ = sfx_vol_int / 100.0f;
+        
+        mute_all_ = (mute_all_int == 1);
+        mute_music_ = (mute_music_int == 1);
+        mute_sfx_ = (mute_sfx_int == 1);
+        enable_ambient_ = (enable_ambient_int == 1);
+        
+        file.close();
+    }
+}
+
+void AudioSettingsMenu::SaveSettings() {
+    // Determine config file path
+    std::string config_path;
+    std::string config_dir;
+    
+#ifdef _WIN32
+    const char* appdata = std::getenv("APPDATA");
+    if (appdata) {
+        config_dir = std::string(appdata) + "/TowerForge";
+        config_path = config_dir + "/audio_settings.cfg";
+    } else {
+        config_path = "audio_settings.cfg";
+    }
+#else
+    const char* home = std::getenv("HOME");
+    if (home) {
+        config_dir = std::string(home) + "/.towerforge";
+        config_path = config_dir + "/audio_settings.cfg";
+    } else {
+        config_path = "audio_settings.cfg";
+    }
+#endif
+    
+    // Create directory if it doesn't exist
+    if (!config_dir.empty()) {
+#ifdef _WIN32
+        CreateDirectoryA(config_dir.c_str(), NULL);
+#else
+        mkdir(config_dir.c_str(), 0755);
+#endif
+    }
+    
+    // Save settings to file
+    std::ofstream file(config_path);
+    if (file.is_open()) {
+        file << static_cast<int>(master_volume_ * 100) << " ";
+        file << static_cast<int>(music_volume_ * 100) << " ";
+        file << static_cast<int>(sfx_volume_ * 100) << "\n";
+        file << (mute_all_ ? 1 : 0) << " ";
+        file << (mute_music_ ? 1 : 0) << " ";
+        file << (mute_sfx_ ? 1 : 0) << " ";
+        file << (enable_ambient_ ? 1 : 0) << "\n";
+        file.close();
+    }
+}
+
+void AudioSettingsMenu::ApplyAudioSettings() {
+    // Apply master volume (this affects all audio)
+    float effective_master = mute_all_ ? 0.0f : master_volume_;
+    SetMasterVolume(effective_master);
+    
+    // Note: Raylib doesn't have separate SetMusicVolume/SetSoundVolume functions
+    // that persist globally. Instead, you need to set volume on individual
+    // Music/Sound instances. For now, we just control master volume.
+    // The mute_music_, mute_sfx_, and enable_ambient_ flags would be used
+    // when actually playing audio to determine if individual sounds should play.
 }
 
 } // namespace ui
