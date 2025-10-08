@@ -794,6 +794,17 @@ void Game::HandleInGameInput() {
                     audio_manager_->PlaySFX(towerforge::audio::AudioCue::FacilityPlace);
                     hud_->AddNotification(Notification::Type::Success, 
                         TextFormat("Facility placed! Cost: $%d", -cost_change), 3.0f);
+                    
+                    // Notify tutorial if active
+                    if (tutorial_active_ && tutorial_manager_) {
+                        int selected = build_menu_->GetSelectedFacility();
+                        if (selected >= 0) {
+                            const auto& facility_types = build_menu_->GetFacilityTypes();
+                            if (selected < static_cast<int>(facility_types.size())) {
+                                tutorial_manager_->OnFacilityPlaced(facility_types[selected].name);
+                            }
+                        }
+                    }
                 } else {
                     audio_manager_->PlaySFX(towerforge::audio::AudioCue::FacilityDemolish);
                     hud_->AddNotification(Notification::Type::Info, 
@@ -1053,6 +1064,12 @@ void Game::UpdateTutorial(float delta_time) {
     
     tutorial_manager_->Update(delta_time);
     
+    // Update build menu tutorial mode
+    if (build_menu_) {
+        std::string highlighted = tutorial_manager_->GetHighlightedFacility();
+        build_menu_->SetTutorialMode(true, highlighted);
+    }
+    
     // Update game systems (same as InGame)
     UpdateInGame(delta_time);
     
@@ -1076,6 +1093,7 @@ void Game::HandleTutorialInput() {
         if (tutorial_manager_->HandleInput()) {
             // Tutorial skipped - transition to normal game with starter tower
             tutorial_active_ = false;
+            build_menu_->SetTutorialMode(false);
             delete tutorial_manager_;
             tutorial_manager_ = nullptr;
             CreateStarterTower();
@@ -1087,6 +1105,7 @@ void Game::HandleTutorialInput() {
         // Check if tutorial is complete
         if (tutorial_manager_->IsComplete()) {
             tutorial_active_ = false;
+            build_menu_->SetTutorialMode(false);
             delete tutorial_manager_;
             tutorial_manager_ = nullptr;
             current_state_ = GameState::InGame;
