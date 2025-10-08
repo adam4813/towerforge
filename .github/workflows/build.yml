@@ -27,30 +27,26 @@ jobs:
             compiler: gcc
             build_type: Release
             vcpkg_triplet: x64-linux
-            cc: gcc-10
-            cxx: g++-10
 
           # Linux builds - Clang
           - os: ubuntu-latest
             compiler: clang
             build_type: Release
             vcpkg_triplet: x64-linux
-            cc: clang-12
-            cxx: clang++-12
 
           # macOS builds
           - os: macos-latest
             compiler: clang
             build_type: Release
             vcpkg_triplet: x64-osx
-            cc: clang
-            cxx: clang++
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: recursive
+
+    - uses: lukka/get-cmake@latest
 
     - name: Install system dependencies (Linux)
       if: runner.os == 'Linux'
@@ -69,18 +65,17 @@ jobs:
           libglu1-mesa-dev \
           xvfb
 
-    - name: Set up MSVC (Windows)
-      if: runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1
+    - name: Setup Cpp
+      if: matrix.compiler != 'msvc'
+      uses: aminya/setup-cpp@v1
+      with:
+        compiler: ${{ matrix.compiler }}
+        vcvarsall: ${{ runner.os == 'Windows' }}
 
-    - name: Set environment variables (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
-        echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
-
-    - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v11
+    - name: Restore artifacts, or run vcpkg, build and cache artifacts
+      uses: lukka/run-vcpkg@v10
+      with:
+        appendedCacheKey: ${{ matrix.vcpkg_triplet }}
 
     - name: Configure CMake
       run: |
