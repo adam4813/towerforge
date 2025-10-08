@@ -73,9 +73,9 @@ jobs:
         vcvarsall: ${{ runner.os == 'Windows' }}
 
     - name: Restore artifacts, or run vcpkg, build and cache artifacts
-      uses: lukka/run-vcpkg@v10
+      uses: lukka/run-vcpkg@v11
       with:
-        appendedCacheKey: ${{ matrix.vcpkg_triplet }}
+        vcpkgGitCommitId: 4334d8b4c8916018600212ab4dd4bbdc343065d1
 
     - name: Configure CMake
       run: |
