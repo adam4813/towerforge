@@ -53,6 +53,10 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 add_executable(screenshot_app src/screenshot_app.cpp ${SOURCE_FILES})
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
+# Menu screenshot application
+add_executable(menu_screenshot src/menu_screenshot.cpp ${SOURCE_FILES})
+target_link_libraries(menu_screenshot PRIVATE raylib glfw towerforge_core)
+
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
