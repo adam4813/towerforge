@@ -99,9 +99,11 @@ jobs:
         if [ -f "build/bin/Release/towerforge.exe" ]; then
           cp build/bin/Release/towerforge.exe artifacts/
           cp build/bin/Release/screenshot_app.exe artifacts/ || true
+          cp build/bin/Release/*.dll artifacts/ || true
         elif [ -f "build/Release/towerforge.exe" ]; then
           cp build/Release/towerforge.exe artifacts/
           cp build/Release/screenshot_app.exe artifacts/ || true
+          cp build/Release/*.dll artifacts/ || true
         fi
         # Copy vcpkg installed DLLs if they exist
         if [ -d "vcpkg_installed/${{ matrix.vcpkg_triplet }}/bin" ]; then
