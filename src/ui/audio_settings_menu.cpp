@@ -21,7 +21,7 @@ AudioSettingsMenu::AudioSettingsMenu()
     : selected_option_(0)
     , animation_time_(0.0f)
     , master_volume_(0.7f)
-    , music_volume_(0.5f
+    , music_volume_(0.5f)
     , sfx_volume_(0.6f)
     , mute_all_(false)
     , mute_music_(false)
