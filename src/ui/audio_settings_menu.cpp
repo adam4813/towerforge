@@ -1,4 +1,5 @@
 #include "ui/audio_settings_menu.h"
+#include "audio/audio_manager.h"
 #include <cmath>
 
 namespace towerforge {
@@ -10,6 +11,8 @@ AudioSettingsMenu::AudioSettingsMenu()
     , master_volume_(0.7f)
     , music_volume_(0.5f)
     , sfx_volume_(0.6f) {
+    // Sync with AudioManager on construction
+    SyncWithAudioManager();
 }
 
 AudioSettingsMenu::~AudioSettingsMenu() {
@@ -17,6 +20,15 @@ AudioSettingsMenu::~AudioSettingsMenu() {
 
 void AudioSettingsMenu::Update(float delta_time) {
     animation_time_ += delta_time;
+}
+
+void AudioSettingsMenu::SyncWithAudioManager() {
+    auto& audio_mgr = audio::AudioManager::GetInstance();
+    if (audio_mgr.IsInitialized()) {
+        master_volume_ = audio_mgr.GetMasterVolume();
+        music_volume_ = audio_mgr.GetVolume(audio::AudioType::Music);
+        sfx_volume_ = audio_mgr.GetVolume(audio::AudioType::SFX);
+    }
 }
 
 void AudioSettingsMenu::Render() {
@@ -139,6 +151,7 @@ bool AudioSettingsMenu::HandleKeyboard() {
         if (selected_option_ < 0) {
             selected_option_ = 3;
         }
+        audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClick);
     }
     
     // Navigate down
@@ -147,6 +160,7 @@ bool AudioSettingsMenu::HandleKeyboard() {
         if (selected_option_ > 3) {
             selected_option_ = 0;
         }
+        audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClick);
     }
     
     // Adjust volume with left/right arrows
@@ -157,23 +171,42 @@ bool AudioSettingsMenu::HandleKeyboard() {
         else if (selected_option_ == 2) volume_ptr = &sfx_volume_;
         
         if (volume_ptr) {
+            bool volume_changed = false;
             if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
                 *volume_ptr -= 0.1f;
                 if (*volume_ptr < 0.0f) *volume_ptr = 0.0f;
+                volume_changed = true;
             }
             if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
                 *volume_ptr += 0.1f;
                 if (*volume_ptr > 1.0f) *volume_ptr = 1.0f;
+                volume_changed = true;
+            }
+            
+            // Apply changes to AudioManager
+            if (volume_changed) {
+                auto& audio_mgr = audio::AudioManager::GetInstance();
+                if (selected_option_ == 0) {
+                    audio_mgr.SetMasterVolume(master_volume_);
+                } else if (selected_option_ == 1) {
+                    audio_mgr.SetVolume(audio::AudioType::Music, music_volume_);
+                } else if (selected_option_ == 2) {
+                    audio_mgr.SetVolume(audio::AudioType::SFX, sfx_volume_);
+                    // Play test sound
+                    audio_mgr.PlaySFX(audio::AudioCue::MenuConfirm);
+                }
             }
         }
     }
     
     // Back with ESC or ENTER on back button
     if (IsKeyPressed(KEY_ESCAPE)) {
+        audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClose);
         return true;
     }
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
         if (selected_option_ == 3) {
+            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
             return true;
         }
     }
@@ -190,6 +223,7 @@ bool AudioSettingsMenu::HandleMouse(int mouse_x, int mouse_y, bool clicked) {
         mouse_y >= BACK_BUTTON_Y && mouse_y <= BACK_BUTTON_Y + BACK_BUTTON_HEIGHT) {
         selected_option_ = 3;
         if (clicked) {
+            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
             return true;
         }
     }
@@ -212,9 +246,22 @@ bool AudioSettingsMenu::HandleMouse(int mouse_x, int mouse_y, bool clicked) {
                 if (new_value < 0.0f) new_value = 0.0f;
                 if (new_value > 1.0f) new_value = 1.0f;
                 
-                if (i == 0) master_volume_ = new_value;
-                else if (i == 1) music_volume_ = new_value;
-                else if (i == 2) sfx_volume_ = new_value;
+                auto& audio_mgr = audio::AudioManager::GetInstance();
+                
+                if (i == 0) {
+                    master_volume_ = new_value;
+                    audio_mgr.SetMasterVolume(master_volume_);
+                }
+                else if (i == 1) {
+                    music_volume_ = new_value;
+                    audio_mgr.SetVolume(audio::AudioType::Music, music_volume_);
+                }
+                else if (i == 2) {
+                    sfx_volume_ = new_value;
+                    audio_mgr.SetVolume(audio::AudioType::SFX, sfx_volume_);
+                    // Play test sound
+                    audio_mgr.PlaySFX(audio::AudioCue::MenuConfirm);
+                }
             }
         }
     }

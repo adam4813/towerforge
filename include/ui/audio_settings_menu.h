@@ -3,6 +3,7 @@
 #include <raylib.h>
 #include <string>
 #include <vector>
+#include "audio/audio_manager.h"
 
 namespace towerforge {
 namespace ui {
@@ -28,6 +29,11 @@ public:
      * @param delta_time Time elapsed since last frame
      */
     void Update(float delta_time);
+    
+    /**
+     * @brief Sync local volume values with AudioManager
+     */
+    void SyncWithAudioManager();
     
     /**
      * @brief Handle keyboard input for menu navigation

@@ -14,6 +14,7 @@
 #include "ui/achievements_menu.h"
 #include "ui/general_settings_menu.h"
 #include "ui/audio_settings_menu.h"
+#include "audio/audio_manager.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
@@ -127,6 +128,10 @@ int main(int argc, char* argv[]) {
     towerforge::rendering::Renderer renderer;
     renderer.Initialize(800, 600, "TowerForge");
     
+    // Initialize audio system
+    auto& audio_manager = towerforge::audio::AudioManager::GetInstance();
+    audio_manager.Initialize();
+    
     // Game mode management
     GameMode current_mode = GameMode::TitleScreen;
     bool game_initialized = false;
@@ -142,9 +147,15 @@ int main(int argc, char* argv[]) {
     AchievementsMenu achievements_menu;
     achievements_menu.SetAchievementManager(&achievement_manager);
     
+    // Play main theme music
+    audio_manager.PlayMusic(towerforge::audio::AudioCue::MainTheme, true, 1.0f);
+    
     // Title screen loop
     while (current_mode == GameMode::TitleScreen && !renderer.ShouldClose()) {
         float delta_time = GetFrameTime();
+        
+        // Update audio system
+        audio_manager.Update(delta_time);
         
         // Update menu
         main_menu.Update(delta_time);
@@ -157,6 +168,7 @@ int main(int argc, char* argv[]) {
         int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
         
         if (selected >= 0) {
+            audio_manager.PlaySFX(towerforge::audio::AudioCue::MenuConfirm);
             MenuOption option = static_cast<MenuOption>(selected);
             switch (option) {
                 case MenuOption::NewGame:
@@ -194,11 +206,15 @@ int main(int argc, char* argv[]) {
         while (current_mode == GameMode::Achievements && !renderer.ShouldClose()) {
             float delta_time = GetFrameTime();
             
+            // Update audio system
+            audio_manager.Update(delta_time);
+            
             // Update achievements menu
             achievements_menu.Update(delta_time);
             
             // Handle input
             if (achievements_menu.HandleKeyboard()) {
+                audio_manager.PlaySFX(towerforge::audio::AudioCue::MenuClose);
                 current_mode = GameMode::TitleScreen;
             }
             achievements_menu.HandleMouse(GetMouseX(), GetMouseY(), GetMouseWheelMove());
@@ -225,6 +241,9 @@ int main(int argc, char* argv[]) {
         
         while (current_mode == GameMode::Settings && !renderer.ShouldClose()) {
             float delta_time = GetFrameTime();
+            
+            // Update audio system
+            audio_manager.Update(delta_time);
             
             if (in_audio_settings) {
                 // Update audio settings menu
@@ -386,6 +405,10 @@ int main(int argc, char* argv[]) {
     
     // Initialize game (only when entering InGame mode)
     std::cout << "Initializing game..." << std::endl;
+    
+    // Change music to gameplay theme
+    audio_manager.StopMusic(1.0f);  // Fade out main theme
+    audio_manager.PlayMusic(towerforge::audio::AudioCue::GameplayLoop, true, 2.0f);  // Fade in gameplay music
     
     // Create and initialize the ECS world
     ECSWorld ecs_world;
@@ -558,11 +581,17 @@ int main(int argc, char* argv[]) {
     AudioSettingsMenu pause_audio_settings_menu;
     
     while (elapsed_time < total_time && !renderer.ShouldClose()) {
+        // Update audio system
+        audio_manager.Update(time_step);
+        
         // Handle ESC key to toggle pause menu (unless we're in settings)
         if (IsKeyPressed(KEY_ESCAPE) && !in_settings_from_pause && !in_audio_settings_from_pause) {
             is_paused = !is_paused;
             if (is_paused) {
+                audio_manager.PlaySFX(towerforge::audio::AudioCue::MenuOpen);
                 game_state.paused = true;
+            } else {
+                audio_manager.PlaySFX(towerforge::audio::AudioCue::MenuClose);
             }
         }
         
@@ -619,6 +648,9 @@ int main(int argc, char* argv[]) {
             if (achievement_manager.HasNewAchievements()) {
                 auto newly_unlocked = achievement_manager.PopNewlyUnlocked();
                 for (const auto& achievement_id : newly_unlocked) {
+                    // Play achievement sound
+                    audio_manager.PlaySFX(towerforge::audio::AudioCue::Achievement);
+                    
                     // Find achievement to get its name
                     for (const auto& achievement : achievement_manager.GetAllAchievements()) {
                         if (achievement.id == achievement_id) {
@@ -769,9 +801,11 @@ int main(int argc, char* argv[]) {
                 if (cost_change != 0) {
                     game_state.funds += cost_change;
                     if (cost_change < 0) {
+                        audio_manager.PlaySFX(towerforge::audio::AudioCue::FacilityPlace);
                         hud.AddNotification(Notification::Type::Success, 
                             TextFormat("Facility placed! Cost: $%d", -cost_change), 3.0f);
                     } else {
+                        audio_manager.PlaySFX(towerforge::audio::AudioCue::FacilityDemolish);
                         hud.AddNotification(Notification::Type::Info, 
                             TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
                     }
