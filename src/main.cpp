@@ -12,6 +12,8 @@
 #include "ui/pause_menu.h"
 #include "ui/save_load_menu.h"
 #include "ui/achievements_menu.h"
+#include "ui/general_settings_menu.h"
+#include "ui/audio_settings_menu.h"
 
 using namespace TowerForge::Core;
 using namespace towerforge::ui;
@@ -171,9 +173,6 @@ int main(int argc, char* argv[]) {
                     break;
                 case MenuOption::Settings:
                     current_mode = GameMode::Settings;
-                    std::cout << "Settings screen not yet implemented, returning to menu..." << std::endl;
-                    // For now, stay on title screen
-                    current_mode = GameMode::TitleScreen;
                     break;
                 case MenuOption::Credits:
                     current_mode = GameMode::Credits;
@@ -209,6 +208,79 @@ int main(int argc, char* argv[]) {
             ClearBackground(Color{20, 20, 30, 255});
             achievements_menu.Render();
             renderer.EndFrame();
+        }
+        
+        // Return to title screen if not quitting
+        if (current_mode != GameMode::Quit && !renderer.ShouldClose()) {
+            current_mode = GameMode::TitleScreen;
+            // Restart title screen loop (code will continue below)
+        }
+    }
+    
+    // Handle settings screen
+    if (current_mode == GameMode::Settings) {
+        GeneralSettingsMenu general_settings_menu;
+        AudioSettingsMenu audio_settings_menu;
+        bool in_audio_settings = false;
+        
+        while (current_mode == GameMode::Settings && !renderer.ShouldClose()) {
+            float delta_time = GetFrameTime();
+            
+            if (in_audio_settings) {
+                // Update audio settings menu
+                audio_settings_menu.Update(delta_time);
+                
+                // Handle input
+                if (audio_settings_menu.HandleKeyboard()) {
+                    in_audio_settings = false;  // Go back to general settings
+                }
+                bool back_clicked = audio_settings_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                     IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                if (back_clicked) {
+                    in_audio_settings = false;  // Go back to general settings
+                }
+                
+                // Render
+                renderer.BeginFrame();
+                ClearBackground(Color{20, 20, 30, 255});
+                audio_settings_menu.Render();
+                renderer.EndFrame();
+            } else {
+                // Update general settings menu
+                general_settings_menu.Update(delta_time);
+                
+                // Handle input
+                int keyboard_selection = general_settings_menu.HandleKeyboard();
+                int mouse_selection = general_settings_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                        IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                
+                int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+                
+                if (selected >= 0) {
+                    SettingsOption option = static_cast<SettingsOption>(selected);
+                    switch (option) {
+                        case SettingsOption::Audio:
+                            in_audio_settings = true;
+                            break;
+                        case SettingsOption::Controls:
+                        case SettingsOption::Display:
+                        case SettingsOption::Accessibility:
+                        case SettingsOption::Gameplay:
+                            // Placeholder for future settings
+                            std::cout << "Settings option not yet implemented" << std::endl;
+                            break;
+                        case SettingsOption::Back:
+                            current_mode = GameMode::TitleScreen;
+                            break;
+                    }
+                }
+                
+                // Render
+                renderer.BeginFrame();
+                ClearBackground(Color{20, 20, 30, 255});
+                general_settings_menu.Render();
+                renderer.EndFrame();
+            }
         }
         
         // Return to title screen if not quitting
@@ -478,10 +550,16 @@ int main(int argc, char* argv[]) {
     float elapsed_time = 0.0f;
     float sim_time = 0.0f;
     bool is_paused = false;  // Track pause state
+    bool in_settings_from_pause = false;  // Track if we're in settings from pause menu
+    bool in_audio_settings_from_pause = false;  // Track if we're in audio settings submenu
+    
+    // Create settings menus for pause menu usage
+    GeneralSettingsMenu pause_general_settings_menu;
+    AudioSettingsMenu pause_audio_settings_menu;
     
     while (elapsed_time < total_time && !renderer.ShouldClose()) {
-        // Handle ESC key to toggle pause menu
-        if (IsKeyPressed(KEY_ESCAPE)) {
+        // Handle ESC key to toggle pause menu (unless we're in settings)
+        if (IsKeyPressed(KEY_ESCAPE) && !in_settings_from_pause && !in_audio_settings_from_pause) {
             is_paused = !is_paused;
             if (is_paused) {
                 game_state.paused = true;
@@ -558,44 +636,88 @@ int main(int argc, char* argv[]) {
         
         // Handle pause menu input
         if (is_paused) {
-            pause_menu.Update(time_step);
-            
-            // Handle quit confirmation if showing
-            int quit_result = pause_menu.HandleQuitConfirmation();
-            if (quit_result == 1) {
-                // User confirmed quit to title
-                current_mode = GameMode::TitleScreen;
-                break;  // Exit game loop
-            } else if (quit_result == 0) {
-                // User cancelled quit - just stay in pause menu
-            } else {
-                // No quit confirmation showing - handle regular menu input
-                int keyboard_selection = pause_menu.HandleKeyboard();
-                int mouse_selection = pause_menu.HandleMouse(GetMouseX(), GetMouseY(), 
-                                                             IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            // Handle settings menu input if in settings
+            if (in_audio_settings_from_pause) {
+                pause_audio_settings_menu.Update(time_step);
+                
+                // Handle input
+                if (pause_audio_settings_menu.HandleKeyboard()) {
+                    in_audio_settings_from_pause = false;  // Go back to general settings
+                }
+                bool back_clicked = pause_audio_settings_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                           IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                if (back_clicked) {
+                    in_audio_settings_from_pause = false;  // Go back to general settings
+                }
+            } else if (in_settings_from_pause) {
+                pause_general_settings_menu.Update(time_step);
+                
+                // Handle input
+                int keyboard_selection = pause_general_settings_menu.HandleKeyboard();
+                int mouse_selection = pause_general_settings_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
                 
                 int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
                 
                 if (selected >= 0) {
-                    PauseMenuOption option = static_cast<PauseMenuOption>(selected);
+                    SettingsOption option = static_cast<SettingsOption>(selected);
                     switch (option) {
-                        case PauseMenuOption::Resume:
-                            is_paused = false;
-                            game_state.paused = false;
+                        case SettingsOption::Audio:
+                            in_audio_settings_from_pause = true;
                             break;
-                        case PauseMenuOption::SaveGame:
-                            hud.AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
+                        case SettingsOption::Controls:
+                        case SettingsOption::Display:
+                        case SettingsOption::Accessibility:
+                        case SettingsOption::Gameplay:
+                            // Placeholder for future settings
+                            hud.AddNotification(Notification::Type::Info, "Settings option not yet implemented", 3.0f);
                             break;
-                        case PauseMenuOption::LoadGame:
-                            hud.AddNotification(Notification::Type::Info, "Load game not yet implemented", 3.0f);
+                        case SettingsOption::Back:
+                            in_settings_from_pause = false;  // Go back to pause menu
                             break;
-                        case PauseMenuOption::Settings:
-                            hud.AddNotification(Notification::Type::Info, "Settings not yet implemented", 3.0f);
-                            break;
-                        case PauseMenuOption::QuitToTitle:
-                            // Show confirmation dialog
-                            pause_menu.ShowQuitConfirmation(true);
-                            break;
+                    }
+                }
+            } else {
+                // Regular pause menu input
+                pause_menu.Update(time_step);
+                
+                // Handle quit confirmation if showing
+                int quit_result = pause_menu.HandleQuitConfirmation();
+                if (quit_result == 1) {
+                    // User confirmed quit to title
+                    current_mode = GameMode::TitleScreen;
+                    break;  // Exit game loop
+                } else if (quit_result == 0) {
+                    // User cancelled quit - just stay in pause menu
+                } else {
+                    // No quit confirmation showing - handle regular menu input
+                    int keyboard_selection = pause_menu.HandleKeyboard();
+                    int mouse_selection = pause_menu.HandleMouse(GetMouseX(), GetMouseY(), 
+                                                                 IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                    
+                    int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+                    
+                    if (selected >= 0) {
+                        PauseMenuOption option = static_cast<PauseMenuOption>(selected);
+                        switch (option) {
+                            case PauseMenuOption::Resume:
+                                is_paused = false;
+                                game_state.paused = false;
+                                break;
+                            case PauseMenuOption::SaveGame:
+                                hud.AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
+                                break;
+                            case PauseMenuOption::LoadGame:
+                                hud.AddNotification(Notification::Type::Info, "Load game not yet implemented", 3.0f);
+                                break;
+                            case PauseMenuOption::Settings:
+                                in_settings_from_pause = true;
+                                break;
+                            case PauseMenuOption::QuitToTitle:
+                                // Show confirmation dialog
+                                pause_menu.ShowQuitConfirmation(true);
+                                break;
+                        }
                     }
                 }
             }
@@ -850,7 +972,13 @@ int main(int argc, char* argv[]) {
         
         // Render pause menu overlay if paused
         if (is_paused) {
-            pause_menu.Render();
+            if (in_audio_settings_from_pause) {
+                pause_audio_settings_menu.Render();
+            } else if (in_settings_from_pause) {
+                pause_general_settings_menu.Render();
+            } else {
+                pause_menu.Render();
+            }
         }
         
         renderer.EndFrame();
