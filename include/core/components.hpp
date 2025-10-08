@@ -676,5 +676,326 @@ struct PersonElevatorRequest {
           is_boarding(false) {}
 };
 
+/**
+ * @brief State of a research node in the upgrade tree
+ */
+enum class ResearchNodeState {
+    Locked,       // Not yet unlocked, requirements not met
+    Upgradable,   // Requirements met, can be unlocked
+    Unlocked      // Already unlocked
+};
+
+/**
+ * @brief Type of bonus/upgrade provided by a research node
+ */
+enum class ResearchNodeType {
+    FacilityUnlock,    // Unlocks a new facility type
+    ElevatorSpeed,     // Increases elevator speed
+    ElevatorCapacity,  // Increases elevator capacity
+    IncomeBonus,       // Increases income rate
+    SatisfactionBonus, // Increases tenant satisfaction
+    ConstructionSpeed, // Faster construction times
+    CostReduction      // Reduces facility costs
+};
+
+/**
+ * @brief A single node in the research/upgrade tree
+ */
+struct ResearchNode {
+    std::string id;                    // Unique identifier
+    std::string name;                  // Display name
+    std::string description;           // Description of the upgrade
+    std::string icon;                  // Icon character/emoji
+    ResearchNodeType type;             // Type of upgrade
+    ResearchNodeState state;           // Current state
+    
+    int cost;                          // Research points required
+    std::vector<std::string> prerequisites;  // IDs of required nodes
+    
+    // Position in tree/grid
+    int grid_row;
+    int grid_column;
+    
+    // Effect values (meaning depends on type)
+    float effect_value;                // Numeric effect (e.g., +20% speed, +5 capacity)
+    std::string effect_target;         // What the effect applies to (e.g., "Office", "Elevator")
+    
+    ResearchNode(const std::string& id_str = "node",
+                const std::string& name_str = "Research",
+                ResearchNodeType node_type = ResearchNodeType::IncomeBonus,
+                int node_cost = 10,
+                int row = 0,
+                int col = 0)
+        : id(id_str),
+          name(name_str),
+          description(""),
+          icon("🔒"),
+          type(node_type),
+          state(ResearchNodeState::Locked),
+          cost(node_cost),
+          grid_row(row),
+          grid_column(col),
+          effect_value(0.0f),
+          effect_target("") {}
+    
+    /**
+     * @brief Get the state as a string for debugging
+     */
+    const char* GetStateString() const {
+        switch (state) {
+            case ResearchNodeState::Locked: return "Locked";
+            case ResearchNodeState::Upgradable: return "Upgradable";
+            case ResearchNodeState::Unlocked: return "Unlocked";
+            default: return "Unknown";
+        }
+    }
+    
+    /**
+     * @brief Get appropriate icon based on state
+     */
+    std::string GetDisplayIcon() const {
+        switch (state) {
+            case ResearchNodeState::Locked: return "🔒";
+            case ResearchNodeState::Upgradable: return "✨";
+            case ResearchNodeState::Unlocked: return "✅";
+            default: return "❓";
+        }
+    }
+};
+
+/**
+ * @brief Global singleton component for research/upgrade tree progress
+ * 
+ * Tracks available research points, unlocked nodes, and applies
+ * global bonuses from research.
+ */
+struct ResearchTree {
+    int research_points;               // Available points to spend
+    int total_points_earned;           // Lifetime points earned
+    std::vector<ResearchNode> nodes;   // All research nodes
+    
+    // Global bonuses from research
+    float income_multiplier;           // Multiplier for all income (1.0 = normal)
+    float satisfaction_bonus;          // Additive bonus to satisfaction
+    float construction_speed_multiplier; // Multiplier for construction speed
+    float cost_reduction;              // Percentage reduction in costs (0.0 - 1.0)
+    float elevator_speed_multiplier;   // Multiplier for elevator speed
+    int elevator_capacity_bonus;       // Additional elevator capacity
+    
+    ResearchTree()
+        : research_points(0),
+          total_points_earned(0),
+          income_multiplier(1.0f),
+          satisfaction_bonus(0.0f),
+          construction_speed_multiplier(1.0f),
+          cost_reduction(0.0f),
+          elevator_speed_multiplier(1.0f),
+          elevator_capacity_bonus(0) {}
+    
+    /**
+     * @brief Initialize default research tree with nodes
+     */
+    void InitializeDefaultTree() {
+        nodes.clear();
+        
+        // Row 0: Basic upgrades (starting tier)
+        nodes.push_back(ResearchNode("basic_elevator", "Fast Elevators", 
+            ResearchNodeType::ElevatorSpeed, 10, 0, 0));
+        nodes.back().description = "Increases elevator speed by 50%";
+        nodes.back().icon = "🚀";
+        nodes.back().effect_value = 0.5f;
+        
+        nodes.push_back(ResearchNode("office_unlock", "Office Spaces", 
+            ResearchNodeType::FacilityUnlock, 5, 0, 1));
+        nodes.back().description = "Unlock commercial office facilities";
+        nodes.back().icon = "🏢";
+        nodes.back().effect_target = "Office";
+        
+        nodes.push_back(ResearchNode("shop_unlock", "Retail Shops", 
+            ResearchNodeType::FacilityUnlock, 5, 0, 2));
+        nodes.back().description = "Unlock retail shop facilities";
+        nodes.back().icon = "🏪";
+        nodes.back().effect_target = "Shop";
+        
+        // Row 1: Mid-tier upgrades
+        nodes.push_back(ResearchNode("express_shafts", "Express Elevators", 
+            ResearchNodeType::ElevatorSpeed, 20, 1, 0));
+        nodes.back().description = "High-speed elevator technology";
+        nodes.back().icon = "⚡";
+        nodes.back().effect_value = 1.0f;  // +100% speed
+        nodes.back().prerequisites.push_back("basic_elevator");
+        
+        nodes.push_back(ResearchNode("large_elevators", "Large Elevators", 
+            ResearchNodeType::ElevatorCapacity, 15, 1, 1));
+        nodes.back().description = "Increases elevator capacity by 4";
+        nodes.back().icon = "📦";
+        nodes.back().effect_value = 4.0f;
+        nodes.back().prerequisites.push_back("basic_elevator");
+        
+        nodes.push_back(ResearchNode("income_boost", "Revenue Optimization", 
+            ResearchNodeType::IncomeBonus, 15, 1, 2));
+        nodes.back().description = "Increases all income by 25%";
+        nodes.back().icon = "💰";
+        nodes.back().effect_value = 0.25f;
+        nodes.back().prerequisites.push_back("office_unlock");
+        
+        // Row 2: Advanced upgrades
+        nodes.push_back(ResearchNode("construction_speed", "Rapid Construction", 
+            ResearchNodeType::ConstructionSpeed, 25, 2, 0));
+        nodes.back().description = "Reduces construction time by 50%";
+        nodes.back().icon = "🏗️";
+        nodes.back().effect_value = 0.5f;
+        
+        nodes.push_back(ResearchNode("cost_reduction", "Efficient Building", 
+            ResearchNodeType::CostReduction, 30, 2, 1));
+        nodes.back().description = "Reduces all costs by 20%";
+        nodes.back().icon = "📉";
+        nodes.back().effect_value = 0.2f;
+        
+        nodes.push_back(ResearchNode("satisfaction_boost", "Quality Service", 
+            ResearchNodeType::SatisfactionBonus, 25, 2, 2));
+        nodes.back().description = "Increases satisfaction by 10 points";
+        nodes.back().icon = "😊";
+        nodes.back().effect_value = 10.0f;
+        nodes.back().prerequisites.push_back("income_boost");
+    }
+    
+    /**
+     * @brief Find a node by ID
+     */
+    ResearchNode* FindNode(const std::string& node_id) {
+        for (auto& node : nodes) {
+            if (node.id == node_id) {
+                return &node;
+            }
+        }
+        return nullptr;
+    }
+    
+    /**
+     * @brief Check if a node can be unlocked (prerequisites met)
+     */
+    bool CanUnlock(const ResearchNode& node) const {
+        // Check if already unlocked
+        if (node.state == ResearchNodeState::Unlocked) {
+            return false;
+        }
+        
+        // Check if we have enough points
+        if (research_points < node.cost) {
+            return false;
+        }
+        
+        // Check prerequisites
+        for (const auto& prereq_id : node.prerequisites) {
+            bool found = false;
+            for (const auto& n : nodes) {
+                if (n.id == prereq_id && n.state == ResearchNodeState::Unlocked) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * @brief Update all node states based on current conditions
+     */
+    void UpdateNodeStates() {
+        for (auto& node : nodes) {
+            if (node.state == ResearchNodeState::Unlocked) {
+                continue;  // Already unlocked
+            }
+            
+            if (CanUnlock(node)) {
+                node.state = ResearchNodeState::Upgradable;
+            } else {
+                node.state = ResearchNodeState::Locked;
+            }
+        }
+    }
+    
+    /**
+     * @brief Unlock a node and apply its effects
+     */
+    bool UnlockNode(const std::string& node_id) {
+        ResearchNode* node = FindNode(node_id);
+        if (!node || !CanUnlock(*node)) {
+            return false;
+        }
+        
+        // Deduct cost
+        research_points -= node->cost;
+        
+        // Mark as unlocked
+        node->state = ResearchNodeState::Unlocked;
+        
+        // Apply effects based on type
+        switch (node->type) {
+            case ResearchNodeType::ElevatorSpeed:
+                elevator_speed_multiplier += node->effect_value;
+                break;
+            case ResearchNodeType::ElevatorCapacity:
+                elevator_capacity_bonus += static_cast<int>(node->effect_value);
+                break;
+            case ResearchNodeType::IncomeBonus:
+                income_multiplier += node->effect_value;
+                break;
+            case ResearchNodeType::SatisfactionBonus:
+                satisfaction_bonus += node->effect_value;
+                break;
+            case ResearchNodeType::ConstructionSpeed:
+                construction_speed_multiplier += node->effect_value;
+                break;
+            case ResearchNodeType::CostReduction:
+                cost_reduction += node->effect_value;
+                break;
+            case ResearchNodeType::FacilityUnlock:
+                // Facility unlocks are handled separately
+                break;
+        }
+        
+        // Update states of other nodes
+        UpdateNodeStates();
+        
+        return true;
+    }
+    
+    /**
+     * @brief Award research points (e.g., for reaching milestones)
+     */
+    void AwardPoints(int points) {
+        research_points += points;
+        total_points_earned += points;
+        UpdateNodeStates();
+    }
+    
+    /**
+     * @brief Check if a facility type is unlocked
+     */
+    bool IsFacilityUnlocked(const std::string& facility_type) const {
+        // Lobby and basic facilities are always unlocked
+        if (facility_type == "Lobby" || facility_type == "Elevator") {
+            return true;
+        }
+        
+        // Check if corresponding research node is unlocked
+        for (const auto& node : nodes) {
+            if (node.type == ResearchNodeType::FacilityUnlock &&
+                node.effect_target == facility_type &&
+                node.state == ResearchNodeState::Unlocked) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+};
+
 } // namespace Core
 } // namespace TowerForge

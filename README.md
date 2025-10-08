@@ -588,6 +588,15 @@ grid.RemoveFacility(facility_id);
   - Confirmation dialog for quitting with unsaved changes
   - Keyboard and mouse navigation
   - Professional UI with animations
+- ✅ **Research and Upgrade Tree System**
+  - R key to toggle research tree menu
+  - 9 default research nodes across 3 progression tiers
+  - Visual state indicators (locked 🔒, upgradable ✨, unlocked ✅)
+  - Node types: Facility Unlocks, Elevator Speed/Capacity, Income/Satisfaction Bonuses, Construction Speed, Cost Reduction
+  - Automatic research points awards based on milestones (tenants, income)
+  - Interactive grid-based UI with hover details
+  - Full save/load persistence
+  - Global bonus tracking (multipliers and bonuses)
 
 ### Tower Grid System Demo
 

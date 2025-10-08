@@ -26,7 +26,6 @@ add_subdirectory(src/core)
 
 # Main executable
 set(SOURCE_FILES
-    src/main.cpp
     src/rendering/renderer.cpp
     src/rendering/camera.cpp
     src/ui/hud.cpp
@@ -35,13 +34,14 @@ set(SOURCE_FILES
     src/ui/main_menu.cpp
     src/ui/pause_menu.cpp
     src/ui/save_load_menu.cpp
+    src/ui/research_tree_menu.cpp
     src/ui/achievements_menu.cpp
     src/ui/general_settings_menu.cpp
     src/ui/audio_settings_menu.cpp
     src/audio/audio_manager.cpp
 )
 
-add_executable(towerforge ${SOURCE_FILES})
+add_executable(towerforge src/main.cpp ${SOURCE_FILES})
 
 # Find and link dependencies
 find_package(raylib CONFIG REQUIRED)
@@ -49,7 +49,7 @@ find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 
 # Screenshot application
-add_executable(screenshot_app src/screenshot_app.cpp src/rendering/renderer.cpp src/rendering/camera.cpp src/ui/hud.cpp src/ui/build_menu.cpp src/ui/placement_system.cpp src/ui/main_menu.cpp src/ui/pause_menu.cpp src/ui/save_load_menu.cpp src/ui/achievements_menu.cpp src/ui/general_settings_menu.cpp src/ui/audio_settings_menu.cpp src/audio/audio_manager.cpp)
+add_executable(screenshot_app src/screenshot_app.cpp ${SOURCE_FILES})
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
 # Future modules (uncomment as needed)

@@ -665,7 +665,39 @@ void ECSWorld::RegisterSystems() {
             std::cout << std::endl;
         });
     
-    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging" << std::endl;
+    // Research Points Award System
+    // Awards research points based on reaching milestones
+    world_.system<ResearchTree, const TowerEconomy>()
+        .kind(flecs::OnUpdate)
+        .interval(5.0f)  // Check every 5 seconds
+        .each([](flecs::entity e, ResearchTree& research, const TowerEconomy& economy) {
+            static int last_tenant_milestone = 0;
+            static int last_floor_milestone = 0;
+            static float last_income_milestone = 0.0f;
+            
+            // Award points for tenant milestones (every 10 tenants)
+            int tenant_count = 0;
+            e.world().each<FacilityEconomics>([&](const FacilityEconomics& econ) {
+                tenant_count += econ.current_tenants;
+            });
+            
+            int current_tenant_milestone = (tenant_count / 10) * 10;
+            if (current_tenant_milestone > last_tenant_milestone) {
+                int points = (current_tenant_milestone - last_tenant_milestone) / 10 * 5;  // 5 points per 10 tenants
+                research.AwardPoints(points);
+                last_tenant_milestone = current_tenant_milestone;
+            }
+            
+            // Award points for income milestones (every $1000/hr)
+            int current_income_milestone = static_cast<int>(economy.daily_revenue / 24.0f / 1000.0f) * 1000;
+            if (current_income_milestone > last_income_milestone) {
+                int points = static_cast<int>((current_income_milestone - last_income_milestone) / 1000.0f * 3.0f);  // 3 points per $1000/hr
+                research.AwardPoints(points);
+                last_income_milestone = static_cast<float>(current_income_milestone);
+            }
+        });
+    
+    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award" << std::endl;
 }
 
 } // namespace Core
