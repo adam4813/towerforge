@@ -43,6 +43,8 @@ jobs:
             compiler: clang
             build_type: Release
             vcpkg_triplet: x64-osx
+            cc: clang
+            cxx: clang++
 
     steps:
     - name: Checkout repository
@@ -71,23 +73,20 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: 'c8696863d371ab7f46e213d8f5ca923c4aef2a00'
-        vcpkgJsonGlob: 'vcpkg.json'
-
     - name: Set environment variables (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
         echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
         echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
 
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+
     - name: Configure CMake
       run: |
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+          -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
           -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}
 
     - name: Build

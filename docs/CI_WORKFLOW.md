@@ -44,21 +44,21 @@ Installs required packages:
 ### 3. Set up MSVC (Windows Only)
 - Uses `ilammy/msvc-dev-cmd@v1` to configure Visual Studio build tools
 
-### 4. Setup vcpkg
+### 4. Set Environment Variables (Linux/macOS Only)
+- Sets `CC` and `CXX` environment variables for the appropriate compiler
+
+### 5. Setup vcpkg
 - Uses `lukka/run-vcpkg@v11`
-- Pins to a specific vcpkg commit for reproducibility
+- Automatically sets up vcpkg and uses `VCPKG_ROOT` environment variable
 - Automatically installs dependencies from `vcpkg.json`:
   - flecs
   - raylib
   - nlohmann-json
 
-### 5. Set Environment Variables (Linux/macOS Only)
-- Sets `CC` and `CXX` environment variables for the appropriate compiler
-
 ### 6. Configure CMake
 Runs CMake configuration with:
 - Build type: Release
-- vcpkg toolchain file
+- vcpkg toolchain file (from `$VCPKG_ROOT`)
 - Platform-specific vcpkg triplet
 
 ### 7. Build
