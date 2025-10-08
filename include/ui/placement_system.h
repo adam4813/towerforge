@@ -8,6 +8,13 @@
 #include "core/components.hpp"
 #include "ui/build_menu.h"
 
+// Forward declaration
+namespace towerforge {
+namespace rendering {
+    class Camera;
+}
+}
+
 namespace towerforge {
 namespace ui {
 
@@ -138,6 +145,11 @@ public:
      */
     bool CanRedo() const { return !redo_stack_.empty(); }
     
+    /**
+     * @brief Set the camera for coordinate transformation
+     */
+    void SetCamera(towerforge::rendering::Camera* camera) { camera_ = camera; }
+    
 private:
     /**
      * @brief Convert mouse position to grid coordinates
@@ -175,6 +187,7 @@ private:
     TowerForge::Core::TowerGrid& grid_;
     TowerForge::Core::FacilityManager& facility_mgr_;
     BuildMenu& build_menu_;
+    towerforge::rendering::Camera* camera_;
     
     bool demolish_mode_;
     int hover_floor_;

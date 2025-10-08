@@ -497,6 +497,7 @@ void Game::InitializeGameSystems() {
     auto& facility_mgr = ecs_world_->GetFacilityManager();
     
     placement_system_ = new PlacementSystem(grid, facility_mgr, *build_menu_);
+    placement_system_->SetCamera(camera_);
     
     std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x " 
               << grid.GetColumnCount() << " columns" << std::endl;
@@ -542,18 +543,14 @@ void Game::InitializeGameSystems() {
 }
 
 void Game::UpdateInGame(float delta_time) {
-    // Handle ESC key to toggle pause menu
+    // Handle ESC key to open pause menu or close research menu
     if (IsKeyPressed(KEY_ESCAPE)) {
         if (research_menu_->IsVisible()) {
             research_menu_->SetVisible(false);
-        } else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_) {
-            is_paused_ = !is_paused_;
-            if (is_paused_) {
-                audio_manager_->PlaySFX(towerforge::audio::AudioCue::MenuOpen);
-                game_state_.paused = true;
-            } else {
-                audio_manager_->PlaySFX(towerforge::audio::AudioCue::MenuClose);
-            }
+        } else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ && !is_paused_) {
+            is_paused_ = true;
+            audio_manager_->PlaySFX(towerforge::audio::AudioCue::MenuOpen);
+            game_state_.paused = true;
         }
     }
     
@@ -756,7 +753,11 @@ void Game::HandleInGameInput() {
             placement_system_->Redo();
             hud_->AddNotification(Notification::Type::Info, "Redid action", 2.0f);
         } else if (!hud_->HandleClick(mouse_x, mouse_y)) {
-            int cost_change = placement_system_->HandleClick(mouse_x, mouse_y,
+            // Convert screen coordinates to world coordinates for camera-transformed clicks
+            float world_x, world_y;
+            camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+            
+            int cost_change = placement_system_->HandleClick(static_cast<int>(world_x), static_cast<int>(world_y),
                 grid_offset_x_, grid_offset_y_, cell_width_, cell_height_, game_state_.funds);
             
             if (cost_change != 0) {
@@ -771,8 +772,8 @@ void Game::HandleInGameInput() {
                         TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
                 }
             } else {
-                int rel_x = mouse_x - grid_offset_x_;
-                int rel_y = mouse_y - grid_offset_y_;
+                int rel_x = static_cast<int>(world_x) - grid_offset_x_;
+                int rel_y = static_cast<int>(world_y) - grid_offset_y_;
                 
                 if (rel_x >= 0 && rel_y >= 0) {
                     int clicked_floor = rel_y / cell_height_;
@@ -808,6 +809,9 @@ void Game::RenderInGame() {
     
     renderer_.BeginFrame();
     renderer_.Clear(DARKGRAY);
+    
+    // Begin camera mode for all game world rendering
+    camera_->BeginMode();
     
     // Draw grid
     for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
@@ -884,9 +888,10 @@ void Game::RenderInGame() {
         }
     });
     
-    // Begin camera mode
-    camera_->BeginMode();
+    // Render placement system preview
     placement_system_->Render(grid_offset_x_, grid_offset_y_, cell_width_, cell_height_);
+    
+    // End camera mode
     camera_->EndMode();
     
     // Render HUD and menus

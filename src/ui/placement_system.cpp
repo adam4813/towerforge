@@ -1,4 +1,5 @@
 #include "ui/placement_system.h"
+#include "rendering/camera.h"
 #include <iostream>
 #include <algorithm>
 
@@ -11,6 +12,7 @@ PlacementSystem::PlacementSystem(TowerForge::Core::TowerGrid& grid,
     : grid_(grid)
     , facility_mgr_(facility_mgr)
     , build_menu_(build_menu)
+    , camera_(nullptr)
     , demolish_mode_(false)
     , hover_floor_(-1)
     , hover_column_(-1)
@@ -35,9 +37,16 @@ void PlacementSystem::Update(float delta_time) {
 }
 
 void PlacementSystem::Render(int grid_offset_x, int grid_offset_y, int cell_width, int cell_height) {
-    // Get mouse position
+    // Get mouse position and convert to world coordinates if camera is set
     int mouse_x = GetMouseX();
     int mouse_y = GetMouseY();
+    
+    if (camera_ != nullptr) {
+        float world_x, world_y;
+        camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+        mouse_x = static_cast<int>(world_x);
+        mouse_y = static_cast<int>(world_y);
+    }
     
     // Convert to grid coordinates
     int floor, column;
