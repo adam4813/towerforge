@@ -2,16 +2,16 @@ name: Build TowerForge (Windows, Linux, macOS)
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 jobs:
   build:
     name: Build on ${{ matrix.os }} (${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +21,7 @@ jobs:
             compiler: msvc
             build_type: Release
             vcpkg_triplet: x64-windows
-            
+
           # Linux builds - GCC
           - os: ubuntu-latest
             compiler: gcc
@@ -29,7 +29,7 @@ jobs:
             vcpkg_triplet: x64-linux
             cc: gcc-10
             cxx: g++-10
-            
+
           # Linux builds - Clang
           - os: ubuntu-latest
             compiler: clang
@@ -37,19 +37,19 @@ jobs:
             vcpkg_triplet: x64-linux
             cc: clang-12
             cxx: clang++-12
-            
+
           # macOS builds
           - os: macos-latest
             compiler: clang
             build_type: Release
             vcpkg_triplet: x64-osx
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: recursive
-    
+
     - name: Install system dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -66,39 +66,39 @@ jobs:
           libgl1-mesa-dev \
           libglu1-mesa-dev \
           xvfb
-    
+
     - name: Set up MSVC (Windows)
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
-    
+
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgGitCommitId: 'c8696863d371ab7f46e213d8f5ca923c4aef2a00'
         vcpkgJsonGlob: 'vcpkg.json'
-    
+
     - name: Set environment variables (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
         echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
         echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
-    
+
     - name: Configure CMake
       run: |
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
           -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}
-    
+
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} -j 4
-    
+
     - name: List build outputs
       shell: bash
       run: |
         echo "=== Build directory structure ==="
         ls -R build/bin/ || ls -R build/Release/ || ls -R build/Debug/ || true
-    
+
     - name: Prepare artifacts (Windows)
       if: runner.os == 'Windows'
       shell: bash
@@ -117,7 +117,7 @@ jobs:
           cp vcpkg_installed/${{ matrix.vcpkg_triplet }}/bin/*.dll artifacts/ || true
         fi
         ls -la artifacts/
-    
+
     - name: Prepare artifacts (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
@@ -128,20 +128,20 @@ jobs:
         fi
         chmod +x artifacts/* || true
         ls -la artifacts/
-    
+
     - name: Create archive (Windows)
       if: runner.os == 'Windows'
       shell: bash
       run: |
         cd artifacts
         7z a ../TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.zip *
-    
+
     - name: Create archive (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
         cd artifacts
         tar -czf ../TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.tar.gz *
-    
+
     - name: Upload artifact (Windows)
       if: runner.os == 'Windows'
       uses: actions/upload-artifact@v4
@@ -149,7 +149,7 @@ jobs:
         name: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}
         path: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.zip
         retention-days: 30
-    
+
     - name: Upload artifact (Linux/macOS)
       if: runner.os != 'Windows'
       uses: actions/upload-artifact@v4
