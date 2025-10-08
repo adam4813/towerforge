@@ -234,7 +234,6 @@ Potential improvements:
 - `src/core/save_load_manager.cpp` - Serialization/deserialization
 
 ### Demo
-- `src/research_tree_demo.cpp` - Standalone demo application
 - `research_tree_demo.png` - Screenshot of the UI
 
 ## License
