@@ -1,5 +1,7 @@
 # TowerForge
 
+[![Build Status](https://github.com/adam4813/towerforge/workflows/Build%20TowerForge%20(Windows,%20Linux,%20macOS)/badge.svg)](https://github.com/adam4813/towerforge/actions/workflows/build.yml)
+
 A modern open-source SimTower-inspired skyscraper simulation game built with C++20.
 
 ## Tech Stack
@@ -11,6 +13,22 @@ A modern open-source SimTower-inspired skyscraper simulation game built with C++
 - **Package Manager**: vcpkg
 
 ## Building
+
+### Download Pre-Built Binaries
+
+Pre-built binaries for Windows, Linux, and macOS are available from our [GitHub Actions builds](https://github.com/adam4813/towerforge/actions/workflows/build.yml). 
+
+To download the latest build:
+1. Go to the [Actions tab](https://github.com/adam4813/towerforge/actions/workflows/build.yml)
+2. Click on the most recent successful workflow run
+3. Scroll down to the **Artifacts** section
+4. Download the archive for your platform:
+   - **Windows**: `TowerForge-windows-latest-msvc.zip`
+   - **Linux (GCC)**: `TowerForge-ubuntu-latest-gcc.tar.gz`
+   - **Linux (Clang)**: `TowerForge-ubuntu-latest-clang.tar.gz`
+   - **macOS**: `TowerForge-macos-latest-clang.tar.gz`
+
+**Note:** Artifacts are available for 30 days after each build.
 
 ### Prerequisites
 
