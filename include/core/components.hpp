@@ -305,9 +305,60 @@ struct BuildingComponent {
     int width;              // Width in tiles
     int capacity;           // Maximum occupancy
     int current_occupancy;  // Current number of people
+    int job_openings;       // Number of unfilled jobs at this facility
 
     BuildingComponent(Type t = Type::Office, int f = 0, int w = 1, int cap = 10)
-        : type(t), floor(f), width(w), capacity(cap), current_occupancy(0) {}
+        : type(t), floor(f), width(w), capacity(cap), current_occupancy(0), job_openings(0) {}
+    
+    /**
+     * @brief Get the number of employees needed for this facility type
+     */
+    int GetRequiredEmployees() const {
+        switch (type) {
+            case Type::Office:      return capacity / 5;  // 1 employee per 5 capacity
+            case Type::RetailShop:  return 2;             // Shops need 2 employees
+            case Type::Restaurant:  return 3;             // Restaurants need 3 employees
+            case Type::Hotel:       return 4;             // Hotels need 4 employees
+            default:                return 0;             // Other types don't need employees
+        }
+    }
+    
+    /**
+     * @brief Check if this facility has job openings
+     */
+    bool HasJobOpenings() const {
+        return job_openings > 0;
+    }
+};
+
+/**
+ * @brief Global singleton component for tower-wide NPC spawning
+ * 
+ * Manages spawning of visitors and tracking of available jobs.
+ */
+struct NPCSpawner {
+    float time_since_last_spawn;        // Time since last visitor spawn
+    float spawn_interval;               // Base interval between spawns (seconds)
+    int total_visitors_spawned;         // Total count of spawned visitors
+    int total_employees_hired;          // Total count of employees hired
+    int next_visitor_id;                // ID counter for naming visitors
+    
+    NPCSpawner(float interval = 30.0f)
+        : time_since_last_spawn(0.0f),
+          spawn_interval(interval),
+          total_visitors_spawned(0),
+          total_employees_hired(0),
+          next_visitor_id(1) {}
+    
+    /**
+     * @brief Calculate dynamic spawn rate based on tower state
+     */
+    float GetDynamicSpawnInterval(int facility_count) const {
+        // More facilities = more visitors
+        // Base: 30 seconds, decreases to 10 seconds with 10+ facilities
+        float adjusted = spawn_interval * (1.0f - (facility_count * 0.02f));
+        return std::max(10.0f, std::min(60.0f, adjusted));
+    }
 };
 
 /**

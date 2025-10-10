@@ -66,6 +66,7 @@ void ECSWorld::RegisterComponents() {
     world_.component<EmploymentInfo>();
     world_.component<BuildingComponent>();
     world_.component<TimeManager>();
+    world_.component<NPCSpawner>();
     world_.component<DailySchedule>();
     world_.component<GridPosition>();
     world_.component<Satisfaction>();
@@ -75,7 +76,7 @@ void ECSWorld::RegisterComponents() {
     world_.component<ElevatorCar>();
     world_.component<PersonElevatorRequest>();
     
-    std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, EmploymentInfo, BuildingComponent, TimeManager, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest" << std::endl;
+    std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest" << std::endl;
 }
 
 void ECSWorld::RegisterSystems() {
@@ -765,6 +766,173 @@ void ECSWorld::RegisterSystems() {
             }
         });
     
+    // Job opening tracking system
+    // Updates the number of job openings for each facility
+    world_.system<BuildingComponent>()
+        .kind(flecs::OnUpdate)
+        .interval(5.0f)  // Check every 5 seconds
+        .each([](flecs::entity facility_entity, BuildingComponent& facility) {
+            int required = facility.GetRequiredEmployees();
+            if (required == 0) {
+                facility.job_openings = 0;
+                return;
+            }
+            
+            // Count current employees at this facility
+            int current_employees = 0;
+            facility_entity.world().each<const Person, const EmploymentInfo>(
+                [&](flecs::entity e, const Person& person, const EmploymentInfo& emp) {
+                    if (emp.workplace_floor == facility.floor) {
+                        current_employees++;
+                    }
+                });
+            
+            // Update job openings
+            facility.job_openings = std::max(0, required - current_employees);
+        });
+    
+    // Visitor spawning system
+    // Dynamically spawns visitors at the lobby entrance
+    world_.system<NPCSpawner>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, NPCSpawner& spawner) {
+            float delta_time = e.world().delta_time();
+            spawner.time_since_last_spawn += delta_time;
+            
+            // Count total job openings in the tower
+            int total_job_openings = 0;
+            int facility_count = 0;
+            e.world().each<const BuildingComponent>([&](const BuildingComponent& facility) {
+                facility_count++;
+                total_job_openings += facility.job_openings;
+            });
+            
+            // Dynamic spawn rate based on facility count
+            float spawn_interval = spawner.GetDynamicSpawnInterval(facility_count);
+            
+            // Spawn a visitor if enough time has passed
+            if (spawner.time_since_last_spawn >= spawn_interval) {
+                spawner.time_since_last_spawn = 0.0f;
+                
+                // Determine visitor type based on job availability
+                VisitorActivity activity;
+                if (total_job_openings > 0 && (rand() % 100) < 40) {
+                    // 40% chance to be job-seeking if jobs are available
+                    activity = VisitorActivity::JobSeeking;
+                } else {
+                    // Otherwise, random activity
+                    int r = rand() % 100;
+                    if (r < 60) {
+                        activity = VisitorActivity::Shopping;
+                    } else {
+                        activity = VisitorActivity::Visiting;
+                    }
+                }
+                
+                // Create the visitor at the lobby entrance
+                std::string visitor_name = "Visitor" + std::to_string(spawner.next_visitor_id++);
+                auto visitor = e.world().entity(visitor_name.c_str());
+                visitor.set<Person>({visitor_name, 0, 2.0f, 2.0f, NPCType::Visitor});
+                visitor.set<VisitorInfo>({activity});
+                visitor.set<Satisfaction>({75.0f});
+                
+                spawner.total_visitors_spawned++;
+                
+                std::cout << "  [Spawned] " << visitor_name << " (" 
+                          << (activity == VisitorActivity::JobSeeking ? "Job Seeking" : 
+                             (activity == VisitorActivity::Shopping ? "Shopping" : "Visiting"))
+                          << ")" << std::endl;
+            }
+        });
+    
+    // Job assignment system
+    // Assigns job-seeking visitors to open positions
+    world_.system<Person, VisitorInfo>()
+        .kind(flecs::OnUpdate)
+        .interval(2.0f)  // Check every 2 seconds
+        .each([](flecs::entity visitor_entity, Person& person, VisitorInfo& visitor) {
+            // Only process job-seeking visitors
+            if (visitor.activity != VisitorActivity::JobSeeking) {
+                return;
+            }
+            
+            // Check if visitor is at lobby and ready to take a job
+            if (person.current_floor != 0 || person.state != PersonState::Idle) {
+                return;
+            }
+            
+            // Find a facility with job openings
+            flecs::entity target_facility;
+            int target_floor = -1;
+            int target_column = -1;
+            std::string job_title;
+            float shift_start = 9.0f;
+            float shift_end = 17.0f;
+            
+            visitor_entity.world().each<BuildingComponent>(
+                [&](flecs::entity facility_entity, BuildingComponent& facility) {
+                    // Skip if already found a job or facility has no openings
+                    if (target_floor != -1 || !facility.HasJobOpenings()) {
+                        return;
+                    }
+                    
+                    // Assign job based on facility type
+                    switch (facility.type) {
+                        case BuildingComponent::Type::Office:
+                            job_title = "Office Worker";
+                            shift_start = 9.0f;
+                            shift_end = 17.0f;
+                            break;
+                        case BuildingComponent::Type::RetailShop:
+                            job_title = "Shop Clerk";
+                            shift_start = 10.0f;
+                            shift_end = 19.0f;
+                            break;
+                        case BuildingComponent::Type::Restaurant:
+                            job_title = "Restaurant Staff";
+                            shift_start = 11.0f;
+                            shift_end = 22.0f;
+                            break;
+                        case BuildingComponent::Type::Hotel:
+                            job_title = "Hotel Staff";
+                            shift_start = 8.0f;
+                            shift_end = 20.0f;
+                            break;
+                        default:
+                            return;  // Not a job facility
+                    }
+                    
+                    // Found a job! Save the details
+                    target_facility = facility_entity;
+                    target_floor = facility.floor;
+                    target_column = facility.width / 2;  // Center of facility
+                    facility.job_openings--;  // Reduce opening count
+                });
+            
+            // If a job was found, convert visitor to employee
+            if (target_floor != -1) {
+                // Remove visitor component
+                visitor_entity.remove<VisitorInfo>();
+                
+                // Add employment component
+                EmploymentInfo employment(job_title, target_floor, target_column, shift_start, shift_end);
+                visitor_entity.set<EmploymentInfo>(employment);
+                
+                // Update person type
+                person.npc_type = NPCType::Employee;
+                person.current_need = "New hire: " + job_title;
+                
+                // Update spawner stats
+                if (visitor_entity.world().has<NPCSpawner>()) {
+                    auto& spawner = visitor_entity.world().get_mut<NPCSpawner>();
+                    spawner.total_employees_hired++;
+                }
+                
+                std::cout << "  [Hired] " << person.name << " as " << job_title 
+                          << " on Floor " << target_floor << std::endl;
+            }
+        });
+    
     // Visitor cleanup system
     // Removes visitors who have left the tower
     world_.system<const Person, const VisitorInfo>()
@@ -780,7 +948,7 @@ void ECSWorld::RegisterSystems() {
             }
         });
     
-    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Behavior, Employee Shift Management, Employee Off-Duty Visitor, Visitor Cleanup" << std::endl;
+    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Behavior, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup" << std::endl;
 }
 
 } // namespace Core

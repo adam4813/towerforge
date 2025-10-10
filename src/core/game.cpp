@@ -420,40 +420,23 @@ void Game::InitializeGameSystems() {
     research_tree.AwardPoints(50);
     ecs_world_->GetWorld().set<ResearchTree>(research_tree);
     
+    // Create the global NPCSpawner as a singleton
+    ecs_world_->GetWorld().set<NPCSpawner>({30.0f});  // Spawn visitors every 30 seconds base rate
+    
     std::cout << std::endl << "Creating example entities..." << std::endl;    
     std::cout << "Renderer initialized. Window opened." << std::endl;
     std::cout << "Press ESC or close window to exit." << std::endl;
     std::cout << std::endl;
     
     // Create some example actors (people)
-    // Create an employee (office worker)
+    // Create one employee to demonstrate the system (Alice will be hired for an existing job)
     auto employee1 = ecs_world_->CreateEntity("Alice");
     employee1.set<Person>({"Alice", 0, 5.0f, 2.0f, NPCType::Employee});
     employee1.set<EmploymentInfo>({"Office Worker", 1, 5, 9.0f, 17.0f});
     employee1.set<Satisfaction>({80.0f});
     
-    // Create another employee (shop clerk)
-    auto employee2 = ecs_world_->CreateEntity("Bob");
-    employee2.set<Person>({"Bob", 0, 7.0f, 2.0f, NPCType::Employee});
-    // Shop employees work Wed-Sun, 12pm-9pm (different schedule)
-    EmploymentInfo shop_emp("Shop Clerk", 3, 3, 12.0f, 21.0f);
-    shop_emp.work_days = {2, 3, 4, 5, 6};  // Wednesday to Sunday
-    employee2.set<EmploymentInfo>(shop_emp);
-    employee2.set<Satisfaction>({75.0f});
-    
-    // Create a visitor (shopping)
-    auto visitor1 = ecs_world_->CreateEntity("Charlie");
-    visitor1.set<Person>({"Charlie", 0, 3.0f, 2.0f, NPCType::Visitor});
-    visitor1.set<VisitorInfo>({VisitorActivity::Shopping});
-    visitor1.set<Satisfaction>({70.0f});
-    
-    // Create another visitor (just visiting)
-    auto visitor2 = ecs_world_->CreateEntity("Diana");
-    visitor2.set<Person>({"Diana", 0, 8.0f, 2.0f, NPCType::Visitor});
-    visitor2.set<VisitorInfo>({VisitorActivity::Visiting});
-    visitor2.set<Satisfaction>({85.0f});
-    
-    std::cout << "  Created 2 employees and 2 visitors" << std::endl;
+    std::cout << "  Created 1 initial employee (Alice - Office Worker)" << std::endl;
+    std::cout << "  Additional visitors and employees will be spawned dynamically" << std::endl;
     
     // Keep the old actors for compatibility
     auto actor1 = ecs_world_->CreateEntity("John");
