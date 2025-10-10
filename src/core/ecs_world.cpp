@@ -724,10 +724,10 @@ void ECSWorld::RegisterSystems() {
         .kind(flecs::OnUpdate)
         .each([](flecs::entity e, Person& person, EmploymentInfo& employment) {
             // Get the global time manager
-            const auto* time_mgr = e.world().get<TimeManager>();
-            if (!time_mgr) return;
+            if (!e.world().has<TimeManager>()) return;
+            const TimeManager& time_mgr = e.world().get<TimeManager>();
             
-            bool should_be_working = employment.ShouldBeWorking(time_mgr->current_hour, time_mgr->current_day);
+            bool should_be_working = employment.ShouldBeWorking(time_mgr.current_hour, time_mgr.current_day);
             
             // Handle shift transitions
             if (should_be_working && !employment.currently_on_shift) {
