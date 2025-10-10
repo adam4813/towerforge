@@ -62,6 +62,8 @@ void ECSWorld::RegisterComponents() {
     world_.component<Velocity>();
     world_.component<Actor>();
     world_.component<Person>();
+    world_.component<VisitorInfo>();
+    world_.component<EmploymentInfo>();
     world_.component<BuildingComponent>();
     world_.component<TimeManager>();
     world_.component<DailySchedule>();
@@ -73,7 +75,7 @@ void ECSWorld::RegisterComponents() {
     world_.component<ElevatorCar>();
     world_.component<PersonElevatorRequest>();
     
-    std::cout << "  Registered components: Position, Velocity, Actor, Person, BuildingComponent, TimeManager, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest" << std::endl;
+    std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, EmploymentInfo, BuildingComponent, TimeManager, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest" << std::endl;
 }
 
 void ECSWorld::RegisterSystems() {
@@ -697,7 +699,88 @@ void ECSWorld::RegisterSystems() {
             }
         });
     
-    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award" << std::endl;
+    // Visitor behavior system
+    // Updates visitor activities and manages their lifecycle
+    world_.system<Person, VisitorInfo>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, Person& person, VisitorInfo& visitor) {
+            float delta_time = e.world().delta_time();
+            visitor.visit_duration += delta_time;
+            
+            // Check if visitor should leave
+            if (visitor.ShouldLeave() && visitor.activity != VisitorActivity::Leaving) {
+                visitor.activity = VisitorActivity::Leaving;
+                // Set destination to lobby (floor 0)
+                person.SetDestination(0, 5.0f, "Leaving tower");
+            }
+            
+            // Update current_need based on activity
+            person.current_need = visitor.GetActivityString();
+        });
+    
+    // Employee shift management system
+    // Handles employee work schedules and shift transitions
+    world_.system<Person, EmploymentInfo>()
+        .kind(flecs::OnUpdate)
+        .each([](flecs::entity e, Person& person, EmploymentInfo& employment) {
+            // Get the global time manager
+            const auto* time_mgr = e.world().get<TimeManager>();
+            if (!time_mgr) return;
+            
+            bool should_be_working = employment.ShouldBeWorking(time_mgr->current_hour, time_mgr->current_day);
+            
+            // Handle shift transitions
+            if (should_be_working && !employment.currently_on_shift) {
+                // Start shift - go to workplace
+                employment.currently_on_shift = true;
+                person.SetDestination(employment.workplace_floor, 
+                                    static_cast<float>(employment.workplace_column),
+                                    "Going to work");
+            } else if (!should_be_working && employment.currently_on_shift) {
+                // End shift - leave workplace
+                employment.currently_on_shift = false;
+                person.current_need = "Off duty";
+            }
+            
+            // Update current_need to reflect employment status
+            if (employment.currently_on_shift) {
+                person.current_need = employment.GetStatusString();
+            }
+        });
+    
+    // Employee off-duty visitor behavior system
+    // When employees are off-duty, they can become visitors
+    world_.system<Person, EmploymentInfo>()
+        .kind(flecs::OnUpdate)
+        .interval(30.0f)  // Check every 30 seconds
+        .each([](flecs::entity e, Person& person, EmploymentInfo& employment) {
+            // If employee is off duty and not already a visitor
+            if (!employment.currently_on_shift && !e.has<VisitorInfo>()) {
+                // 20% chance to visit as a regular visitor
+                if ((rand() % 100) < 20) {
+                    // Add visitor component temporarily
+                    e.set<VisitorInfo>({VisitorActivity::Visiting});
+                    person.current_need = "Visiting (off duty)";
+                }
+            }
+        });
+    
+    // Visitor cleanup system
+    // Removes visitors who have left the tower
+    world_.system<const Person, const VisitorInfo>()
+        .kind(flecs::OnUpdate)
+        .interval(2.0f)  // Check every 2 seconds
+        .each([](flecs::entity e, const Person& person, const VisitorInfo& visitor) {
+            // If visitor is leaving and has reached the lobby
+            if (visitor.activity == VisitorActivity::Leaving && 
+                person.state == PersonState::AtDestination &&
+                person.current_floor == 0) {
+                // Remove the entity (visitor leaves the tower)
+                e.destruct();
+            }
+        });
+    
+    std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Behavior, Employee Shift Management, Employee Off-Duty Visitor, Visitor Cleanup" << std::endl;
 }
 
 } // namespace Core

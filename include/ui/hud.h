@@ -56,7 +56,10 @@ struct FacilityInfo {
  */
 struct PersonInfo {
     int id;
+    std::string name;
+    std::string npc_type;      // "Visitor" or "Employee"
     std::string state;
+    std::string status;        // Current activity/status (e.g., "Shopping", "On shift: Office Worker")
     int current_floor;
     int destination_floor;
     float wait_time;

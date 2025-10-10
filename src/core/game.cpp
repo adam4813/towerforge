@@ -426,6 +426,36 @@ void Game::InitializeGameSystems() {
     std::cout << std::endl;
     
     // Create some example actors (people)
+    // Create an employee (office worker)
+    auto employee1 = ecs_world_->CreateEntity("Alice");
+    employee1.set<Person>({"Alice", 0, 5.0f, 2.0f, NPCType::Employee});
+    employee1.set<EmploymentInfo>({"Office Worker", 1, 5, 9.0f, 17.0f});
+    employee1.set<Satisfaction>({80.0f});
+    
+    // Create another employee (shop clerk)
+    auto employee2 = ecs_world_->CreateEntity("Bob");
+    employee2.set<Person>({"Bob", 0, 7.0f, 2.0f, NPCType::Employee});
+    // Shop employees work Wed-Sun, 12pm-9pm (different schedule)
+    EmploymentInfo shop_emp("Shop Clerk", 3, 3, 12.0f, 21.0f);
+    shop_emp.work_days = {2, 3, 4, 5, 6};  // Wednesday to Sunday
+    employee2.set<EmploymentInfo>(shop_emp);
+    employee2.set<Satisfaction>({75.0f});
+    
+    // Create a visitor (shopping)
+    auto visitor1 = ecs_world_->CreateEntity("Charlie");
+    visitor1.set<Person>({"Charlie", 0, 3.0f, 2.0f, NPCType::Visitor});
+    visitor1.set<VisitorInfo>({VisitorActivity::Shopping});
+    visitor1.set<Satisfaction>({70.0f});
+    
+    // Create another visitor (just visiting)
+    auto visitor2 = ecs_world_->CreateEntity("Diana");
+    visitor2.set<Person>({"Diana", 0, 8.0f, 2.0f, NPCType::Visitor});
+    visitor2.set<VisitorInfo>({VisitorActivity::Visiting});
+    visitor2.set<Satisfaction>({85.0f});
+    
+    std::cout << "  Created 2 employees and 2 visitors" << std::endl;
+    
+    // Keep the old actors for compatibility
     auto actor1 = ecs_world_->CreateEntity("John");
     actor1.set<Position>({10.0f, 0.0f});
     actor1.set<Velocity>({0.5f, 0.0f});
@@ -452,7 +482,7 @@ void Game::InitializeGameSystems() {
     sarah_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 11.0f);
     actor2.set<DailySchedule>(sarah_schedule);
   
-    std::cout << "  Created 2 actors" << std::endl;
+    std::cout << "  Created 2 legacy actors for compatibility" << std::endl;
     
     // Create building components
     auto lobby_entity = ecs_world_->CreateEntity("Lobby");
@@ -782,7 +812,55 @@ void Game::HandleInGameInput() {
                     if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
                         clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
                         
-                        if (grid.IsOccupied(clicked_floor, clicked_column)) {
+                        // Check if click is on a Person entity
+                        bool person_clicked = false;
+                        auto person_query = ecs_world_->GetWorld().query<const Person>();
+                        person_query.each([&](flecs::entity e, const Person& person) {
+                            // Calculate person position on screen
+                            int person_x = grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
+                            int person_y = grid_offset_y_ + person.current_floor * cell_height_;
+                            
+                            // Check if click is within person's bounds (circle with radius 10)
+                            int dx = static_cast<int>(world_x) - (person_x + cell_width_ / 2);
+                            int dy = static_cast<int>(world_y) - (person_y + cell_height_ / 2);
+                            if (dx * dx + dy * dy <= 100) {  // radius of 10 pixels squared
+                                // Create PersonInfo and show in HUD
+                                PersonInfo info;
+                                info.id = static_cast<int>(e.id());
+                                info.name = person.name;
+                                info.npc_type = (person.npc_type == NPCType::Visitor) ? "Visitor" : "Employee";
+                                info.state = person.GetStateString();
+                                info.current_floor = person.current_floor;
+                                info.destination_floor = person.destination_floor;
+                                info.wait_time = person.wait_time;
+                                info.needs = person.current_need;
+                                
+                                // Get status based on NPC type
+                                if (person.npc_type == NPCType::Employee && e.has<EmploymentInfo>()) {
+                                    const EmploymentInfo& emp = e.ensure<EmploymentInfo>();
+                                    info.status = emp.GetStatusString();
+                                } else if (person.npc_type == NPCType::Visitor && e.has<VisitorInfo>()) {
+                                    const VisitorInfo& visitor = e.ensure<VisitorInfo>();
+                                    info.status = visitor.GetActivityString();
+                                } else {
+                                    info.status = person.current_need;
+                                }
+                                
+                                // Get satisfaction if available
+                                if (e.has<Satisfaction>()) {
+                                    const Satisfaction& sat = e.ensure<Satisfaction>();
+                                    info.satisfaction = sat.satisfaction_score;
+                                } else {
+                                    info.satisfaction = 75.0f;
+                                }
+                                
+                                hud_->ShowPersonInfo(info);
+                                person_clicked = true;
+                            }
+                        });
+                        
+                        // If no person was clicked, check for facility
+                        if (!person_clicked && grid.IsOccupied(clicked_floor, clicked_column)) {
                             FacilityInfo info;
                             info.type = "FACILITY";
                             info.floor = clicked_floor;
@@ -886,6 +964,44 @@ void Game::RenderInGame() {
                 DrawText(TextFormat("%d", car.current_occupancy), x + 16, y + 18, 14, BLACK);
             }
         }
+    });
+    
+    // Draw Person entities
+    auto person_query = ecs_world_->GetWorld().query<const Person>();
+    person_query.each([&](flecs::entity e, const Person& person) {
+        int x = grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
+        int y = grid_offset_y_ + person.current_floor * cell_height_;
+        
+        // Draw person as a circle
+        Color person_color;
+        if (person.npc_type == NPCType::Employee) {
+            // Employees are blue
+            if (e.has<EmploymentInfo>()) {
+                const EmploymentInfo& emp = e.ensure<EmploymentInfo>();
+                person_color = emp.currently_on_shift ? BLUE : SKYBLUE;
+            } else {
+                person_color = BLUE;
+            }
+        } else {
+            // Visitors are orange/yellow
+            if (e.has<VisitorInfo>()) {
+                const VisitorInfo& visitor = e.ensure<VisitorInfo>();
+                if (visitor.activity == VisitorActivity::Leaving) {
+                    person_color = GRAY;
+                } else if (visitor.activity == VisitorActivity::Shopping) {
+                    person_color = GOLD;
+                } else {
+                    person_color = ORANGE;
+                }
+            } else {
+                person_color = ORANGE;
+            }
+        }
+        
+        DrawCircle(x + cell_width_ / 2, y + cell_height_ / 2, 8, person_color);
+        
+        // Draw outline to make them more visible
+        DrawCircleLines(x + cell_width_ / 2, y + cell_height_ / 2, 8, BLACK);
     });
     
     // Render placement system preview
