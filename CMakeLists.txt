@@ -62,10 +62,6 @@ target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 add_executable(test_mods src/test_mods.cpp)
 target_link_libraries(test_mods PRIVATE towerforge_core)
 
-# Tooltip demo application
-add_executable(tooltip_demo src/tooltip_demo.cpp ${SOURCE_FILES})
-target_link_libraries(tooltip_demo PRIVATE raylib glfw towerforge_core)
-
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
