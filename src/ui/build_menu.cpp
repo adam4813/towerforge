@@ -37,8 +37,8 @@ void BuildMenu::Render(bool can_undo, bool can_redo, bool demolish_mode) {
     int menu_y = 60;  // Below top bar
     
     int facilities_height = static_cast<int>(facility_types_.size()) * ITEM_HEIGHT;
-    int tools_height = 3 * ITEM_HEIGHT + 10; // 3 tool buttons + spacing
-    int total_height = facilities_height + tools_height + MENU_PADDING * 4 + 40; // +40 for headers
+    int tools_height = 5 * ITEM_HEIGHT + 10; // 5 tool buttons (including floor expansion) + spacing
+    int total_height = facilities_height + tools_height + MENU_PADDING * 4 + 80; // +80 for headers
     
     // Draw menu background
     DrawRectangle(menu_x, menu_y, MENU_WIDTH, total_height, ColorAlpha(BLACK, 0.8f));
@@ -123,6 +123,25 @@ void BuildMenu::Render(bool can_undo, bool can_redo, bool demolish_mode) {
     DrawText("Redo (Ctrl+Y)", menu_x + MENU_PADDING + 10, y + 12, 14, redo_color);
     y += ITEM_HEIGHT;
     
+    // Draw separator for expansion section
+    y += 5;
+    DrawRectangle(menu_x, y, MENU_WIDTH, 2, GRAY);
+    y += 7;
+    DrawText("EXPANSION", menu_x + MENU_PADDING, y, 14, WHITE);
+    y += 20;
+    
+    // Draw Add Floor button
+    DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5, 
+                 ColorAlpha(DARKGRAY, 0.5f));
+    DrawText("Add Floor (+)", menu_x + MENU_PADDING + 10, y + 12, 14, SKYBLUE);
+    y += ITEM_HEIGHT;
+    
+    // Draw Add Basement button
+    DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5, 
+                 ColorAlpha(DARKGRAY, 0.5f));
+    DrawText("Add Basement (-)", menu_x + MENU_PADDING + 10, y + 12, 14, ORANGE);
+    y += ITEM_HEIGHT;
+    
     // Draw hint at bottom
     y += 5;
     if (demolish_mode) {
@@ -147,7 +166,7 @@ int BuildMenu::HandleClick(int mouse_x, int mouse_y, bool can_undo, bool can_red
     int facilities_height = static_cast<int>(facility_types_.size()) * ITEM_HEIGHT;
     
     // Check if click is within menu bounds
-    int total_height = facilities_height + 3 * ITEM_HEIGHT + MENU_PADDING * 4 + 60;
+    int total_height = facilities_height + 5 * ITEM_HEIGHT + MENU_PADDING * 4 + 100;
     if (mouse_x < menu_x || mouse_x > menu_x + MENU_WIDTH ||
         mouse_y < menu_y || mouse_y > menu_y + total_height) {
         return -1;
@@ -194,6 +213,21 @@ int BuildMenu::HandleClick(int mouse_x, int mouse_y, bool can_undo, bool can_red
         if (can_redo) {
             return -4; // Redo
         }
+    }
+    y += ITEM_HEIGHT;
+    
+    // Skip expansion header
+    y += 5 + 2 + 7 + 20;
+    
+    // Check Add Floor button
+    if (mouse_y >= y && mouse_y < y + ITEM_HEIGHT) {
+        return -5; // Add Floor
+    }
+    y += ITEM_HEIGHT;
+    
+    // Check Add Basement button
+    if (mouse_y >= y && mouse_y < y + ITEM_HEIGHT) {
+        return -6; // Add Basement
     }
     
     return -1;

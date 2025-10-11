@@ -798,6 +798,30 @@ void Game::HandleInGameInput() {
         } else if (menu_result == -4) {
             placement_system_->Redo();
             hud_->AddNotification(Notification::Type::Info, "Redid action", 2.0f);
+        } else if (menu_result == -5) {
+            // Add floor
+            int floor_cost = TowerForge::Core::TowerGrid::GetFloorBuildCost() * grid.GetColumnCount();
+            if (game_state_.funds >= floor_cost) {
+                grid.AddFloor();
+                game_state_.funds -= floor_cost;
+                hud_->AddNotification(Notification::Type::Success, 
+                    TextFormat("Floor added! Cost: $%d", floor_cost), 3.0f);
+            } else {
+                hud_->AddNotification(Notification::Type::Error, 
+                    TextFormat("Not enough funds! Need $%d", floor_cost), 3.0f);
+            }
+        } else if (menu_result == -6) {
+            // Add basement
+            int basement_cost = TowerForge::Core::TowerGrid::GetFloorBuildCost() * grid.GetColumnCount();
+            if (game_state_.funds >= basement_cost) {
+                grid.AddBasementFloor();
+                game_state_.funds -= basement_cost;
+                hud_->AddNotification(Notification::Type::Success, 
+                    TextFormat("Basement added! Cost: $%d", basement_cost), 3.0f);
+            } else {
+                hud_->AddNotification(Notification::Type::Error, 
+                    TextFormat("Not enough funds! Need $%d", basement_cost), 3.0f);
+            }
         } else if (!hud_->HandleClick(mouse_x, mouse_y)) {
             // Convert screen coordinates to world coordinates for camera-transformed clicks
             float world_x, world_y;
