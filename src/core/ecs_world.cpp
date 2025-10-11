@@ -780,12 +780,12 @@ void ECSWorld::RegisterSystems() {
             
             // Count current employees at this facility
             int current_employees = 0;
-            facility_entity.world().each<const Person, const EmploymentInfo>(
-                [&](flecs::entity e, const Person& person, const EmploymentInfo& emp) {
-                    if (emp.workplace_floor == facility.floor) {
-                        current_employees++;
-                    }
-                });
+            auto query = facility_entity.world().query<const Person, const EmploymentInfo>();
+            query.each([&](flecs::entity e, const Person& person, const EmploymentInfo& emp) {
+                if (emp.workplace_floor == facility.floor) {
+                    current_employees++;
+                }
+            });
             
             // Update job openings
             facility.job_openings = std::max(0, required - current_employees);
@@ -802,7 +802,8 @@ void ECSWorld::RegisterSystems() {
             // Count total job openings in the tower
             int total_job_openings = 0;
             int facility_count = 0;
-            e.world().each<const BuildingComponent>([&](const BuildingComponent& facility) {
+            auto facility_query = e.world().query<const BuildingComponent>();
+            facility_query.each([&](const BuildingComponent& facility) {
                 facility_count++;
                 total_job_openings += facility.job_openings;
             });
@@ -869,45 +870,45 @@ void ECSWorld::RegisterSystems() {
             float shift_start = 9.0f;
             float shift_end = 17.0f;
             
-            visitor_entity.world().each<BuildingComponent>(
-                [&](flecs::entity facility_entity, BuildingComponent& facility) {
-                    // Skip if already found a job or facility has no openings
-                    if (target_floor != -1 || !facility.HasJobOpenings()) {
-                        return;
-                    }
-                    
-                    // Assign job based on facility type
-                    switch (facility.type) {
-                        case BuildingComponent::Type::Office:
-                            job_title = "Office Worker";
-                            shift_start = 9.0f;
-                            shift_end = 17.0f;
-                            break;
-                        case BuildingComponent::Type::RetailShop:
-                            job_title = "Shop Clerk";
-                            shift_start = 10.0f;
-                            shift_end = 19.0f;
-                            break;
-                        case BuildingComponent::Type::Restaurant:
-                            job_title = "Restaurant Staff";
-                            shift_start = 11.0f;
-                            shift_end = 22.0f;
-                            break;
-                        case BuildingComponent::Type::Hotel:
-                            job_title = "Hotel Staff";
-                            shift_start = 8.0f;
-                            shift_end = 20.0f;
-                            break;
-                        default:
-                            return;  // Not a job facility
-                    }
-                    
-                    // Found a job! Save the details
-                    target_facility = facility_entity;
-                    target_floor = facility.floor;
-                    target_column = facility.width / 2;  // Center of facility
-                    facility.job_openings--;  // Reduce opening count
-                });
+            auto facility_query = visitor_entity.world().query<BuildingComponent>();
+            facility_query.each([&](flecs::entity facility_entity, BuildingComponent& facility) {
+                // Skip if already found a job or facility has no openings
+                if (target_floor != -1 || !facility.HasJobOpenings()) {
+                    return;
+                }
+                
+                // Assign job based on facility type
+                switch (facility.type) {
+                    case BuildingComponent::Type::Office:
+                        job_title = "Office Worker";
+                        shift_start = 9.0f;
+                        shift_end = 17.0f;
+                        break;
+                    case BuildingComponent::Type::RetailShop:
+                        job_title = "Shop Clerk";
+                        shift_start = 10.0f;
+                        shift_end = 19.0f;
+                        break;
+                    case BuildingComponent::Type::Restaurant:
+                        job_title = "Restaurant Staff";
+                        shift_start = 11.0f;
+                        shift_end = 22.0f;
+                        break;
+                    case BuildingComponent::Type::Hotel:
+                        job_title = "Hotel Staff";
+                        shift_start = 8.0f;
+                        shift_end = 20.0f;
+                        break;
+                    default:
+                        return;  // Not a job facility
+                }
+                
+                // Found a job! Save the details
+                target_facility = facility_entity;
+                target_floor = facility.floor;
+                target_column = facility.width / 2;  // Center of facility
+                facility.job_openings--;  // Reduce opening count
+            });
             
             // If a job was found, convert visitor to employee
             if (target_floor != -1) {
