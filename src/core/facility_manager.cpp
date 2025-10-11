@@ -102,6 +102,16 @@ int FacilityManager::GetDefaultWidth(BuildingComponent::Type type) {
             return 10; // Hotels are large
         case BuildingComponent::Type::Elevator:
             return 2;  // Elevators are narrow
+        case BuildingComponent::Type::Gym:
+            return 7;  // Gyms are medium-large
+        case BuildingComponent::Type::Arcade:
+            return 5;  // Arcades are medium-sized
+        case BuildingComponent::Type::Theater:
+            return 8;  // Theaters are large
+        case BuildingComponent::Type::ConferenceHall:
+            return 9;  // Conference halls are large
+        case BuildingComponent::Type::FlagshipStore:
+            return 12; // Flagship stores are very large
         default:
             return 4;
     }
@@ -123,6 +133,16 @@ int FacilityManager::GetDefaultCapacity(BuildingComponent::Type type) {
             return 40;  // Hotel has multiple rooms
         case BuildingComponent::Type::Elevator:
             return 8;   // Elevator holds ~8 people
+        case BuildingComponent::Type::Gym:
+            return 25;  // Gym has equipment for ~25 people
+        case BuildingComponent::Type::Arcade:
+            return 20;  // Arcade has space for ~20 people
+        case BuildingComponent::Type::Theater:
+            return 50;  // Theater has seating for ~50 people
+        case BuildingComponent::Type::ConferenceHall:
+            return 60;  // Conference hall can hold ~60 people
+        case BuildingComponent::Type::FlagshipStore:
+            return 40;  // Flagship store has high capacity
         default:
             return 10;
     }
@@ -144,6 +164,16 @@ const char* FacilityManager::GetTypeName(BuildingComponent::Type type) {
             return "Hotel";
         case BuildingComponent::Type::Elevator:
             return "Elevator";
+        case BuildingComponent::Type::Gym:
+            return "Gym";
+        case BuildingComponent::Type::Arcade:
+            return "Arcade";
+        case BuildingComponent::Type::Theater:
+            return "Theater";
+        case BuildingComponent::Type::ConferenceHall:
+            return "ConferenceHall";
+        case BuildingComponent::Type::FlagshipStore:
+            return "FlagshipStore";
         default:
             return "Unknown";
     }
@@ -166,6 +196,16 @@ unsigned int FacilityManager::GetFacilityColor(BuildingComponent::Type type) {
             return 0x002B80;  // DARKBLUE
         case BuildingComponent::Type::Elevator:
             return 0x828282;  // GRAY
+        case BuildingComponent::Type::Gym:
+            return 0xFF6B35;  // ORANGE
+        case BuildingComponent::Type::Arcade:
+            return 0xFF00FF;  // MAGENTA
+        case BuildingComponent::Type::Theater:
+            return 0x8B00FF;  // VIOLET
+        case BuildingComponent::Type::ConferenceHall:
+            return 0x4A90E2;  // LIGHTBLUE
+        case BuildingComponent::Type::FlagshipStore:
+            return 0x00CED1;  // TURQUOISE
         default:
             return 0x66BFFF;  // Default to SKYBLUE
     }
