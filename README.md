@@ -536,6 +536,53 @@ bool available = grid.IsSpaceAvailable(2, 10, 5);
 
 // Remove a facility
 grid.RemoveFacility(facility_id);
+
+### Lua Modding System
+
+TowerForge supports Lua-based modding, allowing players and creators to add custom facilities and visitor types without modifying the core game code. See [docs/MODDING_API.md](docs/MODDING_API.md) for complete API documentation.
+
+**Features**:
+- **Custom Facilities**: Define new building facilities with custom properties
+- **Custom Visitor Types**: Create new visitor behaviors and preferences
+- **Sandboxed Environment**: Lua scripts run in a secure sandbox to prevent unauthorized access
+- **Hot-Loading**: Mods are loaded from the `mods/` directory at game start
+- **In-Game Management**: Enable/disable mods via the Mods menu (accessible from pause menu)
+
+**Example Mod** (`mods/example_gaming_lounge.lua`):
+```lua
+ModInfo = {
+    id = "gaming_lounge",
+    name = "Gaming Lounge Mod",
+    version = "1.0.0",
+    author = "TowerForge Community",
+    description = "Adds a gaming lounge facility"
+}
+
+TowerForge.RegisterFacilityType({
+    id = "gaming_lounge",
+    name = "Gaming Lounge",
+    default_width = 10,
+    default_capacity = 25,
+    required_staff = 3,
+    operating_start_hour = 12.0,
+    operating_end_hour = 24.0,
+    base_rent = 180.0,
+    operating_cost = 50.0,
+    color = 0xFF8C00FF  -- Orange
+})
+```
+
+**Available APIs**:
+- `TowerForge.RegisterFacilityType(table)` - Register a new facility type
+- `TowerForge.RegisterVisitorType(table)` - Register a new visitor type  
+- `TowerForge.Log(...)` - Log messages to console for debugging
+
+**Security**:
+- File I/O disabled
+- System command execution blocked
+- No network access
+- Safe standard Lua library subset only
+
 ```
 
 ## Current Status

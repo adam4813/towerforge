@@ -5,7 +5,6 @@
   "dependencies": [
     "flecs",
     "raylib",
-    "nlohmann-json",
-    "lua"
+    "nlohmann-json"
   ]
 }
