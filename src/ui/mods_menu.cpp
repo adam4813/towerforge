@@ -35,7 +35,7 @@ void ModsMenu::Render() {
     int screen_height = GetScreenHeight();
     
     // Semi-transparent overlay
-    DrawRectangle(0, 0, screen_width, screen_height, (Color){0, 0, 0, 180});
+    DrawRectangle(0, 0, screen_width, screen_height, Color{0, 0, 0, 180});
     
     // Menu dimensions
     int menu_width = std::min(800, screen_width - 100);
@@ -44,8 +44,8 @@ void ModsMenu::Render() {
     int menu_y = (screen_height - menu_height) / 2;
     
     // Menu background
-    DrawRectangle(menu_x, menu_y, menu_width, menu_height, (Color){40, 40, 50, 255});
-    DrawRectangleLines(menu_x, menu_y, menu_width, menu_height, (Color){100, 100, 120, 255});
+    DrawRectangle(menu_x, menu_y, menu_width, menu_height, Color{40, 40, 50, 255});
+    DrawRectangleLines(menu_x, menu_y, menu_width, menu_height, Color{100, 100, 120, 255});
     
     // Title
     const char* title = "Mods Manager";
@@ -103,14 +103,14 @@ void ModsMenu::Render() {
             int y = list_y + (i - start_index) * item_height;
             
             // Mod item background
-            Color bg_color = (i % 2 == 0) ? (Color){50, 50, 60, 255} : (Color){45, 45, 55, 255};
+            Color bg_color = (i % 2 == 0) ? Color{50, 50, 60, 255} : Color{45, 45, 55, 255};
             if (i == selected_mod_index_) {
-                bg_color = (Color){60, 60, 80, 255};
+                bg_color = Color{60, 60, 80, 255};
             }
             
             DrawRectangle(menu_x + 20, y, menu_width - 40, item_height - 10, bg_color);
             DrawRectangleLines(menu_x + 20, y, menu_width - 40, item_height - 10, 
-                             (Color){80, 80, 100, 255});
+                             Color{80, 80, 100, 255});
             
             int text_x = menu_x + 35;
             int text_y = y + 10;
@@ -190,13 +190,13 @@ void ModsMenu::Render() {
             int scrollbar_y = list_y;
             int scrollbar_height = list_height;
             
-            DrawRectangle(scrollbar_x, scrollbar_y, 10, scrollbar_height, (Color){30, 30, 40, 255});
+            DrawRectangle(scrollbar_x, scrollbar_y, 10, scrollbar_height, Color{30, 30, 40, 255});
             
             float thumb_height = (static_cast<float>(visible_items) / mods.size()) * scrollbar_height;
             float thumb_y = scrollbar_y + (scroll_offset_ / max_scroll) * (scrollbar_height - thumb_height);
             
             DrawRectangle(scrollbar_x, static_cast<int>(thumb_y), 10, 
-                         static_cast<int>(thumb_height), (Color){100, 100, 120, 255});
+                         static_cast<int>(thumb_height), Color{100, 100, 120, 255});
         }
     }
     
