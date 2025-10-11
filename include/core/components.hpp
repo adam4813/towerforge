@@ -307,7 +307,9 @@ struct BuildingComponent {
         Arcade,           // Arcade entertainment
         Theater,          // Theater entertainment
         ConferenceHall,   // Conference/event space
-        FlagshipStore     // Large retail store
+        FlagshipStore,    // Large retail store
+        ManagementOffice, // Tower management office (generates tower points)
+        SatelliteOffice   // Satellite management office (boosts tower points generation)
     };
 
     Type type;
@@ -329,17 +331,26 @@ struct BuildingComponent {
      */
     int GetRequiredEmployees() const {
         switch (type) {
-            case Type::Office:          return capacity / 5;  // 1 employee per 5 capacity
-            case Type::RetailShop:      return 2;             // Shops need 2 employees
-            case Type::Restaurant:      return 4;             // Restaurants need 4 employees (cooks, servers)
-            case Type::Hotel:           return 5;             // Hotels need 5 employees (receptionists, cleaners)
-            case Type::Gym:             return 3;             // Gyms need 3 employees (trainers/attendants)
-            case Type::Arcade:          return 2;             // Arcades need 2 employees (clerks)
-            case Type::Theater:         return 3;             // Theaters need 3 employees (ushers, staff)
-            case Type::ConferenceHall:  return 2;             // Conference halls need 2 employees (coordinators)
-            case Type::FlagshipStore:   return 4;             // Flagship stores need 4 employees (staff)
-            default:                    return 0;             // Other types don't need employees
+            case Type::Office:           return capacity / 5;  // 1 employee per 5 capacity
+            case Type::RetailShop:       return 2;             // Shops need 2 employees
+            case Type::Restaurant:       return 4;             // Restaurants need 4 employees (cooks, servers)
+            case Type::Hotel:            return 5;             // Hotels need 5 employees (receptionists, cleaners)
+            case Type::Gym:              return 3;             // Gyms need 3 employees (trainers/attendants)
+            case Type::Arcade:           return 2;             // Arcades need 2 employees (clerks)
+            case Type::Theater:          return 3;             // Theaters need 3 employees (ushers, staff)
+            case Type::ConferenceHall:   return 2;             // Conference halls need 2 employees (coordinators)
+            case Type::FlagshipStore:    return 4;             // Flagship stores need 4 employees (staff)
+            case Type::ManagementOffice: return 5;             // Management offices need 5 staff (executives, managers, analysts)
+            case Type::SatelliteOffice:  return 3;             // Satellite offices need 3 staff (managers, analysts)
+            default:                     return 0;             // Other types don't need employees
         }
+    }
+    
+    /**
+     * @brief Check if this is a management facility that generates tower points
+     */
+    bool IsManagementFacility() const {
+        return type == Type::ManagementOffice || type == Type::SatelliteOffice;
     }
     
     /**
@@ -898,6 +909,7 @@ struct PersonElevatorRequest {
  */
 enum class ResearchNodeState {
     Locked,       // Not yet unlocked, requirements not met
+    Hidden,       // Hidden until prerequisites are met
     Upgradable,   // Requirements met, can be unlocked
     Unlocked      // Already unlocked
 };
@@ -926,8 +938,13 @@ struct ResearchNode {
     ResearchNodeType type;             // Type of upgrade
     ResearchNodeState state;           // Current state
     
-    int cost;                          // Research points required
+    int cost;                          // Tower points required
     std::vector<std::string> prerequisites;  // IDs of required nodes
+    
+    // Conditional prerequisites
+    int min_star_rating;               // Minimum tower star rating (0 = no requirement)
+    int min_population;                // Minimum tower population (0 = no requirement)
+    std::vector<std::string> required_facilities;  // Facility types that must exist
     
     // Position in tree/grid
     int grid_row;
@@ -950,6 +967,8 @@ struct ResearchNode {
           type(node_type),
           state(ResearchNodeState::Locked),
           cost(node_cost),
+          min_star_rating(0),
+          min_population(0),
           grid_row(row),
           grid_column(col),
           effect_value(0.0f),
@@ -960,6 +979,7 @@ struct ResearchNode {
      */
     const char* GetStateString() const {
         switch (state) {
+            case ResearchNodeState::Hidden: return "Hidden";
             case ResearchNodeState::Locked: return "Locked";
             case ResearchNodeState::Upgradable: return "Upgradable";
             case ResearchNodeState::Unlocked: return "Unlocked";
@@ -972,6 +992,7 @@ struct ResearchNode {
      */
     std::string GetDisplayIcon() const {
         switch (state) {
+            case ResearchNodeState::Hidden: return "❓";
             case ResearchNodeState::Locked: return "🔒";
             case ResearchNodeState::Upgradable: return "✨";
             case ResearchNodeState::Unlocked: return "✅";
@@ -983,13 +1004,19 @@ struct ResearchNode {
 /**
  * @brief Global singleton component for research/upgrade tree progress
  * 
- * Tracks available research points, unlocked nodes, and applies
- * global bonuses from research.
+ * Tracks available tower points, unlocked nodes, and applies
+ * global bonuses from research. Tower points are generated by
+ * management staff and facilities rather than milestone achievements.
  */
 struct ResearchTree {
-    int research_points;               // Available points to spend
-    int total_points_earned;           // Lifetime points earned
+    int tower_points;                  // Available tower points to spend
+    int total_points_earned;           // Lifetime tower points earned
     std::vector<ResearchNode> nodes;   // All research nodes
+    
+    // Management staff tracking
+    int management_staff_count;        // Total management staff (executives, managers, analysts)
+    float tower_points_per_hour;       // Current tower points generation rate
+    float accumulated_points;          // Fractional points accumulated
     
     // Global bonuses from research
     float income_multiplier;           // Multiplier for all income (1.0 = normal)
@@ -1000,8 +1027,11 @@ struct ResearchTree {
     int elevator_capacity_bonus;       // Additional elevator capacity
     
     ResearchTree()
-        : research_points(0),
+        : tower_points(0),
           total_points_earned(0),
+          management_staff_count(0),
+          tower_points_per_hour(0.0f),
+          accumulated_points(0.0f),
           income_multiplier(1.0f),
           satisfaction_bonus(0.0f),
           construction_speed_multiplier(1.0f),
@@ -1091,19 +1121,47 @@ struct ResearchTree {
     
     /**
      * @brief Check if a node can be unlocked (prerequisites met)
+     * @param node The research node to check
+     * @param star_rating Current tower star rating (for conditional prereqs)
+     * @param population Current tower population (for conditional prereqs)
+     * @param built_facilities Set of facility type names that exist in tower
      */
-    bool CanUnlock(const ResearchNode& node) const {
+    bool CanUnlock(const ResearchNode& node, int star_rating = 0, int population = 0, 
+                   const std::vector<std::string>& built_facilities = {}) const {
         // Check if already unlocked
         if (node.state == ResearchNodeState::Unlocked) {
             return false;
         }
         
         // Check if we have enough points
-        if (research_points < node.cost) {
+        if (tower_points < node.cost) {
             return false;
         }
         
-        // Check prerequisites
+        // Check conditional prerequisites
+        if (node.min_star_rating > 0 && star_rating < node.min_star_rating) {
+            return false;
+        }
+        
+        if (node.min_population > 0 && population < node.min_population) {
+            return false;
+        }
+        
+        // Check required facilities
+        for (const auto& required_facility : node.required_facilities) {
+            bool found = false;
+            for (const auto& built_facility : built_facilities) {
+                if (built_facility == required_facility) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+        
+        // Check research node prerequisites
         for (const auto& prereq_id : node.prerequisites) {
             bool found = false;
             for (const auto& n : nodes) {
@@ -1115,6 +1173,25 @@ struct ResearchTree {
             if (!found) {
                 return false;
             }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * @brief Check if a node's visibility prerequisites are met
+     * A node is hidden until its visibility prerequisites are satisfied
+     */
+    bool IsVisible(const ResearchNode& node, int star_rating = 0, int population = 0) const {
+        // Nodes are visible if they have no visibility requirements, or if requirements are met
+        // For now, we'll make nodes visible if star rating or population requirements are met
+        // OR if they have no such requirements
+        if (node.min_star_rating > 0 && star_rating < node.min_star_rating) {
+            return false;
+        }
+        
+        if (node.min_population > 0 && population < node.min_population) {
+            return false;
         }
         
         return true;
@@ -1147,7 +1224,7 @@ struct ResearchTree {
         }
         
         // Deduct cost
-        research_points -= node->cost;
+        tower_points -= node->cost;
         
         // Mark as unlocked
         node->state = ResearchNodeState::Unlocked;
@@ -1184,12 +1261,43 @@ struct ResearchTree {
     }
     
     /**
-     * @brief Award research points (e.g., for reaching milestones)
+     * @brief Award tower points (e.g., from management staff generation)
      */
     void AwardPoints(int points) {
-        research_points += points;
+        tower_points += points;
         total_points_earned += points;
         UpdateNodeStates();
+    }
+    
+    /**
+     * @brief Generate tower points based on management staff and time elapsed
+     * @param delta_time Time elapsed since last update (in hours)
+     */
+    void GenerateTowerPoints(float delta_time) {
+        // Calculate points per hour based on management staff
+        // Base: 1 point per hour per staff member
+        // Can be enhanced by management facilities in the future
+        tower_points_per_hour = static_cast<float>(management_staff_count);
+        
+        // Accumulate fractional points
+        accumulated_points += tower_points_per_hour * delta_time;
+        
+        // Award whole points
+        int whole_points = static_cast<int>(accumulated_points);
+        if (whole_points > 0) {
+            tower_points += whole_points;
+            total_points_earned += whole_points;
+            accumulated_points -= whole_points;
+            UpdateNodeStates();
+        }
+    }
+    
+    /**
+     * @brief Update management staff count
+     * Should be called when management staff are hired/fired
+     */
+    void UpdateManagementStaffCount(int count) {
+        management_staff_count = count;
     }
     
     /**

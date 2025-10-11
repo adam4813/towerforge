@@ -207,6 +207,13 @@ private:
     static int Lua_RegisterVisitorType(lua_State* L);
     
     /**
+     * @brief Register a research node from Lua
+     * 
+     * Called by Lua scripts via the API
+     */
+    static int Lua_RegisterResearchNode(lua_State* L);
+    
+    /**
      * @brief Log a message from Lua
      * 
      * Called by Lua scripts via the API

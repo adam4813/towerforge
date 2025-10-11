@@ -114,6 +114,9 @@ void LuaModManager::RegisterAPI() {
     lua_pushcfunction(lua_state_, Lua_RegisterVisitorType);
     lua_setfield(lua_state_, -2, "RegisterVisitorType");
     
+    lua_pushcfunction(lua_state_, Lua_RegisterResearchNode);
+    lua_setfield(lua_state_, -2, "RegisterResearchNode");
+    
     lua_pushcfunction(lua_state_, Lua_Log);
     lua_setfield(lua_state_, -2, "Log");
     
@@ -456,6 +459,178 @@ int LuaModManager::Lua_RegisterVisitorType(lua_State* L) {
     
     std::cout << "LuaModManager: Registered custom visitor type '" 
               << visitor.name << "' (ID: " << visitor.id << ")" << std::endl;
+    
+    return 0;
+}
+
+int LuaModManager::Lua_RegisterResearchNode(lua_State* L) {
+    LuaModManager* manager = GetManager(L);
+    if (!manager) {
+        luaL_error(L, "Failed to get mod manager");
+        return 0;
+    }
+    
+    if (!manager->ecs_world_) {
+        luaL_error(L, "ECS world not available");
+        return 0;
+    }
+    
+    // Expect a table as the first argument
+    if (!lua_istable(L, 1)) {
+        luaL_error(L, "RegisterResearchNode expects a table as argument");
+        return 0;
+    }
+    
+    // Get the research tree from the ECS world
+    auto world = manager->ecs_world_->GetWorld();
+    if (!world.has<ResearchTree>()) {
+        luaL_error(L, "Research tree not initialized");
+        return 0;
+    }
+    
+    auto research_tree = world.get_mut<ResearchTree>();
+    ResearchNode node;
+    
+    // Get id (required)
+    lua_getfield(L, 1, "id");
+    if (!lua_isstring(L, -1)) {
+        luaL_error(L, "Research node must have an 'id' field (string)");
+        return 0;
+    }
+    node.id = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    
+    // Get name (required)
+    lua_getfield(L, 1, "name");
+    if (!lua_isstring(L, -1)) {
+        luaL_error(L, "Research node must have a 'name' field (string)");
+        return 0;
+    }
+    node.name = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    
+    // Get description
+    lua_getfield(L, 1, "description");
+    if (lua_isstring(L, -1)) {
+        node.description = lua_tostring(L, -1);
+    }
+    lua_pop(L, 1);
+    
+    // Get icon
+    lua_getfield(L, 1, "icon");
+    if (lua_isstring(L, -1)) {
+        node.icon = lua_tostring(L, -1);
+    }
+    lua_pop(L, 1);
+    
+    // Get node type (required) - must be a string like "FacilityUnlock", "IncomeBonus", etc.
+    lua_getfield(L, 1, "type");
+    if (!lua_isstring(L, -1)) {
+        luaL_error(L, "Research node must have a 'type' field (string)");
+        return 0;
+    }
+    std::string type_str = lua_tostring(L, -1);
+    if (type_str == "FacilityUnlock") {
+        node.type = ResearchNodeType::FacilityUnlock;
+    } else if (type_str == "ElevatorSpeed") {
+        node.type = ResearchNodeType::ElevatorSpeed;
+    } else if (type_str == "ElevatorCapacity") {
+        node.type = ResearchNodeType::ElevatorCapacity;
+    } else if (type_str == "IncomeBonus") {
+        node.type = ResearchNodeType::IncomeBonus;
+    } else if (type_str == "SatisfactionBonus") {
+        node.type = ResearchNodeType::SatisfactionBonus;
+    } else if (type_str == "ConstructionSpeed") {
+        node.type = ResearchNodeType::ConstructionSpeed;
+    } else if (type_str == "CostReduction") {
+        node.type = ResearchNodeType::CostReduction;
+    } else {
+        luaL_error(L, "Unknown research node type: %s", type_str.c_str());
+        return 0;
+    }
+    lua_pop(L, 1);
+    
+    // Get cost (tower points required)
+    lua_getfield(L, 1, "cost");
+    if (lua_isnumber(L, -1)) {
+        node.cost = static_cast<int>(lua_tointeger(L, -1));
+    }
+    lua_pop(L, 1);
+    
+    // Get grid position
+    lua_getfield(L, 1, "grid_row");
+    if (lua_isnumber(L, -1)) {
+        node.grid_row = static_cast<int>(lua_tointeger(L, -1));
+    }
+    lua_pop(L, 1);
+    
+    lua_getfield(L, 1, "grid_column");
+    if (lua_isnumber(L, -1)) {
+        node.grid_column = static_cast<int>(lua_tointeger(L, -1));
+    }
+    lua_pop(L, 1);
+    
+    // Get effect value
+    lua_getfield(L, 1, "effect_value");
+    if (lua_isnumber(L, -1)) {
+        node.effect_value = static_cast<float>(lua_tonumber(L, -1));
+    }
+    lua_pop(L, 1);
+    
+    // Get effect target
+    lua_getfield(L, 1, "effect_target");
+    if (lua_isstring(L, -1)) {
+        node.effect_target = lua_tostring(L, -1);
+    }
+    lua_pop(L, 1);
+    
+    // Get prerequisites array
+    lua_getfield(L, 1, "prerequisites");
+    if (lua_istable(L, -1)) {
+        int len = lua_rawlen(L, -1);
+        for (int i = 1; i <= len; ++i) {
+            lua_rawgeti(L, -1, i);
+            if (lua_isstring(L, -1)) {
+                node.prerequisites.push_back(lua_tostring(L, -1));
+            }
+            lua_pop(L, 1);
+        }
+    }
+    lua_pop(L, 1);
+    
+    // Get conditional prerequisites
+    lua_getfield(L, 1, "min_star_rating");
+    if (lua_isnumber(L, -1)) {
+        node.min_star_rating = static_cast<int>(lua_tointeger(L, -1));
+    }
+    lua_pop(L, 1);
+    
+    lua_getfield(L, 1, "min_population");
+    if (lua_isnumber(L, -1)) {
+        node.min_population = static_cast<int>(lua_tointeger(L, -1));
+    }
+    lua_pop(L, 1);
+    
+    // Get required facilities array
+    lua_getfield(L, 1, "required_facilities");
+    if (lua_istable(L, -1)) {
+        int len = lua_rawlen(L, -1);
+        for (int i = 1; i <= len; ++i) {
+            lua_rawgeti(L, -1, i);
+            if (lua_isstring(L, -1)) {
+                node.required_facilities.push_back(lua_tostring(L, -1));
+            }
+            lua_pop(L, 1);
+        }
+    }
+    lua_pop(L, 1);
+    
+    // Add the node to the research tree
+    research_tree->nodes.push_back(node);
+    research_tree->UpdateNodeStates();
+    
+    std::cout << "LuaModManager: Registered research node '" 
+              << node.name << "' (ID: " << node.id << ")" << std::endl;
     
     return 0;
 }
