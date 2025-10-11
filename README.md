@@ -568,7 +568,7 @@ TowerForge.RegisterFacilityType({
     operating_end_hour = 24.0,
     base_rent = 180.0,
     operating_cost = 50.0,
-    color = 0xFF8C00FF  -- Orange
+    color = 0xFF8C00FF  -- Orange (RGBA: fully opaque)
 })
 ```
 
