@@ -5,6 +5,7 @@ add_library(towerforge_core
     facility_manager.cpp
     save_load_manager.cpp
     achievement_manager.cpp
+    lua_mod_manager.cpp
     game.cpp
 )
 
@@ -14,10 +15,19 @@ find_package(flecs CONFIG REQUIRED)
 # Find nlohmann-json package
 find_package(nlohmann_json CONFIG REQUIRED)
 
-# Link flecs and nlohmann-json to the core library
+# Find Lua package
+find_package(Lua REQUIRED)
+
+# Link flecs, nlohmann-json, and Lua to the core library
 target_link_libraries(towerforge_core 
     PUBLIC flecs::flecs_static
     PUBLIC nlohmann_json::nlohmann_json
+    PUBLIC ${LUA_LIBRARIES}
+)
+
+# Add Lua include directories
+target_include_directories(towerforge_core
+    PUBLIC ${LUA_INCLUDE_DIR}
 )
 
 # Include directories

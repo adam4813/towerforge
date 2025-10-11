@@ -509,6 +509,8 @@ void Game::InitializeGameSystems() {
     build_menu_ = new BuildMenu();
     pause_menu_ = new PauseMenu();
     research_menu_ = new ResearchTreeMenu();
+    mods_menu_ = new ModsMenu();
+    mods_menu_->SetModManager(&ecs_world_->GetModManager());
     
     // Create and initialize camera
     camera_ = new towerforge::rendering::Camera();
@@ -746,6 +748,9 @@ void Game::UpdateInGame(float delta_time) {
                             break;
                         case PauseMenuOption::Settings:
                             in_settings_from_pause_ = true;
+                            break;
+                        case PauseMenuOption::Mods:
+                            mods_menu_->Show();
                             break;
                         case PauseMenuOption::QuitToTitle:
                             pause_menu_->ShowQuitConfirmation(true);
@@ -1097,6 +1102,8 @@ void Game::RenderInGame() {
             pause_audio_settings_menu_.Render();
         } else if (in_settings_from_pause_) {
             pause_general_settings_menu_.Render();
+        } else if (mods_menu_->IsVisible()) {
+            mods_menu_->Render();
         } else {
             pause_menu_->Render();
         }
@@ -1129,6 +1136,7 @@ void Game::CleanupGameSystems() {
     delete camera_;
     delete research_menu_;
     delete save_load_menu_;
+    delete mods_menu_;
     delete pause_menu_;
     delete build_menu_;
     delete hud_;
@@ -1140,6 +1148,7 @@ void Game::CleanupGameSystems() {
     camera_ = nullptr;
     research_menu_ = nullptr;
     save_load_menu_ = nullptr;
+    mods_menu_ = nullptr;
     pause_menu_ = nullptr;
     build_menu_ = nullptr;
     hud_ = nullptr;

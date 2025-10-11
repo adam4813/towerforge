@@ -16,6 +16,7 @@
 #include "ui/general_settings_menu.h"
 #include "ui/audio_settings_menu.h"
 #include "ui/tutorial_manager.h"
+#include "ui/mods_menu.h"
 #include "audio/audio_manager.h"
 
 namespace towerforge {
@@ -122,6 +123,7 @@ private:
     towerforge::ui::PauseMenu* pause_menu_;
     towerforge::ui::SaveLoadMenu* save_load_menu_;
     towerforge::ui::ResearchTreeMenu* research_menu_;
+    towerforge::ui::ModsMenu* mods_menu_;
     towerforge::rendering::Camera* camera_;
     towerforge::ui::PlacementSystem* placement_system_;
 

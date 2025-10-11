@@ -15,6 +15,7 @@ enum class PauseMenuOption {
     SaveGame,
     LoadGame,
     Settings,
+    Mods,
     QuitToTitle
 };
 
