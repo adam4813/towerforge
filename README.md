@@ -120,11 +120,17 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - `PersonElevatorRequest`: Links person entities to elevators for boarding and riding
 
 **Tower Grid System** (`include/core/tower_grid.hpp`):
-- 2D grid system for spatial management of the tower
-- Supports adding/removing floors and columns dynamically
+- **Dynamic Floor Management**: Start with minimal tower and expand vertically
+- **Basement Support**: Add floors below ground level with negative indices
+- **Floor Building State**: Track which floor cells are constructed vs. allocated
+- **Cost-Based Expansion**: Each floor cell costs $50 to build
+- **Automatic Building**: Floors auto-build when placing facilities
+- **Manual Expansion**: UI controls to add floors above or basements below
 - Facility placement and removal with collision detection
 - Spatial query functions for grid operations
 - Integrated with ECS for seamless tower management
+
+See [docs/DYNAMIC_FLOOR_SYSTEM.md](docs/DYNAMIC_FLOOR_SYSTEM.md) for detailed documentation on the dynamic floor management system.
 
 **Systems** (`src/core/ecs_world.cpp`):
 - **Time Simulation System**: Advances simulation time based on configurable speed multiplier

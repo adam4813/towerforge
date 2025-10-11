@@ -109,6 +109,30 @@ public:
      * @return The facility type, or Type::Office if not found
      */
     BuildingComponent::Type GetFacilityType(int facility_entity_id) const;
+    
+    /**
+     * @brief Calculate the cost to build floors for a facility placement
+     * 
+     * Checks which cells need floor construction and calculates the cost.
+     * 
+     * @param floor Floor index
+     * @param column Starting column
+     * @param width Width of the facility
+     * @return Total cost to build the necessary floors
+     */
+    int CalculateFloorBuildCost(int floor, int column, int width) const;
+    
+    /**
+     * @brief Build the floors needed for a facility placement
+     * 
+     * Marks the floor cells as built for the given range.
+     * 
+     * @param floor Floor index
+     * @param column Starting column
+     * @param width Width of the facility
+     * @return true if successful, false otherwise
+     */
+    bool BuildFloorsForFacility(int floor, int column, int width);
 
 private:
     flecs::world& world_;

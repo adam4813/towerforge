@@ -798,6 +798,30 @@ void Game::HandleInGameInput() {
         } else if (menu_result == -4) {
             placement_system_->Redo();
             hud_->AddNotification(Notification::Type::Info, "Redid action", 2.0f);
+        } else if (menu_result == -5) {
+            // Add floor
+            int floor_cost = TowerForge::Core::TowerGrid::GetFloorBuildCost() * grid.GetColumnCount();
+            if (game_state_.funds >= floor_cost) {
+                grid.AddFloor();
+                game_state_.funds -= floor_cost;
+                hud_->AddNotification(Notification::Type::Success, 
+                    TextFormat("Floor added! Cost: $%d", floor_cost), 3.0f);
+            } else {
+                hud_->AddNotification(Notification::Type::Error, 
+                    TextFormat("Not enough funds! Need $%d", floor_cost), 3.0f);
+            }
+        } else if (menu_result == -6) {
+            // Add basement
+            int basement_cost = TowerForge::Core::TowerGrid::GetFloorBuildCost() * grid.GetColumnCount();
+            if (game_state_.funds >= basement_cost) {
+                grid.AddBasementFloor();
+                game_state_.funds -= basement_cost;
+                hud_->AddNotification(Notification::Type::Success, 
+                    TextFormat("Basement added! Cost: $%d", basement_cost), 3.0f);
+            } else {
+                hud_->AddNotification(Notification::Type::Error, 
+                    TextFormat("Not enough funds! Need $%d", basement_cost), 3.0f);
+            }
         } else if (!hud_->HandleClick(mouse_x, mouse_y)) {
             // Convert screen coordinates to world coordinates for camera-transformed clicks
             float world_x, world_y;
@@ -924,7 +948,13 @@ void Game::RenderInGame() {
             int x = grid_offset_x_ + col * cell_width_;
             int y = grid_offset_y_ + floor * cell_height_;
             
-            DrawRectangleLines(x, y, cell_width_, cell_height_, ColorAlpha(WHITE, 0.2f));
+            // Show built floors with solid outline, unbuilt with dashed/faded outline
+            if (grid.IsFloorBuilt(floor, col)) {
+                DrawRectangleLines(x, y, cell_width_, cell_height_, ColorAlpha(WHITE, 0.2f));
+            } else {
+                // Draw faded outline for unbuilt floors
+                DrawRectangleLines(x, y, cell_width_, cell_height_, ColorAlpha(DARKGRAY, 0.1f));
+            }
             
             if (grid.IsOccupied(floor, col)) {
                 int facility_id = grid.GetFacilityAt(floor, col);
@@ -1231,8 +1261,17 @@ void Game::CreateStarterTower() {
     
     std::cout << "Creating starter tower setup..." << std::endl;
     
+    // Ensure we have enough floors for the starter tower
+    // We need floors 0-2 (ground, 1st, 2nd)
+    int current_floors = grid.GetFloorCount();
+    if (current_floors < 3) {
+        int floors_to_add = 3 - current_floors;
+        grid.AddFloors(floors_to_add);
+        std::cout << "  Added " << floors_to_add << " floors to tower" << std::endl;
+    }
+    
     // Build the starter tower as specified:
-    // Floor 0: Lobby
+    // Floor 0: Lobby (already built by default)
     // Floor 1: Business (Office)
     // Floor 1 (different position): Shop (RetailShop)
     // Floors 0-2: Stair (not implemented as separate type yet)

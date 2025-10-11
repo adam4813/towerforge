@@ -9,7 +9,7 @@ namespace TowerForge {
 namespace Core {
 
 ECSWorld::ECSWorld() 
-    : tower_grid_(std::make_unique<TowerGrid>(10, 20)) {  // 10 floors, 20 columns initial
+    : tower_grid_(std::make_unique<TowerGrid>(1, 20, 0)) {  // Start with 1 floor (ground), 20 columns, ground at index 0
 }
 
 ECSWorld::~ECSWorld() {
