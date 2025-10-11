@@ -61,6 +61,24 @@ enum class PersonState {
 };
 
 /**
+ * @brief NPC type classification
+ */
+enum class NPCType {
+    Visitor,               // Temporary visitor (shopping, sightseeing, etc.)
+    Employee               // Employee with a job in the tower
+};
+
+/**
+ * @brief Activity type for visitors
+ */
+enum class VisitorActivity {
+    Shopping,              // Browsing shops
+    JobSeeking,            // Looking for employment
+    Visiting,              // General visiting
+    Leaving                // Exiting the tower
+};
+
+/**
  * @brief Component for Person entities with state machine and movement tracking
  * 
  * This component extends Actor with detailed state tracking for simulation
@@ -70,6 +88,7 @@ enum class PersonState {
 struct Person {
     std::string name;
     PersonState state;
+    NPCType npc_type;         // Type of NPC (visitor or employee)
     
     // Current location
     int current_floor;
@@ -89,9 +108,11 @@ struct Person {
     Person(const std::string& n = "Person", 
            int floor = 0, 
            float col = 0.0f,
-           float speed = 2.0f)
+           float speed = 2.0f,
+           NPCType type = NPCType::Visitor)
         : name(n),
           state(PersonState::Idle),
+          npc_type(type),
           current_floor(floor),
           current_column(col),
           destination_floor(floor),
@@ -151,6 +172,109 @@ struct Person {
 };
 
 /**
+ * @brief Component for visitor NPCs
+ * 
+ * Tracks visitor-specific information like their activity and visit duration.
+ */
+struct VisitorInfo {
+    VisitorActivity activity;      // What the visitor is currently doing
+    float visit_duration;          // How long they've been in the tower (seconds)
+    float max_visit_duration;      // When they'll leave (seconds)
+    int target_facility_floor;     // Floor of facility they're visiting (-1 if none)
+    
+    VisitorInfo(VisitorActivity act = VisitorActivity::Visiting)
+        : activity(act),
+          visit_duration(0.0f),
+          max_visit_duration(300.0f),  // 5 minutes default
+          target_facility_floor(-1) {}
+    
+    /**
+     * @brief Get the activity as a string
+     */
+    const char* GetActivityString() const {
+        switch (activity) {
+            case VisitorActivity::Shopping:    return "Shopping";
+            case VisitorActivity::JobSeeking:  return "Job Seeking";
+            case VisitorActivity::Visiting:    return "Visiting";
+            case VisitorActivity::Leaving:     return "Leaving";
+            default:                           return "Unknown";
+        }
+    }
+    
+    /**
+     * @brief Check if visitor should leave
+     */
+    bool ShouldLeave() const {
+        return visit_duration >= max_visit_duration;
+    }
+};
+
+/**
+ * @brief Component for employee NPCs
+ * 
+ * Tracks employment information including workplace, job title, and shift schedule.
+ */
+struct EmploymentInfo {
+    std::string job_title;         // Job title (e.g., "Office Worker", "Shop Clerk")
+    int workplace_floor;           // Floor where they work
+    int workplace_column;          // Column where workplace is located
+    
+    // Shift schedule (simple 5-day week)
+    float shift_start_hour;        // Hour when shift starts (e.g., 9.0 for 9 AM)
+    float shift_end_hour;          // Hour when shift ends (e.g., 17.0 for 5 PM)
+    std::vector<int> work_days;    // Days of week they work (0=Monday, 6=Sunday)
+    
+    bool currently_on_shift;       // Whether employee is currently working
+    
+    EmploymentInfo(const std::string& title = "Employee", 
+                   int floor = 0, 
+                   int col = 0,
+                   float start_hour = 9.0f,
+                   float end_hour = 17.0f)
+        : job_title(title),
+          workplace_floor(floor),
+          workplace_column(col),
+          shift_start_hour(start_hour),
+          shift_end_hour(end_hour),
+          currently_on_shift(false) {
+        // Default to Monday-Friday (0-4)
+        work_days = {0, 1, 2, 3, 4};
+    }
+    
+    /**
+     * @brief Check if employee should be working based on current time
+     */
+    bool ShouldBeWorking(float current_hour, int current_day) const {
+        // Check if today is a work day
+        bool is_work_day = false;
+        for (int day : work_days) {
+            if (day == current_day) {
+                is_work_day = true;
+                break;
+            }
+        }
+        
+        if (!is_work_day) {
+            return false;
+        }
+        
+        // Check if current time is within shift hours
+        return current_hour >= shift_start_hour && current_hour < shift_end_hour;
+    }
+    
+    /**
+     * @brief Get status string for UI display
+     */
+    std::string GetStatusString() const {
+        if (currently_on_shift) {
+            return "On shift: " + job_title;
+        } else {
+            return "Off duty";
+        }
+    }
+};
+
+/**
  * @brief Component for building components (offices, residences, shops, etc.)
  * 
  * BuildingComponents represent the various facilities and rooms
@@ -181,9 +305,60 @@ struct BuildingComponent {
     int width;              // Width in tiles
     int capacity;           // Maximum occupancy
     int current_occupancy;  // Current number of people
+    int job_openings;       // Number of unfilled jobs at this facility
 
     BuildingComponent(Type t = Type::Office, int f = 0, int w = 1, int cap = 10)
-        : type(t), floor(f), width(w), capacity(cap), current_occupancy(0) {}
+        : type(t), floor(f), width(w), capacity(cap), current_occupancy(0), job_openings(0) {}
+    
+    /**
+     * @brief Get the number of employees needed for this facility type
+     */
+    int GetRequiredEmployees() const {
+        switch (type) {
+            case Type::Office:      return capacity / 5;  // 1 employee per 5 capacity
+            case Type::RetailShop:  return 2;             // Shops need 2 employees
+            case Type::Restaurant:  return 3;             // Restaurants need 3 employees
+            case Type::Hotel:       return 4;             // Hotels need 4 employees
+            default:                return 0;             // Other types don't need employees
+        }
+    }
+    
+    /**
+     * @brief Check if this facility has job openings
+     */
+    bool HasJobOpenings() const {
+        return job_openings > 0;
+    }
+};
+
+/**
+ * @brief Global singleton component for tower-wide NPC spawning
+ * 
+ * Manages spawning of visitors and tracking of available jobs.
+ */
+struct NPCSpawner {
+    float time_since_last_spawn;        // Time since last visitor spawn
+    float spawn_interval;               // Base interval between spawns (seconds)
+    int total_visitors_spawned;         // Total count of spawned visitors
+    int total_employees_hired;          // Total count of employees hired
+    int next_visitor_id;                // ID counter for naming visitors
+    
+    NPCSpawner(float interval = 30.0f)
+        : time_since_last_spawn(0.0f),
+          spawn_interval(interval),
+          total_visitors_spawned(0),
+          total_employees_hired(0),
+          next_visitor_id(1) {}
+    
+    /**
+     * @brief Calculate dynamic spawn rate based on tower state
+     */
+    float GetDynamicSpawnInterval(int facility_count) const {
+        // More facilities = more visitors
+        // Base: 30 seconds, decreases to 10 seconds with 10+ facilities
+        float adjusted = spawn_interval * (1.0f - (facility_count * 0.02f));
+        return std::max(10.0f, std::min(60.0f, adjusted));
+    }
 };
 
 /**

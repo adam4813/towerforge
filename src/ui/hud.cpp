@@ -306,16 +306,26 @@ void HUD::RenderPersonPanel() {
     int panel_y = TOP_BAR_HEIGHT + 10;
     
     // Draw panel background
-    DrawRectangle(panel_x, panel_y, PANEL_WIDTH, 180, ColorAlpha(BLACK, 0.8f));
+    DrawRectangle(panel_x, panel_y, PANEL_WIDTH, 200, ColorAlpha(BLACK, 0.8f));
     DrawRectangle(panel_x, panel_y, PANEL_WIDTH, 2, YELLOW);
     
     int x = panel_x + PANEL_PADDING;
     int y = panel_y + PANEL_PADDING;
     
-    // Title
-    std::string title = "PERSON #" + std::to_string(person_info_.id);
+    // Title - show name
+    std::string title = person_info_.name;
     DrawText(title.c_str(), x, y, 16, WHITE);
-    y += 25;
+    y += 20;
+    
+    // NPC Type
+    std::string type = "Type: " + person_info_.npc_type;
+    DrawText(type.c_str(), x, y, 14, SKYBLUE);
+    y += 20;
+    
+    // Status (current activity)
+    std::string status = "Status: " + person_info_.status;
+    DrawText(status.c_str(), x, y, 14, GOLD);
+    y += 20;
     
     // State
     std::string state = "State: " + person_info_.state;
@@ -336,11 +346,6 @@ void HUD::RenderPersonPanel() {
     std::stringstream wait_ss;
     wait_ss << "Wait Time: " << std::fixed << std::setprecision(0) << person_info_.wait_time << "s";
     DrawText(wait_ss.str().c_str(), x, y, 14, person_info_.wait_time > 30 ? RED : LIGHTGRAY);
-    y += 20;
-    
-    // Needs
-    std::string needs = "Needs: " + person_info_.needs;
-    DrawText(needs.c_str(), x, y, 14, LIGHTGRAY);
     y += 20;
     
     // Satisfaction
