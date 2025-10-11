@@ -19,12 +19,14 @@ The workflow runs on:
 
 The workflow uses a matrix strategy to build on multiple platforms and compilers:
 
-| Platform | OS | Compiler | Build Type | vcpkg Triplet |
-|----------|-----|----------|------------|---------------|
-| Windows | windows-latest | MSVC | Release | x64-windows |
-| Linux | ubuntu-latest | GCC 10 | Release | x64-linux |
-| Linux | ubuntu-latest | Clang 12 | Release | x64-linux |
-| macOS | macos-latest | Clang | Release | x64-osx |
+| Platform | OS | Compiler | Build Type | vcpkg Triplet | Status |
+|----------|-----|----------|------------|---------------|--------|
+| Windows | windows-latest | MSVC | Release | x64-windows | Active |
+| Linux | ubuntu-latest | GCC 10 | Release | x64-linux | Active |
+| Linux | ubuntu-latest | Clang 12 | Release | x64-linux | Temporarily Disabled |
+| macOS | macos-latest | Clang | Release | x64-osx | Temporarily Disabled |
+
+**Note:** macOS and Linux Clang builds are temporarily disabled to reduce CI build time and resource usage.
 
 ## Workflow Steps
 
@@ -94,8 +96,10 @@ After a successful build, the following artifacts are available:
 
 - `TowerForge-windows-latest-msvc.zip`
 - `TowerForge-ubuntu-latest-gcc.tar.gz`
-- `TowerForge-ubuntu-latest-clang.tar.gz`
-- `TowerForge-macos-latest-clang.tar.gz`
+
+**Temporarily Disabled:**
+- ~~`TowerForge-ubuntu-latest-clang.tar.gz`~~
+- ~~`TowerForge-macos-latest-clang.tar.gz`~~
 
 Each archive contains:
 - `towerforge` executable (main game)

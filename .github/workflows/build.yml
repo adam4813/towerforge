@@ -28,17 +28,17 @@ jobs:
             build_type: Release
             vcpkg_triplet: x64-linux
 
-          # Linux builds - Clang
-          - os: ubuntu-latest
-            compiler: clang
-            build_type: Release
-            vcpkg_triplet: x64-linux
+          # Linux builds - Clang (temporarily disabled)
+          # - os: ubuntu-latest
+          #   compiler: clang
+          #   build_type: Release
+          #   vcpkg_triplet: x64-linux
 
-          # macOS builds
-          - os: macos-latest-large
-            compiler: clang
-            build_type: Release
-            vcpkg_triplet: x64-osx
+          # macOS builds (temporarily disabled)
+          # - os: macos-latest-large
+          #   compiler: clang
+          #   build_type: Release
+          #   vcpkg_triplet: x64-osx
 
     steps:
     - name: Checkout repository
