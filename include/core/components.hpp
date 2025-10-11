@@ -1045,7 +1045,7 @@ struct ResearchTree {
     void InitializeDefaultTree() {
         nodes.clear();
         
-        // Row 0: Basic upgrades (starting tier)
+        // Row 0: Basic upgrades (starting tier) - unlocked by default or very cheap
         nodes.push_back(ResearchNode("basic_elevator", "Fast Elevators", 
             ResearchNodeType::ElevatorSpeed, 10, 0, 0));
         nodes.back().description = "Increases elevator speed by 50%";
@@ -1062,7 +1062,14 @@ struct ResearchTree {
             ResearchNodeType::FacilityUnlock, 5, 0, 2));
         nodes.back().description = "Unlock retail shop facilities";
         nodes.back().icon = "🏪";
-        nodes.back().effect_target = "Shop";
+        nodes.back().effect_target = "RetailShop";
+        
+        nodes.push_back(ResearchNode("management_office_unlock", "Tower Management", 
+            ResearchNodeType::FacilityUnlock, 15, 0, 3));
+        nodes.back().description = "Unlock management office to generate tower points";
+        nodes.back().icon = "🏛️";
+        nodes.back().effect_target = "ManagementOffice";
+        nodes.back().min_population = 20;  // Requires 20 people before management is needed
         
         // Row 1: Mid-tier upgrades
         nodes.push_back(ResearchNode("express_shafts", "Express Elevators", 
@@ -1086,18 +1093,37 @@ struct ResearchTree {
         nodes.back().effect_value = 0.25f;
         nodes.back().prerequisites.push_back("office_unlock");
         
+        nodes.push_back(ResearchNode("satellite_office_unlock", "Branch Management", 
+            ResearchNodeType::FacilityUnlock, 25, 1, 3));
+        nodes.back().description = "Unlock satellite offices for distributed management";
+        nodes.back().icon = "🏢";
+        nodes.back().effect_target = "SatelliteOffice";
+        nodes.back().prerequisites.push_back("management_office_unlock");
+        nodes.back().min_star_rating = 2;
+        
+        nodes.push_back(ResearchNode("restaurant_unlock", "Fine Dining", 
+            ResearchNodeType::FacilityUnlock, 30, 1, 4));
+        nodes.back().description = "Unlock restaurant facilities";
+        nodes.back().icon = "🍽️";
+        nodes.back().effect_target = "Restaurant";
+        nodes.back().prerequisites.push_back("shop_unlock");
+        nodes.back().min_star_rating = 2;
+        nodes.back().min_population = 50;
+        
         // Row 2: Advanced upgrades
         nodes.push_back(ResearchNode("construction_speed", "Rapid Construction", 
             ResearchNodeType::ConstructionSpeed, 25, 2, 0));
         nodes.back().description = "Reduces construction time by 50%";
         nodes.back().icon = "🏗️";
         nodes.back().effect_value = 0.5f;
+        nodes.back().min_star_rating = 3;
         
         nodes.push_back(ResearchNode("cost_reduction", "Efficient Building", 
             ResearchNodeType::CostReduction, 30, 2, 1));
         nodes.back().description = "Reduces all costs by 20%";
         nodes.back().icon = "📉";
         nodes.back().effect_value = 0.2f;
+        nodes.back().required_facilities.push_back("ManagementOffice");
         
         nodes.push_back(ResearchNode("satisfaction_boost", "Quality Service", 
             ResearchNodeType::SatisfactionBonus, 25, 2, 2));
@@ -1105,6 +1131,24 @@ struct ResearchTree {
         nodes.back().icon = "😊";
         nodes.back().effect_value = 10.0f;
         nodes.back().prerequisites.push_back("income_boost");
+        
+        nodes.push_back(ResearchNode("arcade_unlock", "Gaming Entertainment", 
+            ResearchNodeType::FacilityUnlock, 35, 2, 3));
+        nodes.back().description = "Unlock arcade entertainment facilities";
+        nodes.back().icon = "🎮";
+        nodes.back().effect_target = "Arcade";
+        nodes.back().prerequisites.push_back("restaurant_unlock");
+        nodes.back().min_star_rating = 3;
+        nodes.back().min_population = 100;
+        
+        nodes.push_back(ResearchNode("gym_unlock", "Wellness Center", 
+            ResearchNodeType::FacilityUnlock, 40, 2, 4));
+        nodes.back().description = "Unlock gym and fitness facilities";
+        nodes.back().icon = "💪";
+        nodes.back().effect_target = "Gym";
+        nodes.back().prerequisites.push_back("restaurant_unlock");
+        nodes.back().min_star_rating = 3;
+        nodes.back().min_population = 75;
     }
     
     /**
