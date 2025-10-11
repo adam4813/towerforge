@@ -1,4 +1,6 @@
 #include "ui/hud.h"
+#include "ui/ui_window_manager.h"
+#include "ui/info_windows.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -6,10 +8,8 @@
 namespace towerforge {
 namespace ui {
 
-HUD::HUD() 
-    : show_facility_panel_(false)
-    , show_person_panel_(false)
-    , show_elevator_panel_(false) {
+HUD::HUD() {
+    window_manager_ = std::make_unique<UIWindowManager>();
 }
 
 HUD::~HUD() {
@@ -31,17 +31,8 @@ void HUD::Render() {
     RenderTopBar();
     RenderStarRating();
     
-    if (show_facility_panel_) {
-        RenderFacilityPanel();
-    }
-    
-    if (show_person_panel_) {
-        RenderPersonPanel();
-    }
-    
-    if (show_elevator_panel_) {
-        RenderElevatorPanel();
-    }
+    // Render all info windows through the window manager
+    window_manager_->Render();
     
     RenderNotifications();
     RenderSpeedControls();
@@ -57,30 +48,25 @@ void HUD::SetGameState(const GameState& state) {
 }
 
 void HUD::ShowFacilityInfo(const FacilityInfo& info) {
-    facility_info_ = info;
-    show_facility_panel_ = true;
-    show_person_panel_ = false;
-    show_elevator_panel_ = false;
+    // Create a new facility window and add it to the window manager
+    auto window = std::make_unique<FacilityWindow>(info);
+    window_manager_->AddWindow(std::move(window));
 }
 
 void HUD::ShowPersonInfo(const PersonInfo& info) {
-    person_info_ = info;
-    show_person_panel_ = true;
-    show_facility_panel_ = false;
-    show_elevator_panel_ = false;
+    // Create a new person window and add it to the window manager
+    auto window = std::make_unique<PersonWindow>(info);
+    window_manager_->AddWindow(std::move(window));
 }
 
 void HUD::ShowElevatorInfo(const ElevatorInfo& info) {
-    elevator_info_ = info;
-    show_elevator_panel_ = true;
-    show_facility_panel_ = false;
-    show_person_panel_ = false;
+    // Create a new elevator window and add it to the window manager
+    auto window = std::make_unique<ElevatorWindow>(info);
+    window_manager_->AddWindow(std::move(window));
 }
 
 void HUD::HideInfoPanels() {
-    show_facility_panel_ = false;
-    show_person_panel_ = false;
-    show_elevator_panel_ = false;
+    window_manager_->Clear();
 }
 
 void HUD::AddNotification(Notification::Type type, const std::string& message, float duration) {
@@ -110,14 +96,9 @@ bool HUD::HandleClick(int mouse_x, int mouse_y) {
         return true;
     }
     
-    // Check if click is on info panels
-    if (show_facility_panel_ || show_person_panel_ || show_elevator_panel_) {
-        int panel_x = screen_width - PANEL_WIDTH - 10;
-        int panel_y = TOP_BAR_HEIGHT + 10;
-        
-        if (mouse_x >= panel_x && mouse_x <= screen_width - 10) {
-            return true;
-        }
+    // Check if click is on any info window
+    if (window_manager_->HandleClick(mouse_x, mouse_y)) {
+        return true;
     }
     
     return false;
@@ -252,158 +233,6 @@ void HUD::RenderStarRating() {
     }
 }
 
-void HUD::RenderFacilityPanel() {
-    int screen_width = GetScreenWidth();
-    int panel_x = screen_width - PANEL_WIDTH - 10;
-    int panel_y = TOP_BAR_HEIGHT + 10;
-    
-    // Draw panel background
-    DrawRectangle(panel_x, panel_y, PANEL_WIDTH, 200, ColorAlpha(BLACK, 0.8f));
-    DrawRectangle(panel_x, panel_y, PANEL_WIDTH, 2, SKYBLUE);
-    
-    int x = panel_x + PANEL_PADDING;
-    int y = panel_y + PANEL_PADDING;
-    
-    // Title
-    std::string title = facility_info_.type + " - Floor " + std::to_string(facility_info_.floor);
-    DrawText(title.c_str(), x, y, 16, WHITE);
-    y += 25;
-    
-    // Occupancy
-    std::string occupancy = "Occupancy: " + std::to_string(facility_info_.occupancy) + 
-                           "/" + std::to_string(facility_info_.max_occupancy);
-    DrawText(occupancy.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Revenue
-    std::stringstream revenue_ss;
-    revenue_ss << "Revenue: $" << std::fixed << std::setprecision(0) << facility_info_.revenue << "/hr";
-    DrawText(revenue_ss.str().c_str(), x, y, 14, GREEN);
-    y += 20;
-    
-    // Satisfaction
-    std::string satisfaction = "Satisfaction: " + GetSatisfactionEmoji(facility_info_.satisfaction) + 
-                              " " + std::to_string(static_cast<int>(facility_info_.satisfaction)) + "%";
-    DrawText(satisfaction.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Tenants
-    std::string tenants = "Tenants: " + std::to_string(facility_info_.tenant_count) + " workers";
-    DrawText(tenants.c_str(), x, y, 14, LIGHTGRAY);
-    y += 30;
-    
-    // Buttons (placeholder)
-    DrawRectangle(x, y, 100, 25, DARKGRAY);
-    DrawText("[Demolish]", x + 5, y + 5, 14, RED);
-    
-    DrawRectangle(x + 110, y, 100, 25, DARKGRAY);
-    DrawText("[Upgrade]", x + 115, y + 5, 14, YELLOW);
-}
-
-void HUD::RenderPersonPanel() {
-    int screen_width = GetScreenWidth();
-    int panel_x = screen_width - PANEL_WIDTH - 10;
-    int panel_y = TOP_BAR_HEIGHT + 10;
-    
-    // Draw panel background
-    DrawRectangle(panel_x, panel_y, PANEL_WIDTH, 200, ColorAlpha(BLACK, 0.8f));
-    DrawRectangle(panel_x, panel_y, PANEL_WIDTH, 2, YELLOW);
-    
-    int x = panel_x + PANEL_PADDING;
-    int y = panel_y + PANEL_PADDING;
-    
-    // Title - show name
-    std::string title = person_info_.name;
-    DrawText(title.c_str(), x, y, 16, WHITE);
-    y += 20;
-    
-    // NPC Type
-    std::string type = "Type: " + person_info_.npc_type;
-    DrawText(type.c_str(), x, y, 14, SKYBLUE);
-    y += 20;
-    
-    // Status (current activity)
-    std::string status = "Status: " + person_info_.status;
-    DrawText(status.c_str(), x, y, 14, GOLD);
-    y += 20;
-    
-    // State
-    std::string state = "State: " + person_info_.state;
-    DrawText(state.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Current floor
-    std::string current = "Current: Floor " + std::to_string(person_info_.current_floor);
-    DrawText(current.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Destination
-    std::string dest = "Destination: Floor " + std::to_string(person_info_.destination_floor);
-    DrawText(dest.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Wait time
-    std::stringstream wait_ss;
-    wait_ss << "Wait Time: " << std::fixed << std::setprecision(0) << person_info_.wait_time << "s";
-    DrawText(wait_ss.str().c_str(), x, y, 14, person_info_.wait_time > 30 ? RED : LIGHTGRAY);
-    y += 20;
-    
-    // Satisfaction
-    std::string satisfaction = "Satisfaction: " + GetSatisfactionEmoji(person_info_.satisfaction) + 
-                              " " + std::to_string(static_cast<int>(person_info_.satisfaction)) + "%";
-    DrawText(satisfaction.c_str(), x, y, 14, LIGHTGRAY);
-}
-
-void HUD::RenderElevatorPanel() {
-    int screen_width = GetScreenWidth();
-    int panel_x = screen_width - PANEL_WIDTH - 10;
-    int panel_y = TOP_BAR_HEIGHT + 10;
-    
-    int panel_height = 150 + (static_cast<int>(elevator_info_.queue.size()) * 20);
-    
-    // Draw panel background
-    DrawRectangle(panel_x, panel_y, PANEL_WIDTH, panel_height, ColorAlpha(BLACK, 0.8f));
-    DrawRectangle(panel_x, panel_y, PANEL_WIDTH, 2, PURPLE);
-    
-    int x = panel_x + PANEL_PADDING;
-    int y = panel_y + PANEL_PADDING;
-    
-    // Title
-    std::string title = "ELEVATOR #" + std::to_string(elevator_info_.id);
-    DrawText(title.c_str(), x, y, 16, WHITE);
-    y += 25;
-    
-    // Current floor and direction
-    std::string current = "Current Floor: " + std::to_string(elevator_info_.current_floor) + 
-                         " " + elevator_info_.direction;
-    DrawText(current.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Occupancy
-    std::string occupancy = "Occupancy: " + std::to_string(elevator_info_.occupancy) + 
-                           "/" + std::to_string(elevator_info_.max_occupancy);
-    DrawText(occupancy.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Next stop
-    std::string next = "Next Stop: Floor " + std::to_string(elevator_info_.next_stop);
-    DrawText(next.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Queue length
-    std::string queue = "Queue Length: " + std::to_string(elevator_info_.queue.size());
-    DrawText(queue.c_str(), x, y, 14, LIGHTGRAY);
-    y += 20;
-    
-    // Queue details
-    for (const auto& [floor, waiting] : elevator_info_.queue) {
-        std::string queue_item = "- Floor " + std::to_string(floor) + ": " + 
-                                std::to_string(waiting) + " waiting";
-        DrawText(queue_item.c_str(), x + 10, y, 12, GRAY);
-        y += 20;
-    }
-}
-
 void HUD::RenderNotifications() {
     int screen_height = GetScreenHeight();
     int x = 10;
@@ -495,13 +324,6 @@ std::string HUD::FormatTime(float time) {
     result << display_hours << ":" << std::setfill('0') << std::setw(2) << minutes << period;
     
     return result.str();
-}
-
-std::string HUD::GetSatisfactionEmoji(float satisfaction) {
-    if (satisfaction >= 80) return ":)";
-    if (satisfaction >= 60) return ":|";
-    if (satisfaction >= 40) return ":/";
-    return ":(";
 }
 
 void HUD::RenderEndGameSummary() {

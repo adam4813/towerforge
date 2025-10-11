@@ -40,6 +40,9 @@ set(SOURCE_FILES
     src/ui/audio_settings_menu.cpp
     src/ui/tutorial_manager.cpp
     src/ui/mods_menu.cpp
+    src/ui/ui_window.cpp
+    src/ui/ui_window_manager.cpp
+    src/ui/info_windows.cpp
     src/audio/audio_manager.cpp
 )
 
