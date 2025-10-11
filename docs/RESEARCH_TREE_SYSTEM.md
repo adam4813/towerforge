@@ -79,7 +79,7 @@ Research nodes can now have advanced prerequisites beyond just other research:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                 RESEARCH/UPGRADE TREE                           │
+│              TOWER POINTS RESEARCH TREE                         │
 │ Tower Points: 50      Total Earned: 100    Generation: 5 pts/hr│
 │ Management Staff: 5                                             │
 ├─────────────────────────────────────────────────────────────────┤
