@@ -150,6 +150,24 @@ public:
      */
     void SetCamera(towerforge::rendering::Camera* camera) { camera_ = camera; }
     
+    /**
+     * @brief Update tooltips for grid placement
+     * @param mouse_x Mouse X position
+     * @param mouse_y Mouse Y position
+     * @param grid_offset_x Grid offset X
+     * @param grid_offset_y Grid offset Y
+     * @param cell_width Cell width
+     * @param cell_height Cell height
+     * @param current_funds Current player funds
+     */
+    void UpdateTooltips(int mouse_x, int mouse_y, int grid_offset_x, int grid_offset_y,
+                       int cell_width, int cell_height, float current_funds);
+    
+    /**
+     * @brief Set the tooltip manager
+     */
+    void SetTooltipManager(TooltipManager* tooltip_manager) { tooltip_manager_ = tooltip_manager; }
+    
 private:
     /**
      * @brief Convert mouse position to grid coordinates
@@ -197,6 +215,7 @@ private:
     std::vector<ConstructionState> constructions_in_progress_;
     std::vector<PlacementAction> undo_stack_;
     std::vector<PlacementAction> redo_stack_;
+    TooltipManager* tooltip_manager_;
     
     static constexpr int MAX_UNDO_ACTIONS = 20;
     static constexpr float RECOVERY_PERCENTAGE = 0.5f; // 50% recovery on demolish
