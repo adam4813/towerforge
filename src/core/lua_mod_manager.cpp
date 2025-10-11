@@ -482,13 +482,18 @@ int LuaModManager::Lua_RegisterResearchNode(lua_State* L) {
     }
     
     // Get the research tree from the ECS world
-    auto world = manager->ecs_world_->GetWorld();
+    flecs::world& world = manager->ecs_world_->GetWorld();
     if (!world.has<ResearchTree>()) {
         luaL_error(L, "Research tree not initialized");
         return 0;
     }
     
-    auto research_tree = world.get_mut<ResearchTree>();
+    ResearchTree* research_tree = world.get_mut<ResearchTree>();
+    if (!research_tree) {
+        luaL_error(L, "Failed to get research tree");
+        return 0;
+    }
+    
     ResearchNode node;
     
     // Get id (required)
