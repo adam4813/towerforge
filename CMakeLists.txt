@@ -39,6 +39,7 @@ set(SOURCE_FILES
     src/ui/general_settings_menu.cpp
     src/ui/audio_settings_menu.cpp
     src/ui/tutorial_manager.cpp
+    src/ui/mods_menu.cpp
     src/ui/ui_window.cpp
     src/ui/ui_window_manager.cpp
     src/ui/info_windows.cpp
@@ -55,6 +56,10 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 # Screenshot application
 add_executable(screenshot_app src/screenshot_app.cpp ${SOURCE_FILES})
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
+
+# Test mods application
+add_executable(test_mods src/test_mods.cpp)
+target_link_libraries(test_mods PRIVATE towerforge_core)
 
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)

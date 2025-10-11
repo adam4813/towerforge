@@ -15,6 +15,7 @@ PauseMenu::PauseMenu()
     menu_items_.push_back({"Save Game", PauseMenuOption::SaveGame});
     menu_items_.push_back({"Load Game", PauseMenuOption::LoadGame});
     menu_items_.push_back({"Settings", PauseMenuOption::Settings});
+    menu_items_.push_back({"Mods", PauseMenuOption::Mods});
     menu_items_.push_back({"Quit to Title", PauseMenuOption::QuitToTitle});
 }
 

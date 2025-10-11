@@ -2,6 +2,7 @@
 #include "core/components.hpp"
 #include "core/tower_grid.hpp"
 #include "core/facility_manager.hpp"
+#include "core/lua_mod_manager.hpp"
 #include <iostream>
 
 namespace TowerForge {
@@ -22,6 +23,13 @@ void ECSWorld::Initialize() {
     
     // Create facility manager after world is initialized
     facility_manager_ = std::make_unique<FacilityManager>(world_, *tower_grid_);
+    
+    // Create and initialize mod manager
+    mod_manager_ = std::make_unique<LuaModManager>();
+    if (mod_manager_->Initialize(this)) {
+        // Load mods from the mods/ directory
+        mod_manager_->LoadMods("mods/");
+    }
     
     std::cout << "ECS World initialized successfully" << std::endl;
 }
@@ -53,6 +61,10 @@ TowerGrid& ECSWorld::GetTowerGrid() {
 
 FacilityManager& ECSWorld::GetFacilityManager() {
     return *facility_manager_;
+}
+
+LuaModManager& ECSWorld::GetModManager() {
+    return *mod_manager_;
 }
 
 void ECSWorld::RegisterComponents() {

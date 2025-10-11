@@ -4,12 +4,14 @@
 #include <memory>
 #include "core/tower_grid.hpp"
 #include "core/facility_manager.hpp"
+#include "core/lua_mod_manager.hpp"
 
 namespace TowerForge {
 namespace Core {
 
 // Forward declaration
 class FacilityManager;
+class LuaModManager;
 
 /**
  * @brief Wrapper around the flecs ECS world
@@ -58,6 +60,12 @@ public:
      * @return Reference to the facility manager
      */
     FacilityManager& GetFacilityManager();
+    
+    /**
+     * @brief Get the Lua mod manager instance
+     * @return Reference to the Lua mod manager
+     */
+    LuaModManager& GetModManager();
 
 private:
     void RegisterComponents();
@@ -66,6 +74,7 @@ private:
     flecs::world world_;
     std::unique_ptr<TowerGrid> tower_grid_;
     std::unique_ptr<FacilityManager> facility_manager_;
+    std::unique_ptr<LuaModManager> mod_manager_;
 };
 
 } // namespace Core
