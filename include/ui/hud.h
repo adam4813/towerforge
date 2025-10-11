@@ -3,9 +3,13 @@
 #include <raylib.h>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace towerforge {
 namespace ui {
+
+// Forward declarations
+class UIWindowManager;
 
 /**
  * @brief Structure to hold tower rating information
@@ -124,24 +128,29 @@ public:
     void SetGameState(const GameState& state);
     
     /**
-     * @brief Show facility info panel
+     * @brief Show facility info window (creates or updates)
      */
     void ShowFacilityInfo(const FacilityInfo& info);
     
     /**
-     * @brief Show person info panel
+     * @brief Show person info window (creates or updates)
      */
     void ShowPersonInfo(const PersonInfo& info);
     
     /**
-     * @brief Show elevator info panel
+     * @brief Show elevator info window (creates or updates)
      */
     void ShowElevatorInfo(const ElevatorInfo& info);
     
     /**
-     * @brief Hide all info panels
+     * @brief Hide all info windows
      */
     void HideInfoPanels();
+    
+    /**
+     * @brief Get the window manager
+     */
+    UIWindowManager* GetWindowManager() { return window_manager_.get(); }
     
     /**
      * @brief Add a notification
@@ -159,26 +168,16 @@ public:
 private:
     void RenderTopBar();
     void RenderStarRating();
-    void RenderFacilityPanel();
-    void RenderPersonPanel();
-    void RenderElevatorPanel();
     void RenderNotifications();
     void RenderSpeedControls();
     void RenderEndGameSummary();
     
     std::string FormatTime(float time);
-    std::string GetSatisfactionEmoji(float satisfaction);
     
     GameState game_state_;
     
-    // Info panels
-    bool show_facility_panel_;
-    bool show_person_panel_;
-    bool show_elevator_panel_;
-    
-    FacilityInfo facility_info_;
-    PersonInfo person_info_;
-    ElevatorInfo elevator_info_;
+    // Window manager for info windows
+    std::unique_ptr<UIWindowManager> window_manager_;
     
     // Notifications
     std::vector<Notification> notifications_;
