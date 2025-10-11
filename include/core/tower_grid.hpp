@@ -18,6 +18,7 @@ struct BuildingComponent;
 struct GridCell {
     bool occupied = false;
     int facility_id = -1;  // Entity ID of the facility occupying this cell
+    bool floor_built = false;  // Whether this floor position has been constructed
     
     GridCell() = default;
 };
@@ -36,8 +37,9 @@ public:
      * 
      * @param initial_floors Number of floors to start with (default: 1)
      * @param initial_columns Number of columns to start with (default: 10)
+     * @param ground_floor_index Floor index representing ground level (default: 0)
      */
-    TowerGrid(int initial_floors = 1, int initial_columns = 10);
+    TowerGrid(int initial_floors = 1, int initial_columns = 10, int ground_floor_index = 0);
     
     ~TowerGrid() = default;
     
@@ -61,6 +63,25 @@ public:
      * @return true if the floor was removed, false if it was occupied or is the last floor
      */
     bool RemoveTopFloor();
+    
+    /**
+     * @brief Add a basement floor below the current lowest floor
+     * @return The index of the newly added basement floor (negative)
+     */
+    int AddBasementFloor();
+    
+    /**
+     * @brief Add multiple basement floors below the current lowest floor
+     * @param count Number of basement floors to add
+     * @return The index of the first newly added basement floor
+     */
+    int AddBasementFloors(int count);
+    
+    /**
+     * @brief Remove the lowest basement floor if it's empty
+     * @return true if the basement floor was removed, false if it was occupied or is ground level
+     */
+    bool RemoveBottomFloor();
     
     // Column management
     
@@ -112,6 +133,42 @@ public:
      * @return true if a facility was removed, false if the position was empty
      */
     bool RemoveFacilityAt(int floor, int column);
+    
+    // Floor and column building state
+    
+    /**
+     * @brief Mark a floor as built (constructed)
+     * 
+     * @param floor Floor index
+     * @param start_column Starting column to build (default: 0)
+     * @param width Number of columns to build (default: all remaining columns)
+     * @return true if successful, false if floor is out of bounds
+     */
+    bool BuildFloor(int floor, int start_column = 0, int width = -1);
+    
+    /**
+     * @brief Check if a floor position is built
+     * 
+     * @param floor Floor index
+     * @param column Column index
+     * @return true if the floor is built at that position, false otherwise
+     */
+    bool IsFloorBuilt(int floor, int column) const;
+    
+    /**
+     * @brief Check if an entire floor row is built
+     * 
+     * @param floor Floor index
+     * @return true if all columns on this floor are built
+     */
+    bool IsEntireFloorBuilt(int floor) const;
+    
+    /**
+     * @brief Get the cost to build a floor cell
+     * 
+     * @return Cost in currency units to build one floor cell
+     */
+    static int GetFloorBuildCost() { return 50; }
     
     // Spatial queries
     
@@ -167,6 +224,24 @@ public:
     int GetColumnCount() const { return columns_; }
     
     /**
+     * @brief Get the ground floor index
+     * @return Floor index representing ground level (usually 0, but may be offset if basements exist)
+     */
+    int GetGroundFloorIndex() const { return ground_floor_index_; }
+    
+    /**
+     * @brief Get the lowest floor index (may be negative for basements)
+     * @return The lowest floor index
+     */
+    int GetLowestFloorIndex() const { return ground_floor_index_ - basement_floors_; }
+    
+    /**
+     * @brief Get the highest floor index
+     * @return The highest floor index
+     */
+    int GetHighestFloorIndex() const { return ground_floor_index_ + floors_ - basement_floors_ - 1; }
+    
+    /**
      * @brief Get the total number of occupied cells
      * @return Count of occupied cells
      */
@@ -180,12 +255,28 @@ public:
 private:
     int floors_;
     int columns_;
+    int ground_floor_index_;  // Index representing ground level (0 by default)
+    int basement_floors_;      // Number of basement floors (negative indices)
     std::vector<std::vector<GridCell>> grid_;  // grid_[floor][column]
     
     /**
      * @brief Resize the internal grid structure
      */
     void ResizeGrid();
+    
+    /**
+     * @brief Convert a floor index to grid array index
+     * @param floor Floor index (can be negative for basements)
+     * @return Array index in grid_ (always positive)
+     */
+    int FloorToGridIndex(int floor) const;
+    
+    /**
+     * @brief Convert a grid array index to floor index
+     * @param grid_index Array index in grid_
+     * @return Floor index (can be negative for basements)
+     */
+    int GridIndexToFloor(int grid_index) const;
     
     /**
      * @brief Check if a column is completely empty
