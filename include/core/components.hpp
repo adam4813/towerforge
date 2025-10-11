@@ -285,19 +285,29 @@ struct EmploymentInfo {
  * - Residential: Condominiums for tower residents. Provides housing and generates rent.
  * - RetailShop: Commercial shops selling goods/services. Generates retail income.
  * - Lobby: Main entrance/exit point for the tower. Required on ground floor.
- * - Restaurant: Food service facility (legacy type, kept for compatibility)
- * - Hotel: Temporary lodging (legacy type, kept for compatibility)
- * - Elevator: Vertical transportation (legacy type, kept for compatibility)
+ * - Restaurant: Food service facility. Requires cooks and servers.
+ * - Hotel: Temporary lodging. Requires receptionists and cleaning staff.
+ * - Elevator: Vertical transportation.
+ * - Gym: Fitness and wellness center. Requires trainers/attendants.
+ * - Arcade: Entertainment venue. Requires clerks.
+ * - Theater: Entertainment venue. Requires ushers.
+ * - ConferenceHall: Event space. Requires event coordinators.
+ * - FlagshipStore: Large retail store. Requires multiple shop staff.
  */
 struct BuildingComponent {
     enum class Type {
-        Office,        // Commercial office space
-        Residential,   // Residential condominiums
-        RetailShop,    // Retail shop
-        Lobby,         // Main entrance/lobby
-        Restaurant,    // Food service (legacy)
-        Hotel,         // Hotel rooms (legacy)
-        Elevator       // Vertical transport (legacy)
+        Office,           // Commercial office space
+        Residential,      // Residential condominiums
+        RetailShop,       // Retail shop
+        Lobby,            // Main entrance/lobby
+        Restaurant,       // Food service
+        Hotel,            // Hotel rooms
+        Elevator,         // Vertical transport
+        Gym,              // Fitness/wellness center
+        Arcade,           // Arcade entertainment
+        Theater,          // Theater entertainment
+        ConferenceHall,   // Conference/event space
+        FlagshipStore     // Large retail store
     };
 
     Type type;
@@ -306,20 +316,29 @@ struct BuildingComponent {
     int capacity;           // Maximum occupancy
     int current_occupancy;  // Current number of people
     int job_openings;       // Number of unfilled jobs at this facility
+    int current_staff;      // Current number of staff assigned
+    float operating_start_hour;  // Start of operating hours (e.g., 9.0 for 9 AM)
+    float operating_end_hour;    // End of operating hours (e.g., 21.0 for 9 PM)
 
     BuildingComponent(Type t = Type::Office, int f = 0, int w = 1, int cap = 10)
-        : type(t), floor(f), width(w), capacity(cap), current_occupancy(0), job_openings(0) {}
+        : type(t), floor(f), width(w), capacity(cap), current_occupancy(0), job_openings(0),
+          current_staff(0), operating_start_hour(9.0f), operating_end_hour(17.0f) {}
     
     /**
      * @brief Get the number of employees needed for this facility type
      */
     int GetRequiredEmployees() const {
         switch (type) {
-            case Type::Office:      return capacity / 5;  // 1 employee per 5 capacity
-            case Type::RetailShop:  return 2;             // Shops need 2 employees
-            case Type::Restaurant:  return 3;             // Restaurants need 3 employees
-            case Type::Hotel:       return 4;             // Hotels need 4 employees
-            default:                return 0;             // Other types don't need employees
+            case Type::Office:          return capacity / 5;  // 1 employee per 5 capacity
+            case Type::RetailShop:      return 2;             // Shops need 2 employees
+            case Type::Restaurant:      return 4;             // Restaurants need 4 employees (cooks, servers)
+            case Type::Hotel:           return 5;             // Hotels need 5 employees (receptionists, cleaners)
+            case Type::Gym:             return 3;             // Gyms need 3 employees (trainers/attendants)
+            case Type::Arcade:          return 2;             // Arcades need 2 employees (clerks)
+            case Type::Theater:         return 3;             // Theaters need 3 employees (ushers, staff)
+            case Type::ConferenceHall:  return 2;             // Conference halls need 2 employees (coordinators)
+            case Type::FlagshipStore:   return 4;             // Flagship stores need 4 employees (staff)
+            default:                    return 0;             // Other types don't need employees
         }
     }
     
@@ -328,6 +347,29 @@ struct BuildingComponent {
      */
     bool HasJobOpenings() const {
         return job_openings > 0;
+    }
+    
+    /**
+     * @brief Check if facility is operational (has minimum staff and within operating hours)
+     */
+    bool IsOperational(float current_hour) const {
+        // Facilities that don't need staff are always operational
+        int required_staff = GetRequiredEmployees();
+        if (required_staff == 0) {
+            return true;
+        }
+        
+        // Check if we have minimum staff
+        if (current_staff < required_staff) {
+            return false;
+        }
+        
+        // Check if within operating hours
+        if (current_hour < operating_start_hour || current_hour >= operating_end_hour) {
+            return false;
+        }
+        
+        return true;
     }
 };
 

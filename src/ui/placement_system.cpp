@@ -416,10 +416,11 @@ bool PlacementSystem::DemolishFacility(int floor, int column, float& funds) {
 
 float PlacementSystem::GetBuildTime(int facility_type_index) {
     // Build times in seconds (real-time)
-    // Lobby: 10s, Office: 15s, Restaurant: 20s, Shop: 15s, Hotel: 25s, Elevator: 12s
-    static const float build_times[] = {10.0f, 15.0f, 20.0f, 15.0f, 25.0f, 12.0f};
+    // Lobby: 10s, Office: 15s, Restaurant: 20s, Shop: 15s, Hotel: 25s
+    // Gym: 18s, Arcade: 16s, Theater: 22s, Conference: 20s, Flagship: 28s, Elevator: 12s
+    static const float build_times[] = {10.0f, 15.0f, 20.0f, 15.0f, 25.0f, 18.0f, 16.0f, 22.0f, 20.0f, 28.0f, 12.0f};
     
-    if (facility_type_index >= 0 && facility_type_index < 6) {
+    if (facility_type_index >= 0 && facility_type_index < 11) {
         return build_times[facility_type_index];
     }
     
@@ -429,7 +430,9 @@ float PlacementSystem::GetBuildTime(int facility_type_index) {
 TowerForge::Core::BuildingComponent::Type PlacementSystem::GetFacilityType(int facility_type_index) {
     // Map build menu index to BuildingComponent::Type
     // Based on BuildMenu initialization order:
-    // 0: Lobby, 1: Office, 2: Restaurant, 3: Shop (RetailShop), 4: Hotel, 5: Elevator
+    // 0: Lobby, 1: Office, 2: Restaurant, 3: Shop (RetailShop), 4: Hotel, 
+    // 5: Gym, 6: Arcade, 7: Theater, 8: Conference (ConferenceHall), 
+    // 9: Flagship (FlagshipStore), 10: Elevator
     
     switch (facility_type_index) {
         case 0: return TowerForge::Core::BuildingComponent::Type::Lobby;
@@ -437,7 +440,12 @@ TowerForge::Core::BuildingComponent::Type PlacementSystem::GetFacilityType(int f
         case 2: return TowerForge::Core::BuildingComponent::Type::Restaurant;
         case 3: return TowerForge::Core::BuildingComponent::Type::RetailShop;
         case 4: return TowerForge::Core::BuildingComponent::Type::Hotel;
-        case 5: return TowerForge::Core::BuildingComponent::Type::Elevator;
+        case 5: return TowerForge::Core::BuildingComponent::Type::Gym;
+        case 6: return TowerForge::Core::BuildingComponent::Type::Arcade;
+        case 7: return TowerForge::Core::BuildingComponent::Type::Theater;
+        case 8: return TowerForge::Core::BuildingComponent::Type::ConferenceHall;
+        case 9: return TowerForge::Core::BuildingComponent::Type::FlagshipStore;
+        case 10: return TowerForge::Core::BuildingComponent::Type::Elevator;
         default: return TowerForge::Core::BuildingComponent::Type::Office;
     }
 }

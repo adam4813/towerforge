@@ -16,6 +16,11 @@ BuildMenu::BuildMenu()
     facility_types_.emplace_back("Restaurant", "R", 8000, 6, RED);
     facility_types_.emplace_back("Shop", "S", 6000, 4, GREEN);
     facility_types_.emplace_back("Hotel", "H", 12000, 10, PURPLE);
+    facility_types_.emplace_back("Gym", "G", 10000, 7, ORANGE);
+    facility_types_.emplace_back("Arcade", "A", 9000, 5, MAGENTA);
+    facility_types_.emplace_back("Theater", "T", 15000, 8, VIOLET);
+    facility_types_.emplace_back("Conference", "C", 13000, 9, SKYBLUE);
+    facility_types_.emplace_back("Flagship", "F", 18000, 12, Color{0, 206, 209, 255});
     facility_types_.emplace_back("Elevator", "E", 15000, 2, GRAY);
 }
 

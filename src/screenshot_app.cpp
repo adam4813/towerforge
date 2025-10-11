@@ -231,6 +231,16 @@ int main(int argc, char* argv[]) {
                             color = DARKBLUE; break;
                         case BuildingComponent::Type::Elevator:
                             color = GRAY; break;
+                        case BuildingComponent::Type::Gym:
+                            color = ORANGE; break;
+                        case BuildingComponent::Type::Arcade:
+                            color = MAGENTA; break;
+                        case BuildingComponent::Type::Theater:
+                            color = VIOLET; break;
+                        case BuildingComponent::Type::ConferenceHall:
+                            color = SKYBLUE; break;
+                        case BuildingComponent::Type::FlagshipStore:
+                            color = Color{0, 206, 209, 255}; break;
                         default:
                             color = SKYBLUE; break;
                     }
