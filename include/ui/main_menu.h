@@ -12,6 +12,7 @@ namespace ui {
  */
 enum class MenuOption {
     NewGame,
+    Tutorial,
     LoadGame,
     Achievements,
     Settings,

@@ -38,6 +38,7 @@ set(SOURCE_FILES
     src/ui/achievements_menu.cpp
     src/ui/general_settings_menu.cpp
     src/ui/audio_settings_menu.cpp
+    src/ui/tutorial_manager.cpp
     src/audio/audio_manager.cpp
 )
 

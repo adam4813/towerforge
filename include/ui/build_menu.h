@@ -73,10 +73,22 @@ public:
      */
     bool IsVisible() const { return visible_; }
     
+    /**
+     * @brief Set tutorial mode and highlight facility
+     * @param tutorial_mode Whether tutorial mode is active
+     * @param highlight_facility Name of facility to highlight (empty for none)
+     */
+    void SetTutorialMode(bool tutorial_mode, const std::string& highlight_facility = "") {
+        tutorial_mode_ = tutorial_mode;
+        highlighted_facility_ = highlight_facility;
+    }
+    
 private:
     std::vector<FacilityType> facility_types_;
     int selected_facility_;
     bool visible_;
+    bool tutorial_mode_;
+    std::string highlighted_facility_;
     
     static constexpr int MENU_WIDTH = 200;
     static constexpr int ITEM_HEIGHT = 40;

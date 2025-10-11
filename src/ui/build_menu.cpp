@@ -6,7 +6,9 @@ namespace ui {
 
 BuildMenu::BuildMenu() 
     : selected_facility_(-1)
-    , visible_(true) {
+    , visible_(true)
+    , tutorial_mode_(false)
+    , highlighted_facility_("") {
     
     // Initialize facility types with costs and properties
     facility_types_.emplace_back("Lobby", "L", 1000, 10, GOLD);
@@ -46,23 +48,40 @@ void BuildMenu::Render(bool can_undo, bool can_redo, bool demolish_mode) {
     for (size_t i = 0; i < facility_types_.size(); ++i) {
         const auto& facility = facility_types_[i];
         
+        bool is_highlighted = tutorial_mode_ && !highlighted_facility_.empty() && 
+                             facility.name == highlighted_facility_;
+        bool is_disabled = tutorial_mode_ && !highlighted_facility_.empty() && 
+                          facility.name != highlighted_facility_;
+        
         // Highlight selected item (only if not in demolish mode)
         if (!demolish_mode && static_cast<int>(i) == selected_facility_) {
             DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5, 
                          ColorAlpha(WHITE, 0.2f));
         }
         
-        // Draw icon with facility color
-        DrawRectangle(menu_x + MENU_PADDING + 5, y + 5, 25, 25, facility.color);
-        DrawText(facility.icon.c_str(), menu_x + MENU_PADDING + 12, y + 10, 16, WHITE);
+        // Highlight tutorial-required facility with gold border
+        if (is_highlighted) {
+            DrawRectangleLines(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5, 
+                             GOLD);
+            DrawRectangleLines(menu_x + MENU_PADDING + 1, y + 1, MENU_WIDTH - MENU_PADDING * 2 - 2, ITEM_HEIGHT - 7, 
+                             ColorAlpha(GOLD, 0.5f));
+        }
+        
+        // Draw icon with facility color (dimmed if disabled)
+        Color icon_color = is_disabled ? ColorAlpha(facility.color, 0.3f) : facility.color;
+        Color text_color = is_disabled ? ColorAlpha(WHITE, 0.3f) : WHITE;
+        
+        DrawRectangle(menu_x + MENU_PADDING + 5, y + 5, 25, 25, icon_color);
+        DrawText(facility.icon.c_str(), menu_x + MENU_PADDING + 12, y + 10, 16, text_color);
         
         // Draw name
-        DrawText(facility.name.c_str(), menu_x + MENU_PADDING + 35, y + 5, 14, WHITE);
+        DrawText(facility.name.c_str(), menu_x + MENU_PADDING + 35, y + 5, 14, text_color);
         
         // Draw cost
         std::stringstream cost_ss;
         cost_ss << "$" << facility.cost;
-        DrawText(cost_ss.str().c_str(), menu_x + MENU_PADDING + 35, y + 20, 12, GREEN);
+        DrawText(cost_ss.str().c_str(), menu_x + MENU_PADDING + 35, y + 20, 12, 
+                is_disabled ? ColorAlpha(GREEN, 0.3f) : GREEN);
         
         y += ITEM_HEIGHT;
     }
@@ -135,6 +154,12 @@ int BuildMenu::HandleClick(int mouse_x, int mouse_y, bool can_undo, bool can_red
     // Check facility types
     for (size_t i = 0; i < facility_types_.size(); ++i) {
         if (mouse_y >= y && mouse_y < y + ITEM_HEIGHT) {
+            // In tutorial mode, only allow clicking highlighted facility
+            if (tutorial_mode_ && !highlighted_facility_.empty()) {
+                if (facility_types_[i].name != highlighted_facility_) {
+                    return -1; // Disabled in tutorial
+                }
+            }
             selected_facility_ = static_cast<int>(i);
             return selected_facility_;
         }
