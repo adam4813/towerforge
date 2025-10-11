@@ -18,7 +18,7 @@ TowerForge now features a dynamic floor and column management system that allows
 
 The tower now starts with minimal construction:
 - **1 Ground Floor** (index 0) - fully built by default
-- **20 Columns** - available but not built
+- **20 Columns** - available but not built (configurable, default constructor uses 10)
 - **No Pre-filled Facilities** - clean slate for player creativity
 
 ### 3. Floor Building Mechanics
@@ -51,6 +51,8 @@ Main grid management class with basement support:
 ```cpp
 // Constructor with ground floor index support
 TowerGrid(int initial_floors = 1, int initial_columns = 10, int ground_floor_index = 0);
+// Note: In-game, the tower is typically initialized with 20 columns:
+// TowerGrid(1, 20, 0)
 
 // Floor expansion
 int AddFloor();                    // Add floor above
@@ -138,9 +140,11 @@ Players receive feedback on:
 ### Economic Balance
 
 - **Floor Cell Cost**: $50 per cell
-- **Typical Floor (20 columns)**: $1,000 to build completely
+- **Typical Floor (20 columns as in-game)**: $1,000 to build completely
 - **Large Facility (10 cells wide)**: Adds $500 if floor unbuilt
 - **Starting Funds**: $10,000 (can afford 10 full floors or 20 smaller facilities)
+
+Note: Column count is configurable. The default constructor uses 10 columns, but the game initializes with 20 columns.
 
 ## Future Enhancements
 
@@ -180,7 +184,7 @@ When loading old saves:
 ### Example 1: New Game Start
 
 ```cpp
-// Initial state
+// Initial state (in-game configuration)
 TowerGrid grid(1, 20, 0);  // 1 floor, 20 columns, ground at 0
 // Only ground floor (0) is built
 // No facilities yet
@@ -214,7 +218,7 @@ CreateFacility(Office, floor=1, column=0, width=8);
 ```cpp
 // Player adds basement
 grid.AddBasementFloor();
-// Cost: $50 × 20 = $1000
+// Cost: $50 × columns (20 in this case) = $1000
 // Creates floor -1 (unbuilt cells)
 
 // Player places parking facility
