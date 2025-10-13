@@ -237,7 +237,7 @@ To add a new tutorial step:
 ## Screenshots
 
 ### Main Menu with Tutorial Option
-![Main Menu](../main_menu_with_tutorial.png)
+![Main Menu](../screenshots/main_menu_with_tutorial.png)
 
 The Tutorial option is positioned between "New Game" and "Load Game", maintaining the logical flow of menu options.
 

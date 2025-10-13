@@ -203,7 +203,7 @@ facility_mgr.RemoveFacility(office);
 facility_mgr.RemoveFacilityAt(1, 2);
 ```
 
-![Facility System Demo](docs/facility_demo_screenshot.png)
+![Facility System Demo](screenshots/facility_demo_screenshot.png)
 
 *Demo showing different facility types with distinct colors*
 
@@ -262,7 +262,7 @@ person.set<Satisfaction>({80.0f});
 - Debug visualization showing state and destination
 - Integration ready for elevator system
 
-![Person Movement System Demo](docs/person_movement_screenshot.png)
+![Person Movement System Demo](screenshots/person_movement_screenshot.png)
 
 *Demo showing people in different states with destination indicators*
 
@@ -311,7 +311,7 @@ person.set<Person>(alice);
 - Integration with Person Movement System
 - Visual state indicators (color-coded by state)
 
-![Elevator System Demo](docs/elevator_demo_screenshot.png)
+![Elevator System Demo](screenshots/elevator_demo_screenshot.png)
 
 *Demo showing elevator cars in different states, transporting people between floors*
 

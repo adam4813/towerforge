@@ -1,165 +1,155 @@
-# Facility System Implementation Summary
+# TowerForge Implementation Summary
+
+## Table of Contents
+1. [Overview](#overview)
+2. [Facility System Implementation](#facility-system-implementation)
+    - [Core Components](#core-components)
+    - [FacilityManager](#facilitymanager)
+    - [ECS Integration](#ecs-integration)
+    - [Documentation](#documentation)
+    - [Visual Rendering Updates](#visual-rendering-updates)
+    - [Example Applications](#example-applications)
+    - [Acceptance Criteria](#acceptance-criteria)
+    - [Technical Highlights](#technical-highlights)
+    - [Usage Examples](#usage-examples)
+3. [General Settings & Audio Menu Implementation](#general-settings--audio-menu-implementation)
+    - [Features Implemented](#features-implemented)
+    - [Technical Details](#technical-details)
+    - [Testing](#testing)
+    - [Screenshots](#screenshots)
+    - [Future Enhancements](#future-enhancements)
+4. [Files Changed](#files-changed)
+5. [Conclusion](#conclusion)
+
+---
 
 ## Overview
-This implementation provides a complete facility system for TowerForge with four core facility types (Office, Residential, RetailShop, Lobby) as required by the issue, plus support for legacy facility types.
+This document summarizes major feature implementations in TowerForge, including the Facility System and the General Settings & Audio Menu. It details technical approaches, design decisions, and acceptance criteria for each system.
 
-## What Was Implemented
+---
 
-### 1. Core Components (`include/core/components.hpp`)
-- **Updated BuildingComponent Type enum** with:
+## Facility System Implementation
+
+### Core Components (`include/core/components.hpp`)
+- **BuildingComponent Type enum** includes:
   - Office
-  - Residential (new - for condominiums)
+  - Residential (for condominiums)
   - RetailShop (renamed from Shop)
   - Lobby
   - Restaurant (legacy)
   - Hotel (legacy)
   - Elevator (legacy)
-- Added comprehensive documentation for each facility type
-- Maintains existing component structure (type, floor, width, capacity, current_occupancy)
+- Comprehensive documentation for each facility type
+- Maintains structure: type, floor, width, capacity, current_occupancy
 
-### 2. FacilityManager (`include/core/facility_manager.hpp`, `src/core/facility_manager.cpp`)
-A new high-level API for facility management:
+### FacilityManager (`include/core/facility_manager.hpp`, `src/core/facility_manager.cpp`)
+A high-level API for facility management:
+- `CreateFacility()`, `RemoveFacility()`, `RemoveFacilityAt()`
+- `GetDefaultWidth()`, `GetDefaultCapacity()`, `GetTypeName()`, `GetFacilityColor()`, `GetFacilityType()`
+- Centralized default attributes for each facility type
 
-**Key Features**:
-- `CreateFacility()`: Creates and places facilities on the grid with validation
-- `RemoveFacility()`: Removes facilities by entity reference
-- `RemoveFacilityAt()`: Removes facilities by grid position
-- `GetDefaultWidth()`: Provides sensible default widths for each facility type
-- `GetDefaultCapacity()`: Provides sensible default capacities for each facility type
-- `GetTypeName()`: String representation of facility types
-- `GetFacilityColor()`: Color codes for rendering
-- `GetFacilityType()`: Get facility type from entity ID
+| Facility    | Width | Capacity | Purpose              |
+|-------------|-------|----------|----------------------|
+| Office      | 8     | 20       | Commercial workspace |
+| Residential | 6     | 4        | Family housing       |
+| RetailShop  | 4     | 15       | Retail shopping      |
+| Lobby       | 10    | 50       | Main entrance        |
+| Restaurant  | 6     | 30       | Food service         |
+| Hotel       | 10    | 40       | Temporary lodging    |
+| Elevator    | 2     | 8        | Vertical transport   |
 
-**Default Attributes**:
-| Facility | Width | Capacity | Purpose |
-|----------|-------|----------|---------|
-| Office | 8 | 20 | Commercial workspace |
-| Residential | 6 | 4 | Family housing |
-| RetailShop | 4 | 15 | Retail shopping |
-| Lobby | 10 | 50 | Main entrance |
-| Restaurant | 6 | 30 | Food service |
-| Hotel | 10 | 40 | Temporary lodging |
-| Elevator | 2 | 8 | Vertical transport |
+### ECS Integration (`include/core/ecs_world.hpp`, `src/core/ecs_world.cpp`)
+- FacilityManager integrated into ECSWorld
+- `GetFacilityManager()` accessor
+- Building occupancy monitor system uses FacilityManager for type names
 
-### 3. ECS Integration (`include/core/ecs_world.hpp`, `src/core/ecs_world.cpp`)
-- Integrated FacilityManager into ECSWorld
-- Added `GetFacilityManager()` accessor method
-- Updated building occupancy monitor system to use FacilityManager for type names
+### Documentation (`docs/FACILITIES.md`)
+- Detailed descriptions, gameplay roles, placement rules, technical details, code examples, color scheme, and future plans
 
-### 4. Documentation (`docs/FACILITIES.md`)
-Comprehensive documentation covering:
-- Detailed description of each core facility type
-- Gameplay roles and attributes
-- Placement rules and requirements
-- Technical implementation details
-- Code examples for creating and removing facilities
-- Visual design color scheme
-- Future enhancement plans
+### Visual Rendering Updates
+- Unique color for each facility type:
+  - Office: SKYBLUE
+  - Residential: PURPLE
+  - RetailShop: GREEN
+  - Lobby: GOLD
+  - Restaurant: RED
+  - Hotel: DARKBLUE
+  - Elevator: GRAY
+- Rendering code updated for consistency
 
-### 5. Visual Rendering Updates
-Updated rendering code to use facility types consistently:
+### Example Applications
+- `main.cpp`: Uses FacilityManager for facility creation
+- `screenshot_app.cpp`: Demonstrates all core facility types
 
-**Color Scheme**:
-- Office: SKYBLUE (professional, clean)
-- Residential: PURPLE (warm, homey)
-- RetailShop: GREEN (commercial, vibrant)
-- Lobby: GOLD (prestigious, welcoming)
-- Restaurant: RED (energetic, food-related)
-- Hotel: DARKBLUE (luxurious, calm)
-- Elevator: GRAY (utilitarian, neutral)
+### Acceptance Criteria
+- Facilities can be placed/removed via grid system
+- Each type is visually distinct
+- Data structures and ECS components are extensible
+- Documentation covers usage and gameplay roles
 
-### 6. Example Applications
-- **main.cpp**: Updated to use FacilityManager for creating facilities
-- **screenshot_app.cpp**: Updated to demonstrate all core facility types with proper colors
+### Technical Highlights
+- Clean separation of concerns (core, rendering, grid)
+- ECS-friendly design
+- Minimal changes to existing code
+- Future-ready and extensible
 
-## Acceptance Criteria
-
-✅ **Facilities can be placed and removed via the grid system**
-- FacilityManager integrates with TowerGrid for placement validation
-- RemoveFacility() and RemoveFacilityAt() provide flexible removal options
-- Collision detection prevents invalid placements
-
-✅ **Each type is visually distinct**
-- Each facility type has a unique color
-- Colors are semantically meaningful (e.g., Gold for Lobby, Purple for Residential)
-- Rendering system uses BuildingComponent types consistently
-
-✅ **Data structures and ECS components are extensible**
-- BuildingComponent Type enum is easy to extend
-- FacilityManager default attributes are centralized and easy to modify
-- New facility types can be added by:
-  1. Adding to Type enum
-  2. Adding cases to GetDefaultWidth/Capacity/TypeName/Color methods
-  3. Updating rendering switch statements
-
-✅ **Documentation covers usage and intended gameplay roles**
-- FACILITIES.md provides comprehensive documentation
-- README.md includes Facility System section with examples
-- Code is well-commented with usage examples
-- Test file demonstrates all major use cases
-
-## Files Changed
-- `include/core/components.hpp` - Updated BuildingComponent
-- `include/core/facility_manager.hpp` - New FacilityManager class
-- `src/core/facility_manager.cpp` - FacilityManager implementation
-- `include/core/ecs_world.hpp` - Added FacilityManager integration
-- `src/core/ecs_world.cpp` - FacilityManager initialization
-- `src/core/CMakeLists.txt` - Added facility_manager.cpp
-- `src/main.cpp` - Updated to use FacilityManager
-- `src/screenshot_app.cpp` - Updated rendering and facility creation
-- `docs/FACILITIES.md` - New comprehensive documentation
-- `docs/facility_demo_screenshot.png` - Visual demonstration
-- `README.md` - Added Facility System section
-
-## Technical Highlights
-
-### Clean Separation of Concerns
-- **Core**: Facility logic is in FacilityManager (no rendering dependencies)
-- **Rendering**: Color mapping is separate from core logic
-- **Grid**: TowerGrid remains generic (stores entity IDs, not facility-specific data)
-
-### ECS-Friendly Design
-- Facilities are entities with BuildingComponent and GridPosition components
-- Systems can query facilities using standard ECS patterns
-- FacilityManager provides high-level convenience without hiding ECS
-
-### Minimal Changes
-- Existing code structure preserved
-- Legacy facility types maintained for compatibility
-- Only added new functionality, didn't break existing systems
-
-### Future-Ready
-- Easy to add new facility types
-- Supports custom facility attributes
-- Extensible for economic systems, upgrades, etc.
-
-## Usage Examples
-
-### Create a Facility
+### Usage Examples
 ```cpp
+// Create a Facility
 auto& facility_mgr = ecs_world.GetFacilityManager();
 auto office = facility_mgr.CreateFacility(
     BuildingComponent::Type::Office,
     floor, column, width, "OfficeName"
 );
-```
 
-### Remove a Facility
-```cpp
+// Remove a Facility
 facility_mgr.RemoveFacility(office);
 // or
 facility_mgr.RemoveFacilityAt(floor, column);
-```
 
-### Query Facilities
-```cpp
+// Query Facilities
 ecs_world.GetWorld().each([](BuildingComponent& bc) {
-    // Process each facility
     if (bc.type == BuildingComponent::Type::Office) {
         // Do something with offices
     }
 });
 ```
 
+---
+
+## General Settings & Audio Menu Implementation
+
+### Features Implemented
+- General Settings Menu accessible from title and pause menus
+- Six menu options: Audio (fully functional), Controls, Display, Accessibility, Gameplay, Back
+- Audio Settings: Master, Music, SFX volume sliders (0-100%), real-time feedback
+- Keyboard and mouse navigation, visual feedback, gold highlighting
+- Clean, professional UI matching game style
+
+### Technical Details
+- Follows TowerForge UI patterns, C++20 features
+- Integrates with game mode system
+- Supports keyboard/mouse input
+- Minimal changes to existing code, no breaking changes
+
+#### Integration Points
+- Title Screen → Settings → General Settings → Audio Settings → Back
+- Pause Menu → Settings → General Settings → Audio Settings → Back
+
+### Testing
+- Project builds without errors/warnings
+- Settings accessible from both title and pause menus
+- Audio settings navigation and sliders work (keyboard/mouse)
+- Visual feedback is consistent
+- No crashes or memory leaks
+
+### Future Enhancements
+- Controls Settings: Keybinding, mouse sensitivity
+- Display Settings: Resolution, fullscreen, graphics
+- Accessibility: Color blind modes, text size
+- Gameplay: Difficulty, auto-save, tutorials
+
+---
+
 ## Conclusion
-This implementation fully satisfies all requirements from the issue and provides a solid foundation for future facility-related features including economics, upgrades, and advanced gameplay mechanics.
+This document summarizes the implementation of the Facility System and the General Settings & Audio Menu in TowerForge. Both systems are modular, extensible, and follow modern C++20 and ECS best practices. The codebase is well-documented, visually consistent, and ready for future enhancements in both simulation and user interface features.
