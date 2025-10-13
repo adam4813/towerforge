@@ -2,6 +2,9 @@
 #include "rendering/camera.h"
 #include <iostream>
 #include <algorithm>
+#include <sstream>
+
+#include "ui/tooltip.h"
 
 namespace towerforge {
 namespace ui {
@@ -253,7 +256,7 @@ void PlacementSystem::UpdateTooltips(int mouse_x, int mouse_y, int grid_offset_x
     int grid_y = (mouse_y - grid_offset_y) / cell_height;
     
     // Check if hovering over grid
-    if (grid_x >= 0 && grid_x < grid_.GetWidth() && grid_y >= 0 && grid_y < grid_.GetHeight()) {
+    if (grid_x >= 0 && grid_x < grid_.GetColumnCount() && grid_y >= 0 && grid_y < grid_.GetFloorCount()) {
         int screen_x = grid_offset_x + grid_x * cell_width;
         int screen_y = grid_offset_y + grid_y * cell_height;
         
@@ -261,14 +264,11 @@ void PlacementSystem::UpdateTooltips(int mouse_x, int mouse_y, int grid_offset_x
         
         if (demolish_mode_) {
             // Check if there's a facility to demolish
-            auto facility_id = grid_.GetCellOccupant(grid_y, grid_x);
+            auto facility_id = grid_.GetFacilityAt(grid_y, grid_x);
             if (facility_id >= 0) {
-                auto facility = facility_mgr_.GetFacility(facility_id);
-                if (facility) {
-                    int refund = static_cast<int>(facility->cost * RECOVERY_PERCENTAGE);
-                    tooltip_text << "Demolish " << facility->name << "\n";
-                    tooltip_text << "Refund: $" << refund << " (50%)";
-                }
+                const auto buildingType = facility_mgr_.GetFacilityType(facility_id);
+                const auto name = TowerForge::Core::FacilityManager::GetTypeName(buildingType);
+                tooltip_text << "Demolish " << name << "\n";
             } else {
                 tooltip_text << "No facility to demolish";
             }
@@ -290,7 +290,7 @@ void PlacementSystem::UpdateTooltips(int mouse_x, int mouse_y, int grid_offset_x
                 // Check if space is available
                 bool space_available = true;
                 for (int i = 0; i < facility.width; i++) {
-                    if (grid_x + i >= grid_.GetWidth() || grid_.GetCellOccupant(grid_y, grid_x + i) >= 0) {
+                    if (grid_x + i >= grid_.GetColumnCount() || grid_.IsOccupied(grid_y, grid_x + i)) {
                         space_available = false;
                         break;
                     }
