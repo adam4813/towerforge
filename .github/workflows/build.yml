@@ -43,12 +43,16 @@ jobs:
           #   compiler: clang
           #   build_type: Release
           #   vcpkg_triplet: x64-osx
+    env:
+      VCPKG_DEFAULT_TRIPLET: ${{ matrix.vcpkg_triplet }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: recursive
+
+    - uses: lukka/get-cmake@latest
 
     - name: Install system dependencies (Linux)
       if: runner.os == 'Linux'
@@ -72,8 +76,6 @@ jobs:
       with:
         compiler: ${{ matrix.compiler }}
         vcvarsall: ${{ runner.os == 'Windows' }}
-
-    - uses: lukka/get-cmake@latest
 
     - name: Restore artifacts, or run vcpkg, build and cache artifacts
       uses: lukka/run-vcpkg@v11
