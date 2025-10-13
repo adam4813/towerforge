@@ -90,7 +90,7 @@ jobs:
       shell: bash
       run: |
         echo "=== Build directory structure ==="
-        ls -R build/bin/ || ls -R build/Release/ || ls -R build/Debug/ || true
+        ls -R build/native/bin/Release || true
 
     - name: Prepare artifacts (Windows)
       if: runner.os == 'Windows'
