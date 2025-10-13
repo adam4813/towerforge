@@ -80,7 +80,7 @@ jobs:
       with:
         vcpkgGitCommitId: dd3097e305afa53f7b4312371f62058d2e665320
 
-    - name: Run CMake with Presets (Windows)
+    - name: Run CMake with Presets
       uses: lukka/run-cmake@v10
       with:
         configurePreset: native
