@@ -203,3 +203,9 @@ To test the new facility types:
 - See `include/core/components.hpp` for `BuildingComponent` definition
 - See `src/core/facility_manager.cpp` for facility defaults
 - See `src/ui/build_menu.cpp` for UI integration
+
+---
+
+# DEPRECATED: Merged into `docs/FACILITIES.md`.
+
+See docs/FACILITIES.md for both basic and advanced facility details.

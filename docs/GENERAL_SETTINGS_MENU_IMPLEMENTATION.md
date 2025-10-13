@@ -131,7 +131,7 @@ enum class SettingsOption {
 ## Screenshots
 
 ### General Settings Menu
-![General Settings Menu](../general_settings_menu.png)
+![General Settings Menu](../screenshots/general_settings_menu.png)
 
 The general settings menu displays:
 - Title with gold accent
@@ -141,7 +141,7 @@ The general settings menu displays:
 - Clear navigation instructions
 
 ### Audio Settings Menu
-![Audio Settings Menu](../audio_settings_menu.png)
+![Audio Settings Menu](../screenshots/audio_settings_menu.png)
 
 The audio settings menu shows:
 - Three volume sliders

@@ -412,22 +412,26 @@ bool PlacementSystem::PlaceFacility(int floor, int column, int facility_type_ind
     
     const auto& facility_type = types[facility_type_index];
     
+    // Calculate total cost including floor building
+    int floor_build_cost = facility_mgr_.CalculateFloorBuildCost(floor, column, facility_type.width);
+    int total_cost = facility_type.cost + floor_build_cost;
+    
     // Validate placement
-    if (!IsPlacementValid(floor, column, facility_type.width, funds, facility_type.cost)) {
+    if (!IsPlacementValid(floor, column, facility_type.width, funds, total_cost)) {
         return false;
     }
     
-    // Deduct cost
-    funds -= facility_type.cost;
+    // Deduct total cost (facility + floor building)
+    funds -= total_cost;
     
     // Map to BuildingComponent::Type
     auto bc_type = GetFacilityType(facility_type_index);
     
-    // Create facility
+    // Create facility (this will auto-build floors)
     auto entity = facility_mgr_.CreateFacility(bc_type, floor, column, facility_type.width);
     if (!entity) {
         // Failed to create - refund
-        funds += facility_type.cost;
+        funds += total_cost;
         return false;
     }
     
@@ -440,7 +444,7 @@ bool PlacementSystem::PlaceFacility(int floor, int column, int facility_type_ind
     // Add to undo stack
     PlacementAction action(PlacementAction::Type::Place, static_cast<int>(entity.id()),
                           floor, column, facility_type.width, facility_type_index,
-                          facility_type.cost);
+                          total_cost);
     undo_stack_.push_back(action);
     if (undo_stack_.size() > MAX_UNDO_ACTIONS) {
         undo_stack_.erase(undo_stack_.begin());

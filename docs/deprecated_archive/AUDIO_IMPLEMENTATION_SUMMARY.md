@@ -232,3 +232,9 @@ The audio system implementation is complete and production-ready. All acceptance
 - ✅ No crashes or blocking behavior
 
 The system is ready for audio asset integration and will enhance the player experience once audio files are added.
+
+---
+
+# DEPRECATED: Merged into `docs/AUDIO.md`.
+
+See docs/AUDIO.md for implementation summary and API reference.

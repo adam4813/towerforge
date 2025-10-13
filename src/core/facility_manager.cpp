@@ -33,6 +33,10 @@ flecs::entity FacilityManager::CreateFacility(
         return flecs::entity::null();
     }
     
+    // Build floors automatically when placing facility
+    // Note: Cost handling should be done by the caller (e.g., placement system)
+    BuildFloorsForFacility(floor, column, width);
+    
     // Create the entity
     flecs::entity facility = name ? world_.entity(name) : world_.entity();
     
@@ -223,6 +227,24 @@ BuildingComponent::Type FacilityManager::GetFacilityType(int facility_entity_id)
     
     // Default to Office if not found
     return BuildingComponent::Type::Office;
+}
+
+int FacilityManager::CalculateFloorBuildCost(int floor, int column, int width) const {
+    int cost = 0;
+    
+    // Check each cell to see if floor needs to be built
+    for (int i = 0; i < width; ++i) {
+        if (!grid_.IsFloorBuilt(floor, column + i)) {
+            cost += TowerGrid::GetFloorBuildCost();
+        }
+    }
+    
+    return cost;
+}
+
+bool FacilityManager::BuildFloorsForFacility(int floor, int column, int width) {
+    // Build the floor for the facility placement
+    return grid_.BuildFloor(floor, column, width);
 }
 
 } // namespace Core

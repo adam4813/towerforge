@@ -1,5 +1,8 @@
 # Audio System Quick Reference
 
+// DEPRECATED: Merged into `docs/AUDIO.md`.
+// See docs/AUDIO.md for quick usage examples and reference.
+
 ## Quick Start
 
 ```cpp

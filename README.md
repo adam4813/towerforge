@@ -120,11 +120,17 @@ The Entity Component System (ECS) is the foundation of TowerForge's simulation. 
 - `PersonElevatorRequest`: Links person entities to elevators for boarding and riding
 
 **Tower Grid System** (`include/core/tower_grid.hpp`):
-- 2D grid system for spatial management of the tower
-- Supports adding/removing floors and columns dynamically
+- **Dynamic Floor Management**: Start with minimal tower and expand vertically
+- **Basement Support**: Add floors below ground level with negative indices
+- **Floor Building State**: Track which floor cells are constructed vs. allocated
+- **Cost-Based Expansion**: Each floor cell costs $50 to build
+- **Automatic Building**: Floors auto-build when placing facilities
+- **Manual Expansion**: UI controls to add floors above or basements below
 - Facility placement and removal with collision detection
 - Spatial query functions for grid operations
 - Integrated with ECS for seamless tower management
+
+See [docs/DYNAMIC_FLOOR_SYSTEM.md](docs/DYNAMIC_FLOOR_SYSTEM.md) for detailed documentation on the dynamic floor management system.
 
 **Systems** (`src/core/ecs_world.cpp`):
 - **Time Simulation System**: Advances simulation time based on configurable speed multiplier
@@ -197,7 +203,7 @@ facility_mgr.RemoveFacility(office);
 facility_mgr.RemoveFacilityAt(1, 2);
 ```
 
-![Facility System Demo](docs/facility_demo_screenshot.png)
+![Facility System Demo](screenshots/facility_demo_screenshot.png)
 
 *Demo showing different facility types with distinct colors*
 
@@ -256,13 +262,13 @@ person.set<Satisfaction>({80.0f});
 - Debug visualization showing state and destination
 - Integration ready for elevator system
 
-![Person Movement System Demo](docs/person_movement_screenshot.png)
+![Person Movement System Demo](screenshots/person_movement_screenshot.png)
 
 *Demo showing people in different states with destination indicators*
 
 ### Elevator System
 
-The Elevator System provides vertical transportation for person entities in the tower. It features realistic elevator behavior with state machines, passenger queuing, and smart scheduling. See [docs/ELEVATOR_SYSTEM.md](docs/ELEVATOR_SYSTEM.md) for detailed documentation.
+The Elevator System provides vertical transportation for person entities in the tower. It features realistic elevator behavior with state machines, passenger queuing, and smart scheduling. See [docs/ELEVATOR.md](docs/ELEVATOR.md) for detailed documentation.
 
 **Core Components:**
 - **ElevatorShaft**: Vertical shafts serving multiple floors (configurable floor range)
@@ -305,7 +311,7 @@ person.set<Person>(alice);
 - Integration with Person Movement System
 - Visual state indicators (color-coded by state)
 
-![Elevator System Demo](docs/elevator_demo_screenshot.png)
+![Elevator System Demo](screenshots/elevator_demo_screenshot.png)
 
 *Demo showing elevator cars in different states, transporting people between floors*
 
@@ -748,7 +754,7 @@ The application demonstrates:
   - Speed controls
   - UI display of current time
 
-For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/HUD_SYSTEM.md).
+For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/deprecated_archive/HUD_SYSTEM.md).
 
 For detailed documentation on the tooltip system, see [docs/TOOLTIP_SYSTEM.md](docs/TOOLTIP_SYSTEM.md).
 

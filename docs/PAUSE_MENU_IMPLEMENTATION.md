@@ -143,7 +143,7 @@ The pause menu is integrated into `src/main.cpp`:
 ## Screenshots
 
 ### Pause Menu Overlay
-![Pause Menu](../pause_menu.png)
+![Pause Menu](../screenshots/pause_menu.png)
 
 The pause menu displays over the game view with:
 - Semi-transparent dark overlay
@@ -152,7 +152,7 @@ The pause menu displays over the game view with:
 - Clear instructions at bottom
 
 ### Quit Confirmation Dialog
-![Quit Confirmation](../pause_menu_quit_confirmation.png)
+![Quit Confirmation](../screenshots/pause_menu_quit_confirmation.png)
 
 The quit confirmation dialog shows:
 - Warning icon

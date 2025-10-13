@@ -230,3 +230,9 @@ Example:
 - Adequate font sizes (14pt minimum for content)
 - Semi-transparent backgrounds don't obscure game view
 - Consistent layout and positioning
+
+---
+
+# DEPRECATED: This file has been merged into `docs/HUD.md`.
+
+See: docs/HUD.md (visual/layout section) for the consolidated guidance.
