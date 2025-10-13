@@ -351,7 +351,7 @@ nlohmann::json SaveLoadManager::SerializeGameState(ECSWorld& ecs_world,
     if (world.has<ResearchTree>()) {
         const auto& research = world.get<ResearchTree>();
         json["research"] = {
-            {"research_points", research.research_points},
+            {"tower_points", research.tower_points},
             {"total_points_earned", research.total_points_earned},
             {"income_multiplier", research.income_multiplier},
             {"satisfaction_bonus", research.satisfaction_bonus},
@@ -611,7 +611,7 @@ bool SaveLoadManager::DeserializeGameState(const nlohmann::json& json,
             research.InitializeDefaultTree();
             
             // Load saved values
-            research.research_points = research_json.value("research_points", 0);
+            research.tower_points = research_json.value("tower_points", 0);
             research.total_points_earned = research_json.value("total_points_earned", 0);
             research.income_multiplier = research_json.value("income_multiplier", 1.0f);
             research.satisfaction_bonus = research_json.value("satisfaction_bonus", 0.0f);

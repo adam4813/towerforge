@@ -488,12 +488,12 @@ int LuaModManager::Lua_RegisterResearchNode(lua_State* L) {
         return 0;
     }
     
-    ResearchTree* research_tree = world.get_mut<ResearchTree>();
-    if (!research_tree) {
+    if (!world.has<ResearchTree>()) {
         luaL_error(L, "Failed to get research tree");
         return 0;
     }
-    
+
+    auto research_tree = world.get_mut<ResearchTree>();
     ResearchNode node;
     
     // Get id (required)
@@ -631,8 +631,8 @@ int LuaModManager::Lua_RegisterResearchNode(lua_State* L) {
     lua_pop(L, 1);
     
     // Add the node to the research tree
-    research_tree->nodes.push_back(node);
-    research_tree->UpdateNodeStates();
+    research_tree.nodes.push_back(node);
+    research_tree.UpdateNodeStates();
     
     std::cout << "LuaModManager: Registered research node '" 
               << node.name << "' (ID: " << node.id << ")" << std::endl;
