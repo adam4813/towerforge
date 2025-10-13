@@ -1,5 +1,17 @@
 # Copilot Instructions for TowerForge
 
+## Minimum Requirements (must be satisfied before any build steps)
+
+You must have these installed and validated before configuring or building the project:
+
+- CMake 3.20 or newer (required)
+- A C++20-capable compiler:
+  - Windows: Visual Studio 2019+ (MSVC) or MinGW-w64 with GCC 10+
+  - Linux: GCC 10+ or Clang 10+
+  - macOS: Xcode 12+ / Clang 10+
+- vcpkg (recommended for dependency management) — clone and bootstrap vcpkg before the first build
+- On Linux (Ubuntu/Debian): X11 development libraries and OpenGL/Mesa dev packages when building locally or running renderer-based tests
+
 ## Project Overview
 
 TowerForge is a modern open-source SimTower-inspired skyscraper simulation game built with C++20. It uses an Entity Component System (ECS) architecture for game logic and is designed with modularity in mind to support future multiplayer features.
@@ -49,34 +61,77 @@ Currently, the project is in early development with basic structure in place.
 - Place headers in `include/` directory (when structure is expanded)
 - Place source files in `src/` directory
 
-## Build System
+## Preflight checklist (always follow these steps before building)
 
-### Prerequisites and Dependencies Setup
+1. Confirm CMake version (must be >= 3.20):
 
-Before building, ensure the following are installed:
-
-**Linux (Ubuntu/Debian):**
 ```bash
-# Install build essentials and X11 libraries
-sudo apt-get update
-sudo apt-get install -y build-essential cmake pkg-config \
-    libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
-    libgl1-mesa-dev libglu1-mesa-dev xvfb
-
-# vcpkg will automatically install flecs and raylib during first build
+cmake --version
 ```
 
-**Note:** When running in CI/CD or headless environments, `xvfb` is required for rendering screenshots.
+2. Confirm your C++ compiler supports C++20:
+
+- MSVC (developer command prompt):
+
+```cmd
+cl /?    # should show MSVC tools; use Visual Studio 2019 or later
+```
+
+- GCC/Clang (Linux/macOS):
+
+```bash
+g++ --version
+clang++ --version
+```
+
+3. Clone and bootstrap vcpkg:
+
+```bash
+git clone https://github.com/microsoft/vcpkg.git
+# On Windows (cmd.exe)
+vcpkg\bootstrap-vcpkg.bat
+# On Linux/macOS
+./vcpkg/bootstrap-vcpkg.sh
+```
+
+4. On Ubuntu/Debian, install system packages:
+
+```bash
+sudo apt-get update && sudo apt-get install -y build-essential cmake pkg-config \
+  libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+  libgl1-mesa-dev libglu1-mesa-dev xvfb
+```
+
+5. Configure CMake with the vcpkg toolchain:
+
+```bash
+mkdir -p build && cd build
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+```
+
+6. Build (use parallel jobs appropriate to your machine):
+
+```bash
+cmake --build . --parallel %NUMBER_OF_PROCESSORS%   # Windows (cmd.exe)
+# or
+cmake --build . --parallel $(nproc)                # Linux/macOS
+```
+
+7. (Optional) Run the verification script:
+
+```bash
+scripts\verify_build.sh   # Or run in bash on Windows Subsystem for Linux
+```
+
+---
+
+## Build System
 
 ### CMake Configuration
 
-- Minimum CMake version: 3.20
-- C++ standard is set to C++20 (required, not optional)
-- vcpkg toolchain file is used for dependency management
-- Output directories:
-  - Runtime: `${CMAKE_BINARY_DIR}/bin`
-  - Libraries: `${CMAKE_BINARY_DIR}/lib`
-  - Archives: `${CMAKE_BINARY_DIR}/lib`
+- Always use CMake 3.20 or newer.
+- Always use C++20.
+- Always use the vcpkg toolchain file for dependency management.
 
 ### Building the Project
 
@@ -87,12 +142,10 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpk
 cmake --build .
 ```
 
-**Note:** If vcpkg is installed locally, adjust the toolchain path:
+If vcpkg is installed locally, adjust the toolchain path:
 ```bash
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake
 ```
-
-The first build will take longer as vcpkg downloads and compiles dependencies (flecs, raylib, glfw3).
 
 ### Dependencies
 
@@ -135,18 +188,17 @@ The project is in its initial stages. Future development will add:
 4. Consider cross-platform compatibility
 5. Update documentation when adding new features
 6. Respect the ECS architecture pattern when adding game logic
+7. When adding new features, create and add relevant screenshots to the `screenshots/` folder whenever possible.
+8. Documentation should be written or updated in the form of a user manual, focusing on usage and gameplay, not as an implementation summary.
 
 ---
 
-## Consolidated Build Instructions (from docs/BUILD_INSTRUCTIONS.md)
+## Consolidated Build Instructions
 
-This project includes a more detailed build instruction set in `docs/BUILD_INSTRUCTIONS.md`; below is a consolidated, quick-reference version developers should follow.
-
-Prerequisites (summary):
-- CMake 3.20+
-- C++20-capable compiler: GCC 10+/Clang 10+/MSVC 2019+
-- vcpkg (recommended)
-- On Linux: X11 development libs and optionally `xvfb` for headless runs
+- Use CMake 3.20+ and a C++20-capable compiler.
+- Use vcpkg for dependencies.
+- On Linux, install all required system libraries before building.
+- Always follow the preflight checklist above before building.
 
 Quick build steps:
 1. Clone repository:
@@ -173,68 +225,12 @@ On Windows with cmd.exe you can use `%NUMBER_OF_PROCESSORS%` for `<num_jobs>`.
 - `towerforge` - Main game executable
 - `screenshot_app` - Screenshot utility used for headless screenshot generation
 
-5. Verification: a convenience script `./scripts/verify_build.sh` exists to run an automated verify-build sequence (configure, build, check artifacts).
-
-Additional notes:
-- First build may take longer because vcpkg will fetch and build dependencies (e.g., flecs, raylib, nlohmann-json)
-- Known dependency versions referenced in docs: flecs 4.1.1, raylib 5.5, nlohmann-json 3.12.0
-
-Troubleshooting highlights:
-- Missing X11 / OpenGL libs: install system dev packages (see docs)
-- Old CMake: upgrade to >=3.20
-- Missing C++20 compiler: install/update GCC/Clang or use MSVC 2019+
-
-Platform-specific tips:
-- Windows: prefer Visual Studio 2019+ or MinGW-w64, integrate vcpkg with your toolchain
-- Linux: tested on Ubuntu 20.04+/Debian 11+
-- macOS: Xcode 12+ and command-line tools
-
-Performance / build-type examples:
-
-Release optimized build:
-
-```bash
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build . --config Release
-```
-
-Debug build:
-
-```bash
-cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build . --config Debug
-```
+5. (Optional) Run `./scripts/verify_build.sh` to verify the build.
 
 ---
 
-## CI Workflow Summary (from docs/CI_WORKFLOW.md)
+## No Standalone Demo Applications
 
-A GitHub Actions workflow (`.github/workflows/build.yml`) builds the project across platforms. Key points:
-- Triggers: push to `main`/`develop`, PRs targeting those branches, and manual `workflow_dispatch`
-- Matrix builds: Windows (MSVC), Linux (GCC), optionally Clang and macOS (some matrices are temporarily disabled)
-- Uses `lukka/run-vcpkg` to install vcpkg deps from `vcpkg.json`
-- Steps: checkout, install system deps (Linux), setup MSVC (Windows), configure CMake (with vcpkg toolchain), build, collect artifacts, archive, upload
-- Artifacts: platform archives named `TowerForge-{os}-{compiler}` containing `towerforge` and `screenshot_app`; Windows drops required DLLs alongside executables
-- Common CI helpers used: `actions/checkout@v4`, `lukka/run-vcpkg@v11`, `actions/upload-artifact@v4`
-
-Maintenance notes for CI:
-- Pin vcpkg commit in workflow for reproducibility
-- Adjust matrix to add/remove compilers or build types
-- Consider adding automated tests, caching, and release steps in future
-
----
-
-## Design Decision: No Standalone Demo Applications (from docs/DESIGN_DECISION_NO_DEMOS.md)
-
-Decision summary:
-- The project will not maintain multiple standalone demo applications; the main `towerforge` binary is the single source of demos and feature showcase.
-
-Rationale:
-- Avoid code duplication and extra maintenance burden
-- Ensure features are demonstrated in integrated, realistic conditions
-- Reduce build complexity and distribution size
-- Prefer documentation + screenshots over separate demo executables
-
-Exception:
-- `screenshot_app` remains as a lightweight tool for generating documentation screenshots in headless CI environments; it is not a user-facing demo.
-
+- The main `towerforge` binary is the only demo and feature showcase.
+- Temporary applications may be created during development but must not be committed.
+- `screenshot_app` is the only exception, used for documentation screenshots in CI.
