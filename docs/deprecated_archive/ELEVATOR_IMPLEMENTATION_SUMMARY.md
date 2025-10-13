@@ -325,3 +325,10 @@ Expected output:
 ## Conclusion
 
 This implementation fully satisfies all requirements from the issue and provides a robust, extensible elevator system that integrates seamlessly with the existing Person Movement System. The code is well-documented, tested through a demo application, and ready for future enhancements.
+
+---
+
+# DEPRECATED: Merged into `docs/ELEVATOR.md`.
+See docs/ELEVATOR.md for the full elevator reference.
+
+---

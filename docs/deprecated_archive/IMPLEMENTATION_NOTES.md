@@ -169,3 +169,8 @@ Potential additions that could build on this foundation:
 ## Summary
 
 This implementation successfully adds 5 new advanced facility types with comprehensive staffing mechanics while maintaining clean code architecture and minimal changes to the existing codebase. All requirements from the issue have been met, and the system is ready for future expansion.
+
+---
+
+# DEPRECATED: Merged into `docs/IMPLEMENTATION.md`.
+See docs/IMPLEMENTATION.md for the combined notes and changelog.

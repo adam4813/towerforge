@@ -243,3 +243,9 @@ The implementation is:
 - **Tested**: Working demonstration in screenshot_app
 - **Maintainable**: Clean, modular code following project standards
 - **Extensible**: Ready for future enhancements
+
+---
+
+# DEPRECATED: Merged into `docs/PERSONS.md`.
+
+See docs/PERSONS.md for the merged reference.

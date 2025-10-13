@@ -1,5 +1,8 @@
 # HUD Implementation Summary
 
+// DEPRECATED: This file has been merged into `docs/HUD.md`.
+// See: docs/HUD.md for the consolidated HUD reference.
+
 ## Overview
 
 This document summarizes the HUD and Information Display System implementation for TowerForge, tracking how each requirement from issue #17 was addressed.

@@ -1,25 +1,11 @@
 # TowerForge Implementation Summary
 
 ## Table of Contents
-1. [Overview](#overview)
-2. [Facility System Implementation](#facility-system-implementation)
-    - [Core Components](#core-components)
-    - [FacilityManager](#facilitymanager)
-    - [ECS Integration](#ecs-integration)
-    - [Documentation](#documentation)
-    - [Visual Rendering Updates](#visual-rendering-updates)
-    - [Example Applications](#example-applications)
-    - [Acceptance Criteria](#acceptance-criteria)
-    - [Technical Highlights](#technical-highlights)
-    - [Usage Examples](#usage-examples)
-3. [General Settings & Audio Menu Implementation](#general-settings--audio-menu-implementation)
-    - [Features Implemented](#features-implemented)
-    - [Technical Details](#technical-details)
-    - [Testing](#testing)
-    - [Screenshots](#screenshots)
-    - [Future Enhancements](#future-enhancements)
-4. [Files Changed](#files-changed)
-5. [Conclusion](#conclusion)
+1. Overview
+2. Facility System Implementation
+3. General Settings & Audio Menu Implementation
+4. Files Changed
+5. Conclusion
 
 ---
 
@@ -153,3 +139,8 @@ ecs_world.GetWorld().each([](BuildingComponent& bc) {
 
 ## Conclusion
 This document summarizes the implementation of the Facility System and the General Settings & Audio Menu in TowerForge. Both systems are modular, extensible, and follow modern C++20 and ECS best practices. The codebase is well-documented, visually consistent, and ready for future enhancements in both simulation and user interface features.
+
+---
+
+# DEPRECATED: Merged into `docs/IMPLEMENTATION.md`.
+See docs/IMPLEMENTATION.md for the consolidated implementation notes and changelog.

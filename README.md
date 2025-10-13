@@ -268,7 +268,7 @@ person.set<Satisfaction>({80.0f});
 
 ### Elevator System
 
-The Elevator System provides vertical transportation for person entities in the tower. It features realistic elevator behavior with state machines, passenger queuing, and smart scheduling. See [docs/ELEVATOR_SYSTEM.md](docs/ELEVATOR_SYSTEM.md) for detailed documentation.
+The Elevator System provides vertical transportation for person entities in the tower. It features realistic elevator behavior with state machines, passenger queuing, and smart scheduling. See [docs/ELEVATOR.md](docs/ELEVATOR.md) for detailed documentation.
 
 **Core Components:**
 - **ElevatorShaft**: Vertical shafts serving multiple floors (configurable floor range)
@@ -745,7 +745,7 @@ The application demonstrates:
   - Speed controls
   - UI display of current time
 
-For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/HUD_SYSTEM.md).
+For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/deprecated_archive/HUD_SYSTEM.md).
 
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 

@@ -1,5 +1,8 @@
 # Elevator System
 
+// DEPRECATED: This document has been merged into `docs/ELEVATOR.md`.
+// See docs/ELEVATOR.md for the consolidated elevator system documentation.
+
 ## Overview
 
 The Elevator System provides vertical transportation for person entities in the tower simulation. It consists of elevator shafts that serve multiple floors and elevator cars that move within those shafts, picking up and dropping off passengers based on requests.
@@ -135,12 +138,12 @@ The elevator system consists of four ECS systems that handle different aspects o
   - Removes current floor from stop queue
 
 - **DoorsOpen State:**
-  - Waits for door_open_duration (default 2 seconds)
+  - Waits for door_open_duration (default 2.0 seconds)
   - Allows passengers to board and exit
   - Transitions to DoorsClosing when timer expires
 
 - **DoorsClosing State:**
-  - Waits for door_transition_duration (default 1 second)
+  - Waits for door_transition_duration (default 1.0 second)
   - Transitions to Idle when complete
 
 ### 2. Elevator Call System

@@ -329,3 +329,11 @@ Screenshot output: `docs/person_movement_screenshot.png`
 ## License
 
 Part of the TowerForge project. See main README for license information.
+
+---
+
+# DEPRECATED: Merged into `docs/PERSONS.md`.
+
+See docs/PERSONS.md for consolidated person and movement documentation.
+
+---

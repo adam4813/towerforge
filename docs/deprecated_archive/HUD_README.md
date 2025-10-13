@@ -301,3 +301,9 @@ For questions or issues:
 ## License
 
 Part of the TowerForge project. See main LICENSE file.
+
+---
+
+# DEPRECATED: This file has been merged into `docs/HUD.md`.
+
+See: docs/HUD.md for the consolidated HUD quick start and reference.
