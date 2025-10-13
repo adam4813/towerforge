@@ -43,6 +43,7 @@ set(SOURCE_FILES
     src/ui/ui_window.cpp
     src/ui/ui_window_manager.cpp
     src/ui/info_windows.cpp
+    src/ui/tooltip.cpp
     src/audio/audio_manager.cpp
 )
 

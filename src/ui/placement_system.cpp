@@ -2,6 +2,9 @@
 #include "rendering/camera.h"
 #include <iostream>
 #include <algorithm>
+#include <sstream>
+
+#include "ui/tooltip.h"
 
 namespace towerforge {
 namespace ui {
@@ -16,7 +19,8 @@ PlacementSystem::PlacementSystem(TowerForge::Core::TowerGrid& grid,
     , demolish_mode_(false)
     , hover_floor_(-1)
     , hover_column_(-1)
-    , hover_valid_(false) {
+    , hover_valid_(false)
+    , tooltip_manager_(nullptr) {
 }
 
 PlacementSystem::~PlacementSystem() {
@@ -239,6 +243,76 @@ bool PlacementSystem::HandleKeyboard() {
     }
     
     return false;
+}
+
+void PlacementSystem::UpdateTooltips(int mouse_x, int mouse_y, int grid_offset_x, int grid_offset_y,
+                                    int cell_width, int cell_height, float current_funds) {
+    if (!tooltip_manager_) {
+        return;
+    }
+    
+    // Calculate grid position
+    int grid_x = (mouse_x - grid_offset_x) / cell_width;
+    int grid_y = (mouse_y - grid_offset_y) / cell_height;
+    
+    // Check if hovering over grid
+    if (grid_x >= 0 && grid_x < grid_.GetColumnCount() && grid_y >= 0 && grid_y < grid_.GetFloorCount()) {
+        int screen_x = grid_offset_x + grid_x * cell_width;
+        int screen_y = grid_offset_y + grid_y * cell_height;
+        
+        std::stringstream tooltip_text;
+        
+        if (demolish_mode_) {
+            // Check if there's a facility to demolish
+            auto facility_id = grid_.GetFacilityAt(grid_y, grid_x);
+            if (facility_id >= 0) {
+                const auto buildingType = facility_mgr_.GetFacilityType(facility_id);
+                const auto name = TowerForge::Core::FacilityManager::GetTypeName(buildingType);
+                tooltip_text << "Demolish " << name << "\n";
+            } else {
+                tooltip_text << "No facility to demolish";
+            }
+        } else {
+            int selected = build_menu_.GetSelectedFacility();
+            if (selected >= 0 && selected < static_cast<int>(build_menu_.GetFacilityTypes().size())) {
+                const auto& facility = build_menu_.GetFacilityTypes()[selected];
+                
+                tooltip_text << "Place " << facility.name << "\n";
+                tooltip_text << "Cost: $" << facility.cost << "\n";
+                tooltip_text << "Floor: " << grid_y << ", Column: " << grid_x;
+                
+                // Check if placement is valid
+                bool can_afford = current_funds >= facility.cost;
+                if (!can_afford) {
+                    tooltip_text << "\n[INSUFFICIENT FUNDS]";
+                }
+                
+                // Check if space is available
+                bool space_available = true;
+                for (int i = 0; i < facility.width; i++) {
+                    if (grid_x + i >= grid_.GetColumnCount() || grid_.IsOccupied(grid_y, grid_x + i)) {
+                        space_available = false;
+                        break;
+                    }
+                }
+                
+                if (!space_available) {
+                    tooltip_text << "\n[SPACE NOT AVAILABLE]";
+                }
+            } else {
+                tooltip_text << "Floor: " << grid_y << ", Column: " << grid_x << "\n";
+                tooltip_text << "Select a facility to build";
+            }
+        }
+        
+        if (!tooltip_text.str().empty()) {
+            Tooltip tooltip(tooltip_text.str());
+            tooltip_manager_->ShowTooltip(tooltip, screen_x, screen_y, cell_width, cell_height);
+            return;
+        }
+    }
+    
+    tooltip_manager_->HideTooltip();
 }
 
 void PlacementSystem::Undo() {

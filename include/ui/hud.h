@@ -10,6 +10,7 @@ namespace ui {
 
 // Forward declarations
 class UIWindowManager;
+class TooltipManager;
 
 /**
  * @brief Structure to hold tower rating information
@@ -165,6 +166,18 @@ public:
      */
     bool HandleClick(int mouse_x, int mouse_y);
     
+    /**
+     * @brief Update tooltips based on mouse position
+     * @param mouse_x Mouse X position
+     * @param mouse_y Mouse Y position
+     */
+    void UpdateTooltips(int mouse_x, int mouse_y);
+    
+    /**
+     * @brief Get the tooltip manager
+     */
+    TooltipManager* GetTooltipManager() { return tooltip_manager_.get(); }
+    
 private:
     void RenderTopBar();
     void RenderStarRating();
@@ -178,6 +191,9 @@ private:
     
     // Window manager for info windows
     std::unique_ptr<UIWindowManager> window_manager_;
+    
+    // Tooltip manager
+    std::unique_ptr<TooltipManager> tooltip_manager_;
     
     // Notifications
     std::vector<Notification> notifications_;

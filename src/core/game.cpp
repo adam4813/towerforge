@@ -512,6 +512,9 @@ void Game::InitializeGameSystems() {
     mods_menu_ = new ModsMenu();
     mods_menu_->SetModManager(&ecs_world_->GetModManager());
     
+    // Connect tooltip manager from HUD to other UI components
+    build_menu_->SetTooltipManager(hud_->GetTooltipManager());
+    
     // Create and initialize camera
     camera_ = new towerforge::rendering::Camera();
     camera_->Initialize(800, 600, 1200.0f, 800.0f);
@@ -529,6 +532,7 @@ void Game::InitializeGameSystems() {
     
     placement_system_ = new PlacementSystem(grid, facility_mgr, *build_menu_);
     placement_system_->SetCamera(camera_);
+    placement_system_->SetTooltipManager(hud_->GetTooltipManager());
     
     std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x " 
               << grid.GetColumnCount() << " columns" << std::endl;
@@ -776,10 +780,27 @@ void Game::UpdateInGame(float delta_time) {
 }
 
 void Game::HandleInGameInput() {
+    // Update tooltips for mouse position (even when paused, for UI tooltips)
+    int mouse_x = GetMouseX();
+    int mouse_y = GetMouseY();
+    
+    // Update HUD tooltips
+    hud_->UpdateTooltips(mouse_x, mouse_y);
+    
+    // Update build menu tooltips
+    build_menu_->UpdateTooltips(mouse_x, mouse_y, game_state_.funds);
+    
+    // Update placement tooltips (if not paused and not in research menu)
+    if (!is_paused_ && !research_menu_->IsVisible()) {
+        float world_x, world_y;
+        camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+        placement_system_->UpdateTooltips(static_cast<int>(world_x), static_cast<int>(world_y),
+                                         grid_offset_x_, grid_offset_y_, 
+                                         cell_width_, cell_height_, game_state_.funds);
+    }
+    
     // Handle mouse clicks (only if not paused)
     if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        int mouse_x = GetMouseX();
-        int mouse_y = GetMouseY();
         
         auto& grid = ecs_world_->GetTowerGrid();
         

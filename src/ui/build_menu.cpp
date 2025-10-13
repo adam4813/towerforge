@@ -1,4 +1,5 @@
 #include "ui/build_menu.h"
+#include "ui/tooltip.h"
 #include <sstream>
 
 namespace towerforge {
@@ -8,7 +9,8 @@ BuildMenu::BuildMenu()
     : selected_facility_(-1)
     , visible_(true)
     , tutorial_mode_(false)
-    , highlighted_facility_("") {
+    , highlighted_facility_("")
+    , tooltip_manager_(nullptr) {
     
     // Initialize facility types with costs and properties
     facility_types_.emplace_back("Lobby", "L", 1000, 10, GOLD);
@@ -231,6 +233,86 @@ int BuildMenu::HandleClick(int mouse_x, int mouse_y, bool can_undo, bool can_red
     }
     
     return -1;
+}
+
+void BuildMenu::UpdateTooltips(int mouse_x, int mouse_y, float current_funds) {
+    if (!visible_ || !tooltip_manager_) {
+        return;
+    }
+    
+    int menu_x = 10;
+    int menu_y = 60;
+    int y = menu_y + MENU_PADDING + 20;
+    
+    // Check facility types
+    for (size_t i = 0; i < facility_types_.size(); ++i) {
+        const auto& facility = facility_types_[i];
+        
+        if (tooltip_manager_->IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y, 
+                                         MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+            // Create dynamic tooltip
+            std::stringstream tooltip_text;
+            tooltip_text << facility.name << " - $" << facility.cost << "\n";
+            tooltip_text << "Width: " << facility.width << " cells\n";
+            
+            // Add state-based information
+            if (current_funds < facility.cost) {
+                tooltip_text << "[INSUFFICIENT FUNDS]";
+            } else if (tutorial_mode_ && !highlighted_facility_.empty() && 
+                      facility.name != highlighted_facility_) {
+                tooltip_text << "[Locked in tutorial mode]";
+            } else {
+                tooltip_text << "Click to select for placement";
+            }
+            
+            Tooltip tooltip(tooltip_text.str());
+            tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y, 
+                                         MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
+            return;
+        }
+        y += ITEM_HEIGHT;
+    }
+    
+    // Skip separator and tools header
+    y += 10 + 2 + 12 + 20;
+    
+    // Check demolish button
+    if (tooltip_manager_->IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y, 
+                                    MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+        Tooltip tooltip("Enter demolish mode to remove facilities.\nRefunds 50% of construction cost.\nHotkey: D");
+        tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y, 
+                                     MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
+        return;
+    }
+    y += ITEM_HEIGHT;
+    
+    // Check undo button
+    if (tooltip_manager_->IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y, 
+                                    MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+        Tooltip tooltip("Undo last placement or demolition.\nHotkey: Ctrl+Z");
+        tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y, 
+                                     MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
+        return;
+    }
+    y += ITEM_HEIGHT;
+    
+    // Check redo button
+    if (tooltip_manager_->IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y, 
+                                    MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+        Tooltip tooltip("Redo previously undone action.\nHotkey: Ctrl+Y");
+        tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y, 
+                                     MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
+        return;
+    }
+    
+    // No tooltip to show
+    tooltip_manager_->HideTooltip();
+}
+
+void BuildMenu::RenderTooltips() {
+    if (tooltip_manager_) {
+        tooltip_manager_->Render();
+    }
 }
 
 } // namespace ui

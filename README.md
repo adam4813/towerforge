@@ -637,6 +637,15 @@ TowerForge.RegisterFacilityType({
   - Build menu for selecting facilities
   - Speed controls UI (pause, 1x, 2x, 4x)
   - **Star rating overlay with real-time updates**
+  - **Contextual tooltip system with hover and keyboard support**
+- ✅ **Contextual Tooltip System**
+  - Hover tooltips with 0.5s delay for all UI elements
+  - Dynamic content based on game state (funds, locked items, staffing needs)
+  - Smart positioning (stays on screen, adjusts to avoid edges)
+  - Keyboard navigation support for accessibility
+  - Integration across BuildMenu, HUD, PlacementSystem
+  - Word-wrapped text for readability
+  - Shows keyboard shortcuts and contextual help
 - ✅ **Star Rating & Tower Progression System**
   - Real-time tower quality evaluation
   - 5-star rating system based on satisfaction, tenants, floors, and income
@@ -746,6 +755,8 @@ The application demonstrates:
   - UI display of current time
 
 For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/deprecated_archive/HUD_SYSTEM.md).
+
+For detailed documentation on the tooltip system, see [docs/TOOLTIP_SYSTEM.md](docs/TOOLTIP_SYSTEM.md).
 
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 

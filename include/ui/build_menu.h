@@ -3,9 +3,13 @@
 #include <raylib.h>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace towerforge {
 namespace ui {
+
+// Forward declaration
+class TooltipManager;
 
 /**
  * @brief Structure representing a buildable facility type
@@ -83,12 +87,31 @@ public:
         highlighted_facility_ = highlight_facility;
     }
     
+    /**
+     * @brief Update tooltips based on mouse position
+     * @param mouse_x Mouse X position
+     * @param mouse_y Mouse Y position
+     * @param current_funds Current player funds for dynamic tooltips
+     */
+    void UpdateTooltips(int mouse_x, int mouse_y, float current_funds);
+    
+    /**
+     * @brief Render tooltips
+     */
+    void RenderTooltips();
+    
+    /**
+     * @brief Set the tooltip manager
+     */
+    void SetTooltipManager(TooltipManager* tooltip_manager) { tooltip_manager_ = tooltip_manager; }
+    
 private:
     std::vector<FacilityType> facility_types_;
     int selected_facility_;
     bool visible_;
     bool tutorial_mode_;
     std::string highlighted_facility_;
+    TooltipManager* tooltip_manager_;
     
     static constexpr int MENU_WIDTH = 200;
     static constexpr int ITEM_HEIGHT = 40;

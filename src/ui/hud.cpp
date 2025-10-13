@@ -1,6 +1,7 @@
 #include "ui/hud.h"
 #include "ui/ui_window_manager.h"
 #include "ui/info_windows.h"
+#include "ui/tooltip.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -10,6 +11,7 @@ namespace ui {
 
 HUD::HUD() {
     window_manager_ = std::make_unique<UIWindowManager>();
+    tooltip_manager_ = std::make_unique<TooltipManager>();
 }
 
 HUD::~HUD() {
@@ -36,6 +38,9 @@ void HUD::Render() {
     
     RenderNotifications();
     RenderSpeedControls();
+    
+    // Render tooltips on top
+    tooltip_manager_->Render();
     
     // Render end-game summary if max stars achieved
     if (game_state_.rating.stars >= 5) {
@@ -102,6 +107,123 @@ bool HUD::HandleClick(int mouse_x, int mouse_y) {
     }
     
     return false;
+}
+
+void HUD::UpdateTooltips(int mouse_x, int mouse_y) {
+    // Update tooltip manager
+    tooltip_manager_->Update(mouse_x, mouse_y);
+    
+    int screen_width = GetScreenWidth();
+    int screen_height = GetScreenHeight();
+    
+    // Check top bar elements
+    if (mouse_y <= TOP_BAR_HEIGHT) {
+        int x = 10;
+        
+        // Funds tooltip
+        if (mouse_x >= x && mouse_x <= x + 280) {
+            std::stringstream tooltip_text;
+            tooltip_text << "Current funds and hourly income rate.\n";
+            tooltip_text << "Build facilities to increase income.";
+            Tooltip tooltip(tooltip_text.str());
+            tooltip_manager_->ShowTooltip(tooltip, x, 0, 280, TOP_BAR_HEIGHT);
+            return;
+        }
+        
+        x += 300;
+        // Population tooltip
+        if (mouse_x >= x && mouse_x <= x + 180) {
+            Tooltip tooltip("Total population in your tower.\nIncreases as you build residential facilities.");
+            tooltip_manager_->ShowTooltip(tooltip, x, 0, 180, TOP_BAR_HEIGHT);
+            return;
+        }
+        
+        x += 200;
+        // Time tooltip
+        if (mouse_x >= x && mouse_x <= x + 180) {
+            Tooltip tooltip("Current time and day.\nTime progresses based on simulation speed.");
+            tooltip_manager_->ShowTooltip(tooltip, x, 0, 180, TOP_BAR_HEIGHT);
+            return;
+        }
+        
+        x += 200;
+        // Speed indicator tooltip
+        if (mouse_x >= x && mouse_x <= x + 100) {
+            std::stringstream tooltip_text;
+            if (game_state_.paused) {
+                tooltip_text << "Simulation is PAUSED.\nUse speed controls to resume.";
+            } else {
+                tooltip_text << "Current simulation speed: " << game_state_.speed_multiplier << "x\n";
+                tooltip_text << "Use speed controls to adjust.";
+            }
+            Tooltip tooltip(tooltip_text.str());
+            tooltip_manager_->ShowTooltip(tooltip, x, 0, 100, TOP_BAR_HEIGHT);
+            return;
+        }
+    }
+    
+    // Check star rating panel
+    int rating_x = screen_width - STAR_RATING_WIDTH - 10;
+    int rating_y = TOP_BAR_HEIGHT + 10;
+    
+    if (mouse_x >= rating_x && mouse_x <= rating_x + STAR_RATING_WIDTH &&
+        mouse_y >= rating_y && mouse_y <= rating_y + STAR_RATING_HEIGHT) {
+        std::stringstream tooltip_text;
+        tooltip_text << "Tower Rating System\n";
+        tooltip_text << "Earn stars by:\n";
+        tooltip_text << "- Increasing tenant count\n";
+        tooltip_text << "- Maintaining high satisfaction\n";
+        tooltip_text << "- Expanding your tower\n";
+        tooltip_text << "- Generating revenue";
+        Tooltip tooltip(tooltip_text.str());
+        tooltip_manager_->ShowTooltip(tooltip, rating_x, rating_y, STAR_RATING_WIDTH, STAR_RATING_HEIGHT);
+        return;
+    }
+    
+    // Check speed controls
+    int speed_x = screen_width - SPEED_CONTROL_WIDTH - 10;
+    int speed_y = screen_height - SPEED_CONTROL_HEIGHT - 10;
+    
+    if (mouse_x >= speed_x && mouse_x <= screen_width - 10 &&
+        mouse_y >= speed_y && mouse_y <= screen_height - 10) {
+        
+        int button_width = 45;
+        int button_x = speed_x + 5;
+        
+        // Pause button
+        if (mouse_x >= button_x && mouse_x <= button_x + button_width) {
+            Tooltip tooltip("Pause/Resume simulation\nHotkey: SPACE");
+            tooltip_manager_->ShowTooltip(tooltip, button_x, speed_y + 5, button_width, 30);
+            return;
+        }
+        
+        // 1x button
+        button_x += button_width + 5;
+        if (mouse_x >= button_x && mouse_x <= button_x + button_width) {
+            Tooltip tooltip("Set simulation speed to 1x (normal speed)");
+            tooltip_manager_->ShowTooltip(tooltip, button_x, speed_y + 5, button_width, 30);
+            return;
+        }
+        
+        // 2x button
+        button_x += button_width + 5;
+        if (mouse_x >= button_x && mouse_x <= button_x + button_width) {
+            Tooltip tooltip("Set simulation speed to 2x (fast speed)");
+            tooltip_manager_->ShowTooltip(tooltip, button_x, speed_y + 5, button_width, 30);
+            return;
+        }
+        
+        // 4x button
+        button_x += button_width + 5;
+        if (mouse_x >= button_x && mouse_x <= button_x + button_width) {
+            Tooltip tooltip("Set simulation speed to 4x (very fast speed)");
+            tooltip_manager_->ShowTooltip(tooltip, button_x, speed_y + 5, button_width, 30);
+            return;
+        }
+    }
+    
+    // No tooltip to show
+    tooltip_manager_->HideTooltip();
 }
 
 void HUD::RenderTopBar() {
