@@ -66,13 +66,21 @@ void ResearchTreeMenu::RenderHeader(const TowerForge::Core::ResearchTree& resear
     int title_width = MeasureText(title, 24);
     DrawText(title, menu_x + (MENU_WIDTH - title_width) / 2, menu_y + 20, 24, GOLD);
     
-    // Research points display
-    std::string points_text = "Research Points: " + std::to_string(research_tree.research_points);
+    // Tower Points display (changed from Research Points)
+    std::string points_text = "Tower Points: " + std::to_string(research_tree.tower_points);
     DrawText(points_text.c_str(), menu_x + 20, menu_y + 50, 16, WHITE);
     
     // Total earned
     std::string total_text = "Total Earned: " + std::to_string(research_tree.total_points_earned);
     DrawText(total_text.c_str(), menu_x + 250, menu_y + 50, 16, LIGHTGRAY);
+    
+    // Generation rate display
+    std::string rate_text = "Generation: " + std::to_string(static_cast<int>(research_tree.tower_points_per_hour)) + " pts/hr";
+    DrawText(rate_text.c_str(), menu_x + 450, menu_y + 50, 16, LIGHTGRAY);
+    
+    // Management staff count
+    std::string staff_text = "Management Staff: " + std::to_string(research_tree.management_staff_count);
+    DrawText(staff_text.c_str(), menu_x + 20, menu_y + 70, 14, LIGHTGRAY);
     
     // Close hint
     DrawText("Press ESC to close", menu_x + MENU_WIDTH - 200, menu_y + 50, 14, LIGHTGRAY);
@@ -137,6 +145,10 @@ void ResearchTreeMenu::RenderNode(const TowerForge::Core::ResearchNode& node, in
     Color border_color;
     
     switch (node.state) {
+        case TowerForge::Core::ResearchNodeState::Hidden:
+            bg_color = Color{20, 20, 25, 255};
+            border_color = Color{40, 40, 45, 255};
+            break;
         case TowerForge::Core::ResearchNodeState::Locked:
             bg_color = Color{40, 40, 50, 255};
             border_color = DARKGRAY;
@@ -273,6 +285,33 @@ void ResearchTreeMenu::RenderNodeDetails(const TowerForge::Core::ResearchNode& n
         for (const auto& prereq_id : node.prerequisites) {
             std::string prereq_text = "- " + prereq_id;
             DrawText(prereq_text.c_str(), text_x + 10, text_y, 11, GRAY);
+            text_y += 16;
+        }
+        
+        text_y += 10;
+    }
+    
+    // Conditional Prerequisites
+    bool has_conditional = node.min_star_rating > 0 || node.min_population > 0 || !node.required_facilities.empty();
+    if (has_conditional) {
+        DrawText("Unlock Conditions:", text_x, text_y, 12, LIGHTGRAY);
+        text_y += 20;
+        
+        if (node.min_star_rating > 0) {
+            std::string star_text = "- Min. " + std::to_string(node.min_star_rating) + "-star rating";
+            DrawText(star_text.c_str(), text_x + 10, text_y, 11, GRAY);
+            text_y += 16;
+        }
+        
+        if (node.min_population > 0) {
+            std::string pop_text = "- Min. " + std::to_string(node.min_population) + " population";
+            DrawText(pop_text.c_str(), text_x + 10, text_y, 11, GRAY);
+            text_y += 16;
+        }
+        
+        for (const auto& facility : node.required_facilities) {
+            std::string facility_text = "- Build " + facility;
+            DrawText(facility_text.c_str(), text_x + 10, text_y, 11, GRAY);
             text_y += 16;
         }
         

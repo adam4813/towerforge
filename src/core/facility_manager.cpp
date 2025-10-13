@@ -116,6 +116,10 @@ int FacilityManager::GetDefaultWidth(BuildingComponent::Type type) {
             return 9;  // Conference halls are large
         case BuildingComponent::Type::FlagshipStore:
             return 12; // Flagship stores are very large
+        case BuildingComponent::Type::ManagementOffice:
+            return 8;  // Management offices are medium-sized
+        case BuildingComponent::Type::SatelliteOffice:
+            return 6;  // Satellite offices are smaller
         default:
             return 4;
     }
@@ -147,6 +151,10 @@ int FacilityManager::GetDefaultCapacity(BuildingComponent::Type type) {
             return 60;  // Conference hall can hold ~60 people
         case BuildingComponent::Type::FlagshipStore:
             return 40;  // Flagship store has high capacity
+        case BuildingComponent::Type::ManagementOffice:
+            return 10;  // Management office capacity
+        case BuildingComponent::Type::SatelliteOffice:
+            return 6;   // Satellite office capacity
         default:
             return 10;
     }
@@ -178,6 +186,10 @@ const char* FacilityManager::GetTypeName(BuildingComponent::Type type) {
             return "ConferenceHall";
         case BuildingComponent::Type::FlagshipStore:
             return "FlagshipStore";
+        case BuildingComponent::Type::ManagementOffice:
+            return "ManagementOffice";
+        case BuildingComponent::Type::SatelliteOffice:
+            return "SatelliteOffice";
         default:
             return "Unknown";
     }
@@ -210,6 +222,10 @@ unsigned int FacilityManager::GetFacilityColor(BuildingComponent::Type type) {
             return 0x4A90E2;  // LIGHTBLUE
         case BuildingComponent::Type::FlagshipStore:
             return 0x00CED1;  // TURQUOISE
+        case BuildingComponent::Type::ManagementOffice:
+            return 0x2C3E50;  // DARK SLATE (executive/professional)
+        case BuildingComponent::Type::SatelliteOffice:
+            return 0x34495E;  // LIGHTER SLATE
         default:
             return 0x66BFFF;  // Default to SKYBLUE
     }

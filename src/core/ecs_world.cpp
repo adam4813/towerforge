@@ -680,36 +680,27 @@ void ECSWorld::RegisterSystems() {
             std::cout << std::endl;
         });
     
-    // Research Points Award System
-    // Awards research points based on reaching milestones
-    world_.system<ResearchTree, const TowerEconomy>()
+    // Tower Points Generation System
+    // Generates tower points based on management staff count
+    world_.system<ResearchTree, const TimeManager>()
         .kind(flecs::OnUpdate)
-        .interval(5.0f)  // Check every 5 seconds
-        .each([](flecs::entity e, ResearchTree& research, const TowerEconomy& economy) {
-            static int last_tenant_milestone = 0;
-            static int last_floor_milestone = 0;
-            static float last_income_milestone = 0.0f;
-            
-            // Award points for tenant milestones (every 10 tenants)
-            int tenant_count = 0;
-            e.world().each<FacilityEconomics>([&](const FacilityEconomics& econ) {
-                tenant_count += econ.current_tenants;
+        .interval(1.0f)  // Update every second for smooth point generation
+        .each([](flecs::entity e, ResearchTree& research, const TimeManager& time_mgr) {
+            // Count management staff across all management facilities
+            int management_staff_count = 0;
+            e.world().each<const BuildingComponent>([&](const BuildingComponent& building) {
+                if (building.IsManagementFacility()) {
+                    management_staff_count += building.current_staff;
+                }
             });
             
-            int current_tenant_milestone = (tenant_count / 10) * 10;
-            if (current_tenant_milestone > last_tenant_milestone) {
-                int points = (current_tenant_milestone - last_tenant_milestone) / 10 * 5;  // 5 points per 10 tenants
-                research.AwardPoints(points);
-                last_tenant_milestone = current_tenant_milestone;
-            }
+            // Update the staff count in research tree
+            research.UpdateManagementStaffCount(management_staff_count);
             
-            // Award points for income milestones (every $1000/hr)
-            int current_income_milestone = static_cast<int>(economy.daily_revenue / 24.0f / 1000.0f) * 1000;
-            if (current_income_milestone > last_income_milestone) {
-                int points = static_cast<int>((current_income_milestone - last_income_milestone) / 1000.0f * 3.0f);  // 3 points per $1000/hr
-                research.AwardPoints(points);
-                last_income_milestone = static_cast<float>(current_income_milestone);
-            }
+            // Generate tower points based on time elapsed
+            // Convert game time to hours (delta_time is in seconds of game time)
+            float delta_hours = e.world().delta_time() / 3600.0f;  // Convert to hours
+            research.GenerateTowerPoints(delta_hours);
         });
     
     // Visitor behavior system
