@@ -135,3 +135,106 @@ The project is in its initial stages. Future development will add:
 4. Consider cross-platform compatibility
 5. Update documentation when adding new features
 6. Respect the ECS architecture pattern when adding game logic
+
+---
+
+## Consolidated Build Instructions (from docs/BUILD_INSTRUCTIONS.md)
+
+This project includes a more detailed build instruction set in `docs/BUILD_INSTRUCTIONS.md`; below is a consolidated, quick-reference version developers should follow.
+
+Prerequisites (summary):
+- CMake 3.20+
+- C++20-capable compiler: GCC 10+/Clang 10+/MSVC 2019+
+- vcpkg (recommended)
+- On Linux: X11 development libs and optionally `xvfb` for headless runs
+
+Quick build steps:
+1. Clone repository:
+
+```bash
+git clone https://github.com/adam4813/towerforge.git
+cd towerforge
+```
+
+2. With vcpkg (recommended):
+
+```bash
+mkdir build
+cd build
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build . --parallel <num_jobs>
+```
+
+On Windows with cmd.exe you can use `%NUMBER_OF_PROCESSORS%` for `<num_jobs>`.
+
+3. Without vcpkg: ensure system has flecs and raylib installed and run `cmake ..` then build.
+
+4. Built binaries are in `build/bin/` (or `build/bin/Release/` for some generators/configs):
+- `towerforge` - Main game executable
+- `screenshot_app` - Screenshot utility used for headless screenshot generation
+
+5. Verification: a convenience script `./scripts/verify_build.sh` exists to run an automated verify-build sequence (configure, build, check artifacts).
+
+Additional notes:
+- First build may take longer because vcpkg will fetch and build dependencies (e.g., flecs, raylib, nlohmann-json)
+- Known dependency versions referenced in docs: flecs 4.1.1, raylib 5.5, nlohmann-json 3.12.0
+
+Troubleshooting highlights:
+- Missing X11 / OpenGL libs: install system dev packages (see docs)
+- Old CMake: upgrade to >=3.20
+- Missing C++20 compiler: install/update GCC/Clang or use MSVC 2019+
+
+Platform-specific tips:
+- Windows: prefer Visual Studio 2019+ or MinGW-w64, integrate vcpkg with your toolchain
+- Linux: tested on Ubuntu 20.04+/Debian 11+
+- macOS: Xcode 12+ and command-line tools
+
+Performance / build-type examples:
+
+Release optimized build:
+
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build . --config Release
+```
+
+Debug build:
+
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build . --config Debug
+```
+
+---
+
+## CI Workflow Summary (from docs/CI_WORKFLOW.md)
+
+A GitHub Actions workflow (`.github/workflows/build.yml`) builds the project across platforms. Key points:
+- Triggers: push to `main`/`develop`, PRs targeting those branches, and manual `workflow_dispatch`
+- Matrix builds: Windows (MSVC), Linux (GCC), optionally Clang and macOS (some matrices are temporarily disabled)
+- Uses `lukka/run-vcpkg` to install vcpkg deps from `vcpkg.json`
+- Steps: checkout, install system deps (Linux), setup MSVC (Windows), configure CMake (with vcpkg toolchain), build, collect artifacts, archive, upload
+- Artifacts: platform archives named `TowerForge-{os}-{compiler}` containing `towerforge` and `screenshot_app`; Windows drops required DLLs alongside executables
+- Common CI helpers used: `actions/checkout@v4`, `lukka/run-vcpkg@v11`, `actions/upload-artifact@v4`
+
+Maintenance notes for CI:
+- Pin vcpkg commit in workflow for reproducibility
+- Adjust matrix to add/remove compilers or build types
+- Consider adding automated tests, caching, and release steps in future
+
+---
+
+## Design Decision: No Standalone Demo Applications (from docs/DESIGN_DECISION_NO_DEMOS.md)
+
+Decision summary:
+- The project will not maintain multiple standalone demo applications; the main `towerforge` binary is the single source of demos and feature showcase.
+
+Rationale:
+- Avoid code duplication and extra maintenance burden
+- Ensure features are demonstrated in integrated, realistic conditions
+- Reduce build complexity and distribution size
+- Prefer documentation + screenshots over separate demo executables
+
+Exception:
+- `screenshot_app` remains as a lightweight tool for generating documentation screenshots in headless CI environments; it is not a user-facing demo.
+
