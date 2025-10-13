@@ -98,33 +98,22 @@ jobs:
       run: |
         mkdir -p artifacts
         # Copy executables from Release folder
-        if [ -f "build/bin/Release/towerforge.exe" ]; then
-          cp build/bin/Release/towerforge.exe artifacts/
-          cp build/bin/Release/screenshot_app.exe artifacts/ || true
-          cp build/bin/Release/*.dll artifacts/ || true
-        elif [ -f "build/Release/towerforge.exe" ]; then
-          cp build/Release/towerforge.exe artifacts/
-          cp build/Release/screenshot_app.exe artifacts/ || true
-          cp build/Release/*.dll artifacts/ || true
-        fi
+        cp build/native/bin/Release/towerforge.exe artifacts/
+        cp build/native/bin/Release/screenshot_app.exe artifacts/ || true
+        cp build/native/bin/Release/*.dll artifacts/ || true
         
         # Copy lua mods
         cp mods/*.lua artifacts/mods || true
         
-        # Copy vcpkg installed DLLs if they exist
-        if [ -d "vcpkg_installed/${{ matrix.vcpkg_triplet }}/bin" ]; then
-          cp vcpkg_installed/${{ matrix.vcpkg_triplet }}/bin/*.dll artifacts/ || true
-        fi
         ls -la artifacts/
 
     - name: Prepare artifacts (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
         mkdir -p artifacts
-        if [ -f "build/bin/towerforge" ]; then
-          cp build/bin/towerforge artifacts/
-          cp build/bin/screenshot_app artifacts/ || true
-        fi
+        # Copy executables from Release folder
+        cp build/native/bin/Release/towerforge artifacts/
+        cp build/native/bin/Release/screenshot_app artifacts/ || true
         
         cp mods/*.lua artifacts/mods || true
         
