@@ -260,3 +260,6 @@ std::cout << json.dump(2) << std::endl;
 5. **Cloud Integration:** Sync saves to cloud storage
 6. **Quick Save:** F5 hotkey for instant save
 7. **Save Browser:** Enhanced UI with thumbnails
+
+// DEPRECATED: Merged into `docs/SAVE_LOAD.md`.
+// See docs/SAVE_LOAD.md for integration instructions.

@@ -4,9 +4,13 @@
 namespace TowerForge {
 namespace Core {
 
-TowerGrid::TowerGrid(int initial_floors, int initial_columns)
-    : floors_(initial_floors), columns_(initial_columns) {
+TowerGrid::TowerGrid(int initial_floors, int initial_columns, int ground_floor_index)
+    : floors_(initial_floors), columns_(initial_columns), 
+      ground_floor_index_(ground_floor_index), basement_floors_(0) {
     ResizeGrid();
+    
+    // Initialize ground floor as built by default
+    BuildFloor(ground_floor_index_, 0, -1);
 }
 
 void TowerGrid::ResizeGrid() {
@@ -14,6 +18,16 @@ void TowerGrid::ResizeGrid() {
     for (auto& row : grid_) {
         row.resize(columns_);
     }
+}
+
+int TowerGrid::FloorToGridIndex(int floor) const {
+    // Basement floors are negative, so we add basement_floors_ to offset
+    return floor - (ground_floor_index_ - basement_floors_);
+}
+
+int TowerGrid::GridIndexToFloor(int grid_index) const {
+    // Convert back from grid index to floor index
+    return grid_index + (ground_floor_index_ - basement_floors_);
 }
 
 // Floor management
@@ -45,6 +59,52 @@ bool TowerGrid::RemoveTopFloor() {
     
     floors_--;
     grid_.pop_back();
+    return true;
+}
+
+int TowerGrid::AddBasementFloor() {
+    // Add a floor at the beginning (basement)
+    basement_floors_++;
+    floors_++;
+    
+    // Insert new floor at the beginning of grid
+    grid_.insert(grid_.begin(), std::vector<GridCell>(columns_));
+    
+    // Return the new basement floor index
+    return ground_floor_index_ - basement_floors_;
+}
+
+int TowerGrid::AddBasementFloors(int count) {
+    if (count <= 0) return ground_floor_index_ - basement_floors_;
+    
+    int first_new_basement = ground_floor_index_ - basement_floors_ - count;
+    
+    for (int i = 0; i < count; ++i) {
+        AddBasementFloor();
+    }
+    
+    return first_new_basement;
+}
+
+bool TowerGrid::RemoveBottomFloor() {
+    // Cannot remove if no basement floors exist
+    if (basement_floors_ <= 0) {
+        return false;
+    }
+    
+    // Cannot remove if only one floor remains
+    if (floors_ <= 1) {
+        return false;
+    }
+    
+    // Check if the bottom floor (first in grid) is empty
+    if (!IsFloorEmpty(0)) {
+        return false;
+    }
+    
+    basement_floors_--;
+    floors_--;
+    grid_.erase(grid_.begin());
     return true;
 }
 
@@ -100,10 +160,62 @@ bool TowerGrid::PlaceFacility(int floor, int column, int width, int facility_id)
         return false;
     }
     
-    // Place the facility
+    // Convert floor index to grid index
+    int grid_idx = FloorToGridIndex(floor);
+    
+    // Place the facility and mark floor as built
     for (int i = 0; i < width; ++i) {
-        grid_[floor][column + i].occupied = true;
-        grid_[floor][column + i].facility_id = facility_id;
+        grid_[grid_idx][column + i].occupied = true;
+        grid_[grid_idx][column + i].facility_id = facility_id;
+        grid_[grid_idx][column + i].floor_built = true;
+    }
+    
+    return true;
+}
+
+bool TowerGrid::BuildFloor(int floor, int start_column, int width) {
+    if (!IsValidPosition(floor, start_column)) {
+        return false;
+    }
+    
+    int grid_idx = FloorToGridIndex(floor);
+    
+    // If width is -1, build all remaining columns
+    int actual_width = (width < 0) ? (columns_ - start_column) : width;
+    
+    // Validate width
+    if (start_column + actual_width > columns_) {
+        return false;
+    }
+    
+    // Mark cells as built
+    for (int i = 0; i < actual_width; ++i) {
+        grid_[grid_idx][start_column + i].floor_built = true;
+    }
+    
+    return true;
+}
+
+bool TowerGrid::IsFloorBuilt(int floor, int column) const {
+    if (!IsValidPosition(floor, column)) {
+        return false;
+    }
+    
+    int grid_idx = FloorToGridIndex(floor);
+    return grid_[grid_idx][column].floor_built;
+}
+
+bool TowerGrid::IsEntireFloorBuilt(int floor) const {
+    int grid_idx = FloorToGridIndex(floor);
+    
+    if (grid_idx < 0 || grid_idx >= floors_) {
+        return false;
+    }
+    
+    for (int column = 0; column < columns_; ++column) {
+        if (!grid_[grid_idx][column].floor_built) {
+            return false;
+        }
     }
     
     return true;
@@ -112,11 +224,11 @@ bool TowerGrid::PlaceFacility(int floor, int column, int width, int facility_id)
 bool TowerGrid::RemoveFacility(int facility_id) {
     bool found = false;
     
-    for (int floor = 0; floor < floors_; ++floor) {
+    for (int grid_idx = 0; grid_idx < floors_; ++grid_idx) {
         for (int column = 0; column < columns_; ++column) {
-            if (grid_[floor][column].facility_id == facility_id) {
-                grid_[floor][column].occupied = false;
-                grid_[floor][column].facility_id = -1;
+            if (grid_[grid_idx][column].facility_id == facility_id) {
+                grid_[grid_idx][column].occupied = false;
+                grid_[grid_idx][column].facility_id = -1;
                 found = true;
             }
         }
@@ -145,7 +257,8 @@ bool TowerGrid::IsOccupied(int floor, int column) const {
         return false;
     }
     
-    return grid_[floor][column].occupied;
+    int grid_idx = FloorToGridIndex(floor);
+    return grid_[grid_idx][column].occupied;
 }
 
 int TowerGrid::GetFacilityAt(int floor, int column) const {
@@ -153,11 +266,13 @@ int TowerGrid::GetFacilityAt(int floor, int column) const {
         return -1;
     }
     
-    return grid_[floor][column].facility_id;
+    int grid_idx = FloorToGridIndex(floor);
+    return grid_[grid_idx][column].facility_id;
 }
 
 bool TowerGrid::IsValidPosition(int floor, int column) const {
-    return floor >= 0 && floor < floors_ && column >= 0 && column < columns_;
+    int grid_idx = FloorToGridIndex(floor);
+    return grid_idx >= 0 && grid_idx < floors_ && column >= 0 && column < columns_;
 }
 
 bool TowerGrid::IsSpaceAvailable(int floor, int column, int width) const {
@@ -169,8 +284,10 @@ bool TowerGrid::IsSpaceAvailable(int floor, int column, int width) const {
         return false;
     }
     
+    int grid_idx = FloorToGridIndex(floor);
+    
     for (int i = 0; i < width; ++i) {
-        if (grid_[floor][column + i].occupied) {
+        if (grid_[grid_idx][column + i].occupied) {
             return false;
         }
     }
@@ -208,8 +325,8 @@ bool TowerGrid::IsColumnEmpty(int column) const {
         return false;
     }
     
-    for (int floor = 0; floor < floors_; ++floor) {
-        if (grid_[floor][column].occupied) {
+    for (int grid_idx = 0; grid_idx < floors_; ++grid_idx) {
+        if (grid_[grid_idx][column].occupied) {
             return false;
         }
     }
@@ -217,13 +334,13 @@ bool TowerGrid::IsColumnEmpty(int column) const {
     return true;
 }
 
-bool TowerGrid::IsFloorEmpty(int floor) const {
-    if (floor < 0 || floor >= floors_) {
+bool TowerGrid::IsFloorEmpty(int grid_index) const {
+    if (grid_index < 0 || grid_index >= floors_) {
         return false;
     }
     
     for (int column = 0; column < columns_; ++column) {
-        if (grid_[floor][column].occupied) {
+        if (grid_[grid_index][column].occupied) {
             return false;
         }
     }

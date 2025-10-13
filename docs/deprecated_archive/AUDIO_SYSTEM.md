@@ -300,3 +300,6 @@ int main() {
 ## API Reference
 
 See `include/audio/audio_manager.h` for complete API documentation with detailed method descriptions.
+
+// DEPRECATED: This file has been merged into `docs/AUDIO.md`.
+// See: docs/AUDIO.md for the consolidated audio system reference and quick-start.

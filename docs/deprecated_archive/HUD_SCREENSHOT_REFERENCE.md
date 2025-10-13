@@ -1,5 +1,10 @@
 # HUD Screenshot Reference
 
+DEPRECATED: This file has been merged into `docs/HUD.md`.
+See: docs/HUD.md for screenshot references and visual guidance.
+
+---
+
 This document shows what the HUD system looks like when running.
 
 ## Main View with HUD

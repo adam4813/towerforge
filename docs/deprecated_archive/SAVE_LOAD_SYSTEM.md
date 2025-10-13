@@ -40,36 +40,18 @@ Save files use JSON format with the `.tfsave` extension.
   "time": {
     "current_hour": 14.5,
     "current_day": 5,
-    "current_week": 1,
-    "simulation_speed": 1.0,
-    "hours_per_second": 60.0
+    "simulation_speed": 1.0
   },
   "economy": {
     "total_balance": 25000.0,
     "total_revenue": 5000.0,
-    "total_expenses": 2000.0,
-    "daily_revenue": 500.0,
-    "daily_expenses": 200.0,
-    "last_processed_day": 4
+    "total_expenses": 2000.0
   },
   "grid": {
     "floors": 10,
     "columns": 20
   },
-  "entities": [
-    {
-      "id": 12345,
-      "name": "Person1",
-      "person": {
-        "name": "John Doe",
-        "state": 0,
-        "current_floor": 2,
-        "current_column": 5.5,
-        ...
-      },
-      ...
-    }
-  ]
+  "entities": []
 }
 ```
 
@@ -293,3 +275,6 @@ When loading a save from a different version:
 - **std::filesystem:** Cross-platform file operations
 - **Raylib:** UI rendering
 - **flecs:** ECS framework (serialized data source)
+
+// DEPRECATED: Merged into `docs/SAVE_LOAD.md`.
+// See docs/SAVE_LOAD.md for consolidated save/load reference and integration guide.

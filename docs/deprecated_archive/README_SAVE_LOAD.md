@@ -72,7 +72,8 @@ The system serializes all game state including:
 **Documentation:**
 - `docs/SAVE_LOAD_SYSTEM.md` - Technical documentation
 - `docs/SAVE_LOAD_INTEGRATION.md` - Integration guide
-- `docs/README_SAVE_LOAD.md` - This file
+- `docs/README_SAVE_LOAD.md` - DEPRECATED: Merged into `docs/SAVE_LOAD.md`.
+See docs/SAVE_LOAD.md for consolidated save/load guidance.
 
 ### Modified Files
 
@@ -285,3 +286,11 @@ The save/load system is production-ready and provides:
 - ✅ Automated testing
 
 The implementation follows TowerForge's architecture and coding standards, with minimal changes to existing code and maximum modularity for future enhancements.
+
+# TowerForge Save/Load - DEPRECATED
+
+This file has been merged into `docs/SAVE_LOAD.md`.
+
+Please see `docs/SAVE_LOAD.md` for the consolidated Save/Load implementation summary, integration guide, and usage examples.
+
+(Original content retained in repository history; this file intentionally replaced to avoid duplicate/out-of-date snippets.)

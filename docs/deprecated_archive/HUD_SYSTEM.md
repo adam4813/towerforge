@@ -358,3 +358,11 @@ We do not create standalone demo applications for individual features. The main 
 ## License
 
 Part of the TowerForge project. See main LICENSE file for details.
+
+---
+
+# DEPRECATED: This file has been merged into `docs/HUD.md`.
+
+See: docs/HUD.md for the consolidated HUD reference and quick-start.
+
+---
