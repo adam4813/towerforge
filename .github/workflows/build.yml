@@ -103,9 +103,10 @@ jobs:
         cp build/native/bin/Release/*.dll artifacts/ || true
         
         # Copy lua mods
+        mkdir -p artifacts/mods
         cp mods/*.lua artifacts/mods || true
         
-        ls -la artifacts/
+        ls -laR artifacts/
 
     - name: Prepare artifacts (Linux/macOS)
       if: runner.os != 'Windows'
@@ -115,10 +116,12 @@ jobs:
         cp build/native/bin/Release/towerforge artifacts/
         cp build/native/bin/Release/screenshot_app artifacts/ || true
         
+        # Copy lua mods
+        mkdir -p artifacts/mods
         cp mods/*.lua artifacts/mods || true
         
         chmod +x artifacts/* || true
-        ls -la artifacts/
+        ls -laR artifacts/
 
     - name: Create archive (Windows)
       if: runner.os == 'Windows'
