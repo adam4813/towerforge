@@ -21,10 +21,7 @@
     {
       "name": "native",
       "displayName": "Native",
-      "inherits": "base",
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-windows"
-      }
+      "inherits": "base"
     }
   ],
   "buildPresets": [

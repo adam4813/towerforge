@@ -43,8 +43,6 @@ jobs:
           #   compiler: clang
           #   build_type: Release
           #   vcpkg_triplet: x64-osx
-    env:
-      VCPKG_DEFAULT_TRIPLET: ${{ matrix.vcpkg_triplet }}
 
     steps:
     - name: Checkout repository
