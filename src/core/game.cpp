@@ -15,29 +15,29 @@ static void CalculateTowerRatingHelper(TowerRating& rating, ECSWorld& ecs_world,
     int total_tenants = 0;
     float total_satisfaction = 0.0f;
     int satisfaction_count = 0;
-    
+
     // Count tenants and satisfaction from facilities
     ecs_world.GetWorld().each([&](const FacilityEconomics& econ, const Satisfaction& sat) {
         total_tenants += econ.current_tenants;
         total_satisfaction += sat.satisfaction_score;
         satisfaction_count++;
     });
-    
+
     // Calculate average satisfaction
     float avg_satisfaction = (satisfaction_count > 0) ? (total_satisfaction / satisfaction_count) : 0.0f;
-    
+
     // Get floor count from tower grid
     int floor_count = ecs_world.GetTowerGrid().GetFloorCount();
-    
+
     // Update rating structure
     rating.total_tenants = total_tenants;
     rating.average_satisfaction = avg_satisfaction;
     rating.total_floors = floor_count;
     rating.hourly_income = income_rate;
-    
+
     // Calculate star rating based on thresholds
     int new_stars = 1;  // Start with 1 star
-    
+
     // 2 stars: 25+ tenants
     if (total_tenants >= 25) {
         new_stars = 2;
@@ -51,7 +51,7 @@ static void CalculateTowerRatingHelper(TowerRating& rating, ECSWorld& ecs_world,
         rating.next_star_floors = 0;
         rating.next_star_income = 0.0f;
     }
-    
+
     // 3 stars: 50+ tenants AND 70%+ satisfaction
     if (total_tenants >= 50 && avg_satisfaction >= 70.0f) {
         new_stars = 3;
@@ -65,7 +65,7 @@ static void CalculateTowerRatingHelper(TowerRating& rating, ECSWorld& ecs_world,
         rating.next_star_floors = 0;
         rating.next_star_income = 0.0f;
     }
-    
+
     // 4 stars: 100+ tenants AND 75%+ satisfaction AND 20+ floors
     if (total_tenants >= 100 && avg_satisfaction >= 75.0f && floor_count >= 20) {
         new_stars = 4;
@@ -79,9 +79,9 @@ static void CalculateTowerRatingHelper(TowerRating& rating, ECSWorld& ecs_world,
         rating.next_star_floors = 20;
         rating.next_star_income = 0.0f;
     }
-    
+
     // 5 stars: 200+ tenants AND 80%+ satisfaction AND 40+ floors AND $10k+/hr income
-    if (total_tenants >= 200 && avg_satisfaction >= 80.0f && 
+    if (total_tenants >= 200 && avg_satisfaction >= 80.0f &&
         floor_count >= 40 && income_rate >= 10000.0f) {
         new_stars = 5;
         rating.next_star_tenants = 0;
@@ -94,7 +94,7 @@ static void CalculateTowerRatingHelper(TowerRating& rating, ECSWorld& ecs_world,
         rating.next_star_floors = 40;
         rating.next_star_income = 10000.0f;
     }
-    
+
     rating.stars = new_stars;
 }
 
@@ -145,40 +145,40 @@ bool Game::Initialize() {
     std::cout << "TowerForge - Tower Simulation Game" << std::endl;
     std::cout << "Version: 0.1.0" << std::endl;
     std::cout << "Initializing Raylib renderer..." << std::endl;
-    
+
     // Initialize renderer
     renderer_.Initialize(800, 600, "TowerForge");
-    
+
     // Initialize audio system
     audio_manager_ = &towerforge::audio::AudioManager::GetInstance();
     audio_manager_->Initialize();
-    
+
     // Create achievement manager for persistent achievements
     achievement_manager_ = new AchievementManager();
     achievement_manager_->Initialize();
-    
+
     // Set achievement manager for achievements menu
     achievements_menu_.SetAchievementManager(achievement_manager_);
-    
+
     // Play main theme music
     audio_manager_->PlayMusic(towerforge::audio::AudioCue::MainTheme, true, 1.0f);
-    
+
     return true;
 }
 
 void Game::Run() {
     while (current_state_ != GameState::Quit && !renderer_.ShouldClose()) {
         float delta_time = GetFrameTime();
-        
+
         // Update audio system
         audio_manager_->Update(delta_time);
-        
+
         switch (current_state_) {
             case GameState::TitleScreen:
                 UpdateTitleScreen(delta_time);
                 RenderTitleScreen();
                 break;
-                
+
             case GameState::Tutorial:
                 if (!game_initialized_) {
                     InitializeGameSystems();
@@ -188,22 +188,22 @@ void Game::Run() {
                 UpdateTutorial(delta_time);
                 RenderTutorial();
                 break;
-                
+
             case GameState::Achievements:
                 UpdateAchievementsScreen(delta_time);
                 RenderAchievementsScreen();
                 break;
-                
+
             case GameState::Settings:
                 UpdateSettingsScreen(delta_time);
                 RenderSettingsScreen();
                 break;
-                
+
             case GameState::Credits:
                 UpdateCreditsScreen(delta_time);
                 RenderCreditsScreen();
                 break;
-                
+
             case GameState::InGame:
                 if (!game_initialized_) {
                     InitializeGameSystems();
@@ -212,7 +212,7 @@ void Game::Run() {
                 UpdateInGame(delta_time);
                 RenderInGame();
                 break;
-                
+
             case GameState::Quit:
                 break;
         }
@@ -222,7 +222,7 @@ void Game::Run() {
 void Game::Shutdown() {
     // Cleanup game systems if initialized
     CleanupGameSystems();
-    
+
     renderer_.Shutdown();
     std::cout << "Exiting TowerForge..." << std::endl;
 }
@@ -240,11 +240,11 @@ void Game::RenderTitleScreen() {
 
 void Game::HandleTitleScreenInput() {
     int keyboard_selection = main_menu_.HandleKeyboard();
-    int mouse_selection = main_menu_.HandleMouse(GetMouseX(), GetMouseY(), 
+    int mouse_selection = main_menu_.HandleMouse(GetMouseX(), GetMouseY(),
                                                  IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-    
+
     int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
-    
+
     if (selected >= 0) {
         audio_manager_->PlaySFX(towerforge::audio::AudioCue::MenuConfirm);
         MenuOption option = static_cast<MenuOption>(selected);
@@ -310,13 +310,13 @@ void Game::UpdateSettingsScreen(float delta_time) {
 void Game::RenderSettingsScreen() {
     renderer_.BeginFrame();
     ClearBackground(Color{20, 20, 30, 255});
-    
+
     if (in_audio_settings_) {
         audio_settings_menu_.Render();
     } else {
         general_settings_menu_.Render();
     }
-    
+
     renderer_.EndFrame();
 }
 
@@ -325,18 +325,18 @@ void Game::HandleSettingsInput() {
         if (audio_settings_menu_.HandleKeyboard()) {
             in_audio_settings_ = false;
         }
-        bool back_clicked = audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), 
+        bool back_clicked = audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
                                                              IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
         if (back_clicked) {
             in_audio_settings_ = false;
         }
     } else {
         int keyboard_selection = general_settings_menu_.HandleKeyboard();
-        int mouse_selection = general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), 
+        int mouse_selection = general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
                                                                 IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-        
+
         int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
-        
+
         if (selected >= 0) {
             SettingsOption option = static_cast<SettingsOption>(selected);
             switch (option) {
@@ -365,21 +365,21 @@ void Game::UpdateCreditsScreen(float delta_time) {
 void Game::RenderCreditsScreen() {
     renderer_.BeginFrame();
     ClearBackground(Color{20, 20, 30, 255});
-    
+
     int screen_width = GetScreenWidth();
     int y = 100;
-    
+
     DrawText("CREDITS", (screen_width - MeasureText("CREDITS", 40)) / 2, y, 40, GOLD);
     y += 80;
-    
+
     DrawText("TowerForge v0.1.0", (screen_width - MeasureText("TowerForge v0.1.0", 24)) / 2, y, 24, WHITE);
     y += 50;
-    
-    DrawText("A modern SimTower-inspired skyscraper simulation", 
-             (screen_width - MeasureText("A modern SimTower-inspired skyscraper simulation", 18)) / 2, 
+
+    DrawText("A modern SimTower-inspired skyscraper simulation",
+             (screen_width - MeasureText("A modern SimTower-inspired skyscraper simulation", 18)) / 2,
              y, 18, LIGHTGRAY);
     y += 60;
-    
+
     DrawText("Built with:", (screen_width - MeasureText("Built with:", 20)) / 2, y, 20, LIGHTGRAY);
     y += 40;
     DrawText("- C++20", (screen_width - MeasureText("- C++20", 18)) / 2, y, 18, WHITE);
@@ -388,11 +388,11 @@ void Game::RenderCreditsScreen() {
     y += 30;
     DrawText("- Flecs (ECS framework)", (screen_width - MeasureText("- Flecs (ECS framework)", 18)) / 2, y, 18, WHITE);
     y += 60;
-    
-    DrawText("Press ESC or ENTER to return to menu", 
-             (screen_width - MeasureText("Press ESC or ENTER to return to menu", 16)) / 2, 
+
+    DrawText("Press ESC or ENTER to return to menu",
+             (screen_width - MeasureText("Press ESC or ENTER to return to menu", 16)) / 2,
              y, 16, GRAY);
-    
+
     renderer_.EndFrame();
 }
 
@@ -404,106 +404,106 @@ void Game::HandleCreditsInput() {
 
 void Game::InitializeGameSystems() {
     std::cout << "Initializing game..." << std::endl;
-    
+
     // Change music to gameplay theme
     audio_manager_->StopMusic(1.0f);
     audio_manager_->PlayMusic(towerforge::audio::AudioCue::GameplayLoop, true, 2.0f);
-    
+
     // Create and initialize the ECS world
     ecs_world_ = new ECSWorld();
     ecs_world_->Initialize();
-    
+
     // Create and initialize save/load manager
     save_load_manager_ = new SaveLoadManager();
     save_load_manager_->Initialize();
     save_load_manager_->SetAutosaveEnabled(true);
     save_load_manager_->SetAutosaveInterval(120.0f);
     save_load_manager_->SetAchievementManager(achievement_manager_);
-    
+
     // Create save/load menu
     save_load_menu_ = new SaveLoadMenu();
     save_load_menu_->SetSaveLoadManager(save_load_manager_);
-    
+
     // Create the global TimeManager as a singleton
     ecs_world_->GetWorld().set<TimeManager>({60.0f});
-    
+
     // Create the global TowerEconomy as a singleton
     ecs_world_->GetWorld().set<TowerEconomy>({10000.0f});
-    
+
     // Create the global ResearchTree as a singleton
     ResearchTree research_tree;
     research_tree.InitializeDefaultTree();
     research_tree.AwardPoints(50);
     ecs_world_->GetWorld().set<ResearchTree>(research_tree);
-    
+
     // Create the global NPCSpawner as a singleton
     ecs_world_->GetWorld().set<NPCSpawner>({30.0f});  // Spawn visitors every 30 seconds base rate
-    
-    std::cout << std::endl << "Creating example entities..." << std::endl;    
+
+    std::cout << std::endl << "Creating example entities..." << std::endl;
     std::cout << "Renderer initialized. Window opened." << std::endl;
     std::cout << "Press ESC or close window to exit." << std::endl;
     std::cout << std::endl;
-    
+
     // Create some example actors (people)
     // Create one employee to demonstrate the system (Alice will be hired for an existing job)
     auto employee1 = ecs_world_->CreateEntity("Alice");
     employee1.set<Person>({"Alice", 0, 5.0f, 2.0f, NPCType::Employee});
     employee1.set<EmploymentInfo>({"Office Worker", 1, 5, 9.0f, 17.0f});
     employee1.set<Satisfaction>({80.0f});
-    
+
     std::cout << "  Created 1 initial employee (Alice - Office Worker)" << std::endl;
     std::cout << "  Additional visitors and employees will be spawned dynamically" << std::endl;
-    
+
     // Keep the old actors for compatibility
     auto actor1 = ecs_world_->CreateEntity("John");
     actor1.set<Position>({10.0f, 0.0f});
     actor1.set<Velocity>({0.5f, 0.0f});
     actor1.set<Actor>({"John", 5, 1.0f});
     actor1.set<Satisfaction>({80.0f});
-    
+
     DailySchedule john_schedule;
     john_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 9.0f);
     john_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.0f);
     john_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 17.0f);
     john_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 10.0f);
     actor1.set<DailySchedule>(john_schedule);
-    
+
     auto actor2 = ecs_world_->CreateEntity("Sarah");
     actor2.set<Position>({20.0f, 0.0f});
     actor2.set<Velocity>({-0.3f, 0.0f});
     actor2.set<Actor>({"Sarah", 3, 0.8f});
     actor2.set<Satisfaction>({75.0f});
-    
+
     DailySchedule sarah_schedule;
     sarah_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 8.5f);
     sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.5f);
     sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);
     sarah_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 11.0f);
     actor2.set<DailySchedule>(sarah_schedule);
-  
+
     std::cout << "  Created 2 legacy actors for compatibility" << std::endl;
-    
+
     // Create building components
     auto lobby_entity = ecs_world_->CreateEntity("Lobby");
     lobby_entity.set<Position>({0.0f, 0.0f});
     lobby_entity.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
     lobby_entity.set<Satisfaction>({85.0f});
     lobby_entity.set<FacilityEconomics>({50.0f, 10.0f, 50});
-    
+
     auto office1_entity = ecs_world_->CreateEntity("Office_Floor_5");
     office1_entity.set<Position>({0.0f, 50.0f});
     office1_entity.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
     office1_entity.set<Satisfaction>({70.0f});
     office1_entity.set<FacilityEconomics>({150.0f, 30.0f, 20});
-    
+
     auto restaurant_entity = ecs_world_->CreateEntity("Restaurant_Floor_3");
     restaurant_entity.set<Position>({0.0f, 30.0f});
     restaurant_entity.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
     restaurant_entity.set<Satisfaction>({65.0f});
     restaurant_entity.set<FacilityEconomics>({200.0f, 60.0f, 30});
-    
+
     std::cout << "  Created 2 actors and 3 building components with satisfaction and economics" << std::endl;
-    
+
     // Create HUD and build menu
     hud_ = new HUD();
     build_menu_ = new BuildMenu();
@@ -511,76 +511,76 @@ void Game::InitializeGameSystems() {
     research_menu_ = new ResearchTreeMenu();
     mods_menu_ = new ModsMenu();
     mods_menu_->SetModManager(&ecs_world_->GetModManager());
-    
+
     // Connect tooltip manager from HUD to other UI components
     build_menu_->SetTooltipManager(hud_->GetTooltipManager());
-    
+
     // Create and initialize camera
     camera_ = new towerforge::rendering::Camera();
     camera_->Initialize(800, 600, 1200.0f, 800.0f);
-    
+
     hud_->SetGameState(game_state_);
-    
+
     // Add example notifications
     hud_->AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
     hud_->AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
-    
+
     // Setup tower grid and facilities
     std::cout << std::endl << "Demonstrating Tower Grid System and Facility Manager..." << std::endl;
     auto& grid = ecs_world_->GetTowerGrid();
     auto& facility_mgr = ecs_world_->GetFacilityManager();
-    
+
     placement_system_ = new PlacementSystem(grid, facility_mgr, *build_menu_);
     placement_system_->SetCamera(camera_);
     placement_system_->SetTooltipManager(hud_->GetTooltipManager());
-    
-    std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x " 
+
+    std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x "
               << grid.GetColumnCount() << " columns" << std::endl;
-    
+
     // Create facilities
     std::cout << "  Creating facilities..." << std::endl;
     auto grid_lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0, 0, "MainLobby");
     auto grid_office1 = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2, 0, "Office_Floor_1");
     auto residential1 = facility_mgr.CreateFacility(BuildingComponent::Type::Residential, 2, 5, 0, "Condo_Floor_2");
     auto shop1 = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1, 0, "Shop_Floor_3");
-    
+
     std::cout << "  Created 4 facilities (Lobby, Office, Residential, RetailShop)" << std::endl;
-    
+
     // Create elevator system
     std::cout << "  Creating elevator system..." << std::endl;
     auto elevator_shaft = ecs_world_->CreateEntity("MainElevatorShaft");
     elevator_shaft.set<ElevatorShaft>({10, 0, 5, 1});
-    
+
     auto elevator_car = ecs_world_->CreateEntity("Elevator1");
     elevator_car.set<ElevatorCar>({static_cast<int>(elevator_shaft.id()), 0, 8});
-    
+
     std::cout << "  Created elevator shaft at column 10 serving floors 0-5" << std::endl;
-    
+
     std::cout << "  Occupied cells: " << grid.GetOccupiedCellCount() << std::endl;
     std::cout << "  Facility at (0, 0): " << grid.GetFacilityAt(0, 0) << std::endl;
     std::cout << "  Facility at (1, 5): " << grid.GetFacilityAt(1, 5) << std::endl;
-    
+
     // Add more floors
     std::cout << "  Adding 5 more floors..." << std::endl;
     grid.AddFloors(5);
-    std::cout << "  New grid size: " << grid.GetFloorCount() << " floors x " 
+    std::cout << "  New grid size: " << grid.GetFloorCount() << " floors x "
               << grid.GetColumnCount() << " columns" << std::endl;
-    
+
     std::cout << std::endl << "Running simulation..." << std::endl;
     std::cout << std::endl;
-    
+
     // If this is a new game (not tutorial), create the starter tower
     if (current_state_ == GameState::InGame && !tutorial_active_) {
         CreateStarterTower();
     }
-    
+
     // If this is tutorial mode, initialize the tutorial manager
     if (current_state_ == GameState::Tutorial) {
         tutorial_manager_ = new TutorialManager();
         tutorial_manager_->Initialize();
         hud_->AddNotification(Notification::Type::Info, "Welcome to the tutorial!", 5.0f);
     }
-    
+
     // Reset timing
     elapsed_time_ = 0.0f;
     sim_time_ = 0.0f;
@@ -599,17 +599,18 @@ void Game::UpdateInGame(float delta_time) {
             audio_manager_->PlaySFX(towerforge::audio::AudioCue::MenuOpen);
             game_state_.paused = true;
         }
+        return;
     }
-    
+
     // Handle R key to toggle research menu (only if not paused)
     if (!is_paused_ && IsKeyPressed(KEY_R)) {
         research_menu_->Toggle();
     }
-    
+
     // Only update simulation if not paused
     if (!is_paused_) {
         save_load_manager_->UpdateAutosave(time_step_, *ecs_world_);
-        
+
         if (!ecs_world_->Update(time_step_)) {
             current_state_ = GameState::Quit;
             return;
@@ -617,37 +618,37 @@ void Game::UpdateInGame(float delta_time) {
         elapsed_time_ += time_step_;
         sim_time_ += time_step_ * game_state_.speed_multiplier;
     }
-    
+
     // Update game state for HUD
     game_state_.current_time = 8.5f + (sim_time_ / 3600.0f);
     if (game_state_.current_time >= 24.0f) {
         game_state_.current_time -= 24.0f;
         game_state_.current_day++;
     }
-    
+
     // Only update funds if not paused
     if (!is_paused_) {
         game_state_.funds += (game_state_.income_rate / 3600.0f) * time_step_;
     }
-    
+
     CalculateTowerRating();
-    
+
     hud_->SetGameState(game_state_);
     hud_->Update(time_step_);
-    
+
     // Handle research menu
     if (research_menu_->IsVisible()) {
         research_menu_->Update(time_step_);
-        
+
         ResearchTree& research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
-        bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(), 
+        bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(),
                                                     IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
                                                     research_tree_ref);
         if (unlocked) {
             hud_->AddNotification(Notification::Type::Success, "Research unlocked!", 2.0f);
         }
     }
-    
+
     // Check for achievements (only if not paused)
     if (!is_paused_) {
         flecs::world& world = ecs_world_->GetWorld();
@@ -656,17 +657,17 @@ void Game::UpdateInGame(float delta_time) {
             const auto& economy = world.get<TowerEconomy>();
             total_income = economy.total_revenue;
         }
-        
+
         int floor_count = ecs_world_->GetTowerGrid().GetFloorCount();
         float avg_satisfaction = 75.0f;
-        
+
         achievement_manager_->CheckAchievements(game_state_.population, total_income, floor_count, avg_satisfaction);
-        
+
         if (achievement_manager_->HasNewAchievements()) {
             auto newly_unlocked = achievement_manager_->PopNewlyUnlocked();
             for (const auto& achievement_id : newly_unlocked) {
                 audio_manager_->PlaySFX(towerforge::audio::AudioCue::Achievement);
-                
+
                 for (const auto& achievement : achievement_manager_->GetAllAchievements()) {
                     if (achievement.id == achievement_id) {
                         std::string message = "Achievement Unlocked: " + achievement.name;
@@ -676,32 +677,32 @@ void Game::UpdateInGame(float delta_time) {
                 }
             }
         }
-        
+
         achievements_menu_.SetGameStats(game_state_.population, total_income, floor_count, avg_satisfaction);
     }
-    
+
     // Handle pause menu input
     if (is_paused_) {
         if (in_audio_settings_from_pause_) {
             pause_audio_settings_menu_.Update(time_step_);
-            
+
             if (pause_audio_settings_menu_.HandleKeyboard()) {
                 in_audio_settings_from_pause_ = false;
             }
-            bool back_clicked = pause_audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), 
+            bool back_clicked = pause_audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
                                                                        IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
             if (back_clicked) {
                 in_audio_settings_from_pause_ = false;
             }
         } else if (in_settings_from_pause_) {
             pause_general_settings_menu_.Update(time_step_);
-            
+
             int keyboard_selection = pause_general_settings_menu_.HandleKeyboard();
-            int mouse_selection = pause_general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), 
+            int mouse_selection = pause_general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
                                                                            IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-            
+
             int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
-            
+
             if (selected >= 0) {
                 SettingsOption option = static_cast<SettingsOption>(selected);
                 switch (option) {
@@ -721,7 +722,7 @@ void Game::UpdateInGame(float delta_time) {
             }
         } else {
             pause_menu_->Update(time_step_);
-            
+
             int quit_result = pause_menu_->HandleQuitConfirmation();
             if (quit_result == 1) {
                 current_state_ = GameState::TitleScreen;
@@ -732,11 +733,11 @@ void Game::UpdateInGame(float delta_time) {
                 // User cancelled quit
             } else {
                 int keyboard_selection = pause_menu_->HandleKeyboard();
-                int mouse_selection = pause_menu_->HandleMouse(GetMouseX(), GetMouseY(), 
+                int mouse_selection = pause_menu_->HandleMouse(GetMouseX(), GetMouseY(),
                                                                IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-                
+
                 int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
-                
+
                 if (selected >= 0) {
                     PauseMenuOption option = static_cast<PauseMenuOption>(selected);
                     switch (option) {
@@ -764,18 +765,16 @@ void Game::UpdateInGame(float delta_time) {
             }
         }
     }
-    
+
     // Update placement system
-    placement_system_->Update(time_step_);
-    
+
     // Handle keyboard shortcuts (only if not paused)
     if (!is_paused_) {
+        placement_system_->Update(time_step_);
         placement_system_->HandleKeyboard();
+        camera_->Update(time_step_);
     }
-    
-    // Update camera
-    camera_->Update(time_step_);
-    
+
     HandleInGameInput();
 }
 
@@ -783,35 +782,35 @@ void Game::HandleInGameInput() {
     // Update tooltips for mouse position (even when paused, for UI tooltips)
     int mouse_x = GetMouseX();
     int mouse_y = GetMouseY();
-    
+
     // Update HUD tooltips
     hud_->UpdateTooltips(mouse_x, mouse_y);
-    
+
     // Update build menu tooltips
     build_menu_->UpdateTooltips(mouse_x, mouse_y, game_state_.funds);
-    
+
     // Update placement tooltips (if not paused and not in research menu)
     if (!is_paused_ && !research_menu_->IsVisible()) {
         float world_x, world_y;
         camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
         placement_system_->UpdateTooltips(static_cast<int>(world_x), static_cast<int>(world_y),
-                                         grid_offset_x_, grid_offset_y_, 
+                                         grid_offset_x_, grid_offset_y_,
                                          cell_width_, cell_height_, game_state_.funds);
     }
-    
+
     // Handle mouse clicks (only if not paused)
     if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        
+
         auto& grid = ecs_world_->GetTowerGrid();
-        
-        int menu_result = build_menu_->HandleClick(mouse_x, mouse_y, 
-                                                   placement_system_->CanUndo(), 
+
+        int menu_result = build_menu_->HandleClick(mouse_x, mouse_y,
+                                                   placement_system_->CanUndo(),
                                                    placement_system_->CanRedo());
         if (menu_result >= 0) {
             hud_->AddNotification(Notification::Type::Info, "Facility selected from menu", 3.0f);
         } else if (menu_result == -2) {
             placement_system_->SetDemolishMode(!placement_system_->IsDemolishMode());
-            hud_->AddNotification(Notification::Type::Info, 
+            hud_->AddNotification(Notification::Type::Info,
                 placement_system_->IsDemolishMode() ? "Demolish mode ON" : "Demolish mode OFF", 3.0f);
         } else if (menu_result == -3) {
             placement_system_->Undo();
@@ -825,10 +824,10 @@ void Game::HandleInGameInput() {
             if (game_state_.funds >= floor_cost) {
                 grid.AddFloor();
                 game_state_.funds -= floor_cost;
-                hud_->AddNotification(Notification::Type::Success, 
+                hud_->AddNotification(Notification::Type::Success,
                     TextFormat("Floor added! Cost: $%d", floor_cost), 3.0f);
             } else {
-                hud_->AddNotification(Notification::Type::Error, 
+                hud_->AddNotification(Notification::Type::Error,
                     TextFormat("Not enough funds! Need $%d", floor_cost), 3.0f);
             }
         } else if (menu_result == -6) {
@@ -837,27 +836,27 @@ void Game::HandleInGameInput() {
             if (game_state_.funds >= basement_cost) {
                 grid.AddBasementFloor();
                 game_state_.funds -= basement_cost;
-                hud_->AddNotification(Notification::Type::Success, 
+                hud_->AddNotification(Notification::Type::Success,
                     TextFormat("Basement added! Cost: $%d", basement_cost), 3.0f);
             } else {
-                hud_->AddNotification(Notification::Type::Error, 
+                hud_->AddNotification(Notification::Type::Error,
                     TextFormat("Not enough funds! Need $%d", basement_cost), 3.0f);
             }
         } else if (!hud_->HandleClick(mouse_x, mouse_y)) {
             // Convert screen coordinates to world coordinates for camera-transformed clicks
             float world_x, world_y;
             camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
-            
+
             int cost_change = placement_system_->HandleClick(static_cast<int>(world_x), static_cast<int>(world_y),
                 grid_offset_x_, grid_offset_y_, cell_width_, cell_height_, game_state_.funds);
-            
+
             if (cost_change != 0) {
                 game_state_.funds += cost_change;
                 if (cost_change < 0) {
                     audio_manager_->PlaySFX(towerforge::audio::AudioCue::FacilityPlace);
-                    hud_->AddNotification(Notification::Type::Success, 
+                    hud_->AddNotification(Notification::Type::Success,
                         TextFormat("Facility placed! Cost: $%d", -cost_change), 3.0f);
-                    
+
                     // Notify tutorial if active
                     if (tutorial_active_ && tutorial_manager_) {
                         int selected = build_menu_->GetSelectedFacility();
@@ -870,20 +869,20 @@ void Game::HandleInGameInput() {
                     }
                 } else {
                     audio_manager_->PlaySFX(towerforge::audio::AudioCue::FacilityDemolish);
-                    hud_->AddNotification(Notification::Type::Info, 
+                    hud_->AddNotification(Notification::Type::Info,
                         TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
                 }
             } else {
                 int rel_x = static_cast<int>(world_x) - grid_offset_x_;
                 int rel_y = static_cast<int>(world_y) - grid_offset_y_;
-                
+
                 if (rel_x >= 0 && rel_y >= 0) {
                     int clicked_floor = rel_y / cell_height_;
                     int clicked_column = rel_x / cell_width_;
-                    
+
                     if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
                         clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
-                        
+
                         // Check if click is on a Person entity
                         bool person_clicked = false;
                         auto person_query = ecs_world_->GetWorld().query<const Person>();
@@ -891,7 +890,7 @@ void Game::HandleInGameInput() {
                             // Calculate person position on screen
                             int person_x = grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
                             int person_y = grid_offset_y_ + person.current_floor * cell_height_;
-                            
+
                             // Check if click is within person's bounds (circle with radius 10)
                             int dx = static_cast<int>(world_x) - (person_x + cell_width_ / 2);
                             int dy = static_cast<int>(world_y) - (person_y + cell_height_ / 2);
@@ -906,7 +905,7 @@ void Game::HandleInGameInput() {
                                 info.destination_floor = person.destination_floor;
                                 info.wait_time = person.wait_time;
                                 info.needs = person.current_need;
-                                
+
                                 // Get status based on NPC type
                                 if (person.npc_type == NPCType::Employee && e.has<EmploymentInfo>()) {
                                     const EmploymentInfo& emp = e.ensure<EmploymentInfo>();
@@ -917,7 +916,7 @@ void Game::HandleInGameInput() {
                                 } else {
                                     info.status = person.current_need;
                                 }
-                                
+
                                 // Get satisfaction if available
                                 if (e.has<Satisfaction>()) {
                                     const Satisfaction& sat = e.ensure<Satisfaction>();
@@ -925,12 +924,12 @@ void Game::HandleInGameInput() {
                                 } else {
                                     info.satisfaction = 75.0f;
                                 }
-                                
+
                                 hud_->ShowPersonInfo(info);
                                 person_clicked = true;
                             }
                         });
-                        
+
                         // If no person was clicked, check for facility
                         if (!person_clicked && grid.IsOccupied(clicked_floor, clicked_column)) {
                             FacilityInfo info;
@@ -948,7 +947,7 @@ void Game::HandleInGameInput() {
             }
         }
     }
-    
+
     // Handle camera input
     bool hud_handled_input = false;
     camera_->HandleInput(hud_handled_input);
@@ -956,19 +955,19 @@ void Game::HandleInGameInput() {
 
 void Game::RenderInGame() {
     auto& grid = ecs_world_->GetTowerGrid();
-    
+
     renderer_.BeginFrame();
     renderer_.Clear(DARKGRAY);
-    
+
     // Begin camera mode for all game world rendering
     camera_->BeginMode();
-    
+
     // Draw grid
     for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
         for (int col = 0; col < grid.GetColumnCount(); ++col) {
             int x = grid_offset_x_ + col * cell_width_;
             int y = grid_offset_y_ + floor * cell_height_;
-            
+
             // Show built floors with solid outline, unbuilt with dashed/faded outline
             if (grid.IsFloorBuilt(floor, col)) {
                 DrawRectangleLines(x, y, cell_width_, cell_height_, ColorAlpha(WHITE, 0.2f));
@@ -976,46 +975,46 @@ void Game::RenderInGame() {
                 // Draw faded outline for unbuilt floors
                 DrawRectangleLines(x, y, cell_width_, cell_height_, ColorAlpha(DARKGRAY, 0.1f));
             }
-            
+
             if (grid.IsOccupied(floor, col)) {
                 int facility_id = grid.GetFacilityAt(floor, col);
                 Color facility_color = SKYBLUE;
                 if (facility_id % 3 == 0) facility_color = PURPLE;
                 else if (facility_id % 3 == 1) facility_color = GREEN;
-                
+
                 DrawRectangle(x + 2, y + 2, cell_width_ - 4, cell_height_ - 4, facility_color);
             }
         }
     }
-    
+
     // Draw floor labels
     for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
         int y = grid_offset_y_ + floor * cell_height_;
         DrawText(TextFormat("F%d", floor), grid_offset_x_ - 30, y + 15, 12, LIGHTGRAY);
     }
-    
+
     // Draw elevator shafts
     auto shaft_query = ecs_world_->GetWorld().query<const ElevatorShaft>();
     shaft_query.each([&](flecs::entity e, const ElevatorShaft& shaft) {
         for (int floor = shaft.bottom_floor; floor <= shaft.top_floor; ++floor) {
             int x = grid_offset_x_ + shaft.column * cell_width_;
             int y = grid_offset_y_ + floor * cell_height_;
-            
+
             DrawRectangle(x + 4, y + 4, cell_width_ - 8, cell_height_ - 8, Color{60, 60, 70, 255});
             DrawRectangleLines(x + 4, y + 4, cell_width_ - 8, cell_height_ - 8, Color{100, 100, 120, 255});
         }
     });
-    
+
     // Draw elevator cars
     auto car_query = ecs_world_->GetWorld().query<const ElevatorCar>();
     car_query.each([&](flecs::entity e, const ElevatorCar& car) {
         auto shaft_entity = ecs_world_->GetWorld().entity(car.shaft_entity_id);
         if (shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
             const ElevatorShaft& shaft = shaft_entity.ensure<ElevatorShaft>();
-            
+
             int x = grid_offset_x_ + shaft.column * cell_width_;
             int y = grid_offset_y_ + static_cast<int>(car.current_floor * cell_height_);
-            
+
             Color car_color;
             switch (car.state) {
                 case ElevatorState::Idle:
@@ -1035,21 +1034,21 @@ void Game::RenderInGame() {
                     car_color = GREEN;
                     break;
             }
-            
+
             DrawRectangle(x + 6, y + 6, cell_width_ - 12, cell_height_ - 12, car_color);
-            
+
             if (car.current_occupancy > 0) {
                 DrawText(TextFormat("%d", car.current_occupancy), x + 16, y + 18, 14, BLACK);
             }
         }
     });
-    
+
     // Draw Person entities
     auto person_query = ecs_world_->GetWorld().query<const Person>();
     person_query.each([&](flecs::entity e, const Person& person) {
         int x = grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
         int y = grid_offset_y_ + person.current_floor * cell_height_;
-        
+
         // Draw person as a circle
         Color person_color;
         if (person.npc_type == NPCType::Employee) {
@@ -1075,52 +1074,52 @@ void Game::RenderInGame() {
                 person_color = ORANGE;
             }
         }
-        
+
         DrawCircle(x + cell_width_ / 2, y + cell_height_ / 2, 8, person_color);
-        
+
         // Draw outline to make them more visible
         DrawCircleLines(x + cell_width_ / 2, y + cell_height_ / 2, 8, BLACK);
     });
-    
+
     // Render placement system preview
     placement_system_->Render(grid_offset_x_, grid_offset_y_, cell_width_, cell_height_);
-    
+
     // End camera mode
     camera_->EndMode();
-    
+
     // Render HUD and menus
     hud_->Render();
-    build_menu_->Render(placement_system_->CanUndo(), placement_system_->CanRedo(), 
+    build_menu_->Render(placement_system_->CanUndo(), placement_system_->CanRedo(),
                        placement_system_->IsDemolishMode());
-    
+
     camera_->RenderControlsOverlay();
     camera_->RenderFollowIndicator();
-    
+
     // Display tower economy status
-    const auto& tower_economy = ecs_world_->GetWorld().get<TowerEconomy>();
+    /*const auto& tower_economy = ecs_world_->GetWorld().get<TowerEconomy>();
     renderer_.DrawRectangle(10, 140, 280, 100, Color{0, 0, 0, 180});
     renderer_.DrawText("Tower Economics", 20, 145, 18, GOLD);
-    
+
     std::string balance_str = "Balance: $" + std::to_string(static_cast<int>(tower_economy.total_balance));
     std::string revenue_str = "Revenue: $" + std::to_string(static_cast<int>(tower_economy.daily_revenue));
     std::string expense_str = "Expenses: $" + std::to_string(static_cast<int>(tower_economy.daily_expenses));
-    
+
     renderer_.DrawText(balance_str.c_str(), 20, 170, 16, GREEN);
     renderer_.DrawText(revenue_str.c_str(), 20, 195, 16, SKYBLUE);
-    renderer_.DrawText(expense_str.c_str(), 20, 220, 16, ORANGE);
-    
+    renderer_.DrawText(expense_str.c_str(), 20, 220, 16, ORANGE);*/
+
     // Display satisfaction indicators
-    int y_offset = 250;
+    /*int y_offset = 250;
     auto actor_query = ecs_world_->GetWorld().query<const Actor, const Satisfaction>();
     actor_query.each([&](flecs::entity e, const Actor& actor, const Satisfaction& sat) {
         if (y_offset < 520) {
             renderer_.DrawRectangle(10, y_offset, 280, 50, Color{0, 0, 0, 180});
-            
+
             std::string name_str = actor.name + " Satisfaction";
             renderer_.DrawText(name_str.c_str(), 20, y_offset + 5, 16, WHITE);
-            
+
             std::string score_str = std::to_string(static_cast<int>(sat.satisfaction_score)) + "% - " + sat.GetLevelString();
-            
+
             Color sat_color;
             switch (sat.GetLevel()) {
                 case Satisfaction::Level::VeryPoor:
@@ -1141,12 +1140,12 @@ void Game::RenderInGame() {
                 default:
                     sat_color = WHITE;
             }
-            
+
             renderer_.DrawText(score_str.c_str(), 20, y_offset + 25, 16, sat_color);
             y_offset += 55;
         }
-    });
-    
+    });*/
+
     // Render pause menu overlay if paused
     if (is_paused_) {
         if (in_audio_settings_from_pause_) {
@@ -1159,13 +1158,13 @@ void Game::RenderInGame() {
             pause_menu_->Render();
         }
     }
-    
+
     // Render research menu overlay if visible
     if (research_menu_->IsVisible()) {
         ResearchTree& research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
         research_menu_->Render(research_tree_ref);
     }
-    
+
     renderer_.EndFrame();
 }
 
@@ -1173,7 +1172,7 @@ void Game::CleanupGameSystems() {
     if (!game_initialized_) {
         return;
     }
-    
+
     // Perform final autosave before cleanup
     if (save_load_manager_ && save_load_manager_->IsAutosaveEnabled() && ecs_world_) {
         std::cout << "Performing final autosave before exit..." << std::endl;
@@ -1182,7 +1181,7 @@ void Game::CleanupGameSystems() {
             std::cout << "Final autosave completed successfully" << std::endl;
         }
     }
-    
+
     delete placement_system_;
     delete camera_;
     delete research_menu_;
@@ -1194,7 +1193,7 @@ void Game::CleanupGameSystems() {
     delete save_load_manager_;
     delete ecs_world_;
     delete tutorial_manager_;
-    
+
     placement_system_ = nullptr;
     camera_ = nullptr;
     research_menu_ = nullptr;
@@ -1220,18 +1219,18 @@ void Game::UpdateTutorial(float delta_time) {
         tutorial_manager_ = new TutorialManager();
         tutorial_manager_->Initialize();
     }
-    
+
     tutorial_manager_->Update(delta_time);
-    
+
     // Update build menu tutorial mode
     if (build_menu_) {
         std::string highlighted = tutorial_manager_->GetHighlightedFacility();
         build_menu_->SetTutorialMode(true, highlighted);
     }
-    
+
     // Update game systems (same as InGame)
     UpdateInGame(delta_time);
-    
+
     // Handle tutorial-specific input
     HandleTutorialInput();
 }
@@ -1239,7 +1238,7 @@ void Game::UpdateTutorial(float delta_time) {
 void Game::RenderTutorial() {
     // Render game (same as InGame)
     RenderInGame();
-    
+
     // Render tutorial overlay on top
     if (tutorial_manager_) {
         tutorial_manager_->Render();
@@ -1260,7 +1259,7 @@ void Game::HandleTutorialInput() {
             hud_->AddNotification(Notification::Type::Info, "Tutorial skipped - Good luck!", 5.0f);
             return;
         }
-        
+
         // Check if tutorial is complete
         if (tutorial_manager_->IsComplete()) {
             tutorial_active_ = false;
@@ -1276,12 +1275,12 @@ void Game::HandleTutorialInput() {
 
 void Game::CreateStarterTower() {
     if (!ecs_world_) return;
-    
+
     auto& grid = ecs_world_->GetTowerGrid();
     auto& facility_mgr = ecs_world_->GetFacilityManager();
-    
+
     std::cout << "Creating starter tower setup..." << std::endl;
-    
+
     // Ensure we have enough floors for the starter tower
     // We need floors 0-2 (ground, 1st, 2nd)
     int current_floors = grid.GetFloorCount();
@@ -1290,7 +1289,7 @@ void Game::CreateStarterTower() {
         grid.AddFloors(floors_to_add);
         std::cout << "  Added " << floors_to_add << " floors to tower" << std::endl;
     }
-    
+
     // Build the starter tower as specified:
     // Floor 0: Lobby (already built by default)
     // Floor 1: Business (Office)
@@ -1298,38 +1297,38 @@ void Game::CreateStarterTower() {
     // Floors 0-2: Stair (not implemented as separate type yet)
     // Floor 2: Condo (Residential)
     // Floors 0-2: Elevator
-    
+
     try {
         // Place Lobby at floor 0, column 0
         auto lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0);
         if (lobby) {
             std::cout << "  Placed Lobby at (0,0)" << std::endl;
         }
-        
+
         // Place Office at floor 1, column 0
         auto office = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 0);
         if (office) {
             std::cout << "  Placed Office at (1,0)" << std::endl;
         }
-        
+
         // Place RetailShop at floor 1, column 5
         auto retail = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 1, 5);
         if (retail) {
             std::cout << "  Placed Retail at (1,5)" << std::endl;
         }
-        
+
         // Place Residential at floor 2, column 0
         auto residential = facility_mgr.CreateFacility(BuildingComponent::Type::Residential, 2, 0);
         if (residential) {
             std::cout << "  Placed Residential at (2,0)" << std::endl;
         }
-        
+
         // Place Elevator at floor 0, column 8
         auto elevator = facility_mgr.CreateFacility(BuildingComponent::Type::Elevator, 0, 8);
         if (elevator) {
             std::cout << "  Placed Elevator at (0,8)" << std::endl;
         }
-        
+
         std::cout << "Starter tower created successfully" << std::endl;
         hud_->AddNotification(Notification::Type::Info, "Starter tower ready!", 5.0f);
     } catch (const std::exception& e) {
