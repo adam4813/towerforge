@@ -5,10 +5,9 @@
 #include "core/components.hpp"
 #include "core/tower_grid.hpp"
 
-namespace TowerForge {
-namespace Core {
+namespace TowerForge::Core {
 
-/**
+    /**
  * @brief Manages facility creation, destruction, and lifecycle
  * 
  * The FacilityManager provides a high-level interface for creating and
@@ -18,19 +17,19 @@ namespace Core {
  * - Removing facilities and cleaning up grid references
  * - Providing default attributes for each facility type
  */
-class FacilityManager {
-public:
-    /**
+    class FacilityManager {
+    public:
+        /**
      * @brief Construct a new Facility Manager
      * 
      * @param world Reference to the ECS world
      * @param grid Reference to the tower grid
      */
-    FacilityManager(flecs::world& world, TowerGrid& grid);
+        FacilityManager(flecs::world& world, TowerGrid& grid);
     
-    ~FacilityManager() = default;
+        ~FacilityManager() = default;
     
-    /**
+        /**
      * @brief Create and place a facility on the tower grid
      * 
      * Creates a new entity with BuildingComponent and GridPosition components,
@@ -43,15 +42,15 @@ public:
      * @param name Optional name for the facility entity
      * @return Entity ID of the created facility, or null entity if creation failed
      */
-    flecs::entity CreateFacility(
-        BuildingComponent::Type type,
-        int floor,
-        int column,
-        int width = 0,
-        const char* name = nullptr
-    );
+        flecs::entity CreateFacility(
+            BuildingComponent::Type type,
+            int floor,
+            int column,
+            int width = 0,
+            const char* name = nullptr
+        ) const;
     
-    /**
+        /**
      * @brief Remove a facility from the tower
      * 
      * Removes the facility from the grid and destroys the entity.
@@ -59,58 +58,58 @@ public:
      * @param facility_entity The facility entity to remove
      * @return true if the facility was removed successfully, false otherwise
      */
-    bool RemoveFacility(flecs::entity facility_entity);
+        bool RemoveFacility(flecs::entity facility_entity) const;
     
-    /**
+        /**
      * @brief Remove a facility at a specific grid position
      * 
      * @param floor Floor index
      * @param column Column index
      * @return true if a facility was removed, false if the position was empty
      */
-    bool RemoveFacilityAt(int floor, int column);
+        bool RemoveFacilityAt(int floor, int column) const;
     
-    /**
+        /**
      * @brief Get default width for a facility type
      * 
      * @param type Facility type
      * @return Default width in grid cells
      */
-    static int GetDefaultWidth(BuildingComponent::Type type);
+        static int GetDefaultWidth(BuildingComponent::Type type);
     
-    /**
+        /**
      * @brief Get default capacity for a facility type
      * 
      * @param type Facility type
      * @return Default maximum occupancy
      */
-    static int GetDefaultCapacity(BuildingComponent::Type type);
+        static int GetDefaultCapacity(BuildingComponent::Type type);
     
-    /**
+        /**
      * @brief Get a human-readable name for a facility type
      * 
      * @param type Facility type
      * @return String representation of the type
      */
-    static const char* GetTypeName(BuildingComponent::Type type);
+        static const char* GetTypeName(BuildingComponent::Type type);
     
-    /**
+        /**
      * @brief Get the color for a facility type (for rendering)
      * 
      * @param type Facility type
      * @return Color code for the facility type
      */
-    static unsigned int GetFacilityColor(BuildingComponent::Type type);
+        static unsigned int GetFacilityColor(BuildingComponent::Type type);
     
-    /**
+        /**
      * @brief Get the facility type for an entity ID (from grid)
      * 
      * @param facility_entity_id Entity ID from grid
      * @return The facility type, or Type::Office if not found
      */
-    BuildingComponent::Type GetFacilityType(int facility_entity_id) const;
+        BuildingComponent::Type GetFacilityType(int facility_entity_id) const;
     
-    /**
+        /**
      * @brief Calculate the cost to build floors for a facility placement
      * 
      * Checks which cells need floor construction and calculates the cost.
@@ -120,9 +119,9 @@ public:
      * @param width Width of the facility
      * @return Total cost to build the necessary floors
      */
-    int CalculateFloorBuildCost(int floor, int column, int width) const;
+        int CalculateFloorBuildCost(int floor, int column, int width) const;
     
-    /**
+        /**
      * @brief Build the floors needed for a facility placement
      * 
      * Marks the floor cells as built for the given range.
@@ -132,12 +131,11 @@ public:
      * @param width Width of the facility
      * @return true if successful, false otherwise
      */
-    bool BuildFloorsForFacility(int floor, int column, int width);
+        bool BuildFloorsForFacility(int floor, int column, int width) const;
 
-private:
-    flecs::world& world_;
-    TowerGrid& grid_;
-};
+    private:
+        flecs::world& world_;
+        TowerGrid& grid_;
+    };
 
-} // namespace Core
-} // namespace TowerForge
+}

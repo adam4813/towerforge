@@ -4,10 +4,9 @@
 #include <string>
 #include <vector>
 
-namespace towerforge {
-namespace ui {
+namespace towerforge::ui {
 
-/**
+    /**
  * @brief UI Menu for managing Lua mods
  * 
  * Allows players to:
@@ -16,46 +15,45 @@ namespace ui {
  * - See mod metadata (name, version, author, description)
  * - View error messages for failed mods
  */
-class ModsMenu {
-public:
-    ModsMenu();
-    ~ModsMenu();
+    class ModsMenu {
+    public:
+        ModsMenu();
+        ~ModsMenu();
     
-    /**
+        /**
      * @brief Set the mod manager to interact with
      * 
      * @param mod_manager Pointer to the LuaModManager
      */
-    void SetModManager(TowerForge::Core::LuaModManager* mod_manager);
+        void SetModManager(TowerForge::Core::LuaModManager* mod_manager);
     
-    /**
+        /**
      * @brief Show the mods menu
      */
-    void Show();
+        void Show();
     
-    /**
+        /**
      * @brief Hide the mods menu
      */
-    void Hide();
+        void Hide();
     
-    /**
+        /**
      * @brief Check if the menu is currently visible
      */
-    bool IsVisible() const { return visible_; }
+        bool IsVisible() const { return visible_; }
     
-    /**
+        /**
      * @brief Render the mods menu
      * 
      * Should be called every frame when the menu is visible
      */
-    void Render();
+        void Render();
     
-private:
-    bool visible_;
-    TowerForge::Core::LuaModManager* mod_manager_;
-    int selected_mod_index_;
-    float scroll_offset_;
-};
+    private:
+        bool visible_;
+        TowerForge::Core::LuaModManager* mod_manager_;
+        int selected_mod_index_;
+        float scroll_offset_;
+    };
 
-} // namespace ui
-} // namespace towerforge
+}

@@ -5,49 +5,49 @@
 #include <sstream>
 #include <iomanip>
 
-namespace towerforge {
-namespace ui {
+namespace towerforge::ui {
 
-/**
+    /**
  * @brief Window for displaying facility information
  */
-class FacilityWindow : public UIWindow {
-public:
-    FacilityWindow(const FacilityInfo& info);
-    void Render() override;
-    void Update(const FacilityInfo& info);
+    class FacilityWindow : public UIWindow {
+    public:
+        FacilityWindow(const FacilityInfo& info);
+        void Render() override;
+        void Update(const FacilityInfo& info);
     
-private:
-    FacilityInfo info_;
-    std::string GetSatisfactionEmoji(float satisfaction) const;
-};
+    private:
+        FacilityInfo info_;
 
-/**
+        static std::string GetSatisfactionEmoji(float satisfaction);
+    };
+
+    /**
  * @brief Window for displaying person information
  */
-class PersonWindow : public UIWindow {
-public:
-    PersonWindow(const PersonInfo& info);
-    void Render() override;
-    void Update(const PersonInfo& info);
+    class PersonWindow : public UIWindow {
+    public:
+        PersonWindow(const PersonInfo& info);
+        void Render() override;
+        void Update(const PersonInfo& info);
     
-private:
-    PersonInfo info_;
-    std::string GetSatisfactionEmoji(float satisfaction) const;
-};
+    private:
+        PersonInfo info_;
 
-/**
+        static std::string GetSatisfactionEmoji(float satisfaction);
+    };
+
+    /**
  * @brief Window for displaying elevator information
  */
-class ElevatorWindow : public UIWindow {
-public:
-    ElevatorWindow(const ElevatorInfo& info);
-    void Render() override;
-    void Update(const ElevatorInfo& info);
+    class ElevatorWindow : public UIWindow {
+    public:
+        ElevatorWindow(const ElevatorInfo& info);
+        void Render() override;
+        void Update(const ElevatorInfo& info);
     
-private:
-    ElevatorInfo info_;
-};
+    private:
+        ElevatorInfo info_;
+    };
 
-} // namespace ui
-} // namespace towerforge
+}

@@ -3,278 +3,276 @@
 #include <algorithm>
 #include <cmath>
 
-namespace towerforge {
-namespace rendering {
+namespace towerforge::rendering {
 
-Camera::Camera()
-    : target_position_{0.0f, 0.0f}
-    , target_zoom_(1.0f)
-    , current_zoom_(1.0f)
-    , screen_width_(800)
-    , screen_height_(600)
-    , tower_width_(1000.0f)
-    , tower_height_(1000.0f)
-    , is_panning_(false)
-    , pan_start_mouse_{0.0f, 0.0f}
-    , pan_start_camera_{0.0f, 0.0f}
-    , following_(false)
-    , followed_entity_id_(-1)
-    , followed_position_{0.0f, 0.0f} {
-    
-    camera_.target = {0.0f, 0.0f};
-    camera_.offset = {0.0f, 0.0f};
-    camera_.rotation = 0.0f;
-    camera_.zoom = 1.0f;
-}
+    Camera::Camera()
+        : target_position_{0.0f, 0.0f}
+          , target_zoom_(1.0f)
+          , current_zoom_(1.0f)
+          , screen_width_(800)
+          , screen_height_(600)
+          , tower_width_(1000.0f)
+          , tower_height_(1000.0f)
+          , is_panning_(false)
+          , pan_start_mouse_{0.0f, 0.0f}
+          , pan_start_camera_{0.0f, 0.0f}
+          , following_(false)
+          , followed_entity_id_(-1)
+          , followed_position_{0.0f, 0.0f} {
 
-Camera::~Camera() = default;
+        camera_.target = {0.0f, 0.0f};
+        camera_.offset = {0.0f, 0.0f};
+        camera_.rotation = 0.0f;
+        camera_.zoom = 1.0f;
+    }
 
-void Camera::Initialize(int screen_width, int screen_height, float tower_width, float tower_height) {
-    screen_width_ = screen_width;
-    screen_height_ = screen_height;
-    tower_width_ = tower_width;
-    tower_height_ = tower_height;
-    
-    // Set camera offset to center of screen
-    camera_.offset = {screen_width / 2.0f, screen_height / 2.0f};
-    
-    // Start centered on tower
-    target_position_ = {tower_width / 2.0f, tower_height / 2.0f};
-    camera_.target = target_position_;
-}
+    Camera::~Camera() = default;
 
-void Camera::Update(float delta_time) {
-    // Update follow mode
-    if (following_) {
-        target_position_ = followed_position_;
-    }
-    
-    // Smooth movement
-    SmoothMove(delta_time);
-    
-    // Apply bounds
-    ApplyBounds();
-    
-    // Update camera
-    camera_.target = target_position_;
-    camera_.zoom = current_zoom_;
-}
+    void Camera::Initialize(const int screen_width, const int screen_height, const float tower_width, const float tower_height) {
+        screen_width_ = screen_width;
+        screen_height_ = screen_height;
+        tower_width_ = tower_width;
+        tower_height_ = tower_height;
 
-void Camera::HandleInput(bool hud_handled) {
-    // Don't handle input if HUD consumed it
-    if (hud_handled) {
-        is_panning_ = false;
-        return;
+        // Set camera offset to center of screen
+        camera_.offset = {screen_width / 2.0f, screen_height / 2.0f};
+
+        // Start centered on tower
+        target_position_ = {tower_width / 2.0f, tower_height / 2.0f};
+        camera_.target = target_position_;
     }
-    
-    // Pan with mouse drag
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        is_panning_ = true;
-        pan_start_mouse_ = GetMousePosition();
-        pan_start_camera_ = target_position_;
-        following_ = false;  // Stop following when panning
-    }
-    
-    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
-        is_panning_ = false;
-    }
-    
-    if (is_panning_) {
-        Vector2 current_mouse = GetMousePosition();
-        float dx = (pan_start_mouse_.x - current_mouse.x) / current_zoom_;
-        float dy = (pan_start_mouse_.y - current_mouse.y) / current_zoom_;
-        target_position_ = {pan_start_camera_.x + dx, pan_start_camera_.y + dy};
-        following_ = false;
-    }
-    
-    // Pan with keyboard
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
-        target_position_.x -= KEYBOARD_PAN_SPEED / current_zoom_ * GetFrameTime();
-        following_ = false;
-    }
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
-        target_position_.x += KEYBOARD_PAN_SPEED / current_zoom_ * GetFrameTime();
-        following_ = false;
-    }
-    if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
-        target_position_.y -= KEYBOARD_PAN_SPEED / current_zoom_ * GetFrameTime();
-        following_ = false;
-    }
-    if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
-        target_position_.y += KEYBOARD_PAN_SPEED / current_zoom_ * GetFrameTime();
-        following_ = false;
-    }
-    
-    // Zoom with mouse wheel
-    float wheel = GetMouseWheelMove();
-    if (wheel != 0) {
-        target_zoom_ += wheel * ZOOM_INCREMENT;
-        target_zoom_ = std::clamp(target_zoom_, MIN_ZOOM, MAX_ZOOM);
-    }
-    
-    // Zoom with keyboard
-    if (IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD)) {
-        target_zoom_ += ZOOM_INCREMENT;
-        target_zoom_ = std::clamp(target_zoom_, MIN_ZOOM, MAX_ZOOM);
-    }
-    if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT)) {
-        target_zoom_ -= ZOOM_INCREMENT;
-        target_zoom_ = std::clamp(target_zoom_, MIN_ZOOM, MAX_ZOOM);
-    }
-    
-    // Reset camera
-    if (IsKeyPressed(KEY_HOME)) {
-        Reset();
-    }
-    
-    // Toggle follow mode with F key
-    if (IsKeyPressed(KEY_F)) {
+
+    void Camera::Update(const float delta_time) {
+        // Update follow mode
         if (following_) {
-            StopFollowing();
+            target_position_ = followed_position_;
+        }
+
+        // Smooth movement
+        SmoothMove(delta_time);
+
+        // Apply bounds
+        ApplyBounds();
+
+        // Update camera
+        camera_.target = target_position_;
+        camera_.zoom = current_zoom_;
+    }
+
+    void Camera::HandleInput(const bool hud_handled) {
+        // Don't handle input if HUD consumed it
+        if (hud_handled) {
+            is_panning_ = false;
+            return;
+        }
+
+        // Pan with mouse drag
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            is_panning_ = true;
+            pan_start_mouse_ = GetMousePosition();
+            pan_start_camera_ = target_position_;
+            following_ = false;  // Stop following when panning
+        }
+
+        if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+            is_panning_ = false;
+        }
+
+        if (is_panning_) {
+            const Vector2 current_mouse = GetMousePosition();
+            const float dx = (pan_start_mouse_.x - current_mouse.x) / current_zoom_;
+            const float dy = (pan_start_mouse_.y - current_mouse.y) / current_zoom_;
+            target_position_ = {pan_start_camera_.x + dx, pan_start_camera_.y + dy};
+            following_ = false;
+        }
+
+        // Pan with keyboard
+        if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
+            target_position_.x -= KEYBOARD_PAN_SPEED / current_zoom_ * GetFrameTime();
+            following_ = false;
+        }
+        if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
+            target_position_.x += KEYBOARD_PAN_SPEED / current_zoom_ * GetFrameTime();
+            following_ = false;
+        }
+        if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
+            target_position_.y -= KEYBOARD_PAN_SPEED / current_zoom_ * GetFrameTime();
+            following_ = false;
+        }
+        if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
+            target_position_.y += KEYBOARD_PAN_SPEED / current_zoom_ * GetFrameTime();
+            following_ = false;
+        }
+
+        // Zoom with mouse wheel
+        const float wheel = GetMouseWheelMove();
+        if (wheel != 0) {
+            target_zoom_ += wheel * ZOOM_INCREMENT;
+            target_zoom_ = std::clamp(target_zoom_, MIN_ZOOM, MAX_ZOOM);
+        }
+
+        // Zoom with keyboard
+        if (IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_KP_ADD)) {
+            target_zoom_ += ZOOM_INCREMENT;
+            target_zoom_ = std::clamp(target_zoom_, MIN_ZOOM, MAX_ZOOM);
+        }
+        if (IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_KP_SUBTRACT)) {
+            target_zoom_ -= ZOOM_INCREMENT;
+            target_zoom_ = std::clamp(target_zoom_, MIN_ZOOM, MAX_ZOOM);
+        }
+
+        // Reset camera
+        if (IsKeyPressed(KEY_HOME)) {
+            Reset();
+        }
+
+        // Toggle follow mode with F key
+        if (IsKeyPressed(KEY_F)) {
+            if (following_) {
+                StopFollowing();
+            }
         }
     }
-}
 
-void Camera::BeginMode() const {
-    BeginMode2D(camera_);
-}
-
-void Camera::EndMode() const {
-    EndMode2D();
-}
-
-void Camera::Reset() {
-    target_position_ = {tower_width_ / 2.0f, tower_height_ / 2.0f};
-    target_zoom_ = 1.0f;
-    following_ = false;
-    followed_entity_id_ = -1;
-}
-
-void Camera::FollowEntity(float entity_x, float entity_y, int entity_id) {
-    following_ = true;
-    followed_entity_id_ = entity_id;
-    followed_position_ = {entity_x, entity_y};
-}
-
-void Camera::StopFollowing() {
-    following_ = false;
-    followed_entity_id_ = -1;
-}
-
-void Camera::ScreenToWorld(int screen_x, int screen_y, float& world_x, float& world_y) const {
-    Vector2 world_pos = GetScreenToWorld2D({static_cast<float>(screen_x), static_cast<float>(screen_y)}, camera_);
-    world_x = world_pos.x;
-    world_y = world_pos.y;
-}
-
-void Camera::WorldToScreen(float world_x, float world_y, int& screen_x, int& screen_y) const {
-    Vector2 screen_pos = GetWorldToScreen2D({world_x, world_y}, camera_);
-    screen_x = static_cast<int>(screen_pos.x);
-    screen_y = static_cast<int>(screen_pos.y);
-}
-
-void Camera::RenderControlsOverlay() const {
-    const int x = screen_width_ - 230;
-    const int y = screen_height_ - 130;
-    const int width = 220;
-    const int height = 120;
-    
-    // Background
-    DrawRectangle(x, y, width, height, Fade(BLACK, 0.7f));
-    DrawRectangleLines(x, y, width, height, LIGHTGRAY);
-    
-    // Title
-    DrawText("CAMERA CONTROLS", x + 10, y + 5, 14, YELLOW);
-    
-    // Instructions
-    DrawText("Pan: Click+Drag or", x + 10, y + 25, 12, LIGHTGRAY);
-    DrawText("     Arrow Keys", x + 10, y + 40, 12, LIGHTGRAY);
-    DrawText("Zoom: Mouse Wheel", x + 10, y + 55, 12, LIGHTGRAY);
-    DrawText("      or +/- keys", x + 10, y + 70, 12, LIGHTGRAY);
-    DrawText("Reset: Home", x + 10, y + 85, 12, LIGHTGRAY);
-    DrawText("Follow: F", x + 10, y + 100, 12, LIGHTGRAY);
-    
-    // Current zoom indicator
-    const char* zoom_text = TextFormat("Zoom: %.0f%%", target_zoom_ * 100);
-    DrawText(zoom_text, x + 130, y + 100, 12, GREEN);
-}
-
-void Camera::RenderFollowIndicator() const {
-    if (!following_) {
-        return;
+    void Camera::BeginMode() const {
+        BeginMode2D(camera_);
     }
-    
-    const int x = screen_width_ / 2 - 150;
-    const int y = 50;
-    const int width = 300;
-    const int height = 60;
-    
-    // Background
-    DrawRectangle(x, y, width, height, Fade(BLACK, 0.8f));
-    DrawRectangleLines(x, y, width, height, YELLOW);
-    
-    // Icon and text
-    DrawText("📍", x + 10, y + 5, 20, YELLOW);
-    
-    const char* follow_text = TextFormat("Following: Entity #%d", followed_entity_id_);
-    DrawText(follow_text, x + 40, y + 10, 14, WHITE);
-    
-    const char* pos_text = TextFormat("Position: (%.0f, %.0f)", followed_position_.x, followed_position_.y);
-    DrawText(pos_text, x + 40, y + 30, 12, LIGHTGRAY);
-    
-    // Stop button
-    DrawRectangle(x + width - 120, y + 10, 110, 25, DARKGRAY);
-    DrawText("[Stop Follow]", x + width - 115, y + 15, 12, RED);
-}
 
-void Camera::SetTowerBounds(float width, float height) {
-    tower_width_ = width;
-    tower_height_ = height;
-}
-
-void Camera::UpdatePan(float delta_time) {
-    // Pan updates are handled in HandleInput
-}
-
-void Camera::UpdateZoom(float delta_time) {
-    // Zoom updates are handled in HandleInput
-}
-
-void Camera::ApplyBounds() {
-    // Calculate visible area
-    float visible_width = screen_width_ / current_zoom_;
-    float visible_height = screen_height_ / current_zoom_;
-    
-    // Calculate bounds
-    float min_x = visible_width / 2.0f;
-    float max_x = tower_width_ - visible_width / 2.0f;
-    float min_y = visible_height / 2.0f;
-    float max_y = tower_height_ - visible_height / 2.0f;
-    
-    // If visible area is larger than tower, center on tower
-    if (visible_width >= tower_width_) {
-        target_position_.x = tower_width_ / 2.0f;
-    } else {
-        target_position_.x = std::clamp(target_position_.x, min_x, max_x);
+    void Camera::EndMode() {
+        EndMode2D();
     }
-    
-    if (visible_height >= tower_height_) {
-        target_position_.y = tower_height_ / 2.0f;
-    } else {
-        target_position_.y = std::clamp(target_position_.y, min_y, max_y);
-    }
-}
 
-void Camera::SmoothMove(float delta_time) {
-    // Smooth zoom
-    float zoom_diff = target_zoom_ - current_zoom_;
-    current_zoom_ += zoom_diff * ZOOM_SMOOTHING * delta_time;
-    
-    // Clamp to prevent overshoot
-    if (std::abs(zoom_diff) < 0.001f) {
-        current_zoom_ = target_zoom_;
+    void Camera::Reset() {
+        target_position_ = {tower_width_ / 2.0f, tower_height_ / 2.0f};
+        target_zoom_ = 1.0f;
+        following_ = false;
+        followed_entity_id_ = -1;
     }
-}
 
-} // namespace rendering
-} // namespace towerforge
+    void Camera::FollowEntity(const float entity_x, const float entity_y, const int entity_id) {
+        following_ = true;
+        followed_entity_id_ = entity_id;
+        followed_position_ = {entity_x, entity_y};
+    }
+
+    void Camera::StopFollowing() {
+        following_ = false;
+        followed_entity_id_ = -1;
+    }
+
+    void Camera::ScreenToWorld(const int screen_x, const int screen_y, float& world_x, float& world_y) const {
+        const Vector2 world_pos = GetScreenToWorld2D({static_cast<float>(screen_x), static_cast<float>(screen_y)}, camera_);
+        world_x = world_pos.x;
+        world_y = world_pos.y;
+    }
+
+    void Camera::WorldToScreen(const float world_x, const float world_y, int& screen_x, int& screen_y) const {
+        const Vector2 screen_pos = GetWorldToScreen2D({world_x, world_y}, camera_);
+        screen_x = static_cast<int>(screen_pos.x);
+        screen_y = static_cast<int>(screen_pos.y);
+    }
+
+    void Camera::RenderControlsOverlay() const {
+        const int x = screen_width_ - 230;
+        const int y = screen_height_ - 130;
+        constexpr int width = 220;
+        constexpr int height = 120;
+
+        // Background
+        DrawRectangle(x, y, width, height, Fade(BLACK, 0.7f));
+        DrawRectangleLines(x, y, width, height, LIGHTGRAY);
+
+        // Title
+        DrawText("CAMERA CONTROLS", x + 10, y + 5, 14, YELLOW);
+
+        // Instructions
+        DrawText("Pan: Click+Drag or", x + 10, y + 25, 12, LIGHTGRAY);
+        DrawText("     Arrow Keys", x + 10, y + 40, 12, LIGHTGRAY);
+        DrawText("Zoom: Mouse Wheel", x + 10, y + 55, 12, LIGHTGRAY);
+        DrawText("      or +/- keys", x + 10, y + 70, 12, LIGHTGRAY);
+        DrawText("Reset: Home", x + 10, y + 85, 12, LIGHTGRAY);
+        DrawText("Follow: F", x + 10, y + 100, 12, LIGHTGRAY);
+
+        // Current zoom indicator
+        const char* zoom_text = TextFormat("Zoom: %.0f%%", target_zoom_ * 100);
+        DrawText(zoom_text, x + 130, y + 100, 12, GREEN);
+    }
+
+    void Camera::RenderFollowIndicator() const {
+        if (!following_) {
+            return;
+        }
+
+        const int x = screen_width_ / 2 - 150;
+        constexpr int y = 50;
+        constexpr int width = 300;
+        constexpr int height = 60;
+
+        // Background
+        DrawRectangle(x, y, width, height, Fade(BLACK, 0.8f));
+        DrawRectangleLines(x, y, width, height, YELLOW);
+
+        // Icon and text
+        DrawText("📍", x + 10, y + 5, 20, YELLOW);
+
+        const char* follow_text = TextFormat("Following: Entity #%d", followed_entity_id_);
+        DrawText(follow_text, x + 40, y + 10, 14, WHITE);
+
+        const char* pos_text = TextFormat("Position: (%.0f, %.0f)", followed_position_.x, followed_position_.y);
+        DrawText(pos_text, x + 40, y + 30, 12, LIGHTGRAY);
+
+        // Stop button
+        DrawRectangle(x + width - 120, y + 10, 110, 25, DARKGRAY);
+        DrawText("[Stop Follow]", x + width - 115, y + 15, 12, RED);
+    }
+
+    void Camera::SetTowerBounds(const float width, const float height) {
+        tower_width_ = width;
+        tower_height_ = height;
+    }
+
+    void Camera::UpdatePan(float delta_time) {
+        // Pan updates are handled in HandleInput
+    }
+
+    void Camera::UpdateZoom(float delta_time) {
+        // Zoom updates are handled in HandleInput
+    }
+
+    void Camera::ApplyBounds() {
+        // Calculate visible area
+        const float visible_width = screen_width_ / current_zoom_;
+        const float visible_height = screen_height_ / current_zoom_;
+
+        // Calculate bounds
+        const float min_x = visible_width / 2.0f;
+        const float max_x = tower_width_ - visible_width / 2.0f;
+        const float min_y = visible_height / 2.0f;
+        const float max_y = tower_height_ - visible_height / 2.0f;
+
+        // If visible area is larger than tower, center on tower
+        if (visible_width >= tower_width_) {
+            target_position_.x = tower_width_ / 2.0f;
+        } else {
+            target_position_.x = std::clamp(target_position_.x, min_x, max_x);
+        }
+
+        if (visible_height >= tower_height_) {
+            target_position_.y = tower_height_ / 2.0f;
+        } else {
+            target_position_.y = std::clamp(target_position_.y, min_y, max_y);
+        }
+    }
+
+    void Camera::SmoothMove(const float delta_time) {
+        // Smooth zoom
+        const float zoom_diff = target_zoom_ - current_zoom_;
+        current_zoom_ += zoom_diff * ZOOM_SMOOTHING * delta_time;
+
+        // Clamp to prevent overshoot
+        if (std::abs(zoom_diff) < 0.001f) {
+            current_zoom_ = target_zoom_;
+        }
+    }
+
+}

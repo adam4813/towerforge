@@ -12,7 +12,7 @@ int main() {
     ecs_world.Initialize();
     
     // Get the mod manager
-    LuaModManager& mod_mgr = ecs_world.GetModManager();
+    const LuaModManager& mod_mgr = ecs_world.GetModManager();
     
     // Check loaded mods
     const auto& mods = mod_mgr.GetLoadedMods();

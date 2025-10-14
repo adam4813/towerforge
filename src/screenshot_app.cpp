@@ -188,10 +188,10 @@ int main(int argc, char* argv[]) {
         renderer.Clear(DARKGRAY);
         
         // Draw grid representation
-        const int grid_offset_x = 50;
-        const int grid_offset_y = 50;
-        const int cell_width = 30;
-        const int cell_height = 40;
+        constexpr int grid_offset_x = 50;
+        constexpr int grid_offset_y = 50;
+        constexpr int cell_width = 30;
+        constexpr int cell_height = 40;
         
         // Draw grid lines
         for (int floor = 0; floor < 6; floor++) {
@@ -255,8 +255,8 @@ int main(int argc, char* argv[]) {
         shaft_query.each([&](flecs::entity e, const ElevatorShaft& shaft) {
             // Draw shaft as vertical column
             for (int floor = shaft.bottom_floor; floor <= shaft.top_floor; ++floor) {
-                int x = grid_offset_x + shaft.column * cell_width;
-                int y = grid_offset_y + floor * cell_height;
+                const int x = grid_offset_x + shaft.column * cell_width;
+                const int y = grid_offset_y + floor * cell_height;
                 
                 // Draw shaft background
                 DrawRectangle(x + 4, y + 4, cell_width - 8, cell_height - 8, Color{60, 60, 70, 255});
@@ -268,12 +268,12 @@ int main(int argc, char* argv[]) {
         auto car_query = ecs_world.GetWorld().query<const ElevatorCar>();
         car_query.each([&](flecs::entity e, const ElevatorCar& car) {
             // Find the shaft for this car
-            auto shaft_entity = ecs_world.GetWorld().entity(car.shaft_entity_id);
+            const auto shaft_entity = ecs_world.GetWorld().entity(car.shaft_entity_id);
             if (shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
                 const ElevatorShaft& shaft = shaft_entity.ensure<ElevatorShaft>();
-                
-                int x = grid_offset_x + shaft.column * cell_width;
-                int y = grid_offset_y + static_cast<int>(car.current_floor * cell_height);
+
+                const int x = grid_offset_x + shaft.column * cell_width;
+                const int y = grid_offset_y + static_cast<int>(car.current_floor * cell_height);
                 
                 // Color based on state
                 Color car_color;
@@ -310,8 +310,8 @@ int main(int argc, char* argv[]) {
         auto person_query = ecs_world.GetWorld().query<const Person>();
         person_query.each([&](flecs::entity e, const Person& person) {
             // Calculate screen position from floor and column
-            int person_x = grid_offset_x + static_cast<int>(person.current_column * cell_width);
-            int person_y = grid_offset_y + person.current_floor * cell_height + cell_height / 2;
+            const int person_x = grid_offset_x + static_cast<int>(person.current_column * cell_width);
+            const int person_y = grid_offset_y + person.current_floor * cell_height + cell_height / 2;
             
             // Draw person as a circle
             Color person_color;
@@ -341,8 +341,8 @@ int main(int argc, char* argv[]) {
             DrawCircle(person_x, person_y, 4, person_color);
             
             // Draw destination indicator
-            int dest_x = grid_offset_x + static_cast<int>(person.destination_column * cell_width);
-            int dest_y = grid_offset_y + person.destination_floor * cell_height + cell_height / 2;
+            const int dest_x = grid_offset_x + static_cast<int>(person.destination_column * cell_width);
+            const int dest_y = grid_offset_y + person.destination_floor * cell_height + cell_height / 2;
             DrawLine(person_x, person_y, dest_x, dest_y, Color{255, 255, 255, 100});
             DrawCircle(dest_x, dest_y, 4, Color{person_color.r, person_color.g, person_color.b, 150});
         });
@@ -404,18 +404,18 @@ int main(int argc, char* argv[]) {
         auto person_debug_query = ecs_world.GetWorld().query<const Person>();
         person_debug_query.each([&](flecs::entity e, const Person& person) {
             if (person_info_y < 340) {  // Don't overflow panel
-                std::string info = person.name + ": " + std::string(person.GetStateString());
+                const std::string info = person.name + ": " + std::string(person.GetStateString());
                 DrawText(info.c_str(), 530, person_info_y, 12, WHITE);
                 person_info_y += 15;
-                
-                std::string location = "  F" + std::to_string(person.current_floor) + 
+
+                const std::string location = "  F" + std::to_string(person.current_floor) + 
                                      " C" + std::to_string(static_cast<int>(person.current_column)) +
                                      " -> F" + std::to_string(person.destination_floor) +
                                      " C" + std::to_string(static_cast<int>(person.destination_column));
                 DrawText(location.c_str(), 530, person_info_y, 10, LIGHTGRAY);
                 person_info_y += 15;
-                
-                std::string need = "  Need: " + person.current_need;
+
+                const std::string need = "  Need: " + person.current_need;
                 DrawText(need.c_str(), 530, person_info_y, 10, LIGHTGRAY);
                 person_info_y += 20;
             }
