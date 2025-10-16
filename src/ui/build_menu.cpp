@@ -47,7 +47,7 @@ namespace towerforge::ui {
         // Draw cost
         std::stringstream cost_ss;
         cost_ss << "$" << facility.cost;
-        const Color cost_color =  is_disabled ? ColorAlpha(GREEN, 0.3f) : GREEN;
+        const Color cost_color = is_disabled ? ColorAlpha(GREEN, 0.3f) : GREEN;
         DrawText(cost_ss.str().c_str(), bounds.x + 35, bounds.y + 20, 12, cost_color);
     }
 
@@ -56,22 +56,32 @@ namespace towerforge::ui {
             return;
         }
 
-        int screen_height = GetScreenHeight();
-        constexpr int menu_x = 10;
-        constexpr int menu_y = 60;  // Below top bar
 
         const int facilities_height = static_cast<int>(facility_types_.size()) * ITEM_HEIGHT;
         constexpr int tools_height = 5 * ITEM_HEIGHT + 10; // 5 tool buttons (including floor expansion) + spacing
-        const int total_height = facilities_height + tools_height + MENU_PADDING * 4 + 80; // +80 for headers
+
+        const Rectangle panel_bounds = {
+            static_cast<float>(10),
+            static_cast<float>(60),
+            static_cast<float>(MENU_WIDTH),
+            static_cast<float>(facilities_height + tools_height + MENU_PADDING * 4 + 80) // +80 for headers
+        };
+
+        const Rectangle content_bounds = {
+            panel_bounds.x + MENU_PADDING,
+            panel_bounds.y + MENU_PADDING,
+            panel_bounds.width - MENU_PADDING * 2,
+            panel_bounds.height - MENU_PADDING * 2
+        };
 
         // Draw menu background
-        DrawRectangle(menu_x, menu_y, MENU_WIDTH, total_height, ColorAlpha(BLACK, 0.8f));
-        DrawRectangle(menu_x, menu_y, MENU_WIDTH, 2, GOLD);
+        DrawRectangleRec(panel_bounds, ColorAlpha(BLACK, 0.8f));
+        DrawRectangle(panel_bounds.x, panel_bounds.y, panel_bounds.width, 2, GOLD);
 
         // Draw title
-        DrawText("FACILITIES", menu_x + MENU_PADDING, menu_y + MENU_PADDING, 14, WHITE);
+        DrawText("FACILITIES", content_bounds.x, content_bounds.y, 14, WHITE);
 
-        int y = menu_y + MENU_PADDING + 20;
+        int y = content_bounds.y + 20;
 
         // Draw facility types
         for (size_t i = 0; i < facility_types_.size(); ++i) {
@@ -84,9 +94,9 @@ namespace towerforge::ui {
             const bool is_selected = !demolish_mode && static_cast<int>(i) == selected_facility_;
 
             const Rectangle item_bounds = {
-                static_cast<float>(menu_x + MENU_PADDING),
+                content_bounds.x,
                 static_cast<float>(y),
-                static_cast<float>(MENU_WIDTH - MENU_PADDING * 2),
+                content_bounds.width,
                 static_cast<float>(ITEM_HEIGHT - 5)
             };
 
@@ -97,66 +107,59 @@ namespace towerforge::ui {
 
         // Draw separator
         y += 10;
-        DrawRectangle(menu_x, y, MENU_WIDTH, 2, GRAY);
+        DrawRectangle(panel_bounds.x, y, panel_bounds.width, 2, GRAY);
         y += 12;
 
         // Draw tools header
-        DrawText("TOOLS", menu_x + MENU_PADDING, y, 14, WHITE);
+        DrawText("TOOLS", content_bounds.x, y, 14, WHITE);
         y += 20;
 
         // Draw demolish button
         const Color demolish_bg = demolish_mode ? ColorAlpha(RED, 0.3f) : ColorAlpha(DARKGRAY, 0.5f);
-        DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5, demolish_bg);
+        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, demolish_bg);
         if (demolish_mode) {
-            DrawRectangleLines(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5, RED);
+            DrawRectangleLines(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, RED);
         }
-        DrawText("Demolish (D)", menu_x + MENU_PADDING + 10, y + 12, 14, demolish_mode ? RED : WHITE);
+        DrawText("Demolish (D)", content_bounds.x + 10, y + 12, 14, demolish_mode ? RED : WHITE);
         y += ITEM_HEIGHT;
 
         // Draw undo button
         const Color undo_color = can_undo ? WHITE : GRAY;
-        DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5,
-                      ColorAlpha(DARKGRAY, 0.5f));
-        DrawText("Undo (Ctrl+Z)", menu_x + MENU_PADDING + 10, y + 12, 14, undo_color);
+        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, ColorAlpha(DARKGRAY, 0.5f));
+        DrawText("Undo (Ctrl+Z)", content_bounds.x + 10, y + 12, 14, undo_color);
         y += ITEM_HEIGHT;
 
         // Draw redo button
         const Color redo_color = can_redo ? WHITE : GRAY;
-        DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5,
-                      ColorAlpha(DARKGRAY, 0.5f));
-        DrawText("Redo (Ctrl+Y)", menu_x + MENU_PADDING + 10, y + 12, 14, redo_color);
+        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, ColorAlpha(DARKGRAY, 0.5f));
+        DrawText("Redo (Ctrl+Y)", content_bounds.x + 10, y + 12, 14, redo_color);
         y += ITEM_HEIGHT;
 
         // Draw separator for expansion section
         y += 5;
-        DrawRectangle(menu_x, y, MENU_WIDTH, 2, GRAY);
+        DrawRectangle(panel_bounds.x, y, panel_bounds.width, 2, GRAY);
         y += 7;
-        DrawText("EXPANSION", menu_x + MENU_PADDING, y, 14, WHITE);
+        DrawText("EXPANSION", content_bounds.x, y, 14, WHITE);
         y += 20;
 
         // Draw Add Floor button
-        DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5,
-                      ColorAlpha(DARKGRAY, 0.5f));
-        DrawText("Add Floor (+)", menu_x + MENU_PADDING + 10, y + 12, 14, SKYBLUE);
+        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, ColorAlpha(DARKGRAY, 0.5f));
+        DrawText("Add Floor (+)", content_bounds.x + 10, y + 12, 14, SKYBLUE);
         y += ITEM_HEIGHT;
 
         // Draw Add Basement button
-        DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5,
-                      ColorAlpha(DARKGRAY, 0.5f));
-        DrawText("Add Basement (-)", menu_x + MENU_PADDING + 10, y + 12, 14, ORANGE);
+        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, ColorAlpha(DARKGRAY, 0.5f));
+        DrawText("Add Basement (-)", content_bounds.x + 10, y + 12, 14, ORANGE);
         y += ITEM_HEIGHT;
 
         // Draw hint at bottom
         y += 5;
         if (demolish_mode) {
-            DrawText("Click facility to demolish (50% refund)",
-                     menu_x + MENU_PADDING, y, 9, LIGHTGRAY);
+            DrawText("Click facility to demolish (50% refund)", content_bounds.x, y, 9, LIGHTGRAY);
         } else if (selected_facility_ >= 0) {
-            DrawText("Click grid to place facility",
-                     menu_x + MENU_PADDING, y, 9, LIGHTGRAY);
+            DrawText("Click grid to place facility", content_bounds.x, y, 9, LIGHTGRAY);
         } else {
-            DrawText("Select facility to build",
-                     menu_x + MENU_PADDING, y, 9, LIGHTGRAY);
+            DrawText("Select facility to build", content_bounds.x, y, 9, LIGHTGRAY);
         }
     }
 
