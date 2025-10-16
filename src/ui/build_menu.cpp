@@ -71,6 +71,15 @@ namespace towerforge::ui {
         }
     }
 
+    void RenderToolButton(const Rectangle bounds, const char *label, const bool is_active, const Color active_color, const bool is_disabled, const Color text_color = WHITE) {
+        const Color bg_color = is_active ? ColorAlpha(active_color, 0.3f) : ColorAlpha(DARKGRAY, 0.5f);
+        DrawRectangleRec(bounds, bg_color);
+        if (is_active) {
+            DrawRectangleLinesEx(bounds, 2, active_color);
+        }
+        DrawText(label, bounds.x + 10, bounds.y + 12, 14, is_disabled ? ColorAlpha(text_color, 0.3f) : text_color);
+    }
+
     void BuildMenu::Render(const bool can_undo, const bool can_redo, const bool demolish_mode) const {
         if (!visible_) {
             return;
