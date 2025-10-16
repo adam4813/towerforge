@@ -7,16 +7,15 @@ using namespace towerforge::ui;
 using namespace towerforge::rendering;
 
 namespace towerforge::core {
-
     // Helper function to calculate tower rating based on statistics
-    static void CalculateTowerRatingHelper(TowerRating& rating, ECSWorld& ecs_world, const float income_rate) {
+    static void CalculateTowerRatingHelper(TowerRating &rating, ECSWorld &ecs_world, const float income_rate) {
         // Collect statistics from ECS world
         int total_tenants = 0;
         float total_satisfaction = 0.0f;
         int satisfaction_count = 0;
 
         // Count tenants and satisfaction from facilities
-        ecs_world.GetWorld().each([&](const FacilityEconomics& econ, const Satisfaction& sat) {
+        ecs_world.GetWorld().each([&](const FacilityEconomics &econ, const Satisfaction &sat) {
             total_tenants += econ.current_tenants;
             total_satisfaction += sat.satisfaction_score;
             satisfaction_count++;
@@ -35,7 +34,7 @@ namespace towerforge::core {
         rating.hourly_income = income_rate;
 
         // Calculate star rating based on thresholds
-        int new_stars = 1;  // Start with 1 star
+        int new_stars = 1; // Start with 1 star
 
         // 2 stars: 25+ tenants
         if (total_tenants >= 25) {
@@ -125,8 +124,7 @@ namespace towerforge::core {
           , grid_offset_y_(100)
           , cell_width_(40)
           , cell_height_(50)
-          , game_initialized_(false)
-    {
+          , game_initialized_(false) {
         game_state_.funds = 25000.0f;
         game_state_.income_rate = 500.0f;
         game_state_.population = 2;
@@ -209,7 +207,9 @@ namespace towerforge::core {
                         game_initialized_ = true;
                     }
                     UpdateInGame(delta_time);
-                    RenderInGame();
+                    if (current_state_ == GameState::InGame) {
+                        RenderInGame();
+                    }
                     break;
 
                 case GameState::Quit:
@@ -240,7 +240,7 @@ namespace towerforge::core {
     void Game::HandleTitleScreenInput() {
         const int keyboard_selection = main_menu_.HandleKeyboard();
         const int mouse_selection = main_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                     IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                                                           IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
 
         int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
 
@@ -325,14 +325,14 @@ namespace towerforge::core {
                 in_audio_settings_ = false;
             }
             const bool back_clicked = audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                                 IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                                                                       IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
             if (back_clicked) {
                 in_audio_settings_ = false;
             }
         } else {
             const int keyboard_selection = general_settings_menu_.HandleKeyboard();
             const int mouse_selection = general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                                     IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                                                                           IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
 
             int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
 
@@ -385,7 +385,8 @@ namespace towerforge::core {
         y += 30;
         DrawText("- Raylib (rendering)", (screen_width - MeasureText("- Raylib (rendering)", 18)) / 2, y, 18, WHITE);
         y += 30;
-        DrawText("- Flecs (ECS framework)", (screen_width - MeasureText("- Flecs (ECS framework)", 18)) / 2, y, 18, WHITE);
+        DrawText("- Flecs (ECS framework)", (screen_width - MeasureText("- Flecs (ECS framework)", 18)) / 2, y, 18,
+                 WHITE);
         y += 60;
 
         DrawText("Press ESC or ENTER to return to menu",
@@ -436,7 +437,7 @@ namespace towerforge::core {
         ecs_world_->GetWorld().set<ResearchTree>(research_tree);
 
         // Create the global NPCSpawner as a singleton
-        ecs_world_->GetWorld().set<NPCSpawner>({30.0f});  // Spawn visitors every 30 seconds base rate
+        ecs_world_->GetWorld().set<NPCSpawner>({30.0f}); // Spawn visitors every 30 seconds base rate
 
         std::cout << std::endl << "Creating example entities..." << std::endl;
         std::cout << "Renderer initialized. Window opened." << std::endl;
@@ -526,8 +527,8 @@ namespace towerforge::core {
 
         // Setup tower grid and facilities
         std::cout << std::endl << "Demonstrating Tower Grid System and Facility Manager..." << std::endl;
-        auto& grid = ecs_world_->GetTowerGrid();
-        auto& facility_mgr = ecs_world_->GetFacilityManager();
+        auto &grid = ecs_world_->GetTowerGrid();
+        auto &facility_mgr = ecs_world_->GetFacilityManager();
 
         placement_system_ = new PlacementSystem(grid, facility_mgr, *build_menu_);
         placement_system_->SetCamera(camera_);
@@ -591,7 +592,9 @@ namespace towerforge::core {
     void Game::UpdateInGame(float delta_time) {
         // Handle ESC key to open pause menu or close research menu
         if (IsKeyPressed(KEY_ESCAPE)) {
-            if (research_menu_->IsVisible()) {
+            if (save_load_menu_ != nullptr &&save_load_menu_->IsOpen()) {
+                save_load_menu_->Close();
+            } else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
                 research_menu_->SetVisible(false);
             } else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ && !is_paused_) {
                 is_paused_ = true;
@@ -602,7 +605,7 @@ namespace towerforge::core {
         }
 
         // Handle R key to toggle research menu (only if not paused)
-        if (!is_paused_ && IsKeyPressed(KEY_R)) {
+        if (research_menu_ != nullptr && !is_paused_ && IsKeyPressed(KEY_R)) {
             research_menu_->Toggle();
         }
 
@@ -639,10 +642,10 @@ namespace towerforge::core {
         if (research_menu_->IsVisible()) {
             research_menu_->Update(time_step_);
 
-            ResearchTree& research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
+            ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
             const bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(),
-                                                        IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-                                                        research_tree_ref);
+                                                              IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+                                                              research_tree_ref);
             if (unlocked) {
                 hud_->AddNotification(Notification::Type::Success, "Research unlocked!", 2.0f);
             }
@@ -650,24 +653,25 @@ namespace towerforge::core {
 
         // Check for achievements (only if not paused)
         if (!is_paused_) {
-            const flecs::world& world = ecs_world_->GetWorld();
+            const flecs::world &world = ecs_world_->GetWorld();
             float total_income = 0.0f;
             if (world.has<TowerEconomy>()) {
-                const auto& economy = world.get<TowerEconomy>();
+                const auto &economy = world.get<TowerEconomy>();
                 total_income = economy.total_revenue;
             }
 
             const int floor_count = ecs_world_->GetTowerGrid().GetFloorCount();
             constexpr float avg_satisfaction = 75.0f;
 
-            achievement_manager_->CheckAchievements(game_state_.population, total_income, floor_count, avg_satisfaction);
+            achievement_manager_->
+                    CheckAchievements(game_state_.population, total_income, floor_count, avg_satisfaction);
 
             if (achievement_manager_->HasNewAchievements()) {
                 const auto newly_unlocked = achievement_manager_->PopNewlyUnlocked();
-                for (const auto& achievement_id : newly_unlocked) {
+                for (const auto &achievement_id: newly_unlocked) {
                     audio_manager_->PlaySFX(audio::AudioCue::Achievement);
 
-                    for (const auto& achievement : achievement_manager_->GetAllAchievements()) {
+                    for (const auto &achievement: achievement_manager_->GetAllAchievements()) {
                         if (achievement.id == achievement_id) {
                             std::string message = "Achievement Unlocked: " + achievement.name;
                             hud_->AddNotification(Notification::Type::Success, message, 5.0f);
@@ -682,14 +686,19 @@ namespace towerforge::core {
 
         // Handle pause menu input
         if (is_paused_) {
-            if (in_audio_settings_from_pause_) {
+            if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
+                save_load_menu_->Update(time_step_);
+                save_load_menu_->HandleMouse(GetMouseX(), GetMouseY(),
+                                             IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                save_load_menu_->HandleKeyboard();
+            } else if (in_audio_settings_from_pause_) {
                 pause_audio_settings_menu_.Update(time_step_);
 
                 if (pause_audio_settings_menu_.HandleKeyboard()) {
                     in_audio_settings_from_pause_ = false;
                 }
                 const bool back_clicked = pause_audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                                           IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                    IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
                 if (back_clicked) {
                     in_audio_settings_from_pause_ = false;
                 }
@@ -698,7 +707,7 @@ namespace towerforge::core {
 
                 const int keyboard_selection = pause_general_settings_menu_.HandleKeyboard();
                 const int mouse_selection = pause_general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                    IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
 
                 int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
 
@@ -712,7 +721,8 @@ namespace towerforge::core {
                         case SettingsOption::Display:
                         case SettingsOption::Accessibility:
                         case SettingsOption::Gameplay:
-                            hud_->AddNotification(Notification::Type::Info, "Settings option not yet implemented", 3.0f);
+                            hud_->AddNotification(Notification::Type::Info, "Settings option not yet implemented",
+                                                  3.0f);
                             break;
                         case SettingsOption::Back:
                             in_settings_from_pause_ = false;
@@ -733,7 +743,7 @@ namespace towerforge::core {
                 } else {
                     const int keyboard_selection = pause_menu_->HandleKeyboard();
                     const int mouse_selection = pause_menu_->HandleMouse(GetMouseX(), GetMouseY(),
-                                                                   IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                                                                         IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
 
                     int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
 
@@ -745,10 +755,11 @@ namespace towerforge::core {
                                 game_state_.paused = false;
                                 break;
                             case PauseMenuOption::SaveGame:
-                                hud_->AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
+                                save_load_menu_->Open(true);
+                                //hud_->AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
                                 break;
                             case PauseMenuOption::LoadGame:
-                                hud_->AddNotification(Notification::Type::Info, "Load game not yet implemented", 3.0f);
+                                save_load_menu_->Open(false);
                                 break;
                             case PauseMenuOption::Settings:
                                 in_settings_from_pause_ = true;
@@ -799,18 +810,18 @@ namespace towerforge::core {
 
         // Handle mouse clicks (only if not paused)
         if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-
-            auto& grid = ecs_world_->GetTowerGrid();
+            auto &grid = ecs_world_->GetTowerGrid();
 
             const int menu_result = build_menu_->HandleClick(mouse_x, mouse_y,
-                                                       placement_system_->CanUndo(),
-                                                       placement_system_->CanRedo());
+                                                             placement_system_->CanUndo(),
+                                                             placement_system_->CanRedo());
             if (menu_result >= 0) {
                 hud_->AddNotification(Notification::Type::Info, "Facility selected from menu", 3.0f);
             } else if (menu_result == -2) {
                 placement_system_->SetDemolishMode(!placement_system_->IsDemolishMode());
                 hud_->AddNotification(Notification::Type::Info,
-                                      placement_system_->IsDemolishMode() ? "Demolish mode ON" : "Demolish mode OFF", 3.0f);
+                                      placement_system_->IsDemolishMode() ? "Demolish mode ON" : "Demolish mode OFF",
+                                      3.0f);
             } else if (menu_result == -3) {
                 placement_system_->Undo();
                 hud_->AddNotification(Notification::Type::Info, "Undid last action", 2.0f);
@@ -846,8 +857,10 @@ namespace towerforge::core {
                 float world_x, world_y;
                 camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
 
-                const int cost_change = placement_system_->HandleClick(static_cast<int>(world_x), static_cast<int>(world_y),
-                                                                 grid_offset_x_, grid_offset_y_, cell_width_, cell_height_, game_state_.funds);
+                const int cost_change = placement_system_->HandleClick(static_cast<int>(world_x),
+                                                                       static_cast<int>(world_y),
+                                                                       grid_offset_x_, grid_offset_y_, cell_width_,
+                                                                       cell_height_, game_state_.funds);
 
                 if (cost_change != 0) {
                     game_state_.funds += cost_change;
@@ -860,7 +873,7 @@ namespace towerforge::core {
                         if (tutorial_active_ && tutorial_manager_) {
                             const int selected = build_menu_->GetSelectedFacility();
                             if (selected >= 0) {
-                                const auto& facility_types = build_menu_->GetFacilityTypes();
+                                const auto &facility_types = build_menu_->GetFacilityTypes();
                                 if (selected < static_cast<int>(facility_types.size())) {
                                     tutorial_manager_->OnFacilityPlaced(facility_types[selected].name);
                                 }
@@ -881,19 +894,20 @@ namespace towerforge::core {
 
                         if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
                             clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
-
                             // Check if click is on a Person entity
                             bool person_clicked = false;
                             const auto person_query = ecs_world_->GetWorld().query<const Person>();
-                            person_query.each([&](const flecs::entity e, const Person& person) {
+                            person_query.each([&](const flecs::entity e, const Person &person) {
                                 // Calculate person position on screen
-                                const int person_x = grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
+                                const int person_x =
+                                        grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
                                 const int person_y = grid_offset_y_ + person.current_floor * cell_height_;
 
                                 // Check if click is within person's bounds (circle with radius 10)
                                 const int dx = static_cast<int>(world_x) - (person_x + cell_width_ / 2);
                                 const int dy = static_cast<int>(world_y) - (person_y + cell_height_ / 2);
-                                if (dx * dx + dy * dy <= 100) {  // radius of 10 pixels squared
+                                if (dx * dx + dy * dy <= 100) {
+                                    // radius of 10 pixels squared
                                     // Create PersonInfo and show in HUD
                                     PersonInfo info;
                                     info.id = static_cast<int>(e.id());
@@ -907,10 +921,10 @@ namespace towerforge::core {
 
                                     // Get status based on NPC type
                                     if (person.npc_type == NPCType::Employee && e.has<EmploymentInfo>()) {
-                                        const EmploymentInfo& emp = e.ensure<EmploymentInfo>();
+                                        const EmploymentInfo &emp = e.ensure<EmploymentInfo>();
                                         info.status = emp.GetStatusString();
                                     } else if (person.npc_type == NPCType::Visitor && e.has<VisitorInfo>()) {
-                                        const VisitorInfo& visitor = e.ensure<VisitorInfo>();
+                                        const VisitorInfo &visitor = e.ensure<VisitorInfo>();
                                         info.status = visitor.GetActivityString();
                                     } else {
                                         info.status = person.current_need;
@@ -918,7 +932,7 @@ namespace towerforge::core {
 
                                     // Get satisfaction if available
                                     if (e.has<Satisfaction>()) {
-                                        const Satisfaction& sat = e.ensure<Satisfaction>();
+                                        const Satisfaction &sat = e.ensure<Satisfaction>();
                                         info.satisfaction = sat.satisfaction_score;
                                     } else {
                                         info.satisfaction = 75.0f;
@@ -953,7 +967,7 @@ namespace towerforge::core {
     }
 
     void Game::RenderInGame() {
-        const auto& grid = ecs_world_->GetTowerGrid();
+        const auto &grid = ecs_world_->GetTowerGrid();
 
         renderer_.BeginFrame();
         renderer_.Clear(DARKGRAY);
@@ -994,7 +1008,7 @@ namespace towerforge::core {
 
         // Draw elevator shafts
         const auto shaft_query = ecs_world_->GetWorld().query<const ElevatorShaft>();
-        shaft_query.each([&](flecs::entity e, const ElevatorShaft& shaft) {
+        shaft_query.each([&](flecs::entity e, const ElevatorShaft &shaft) {
             for (int floor = shaft.bottom_floor; floor <= shaft.top_floor; ++floor) {
                 const int x = grid_offset_x_ + shaft.column * cell_width_;
                 const int y = grid_offset_y_ + floor * cell_height_;
@@ -1006,10 +1020,10 @@ namespace towerforge::core {
 
         // Draw elevator cars
         const auto car_query = ecs_world_->GetWorld().query<const ElevatorCar>();
-        car_query.each([&](flecs::entity e, const ElevatorCar& car) {
+        car_query.each([&](flecs::entity e, const ElevatorCar &car) {
             const auto shaft_entity = ecs_world_->GetWorld().entity(car.shaft_entity_id);
             if (shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
-                const ElevatorShaft& shaft = shaft_entity.ensure<ElevatorShaft>();
+                const ElevatorShaft &shaft = shaft_entity.ensure<ElevatorShaft>();
 
                 const int x = grid_offset_x_ + shaft.column * cell_width_;
                 const int y = grid_offset_y_ + static_cast<int>(car.current_floor * cell_height_);
@@ -1044,7 +1058,7 @@ namespace towerforge::core {
 
         // Draw Person entities
         const auto person_query = ecs_world_->GetWorld().query<const Person>();
-        person_query.each([&](const flecs::entity e, const Person& person) {
+        person_query.each([&](const flecs::entity e, const Person &person) {
             const int x = grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
             const int y = grid_offset_y_ + person.current_floor * cell_height_;
 
@@ -1053,7 +1067,7 @@ namespace towerforge::core {
             if (person.npc_type == NPCType::Employee) {
                 // Employees are blue
                 if (e.has<EmploymentInfo>()) {
-                    const EmploymentInfo& emp = e.ensure<EmploymentInfo>();
+                    const EmploymentInfo &emp = e.ensure<EmploymentInfo>();
                     person_color = emp.currently_on_shift ? BLUE : SKYBLUE;
                 } else {
                     person_color = BLUE;
@@ -1061,7 +1075,7 @@ namespace towerforge::core {
             } else {
                 // Visitors are orange/yellow
                 if (e.has<VisitorInfo>()) {
-                    const VisitorInfo& visitor = e.ensure<VisitorInfo>();
+                    const VisitorInfo &visitor = e.ensure<VisitorInfo>();
                     if (visitor.activity == VisitorActivity::Leaving) {
                         person_color = GRAY;
                     } else if (visitor.activity == VisitorActivity::Shopping) {
@@ -1147,7 +1161,9 @@ namespace towerforge::core {
 
         // Render pause menu overlay if paused
         if (is_paused_) {
-            if (in_audio_settings_from_pause_) {
+            if (save_load_menu_->IsOpen()) {
+                save_load_menu_->Render();
+            } else if (in_audio_settings_from_pause_) {
                 pause_audio_settings_menu_.Render();
             } else if (in_settings_from_pause_) {
                 pause_general_settings_menu_.Render();
@@ -1160,7 +1176,7 @@ namespace towerforge::core {
 
         // Render research menu overlay if visible
         if (research_menu_->IsVisible()) {
-            ResearchTree& research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
+            ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
             research_menu_->Render(research_tree_ref);
         }
 
@@ -1275,8 +1291,8 @@ namespace towerforge::core {
     void Game::CreateStarterTower() const {
         if (!ecs_world_) return;
 
-        auto& grid = ecs_world_->GetTowerGrid();
-        auto& facility_mgr = ecs_world_->GetFacilityManager();
+        auto &grid = ecs_world_->GetTowerGrid();
+        auto &facility_mgr = ecs_world_->GetFacilityManager();
 
         std::cout << "Creating starter tower setup..." << std::endl;
 
@@ -1330,9 +1346,8 @@ namespace towerforge::core {
 
             std::cout << "Starter tower created successfully" << std::endl;
             hud_->AddNotification(Notification::Type::Info, "Starter tower ready!", 5.0f);
-        } catch (const std::exception& e) {
+        } catch (const std::exception &e) {
             std::cerr << "Error creating starter tower: " << e.what() << std::endl;
         }
     }
-
 }
