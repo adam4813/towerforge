@@ -51,11 +51,30 @@ namespace towerforge::ui {
         DrawText(cost_ss.str().c_str(), bounds.x + 35, bounds.y + 20, 12, cost_color);
     }
 
+    enum PanelBorder {
+        TOP, BOTTOM, NONE
+    };
+
+    void RenderPanel(const Rectangle bounds, const char *title, const float padding, const PanelBorder border) {
+        DrawRectangleRec(bounds, ColorAlpha(BLACK, 0.8f));
+        DrawText(title, bounds.x + padding, bounds.y + padding, 14, WHITE);
+
+        switch (border) {
+            case TOP:
+                DrawRectangle(bounds.x, bounds.y , bounds.width, 2, GOLD);
+                break;
+            case BOTTOM:
+                DrawRectangle(bounds.x, bounds.y + bounds.height - 2, bounds.width, 2, GOLD);
+                break;
+            case NONE:
+            default: ;
+        }
+    }
+
     void BuildMenu::Render(const bool can_undo, const bool can_redo, const bool demolish_mode) const {
         if (!visible_) {
             return;
         }
-
 
         const int facilities_height = static_cast<int>(facility_types_.size()) * ITEM_HEIGHT;
         constexpr int tools_height = 5 * ITEM_HEIGHT + 10; // 5 tool buttons (including floor expansion) + spacing
@@ -74,12 +93,7 @@ namespace towerforge::ui {
             panel_bounds.height - MENU_PADDING * 2
         };
 
-        // Draw menu background
-        DrawRectangleRec(panel_bounds, ColorAlpha(BLACK, 0.8f));
-        DrawRectangle(panel_bounds.x, panel_bounds.y, panel_bounds.width, 2, GOLD);
-
-        // Draw title
-        DrawText("FACILITIES", content_bounds.x, content_bounds.y, 14, WHITE);
+        RenderPanel(panel_bounds, "FACILITIES", MENU_PADDING, TOP);
 
         int y = content_bounds.y + 20;
 
@@ -97,7 +111,7 @@ namespace towerforge::ui {
                 content_bounds.x,
                 static_cast<float>(y),
                 content_bounds.width,
-                static_cast<float>(ITEM_HEIGHT - 5)
+                static_cast<float>(ITEM_HEIGHT)
             };
 
             RenderBuildMenuItem(facility, is_selected, is_disabled, is_highlighted, item_bounds);

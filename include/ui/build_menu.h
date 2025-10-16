@@ -113,7 +113,7 @@ namespace towerforge::ui {
         TooltipManager* tooltip_manager_;
     
         static constexpr int MENU_WIDTH = 200;
-        static constexpr int ITEM_HEIGHT = 40;
+        static constexpr int ITEM_HEIGHT = 35;
         static constexpr int MENU_PADDING = 5;
     };
 
