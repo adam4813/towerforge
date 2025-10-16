@@ -3,13 +3,11 @@
 #include <sstream>
 
 namespace towerforge::ui {
-
     BuildMenu::BuildMenu()
         : selected_facility_(-1)
           , visible_(true)
           , tutorial_mode_(false)
           , tooltip_manager_(nullptr) {
-
         // Initialize facility types with costs and properties
         facility_types_.emplace_back("Lobby", "L", 1000, 10, GOLD);
         facility_types_.emplace_back("Office", "O", 5000, 8, SKYBLUE);
@@ -25,6 +23,33 @@ namespace towerforge::ui {
     }
 
     BuildMenu::~BuildMenu() = default;
+
+    void RenderBuildMenuItem(const FacilityType &facility, const bool is_selected, const bool is_disabled,
+                             const bool is_highlighted,
+                             const Rectangle bounds) {
+        if (is_selected) {
+            DrawRectangleRec(bounds, ColorAlpha(WHITE, 0.2f));
+        }
+
+        if (is_highlighted) {
+            const Rectangle highlight_bounds = {bounds.x - 1, bounds.y - 1, bounds.width + 2, bounds.height + 2};
+            DrawRectangleLinesEx(highlight_bounds, 2, ColorAlpha(GOLD, 0.5f));
+        }
+
+        const Rectangle icon_bounds = {bounds.x + 5, bounds.y + 5, 25, 25};
+        const Color icon_color = is_disabled ? ColorAlpha(facility.color, 0.3f) : facility.color;
+        DrawRectangleRec(icon_bounds, icon_color);
+
+        const Color text_color = is_disabled ? ColorAlpha(WHITE, 0.3f) : WHITE;
+        DrawText(facility.icon.c_str(), bounds.x + 12, bounds.y + 10, 16, text_color);
+        DrawText(facility.name.c_str(), bounds.x + 35, bounds.y + 5, 14, text_color);
+
+        // Draw cost
+        std::stringstream cost_ss;
+        cost_ss << "$" << facility.cost;
+        const Color cost_color =  is_disabled ? ColorAlpha(GREEN, 0.3f) : GREEN;
+        DrawText(cost_ss.str().c_str(), bounds.x + 35, bounds.y + 20, 12, cost_color);
+    }
 
     void BuildMenu::Render(const bool can_undo, const bool can_redo, const bool demolish_mode) const {
         if (!visible_) {
@@ -50,42 +75,22 @@ namespace towerforge::ui {
 
         // Draw facility types
         for (size_t i = 0; i < facility_types_.size(); ++i) {
-            const auto& facility = facility_types_[i];
+            const auto &facility = facility_types_[i];
 
             const bool is_highlighted = tutorial_mode_ && !highlighted_facility_.empty() &&
-                                  facility.name == highlighted_facility_;
+                                        facility.name == highlighted_facility_;
             const bool is_disabled = tutorial_mode_ && !highlighted_facility_.empty() &&
-                               facility.name != highlighted_facility_;
+                                     facility.name != highlighted_facility_;
+            const bool is_selected = !demolish_mode && static_cast<int>(i) == selected_facility_;
 
-            // Highlight selected item (only if not in demolish mode)
-            if (!demolish_mode && static_cast<int>(i) == selected_facility_) {
-                DrawRectangle(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5,
-                              ColorAlpha(WHITE, 0.2f));
-            }
+            const Rectangle item_bounds = {
+                static_cast<float>(menu_x + MENU_PADDING),
+                static_cast<float>(y),
+                static_cast<float>(MENU_WIDTH - MENU_PADDING * 2),
+                static_cast<float>(ITEM_HEIGHT - 5)
+            };
 
-            // Highlight tutorial-required facility with gold border
-            if (is_highlighted) {
-                DrawRectangleLines(menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5,
-                                   GOLD);
-                DrawRectangleLines(menu_x + MENU_PADDING + 1, y + 1, MENU_WIDTH - MENU_PADDING * 2 - 2, ITEM_HEIGHT - 7,
-                                   ColorAlpha(GOLD, 0.5f));
-            }
-
-            // Draw icon with facility color (dimmed if disabled)
-            const Color icon_color = is_disabled ? ColorAlpha(facility.color, 0.3f) : facility.color;
-            const Color text_color = is_disabled ? ColorAlpha(WHITE, 0.3f) : WHITE;
-
-            DrawRectangle(menu_x + MENU_PADDING + 5, y + 5, 25, 25, icon_color);
-            DrawText(facility.icon.c_str(), menu_x + MENU_PADDING + 12, y + 10, 16, text_color);
-
-            // Draw name
-            DrawText(facility.name.c_str(), menu_x + MENU_PADDING + 35, y + 5, 14, text_color);
-
-            // Draw cost
-            std::stringstream cost_ss;
-            cost_ss << "$" << facility.cost;
-            DrawText(cost_ss.str().c_str(), menu_x + MENU_PADDING + 35, y + 20, 12,
-                     is_disabled ? ColorAlpha(GREEN, 0.3f) : GREEN);
+            RenderBuildMenuItem(facility, is_selected, is_disabled, is_highlighted, item_bounds);
 
             y += ITEM_HEIGHT;
         }
@@ -242,9 +247,9 @@ namespace towerforge::ui {
         int y = menu_y + MENU_PADDING + 20;
 
         // Check facility types
-        for (const auto & facility : facility_types_) {
+        for (const auto &facility: facility_types_) {
             if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y,
-                                             MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+                                           MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
                 // Create dynamic tooltip
                 std::stringstream tooltip_text;
                 tooltip_text << facility.name << " - $" << facility.cost << "\n";
@@ -272,7 +277,8 @@ namespace towerforge::ui {
         y += 10 + 2 + 12 + 20;
 
         // Check demolish button
-        if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+        if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2,
+                                       ITEM_HEIGHT - 5)) {
             Tooltip tooltip("Enter demolish mode to remove facilities.\nRefunds 50% of construction cost.\nHotkey: D");
             tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y,
                                           MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
@@ -282,7 +288,7 @@ namespace towerforge::ui {
 
         // Check undo button
         if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y,
-                                         MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+                                       MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
             Tooltip tooltip("Undo last placement or demolition.\nHotkey: Ctrl+Z");
             tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y,
                                           MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
@@ -292,7 +298,7 @@ namespace towerforge::ui {
 
         // Check redo button
         if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y,
-                                         MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+                                       MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
             Tooltip tooltip("Redo previously undone action.\nHotkey: Ctrl+Y");
             tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y,
                                           MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
@@ -308,5 +314,4 @@ namespace towerforge::ui {
             tooltip_manager_->Render();
         }
     }
-
 }
