@@ -1,5 +1,6 @@
 #include "ui/audio_settings_menu.h"
 #include "audio/audio_manager.h"
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
