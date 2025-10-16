@@ -20,6 +20,25 @@ namespace towerforge::ui {
         facility_types_.emplace_back("Conference", "C", 13000, 9, SKYBLUE);
         facility_types_.emplace_back("Flagship", "F", 18000, 12, Color{0, 206, 209, 255});
         facility_types_.emplace_back("Elevator", "E", 15000, 2, GRAY);
+
+
+        constexpr int title_height = 20;
+        const int facilities_height = static_cast<int>(facility_types_.size()) * ITEM_HEIGHT;
+        constexpr int tools_height = 5 * ITEM_HEIGHT + 10; // 5 tool buttons (including floor expansion) + spacing
+
+        panel_bounds_ = {
+            static_cast<float>(10),
+            static_cast<float>(60),
+            static_cast<float>(MENU_WIDTH),
+            static_cast<float>(facilities_height + tools_height + MENU_PADDING * 4 + 80) // +80 for headers
+        };
+
+        content_bounds_ = {
+            panel_bounds_.x + MENU_PADDING,
+            panel_bounds_.y + MENU_PADDING + title_height,
+            panel_bounds_.width - MENU_PADDING * 2,
+            panel_bounds_.height - MENU_PADDING * 2
+        };
     }
 
     BuildMenu::~BuildMenu() = default;
@@ -61,7 +80,7 @@ namespace towerforge::ui {
 
         switch (border) {
             case TOP:
-                DrawRectangle(bounds.x, bounds.y , bounds.width, 2, GOLD);
+                DrawRectangle(bounds.x, bounds.y, bounds.width, 2, GOLD);
                 break;
             case BOTTOM:
                 DrawRectangle(bounds.x, bounds.y + bounds.height - 2, bounds.width, 2, GOLD);
@@ -71,7 +90,8 @@ namespace towerforge::ui {
         }
     }
 
-    void RenderToolButton(const Rectangle bounds, const char *label, const bool is_active, const Color active_color, const bool is_disabled, const Color text_color = WHITE) {
+    void RenderToolButton(const Rectangle bounds, const char *label, const bool is_active, const Color active_color,
+                          const bool is_disabled, const Color text_color = WHITE) {
         const Color bg_color = is_active ? ColorAlpha(active_color, 0.3f) : ColorAlpha(DARKGRAY, 0.5f);
         DrawRectangleRec(bounds, bg_color);
         if (is_active) {
@@ -85,26 +105,9 @@ namespace towerforge::ui {
             return;
         }
 
-        const int facilities_height = static_cast<int>(facility_types_.size()) * ITEM_HEIGHT;
-        constexpr int tools_height = 5 * ITEM_HEIGHT + 10; // 5 tool buttons (including floor expansion) + spacing
+        RenderPanel(panel_bounds_, "FACILITIES", MENU_PADDING, TOP);
 
-        const Rectangle panel_bounds = {
-            static_cast<float>(10),
-            static_cast<float>(60),
-            static_cast<float>(MENU_WIDTH),
-            static_cast<float>(facilities_height + tools_height + MENU_PADDING * 4 + 80) // +80 for headers
-        };
-
-        const Rectangle content_bounds = {
-            panel_bounds.x + MENU_PADDING,
-            panel_bounds.y + MENU_PADDING,
-            panel_bounds.width - MENU_PADDING * 2,
-            panel_bounds.height - MENU_PADDING * 2
-        };
-
-        RenderPanel(panel_bounds, "FACILITIES", MENU_PADDING, TOP);
-
-        int y = content_bounds.y + 20;
+        int y = content_bounds_.y;
 
         // Draw facility types
         for (size_t i = 0; i < facility_types_.size(); ++i) {
@@ -117,9 +120,9 @@ namespace towerforge::ui {
             const bool is_selected = !demolish_mode && static_cast<int>(i) == selected_facility_;
 
             const Rectangle item_bounds = {
-                content_bounds.x,
+                content_bounds_.x,
                 static_cast<float>(y),
-                content_bounds.width,
+                content_bounds_.width,
                 static_cast<float>(ITEM_HEIGHT)
             };
 
@@ -130,59 +133,46 @@ namespace towerforge::ui {
 
         // Draw separator
         y += 10;
-        DrawRectangle(panel_bounds.x, y, panel_bounds.width, 2, GRAY);
+        DrawRectangle(panel_bounds_.x, y, panel_bounds_.width, 2, GRAY);
         y += 12;
 
         // Draw tools header
-        DrawText("TOOLS", content_bounds.x, y, 14, WHITE);
+        DrawText("TOOLS", content_bounds_.x, y, 14, WHITE);
         y += 20;
 
-        // Draw demolish button
-        const Color demolish_bg = demolish_mode ? ColorAlpha(RED, 0.3f) : ColorAlpha(DARKGRAY, 0.5f);
-        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, demolish_bg);
-        if (demolish_mode) {
-            DrawRectangleLines(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, RED);
-        }
-        DrawText("Demolish (D)", content_bounds.x + 10, y + 12, 14, demolish_mode ? RED : WHITE);
+        Rectangle tool_button_bounds = {content_bounds_.x, static_cast<float>(y), content_bounds_.width, ITEM_HEIGHT};
+        RenderToolButton(tool_button_bounds, "Demolish (D)", demolish_mode, RED, false);
         y += ITEM_HEIGHT;
 
-        // Draw undo button
-        const Color undo_color = can_undo ? WHITE : GRAY;
-        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, ColorAlpha(DARKGRAY, 0.5f));
-        DrawText("Undo (Ctrl+Z)", content_bounds.x + 10, y + 12, 14, undo_color);
+        tool_button_bounds.y = static_cast<float>(y);
+        RenderToolButton(tool_button_bounds, "Undo (Ctrl+Z)", false, WHITE, !can_undo);
         y += ITEM_HEIGHT;
 
-        // Draw redo button
-        const Color redo_color = can_redo ? WHITE : GRAY;
-        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, ColorAlpha(DARKGRAY, 0.5f));
-        DrawText("Redo (Ctrl+Y)", content_bounds.x + 10, y + 12, 14, redo_color);
+        tool_button_bounds.y = static_cast<float>(y);
+        RenderToolButton(tool_button_bounds, "Redo (Ctrl+Y)", false, WHITE, !can_redo);
         y += ITEM_HEIGHT;
 
         // Draw separator for expansion section
         y += 5;
-        DrawRectangle(panel_bounds.x, y, panel_bounds.width, 2, GRAY);
+        DrawRectangle(panel_bounds_.x, y, panel_bounds_.width, 2, GRAY);
         y += 7;
-        DrawText("EXPANSION", content_bounds.x, y, 14, WHITE);
+        DrawText("EXPANSION", content_bounds_.x, y, 14, WHITE);
         y += 20;
 
-        // Draw Add Floor button
-        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, ColorAlpha(DARKGRAY, 0.5f));
-        DrawText("Add Floor (+)", content_bounds.x + 10, y + 12, 14, SKYBLUE);
+        tool_button_bounds.y = static_cast<float>(y);
+        RenderToolButton(tool_button_bounds, "Add Floor (+)", false, WHITE, false, SKYBLUE);
         y += ITEM_HEIGHT;
 
-        // Draw Add Basement button
-        DrawRectangle(content_bounds.x, y, content_bounds.width, ITEM_HEIGHT - 5, ColorAlpha(DARKGRAY, 0.5f));
-        DrawText("Add Basement (-)", content_bounds.x + 10, y + 12, 14, ORANGE);
+        tool_button_bounds.y = static_cast<float>(y);
+        RenderToolButton(tool_button_bounds, "Add Basement (-)", false, WHITE, false, ORANGE);
         y += ITEM_HEIGHT;
 
-        // Draw hint at bottom
-        y += 5;
         if (demolish_mode) {
-            DrawText("Click facility to demolish (50% refund)", content_bounds.x, y, 9, LIGHTGRAY);
+            DrawText("Click facility to demolish (50% refund)", content_bounds_.x, y, 9, LIGHTGRAY);
         } else if (selected_facility_ >= 0) {
-            DrawText("Click grid to place facility", content_bounds.x, y, 9, LIGHTGRAY);
+            DrawText("Click grid to place facility", content_bounds_.x, y, 9, LIGHTGRAY);
         } else {
-            DrawText("Select facility to build", content_bounds.x, y, 9, LIGHTGRAY);
+            DrawText("Select facility to build", content_bounds_.x, y, 9, LIGHTGRAY);
         }
     }
 
@@ -191,19 +181,12 @@ namespace towerforge::ui {
             return -1;
         }
 
-        constexpr int menu_x = 10;
-        constexpr int menu_y = 60;
-        const int facilities_height = static_cast<int>(facility_types_.size()) * ITEM_HEIGHT;
-
-        // Check if click is within menu bounds
-        const int total_height = facilities_height + 5 * ITEM_HEIGHT + MENU_PADDING * 4 + 100;
-        if (mouse_x < menu_x || mouse_x > menu_x + MENU_WIDTH ||
-            mouse_y < menu_y || mouse_y > menu_y + total_height) {
+        if (!CheckCollisionPointRec({static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, panel_bounds_)) {
             return -1;
         }
 
         // Calculate which item was clicked
-        int y = menu_y + MENU_PADDING + 20;
+        int y = content_bounds_.y;
 
         // Check facility types
         for (size_t i = 0; i < facility_types_.size(); ++i) {
@@ -268,14 +251,14 @@ namespace towerforge::ui {
             return;
         }
 
-        int menu_x = 10;
-        int menu_y = 60;
-        int y = menu_y + MENU_PADDING + 20;
+        int y = content_bounds_.y;
+
+        Rectangle check_rect = {content_bounds_.x, content_bounds_.y, content_bounds_.width, ITEM_HEIGHT};
 
         // Check facility types
         for (const auto &facility: facility_types_) {
-            if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y,
-                                           MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+            check_rect.y = static_cast<float>(y);
+            if (TooltipManager::IsHoveringRec(mouse_x, mouse_y, check_rect)) {
                 // Create dynamic tooltip
                 std::stringstream tooltip_text;
                 tooltip_text << facility.name << " - $" << facility.cost << "\n";
@@ -292,8 +275,7 @@ namespace towerforge::ui {
                 }
 
                 Tooltip tooltip(tooltip_text.str());
-                tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y,
-                                              MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
+                tooltip_manager_->ShowTooltip(tooltip, content_bounds_.x, y, content_bounds_.width, ITEM_HEIGHT);
                 return;
             }
             y += ITEM_HEIGHT;
@@ -303,31 +285,28 @@ namespace towerforge::ui {
         y += 10 + 2 + 12 + 20;
 
         // Check demolish button
-        if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y, MENU_WIDTH - MENU_PADDING * 2,
-                                       ITEM_HEIGHT - 5)) {
+        check_rect.y = static_cast<float>(y);
+        if (TooltipManager::IsHoveringRec(mouse_x, mouse_y, check_rect)) {
             Tooltip tooltip("Enter demolish mode to remove facilities.\nRefunds 50% of construction cost.\nHotkey: D");
-            tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y,
-                                          MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
+            tooltip_manager_->ShowTooltip(tooltip, content_bounds_.x, y, content_bounds_.width, ITEM_HEIGHT);
             return;
         }
         y += ITEM_HEIGHT;
 
         // Check undo button
-        if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y,
-                                       MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+        check_rect.y = static_cast<float>(y);
+        if (TooltipManager::IsHoveringRec(mouse_x, mouse_y, check_rect)) {
             Tooltip tooltip("Undo last placement or demolition.\nHotkey: Ctrl+Z");
-            tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y,
-                                          MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
+            tooltip_manager_->ShowTooltip(tooltip, content_bounds_.x, y, content_bounds_.width, ITEM_HEIGHT);
             return;
         }
         y += ITEM_HEIGHT;
 
         // Check redo button
-        if (TooltipManager::IsHovering(mouse_x, mouse_y, menu_x + MENU_PADDING, y,
-                                       MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5)) {
+        check_rect.y = static_cast<float>(y);
+        if (TooltipManager::IsHoveringRec(mouse_x, mouse_y, check_rect)) {
             Tooltip tooltip("Redo previously undone action.\nHotkey: Ctrl+Y");
-            tooltip_manager_->ShowTooltip(tooltip, menu_x + MENU_PADDING, y,
-                                          MENU_WIDTH - MENU_PADDING * 2, ITEM_HEIGHT - 5);
+            tooltip_manager_->ShowTooltip(tooltip, content_bounds_.x, y, content_bounds_.width, ITEM_HEIGHT);
             return;
         }
 

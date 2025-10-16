@@ -104,6 +104,10 @@ namespace towerforge::ui {
                mouse_y >= y && mouse_y <= y + height;
     }
 
+    bool TooltipManager::IsHoveringRec(const int mouse_x, const int mouse_y, const Rectangle rect) {
+        return CheckCollisionPointRec({static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, rect);
+    }
+
     void TooltipManager::RenderTooltipBox(const std::string& text, int x, int y) const {
         // Word wrap the text
         std::vector<std::string> lines;
