@@ -59,25 +59,6 @@ Currently, the project is in early development with basic structure in place.
 
 Always use smart pointers for ownership semantics and automatic resource management:
 
-**❌ Avoid: Manual memory management**
-```cpp
-// Don't do this - prone to leaks and requires manual cleanup
-class Tower {
-    TowerGrid* grid_;
-    FacilityManager* facility_mgr_;
-public:
-    Tower() {
-        grid_ = new TowerGrid(10, 20, 0);
-        facility_mgr_ = new FacilityManager();
-    }
-    ~Tower() {
-        delete grid_;
-        delete facility_mgr_;
-    }
-};
-```
-
-**✅ Prefer: Smart pointers with clear ownership**
 ```cpp
 // Good - automatic cleanup, exception-safe, clear ownership
 class Tower {
@@ -95,36 +76,6 @@ public:
 
 Build small, focused functions that do one thing well. Compose them to create complex behavior:
 
-**❌ Avoid: Monolithic functions**
-```cpp
-// Don't do this - hard to test, understand, and maintain
-void ProcessTowerUpdate(ECSWorld& world, float delta_time) {
-    // Update time
-    auto& time_mgr = world.GetWorld().get_mut<TimeManager>();
-    time_mgr->current_hour += delta_time * time_mgr->speed_multiplier / 3600.0f;
-    if (time_mgr->current_hour >= 24.0f) {
-        time_mgr->current_hour -= 24.0f;
-        time_mgr->current_day = (time_mgr->current_day + 1) % 7;
-        if (time_mgr->current_day == 0) {
-            time_mgr->current_week++;
-        }
-    }
-    
-    // Update satisfaction for all facilities
-    world.GetWorld().each<BuildingComponent, Satisfaction>([&](auto e, auto& building, auto& sat) {
-        float crowding_penalty = 0.0f;
-        if (building.current_occupancy > building.capacity * 0.9f) {
-            crowding_penalty = 10.0f;
-        }
-        sat.satisfaction_score = std::max(0.0f, sat.satisfaction_score - crowding_penalty * delta_time);
-    });
-    
-    // Update economics
-    // ... 50+ more lines of mixed concerns
-}
-```
-
-**✅ Prefer: Small, composable functions**
 ```cpp
 // Good - each function has a single responsibility
 void UpdateSimulationTime(TimeManager& time_mgr, float delta_time) {
@@ -172,34 +123,6 @@ void ProcessTowerUpdate(ECSWorld& world, float delta_time) {
 
 Use standard algorithms and ranges to express intent clearly rather than manual loops:
 
-**❌ Avoid: Manual loops with imperative logic**
-```cpp
-// Don't do this - verbose, error-prone, hard to parallelize
-std::vector<flecs::entity> GetHighSatisfactionFacilities(
-    const std::vector<flecs::entity>& facilities) {
-    std::vector<flecs::entity> result;
-    for (int i = 0; i < facilities.size(); i++) {
-        const auto* sat = facilities[i].get<Satisfaction>();
-        if (sat && sat->satisfaction_score > 70.0f) {
-            result.push_back(facilities[i]);
-        }
-    }
-    return result;
-}
-
-float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
-    float total = 0.0f;
-    for (size_t i = 0; i < facilities.size(); i++) {
-        const auto* econ = facilities[i].get<FacilityEconomics>();
-        if (econ) {
-            total += econ->current_rent * econ->current_tenant_count;
-        }
-    }
-    return total;
-}
-```
-
-**✅ Prefer: Declarative style with standard algorithms**
 ```cpp
 // Good - clear intent, less error-prone, easier to optimize
 // Returns a lazy-evaluated view that filters entities with high satisfaction
@@ -297,6 +220,7 @@ void ProcessFacility(const BuildingComponent& building) {
 5. **Type Safety**: Use `std::optional`, `std::variant`, and strong types instead of raw pointers or magic values
 6. **Const Correctness**: Mark everything `const` that doesn't mutate, use `constexpr` for compile-time values
 7. **Meaningful Names**: Function and variable names should clearly express intent and purpose
+8. **Structure/Classe Arguments**: Use data structures or classes when passing related arguments e.g. use `Rectangle bounds` when passing `x, y, width, height` of an element
 
 ### File Organization
 
@@ -347,19 +271,18 @@ sudo apt-get update && sudo apt-get install -y build-essential cmake pkg-config 
   libgl1-mesa-dev libglu1-mesa-dev xvfb
 ```
 
-5. Configure CMake with the vcpkg toolchain:
+5. Configure CMake using the native CMakePreset
 
 ```bash
-mkdir -p build && cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --preset native
 ```
 
 6. Build (use parallel jobs appropriate to your machine):
 
 ```bash
-cmake --build . --parallel %NUMBER_OF_PROCESSORS%   # Windows (cmd.exe)
+cmake --build --preset native-debug --parallel %NUMBER_OF_PROCESSORS%   # Windows (cmd.exe)
 # or
-cmake --build . --parallel $(nproc)                # Linux/macOS
+cmake --build --preset native-debug --parallel $(nproc)                # Linux/macOS
 ```
 
 7. (Optional) Run the verification script:
