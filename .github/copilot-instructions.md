@@ -53,6 +53,175 @@ Currently, the project is in early development with basic structure in place.
 - Organize code into logical modules
 - Add comments only when necessary to explain complex logic
 
+## Modern C++ Best Practices
+
+### Resource Management with RAII and Smart Pointers
+
+Always use smart pointers for ownership semantics and automatic resource management:
+
+```cpp
+// Good - automatic cleanup, exception-safe, clear ownership
+class Tower {
+    std::unique_ptr<TowerGrid> grid_;
+    std::unique_ptr<FacilityManager> facility_mgr_;
+public:
+    Tower() 
+        : grid_(std::make_unique<TowerGrid>(10, 20, 0)),
+          facility_mgr_(std::make_unique<FacilityManager>()) {}
+    // No destructor needed - RAII handles cleanup
+};
+```
+
+### Small, Composable Functions
+
+Build small, focused functions that do one thing well. Compose them to create complex behavior:
+
+```cpp
+// Good - each function has a single responsibility
+void UpdateSimulationTime(TimeManager& time_mgr, float delta_time) {
+    time_mgr.current_hour += delta_time * time_mgr.speed_multiplier / 3600.0f;
+    
+    if (time_mgr.current_hour >= 24.0f) {
+        AdvanceToNextDay(time_mgr);
+    }
+}
+
+void AdvanceToNextDay(TimeManager& time_mgr) {
+    time_mgr.current_hour -= 24.0f;
+    time_mgr.current_day = (time_mgr.current_day + 1) % 7;
+    
+    if (time_mgr.current_day == 0) {
+        time_mgr.current_week++;
+    }
+}
+
+float CalculateCrowdingPenalty(const BuildingComponent& building) {
+    if (building.current_occupancy > building.capacity * 0.9f) {
+        return 10.0f;
+    }
+    return 0.0f;
+}
+
+void UpdateFacilitySatisfaction(BuildingComponent& building, Satisfaction& sat, float delta_time) {
+    const float penalty = CalculateCrowdingPenalty(building);
+    sat.satisfaction_score = std::max(0.0f, sat.satisfaction_score - penalty * delta_time);
+}
+
+// Clear, testable, maintainable
+void ProcessTowerUpdate(ECSWorld& world, float delta_time) {
+    auto& time_mgr = world.GetWorld().get_mut<TimeManager>();
+    UpdateSimulationTime(*time_mgr, delta_time);
+    
+    world.GetWorld().each<BuildingComponent, Satisfaction>(
+        [delta_time](auto e, auto& building, auto& sat) {
+            UpdateFacilitySatisfaction(building, sat, delta_time);
+        });
+}
+```
+
+### Declarative Style with Standard Algorithms
+
+Use standard algorithms and ranges to express intent clearly rather than manual loops:
+
+```cpp
+// Good - clear intent, less error-prone, easier to optimize
+// Returns a lazy-evaluated view that filters entities with high satisfaction
+auto GetHighSatisfactionFacilities(const std::vector<flecs::entity>& facilities) {
+    return facilities 
+        | std::views::filter([](const auto& e) {
+            const auto* sat = e.get<Satisfaction>();
+            return sat && sat->satisfaction_score > 70.0f;
+          });
+}
+
+// Alternative: If you need a concrete vector, materialize the view
+std::vector<flecs::entity> GetHighSatisfactionFacilitiesVector(
+    const std::vector<flecs::entity>& facilities) {
+    auto filtered = facilities 
+        | std::views::filter([](const auto& e) {
+            const auto* sat = e.get<Satisfaction>();
+            return sat && sat->satisfaction_score > 70.0f;
+          });
+    return std::vector<flecs::entity>(filtered.begin(), filtered.end());
+}
+
+float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
+    return std::ranges::fold_left(
+        facilities 
+        | std::views::filter([](const auto& e) { 
+            return e.get<FacilityEconomics>() != nullptr; 
+          })
+        | std::views::transform([](const auto& e) {
+            // Note: econ is guaranteed non-null due to filter above,
+            // but defensive check shown for documentation purposes
+            const auto* econ = e.get<FacilityEconomics>();
+            return econ ? econ->current_rent * econ->current_tenant_count : 0.0f;
+          }),
+        0.0f,
+        std::plus{}
+    );
+}
+
+// Or using std::transform_reduce for cleaner parallel execution potential
+float CalculateTotalRevenueParallel(const std::vector<flecs::entity>& facilities) {
+    return std::transform_reduce(
+        facilities.begin(), facilities.end(),
+        0.0f,
+        std::plus{},
+        [](const auto& e) {
+            if (const auto* econ = e.get<FacilityEconomics>()) {
+                return econ->current_rent * econ->current_tenant_count;
+            }
+            return 0.0f;
+        }
+    );
+}
+```
+
+### Additional Modern C++ Patterns
+
+**Use `std::optional` for optional values instead of pointers or sentinel values:**
+```cpp
+// Good - clearly expresses that a value may not exist
+std::optional<FacilityEconomics> FindFacilityEconomics(flecs::entity e) {
+    if (const auto* econ = e.get<FacilityEconomics>()) {
+        return *econ;
+    }
+    return std::nullopt;
+}
+```
+
+**Use structured bindings for clearer code:**
+```cpp
+// Good - readable and concise
+for (const auto& [entity, position, velocity] : query) {
+    UpdatePosition(position, velocity);
+}
+```
+
+**Use `const` and `constexpr` aggressively:**
+```cpp
+// Good - compile-time constants and immutable values
+constexpr float MAX_SATISFACTION = 100.0f;
+constexpr int DEFAULT_CAPACITY = 20;
+
+void ProcessFacility(const BuildingComponent& building) {
+    const float occupancy_ratio = static_cast<float>(building.current_occupancy) / building.capacity;
+    // building cannot be modified here
+}
+```
+
+### Summary: Key Principles
+
+1. **RAII and Smart Pointers**: Use `std::unique_ptr` and `std::shared_ptr` for automatic resource management
+2. **Small Functions**: Write focused, single-responsibility functions (typically 5-20 lines)
+3. **Declarative Over Imperative**: Use standard algorithms and ranges to express "what" not "how"
+4. **Composability**: Build complex behavior from simple, reusable building blocks
+5. **Type Safety**: Use `std::optional`, `std::variant`, and strong types instead of raw pointers or magic values
+6. **Const Correctness**: Mark everything `const` that doesn't mutate, use `constexpr` for compile-time values
+7. **Meaningful Names**: Function and variable names should clearly express intent and purpose
+8. **Structure/Classe Arguments**: Use data structures or classes when passing related arguments e.g. use `Rectangle bounds` when passing `x, y, width, height` of an element
+
 ### File Organization
 
 - Header files should use `.h` extension
@@ -102,19 +271,18 @@ sudo apt-get update && sudo apt-get install -y build-essential cmake pkg-config 
   libgl1-mesa-dev libglu1-mesa-dev xvfb
 ```
 
-5. Configure CMake with the vcpkg toolchain:
+5. Configure CMake using the native CMakePreset
 
 ```bash
-mkdir -p build && cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --preset native
 ```
 
 6. Build (use parallel jobs appropriate to your machine):
 
 ```bash
-cmake --build . --parallel %NUMBER_OF_PROCESSORS%   # Windows (cmd.exe)
+cmake --build --preset native-debug --parallel %NUMBER_OF_PROCESSORS%   # Windows (cmd.exe)
 # or
-cmake --build . --parallel $(nproc)                # Linux/macOS
+cmake --build --preset native-debug --parallel $(nproc)                # Linux/macOS
 ```
 
 7. (Optional) Run the verification script:
