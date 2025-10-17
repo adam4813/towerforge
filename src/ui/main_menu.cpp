@@ -1,4 +1,5 @@
 #include "ui/main_menu.h"
+#include "ui/ui_element.h"
 #include <cmath>
 
 namespace towerforge::ui {
@@ -15,6 +16,23 @@ namespace towerforge::ui {
         menu_items_.push_back({"Settings", MenuOption::Settings});
         menu_items_.push_back({"Credits", MenuOption::Credits});
         menu_items_.push_back({"Quit", MenuOption::Quit});
+        
+        // Create Panel objects for each menu item (relative positions will be calculated during render)
+        // Note: We create panels with placeholder positions since screen width is needed for centering
+        // These will be positioned properly during rendering
+        for (size_t i = 0; i < menu_items_.size(); ++i) {
+            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
+            // We'll set proper x position during render when we know screen width
+            auto panel = std::make_unique<Panel>(
+                0, // x will be set during render
+                static_cast<float>(item_y),
+                static_cast<float>(MENU_WIDTH),
+                static_cast<float>(MENU_ITEM_HEIGHT),
+                ColorAlpha(DARKGRAY, 0.2f),
+                GRAY
+            );
+            menu_item_panels_.push_back(std::move(panel));
+        }
     }
 
     MainMenu::~MainMenu() = default;
@@ -103,14 +121,14 @@ namespace towerforge::ui {
 
             const bool is_selected = (static_cast<int>(i) == selected_option_);
 
-            // Draw menu item background
-            const Color bg_color = is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.2f);
-            DrawRectangle(item_x, item_y, MENU_WIDTH, MENU_ITEM_HEIGHT, bg_color);
-
-            // Draw menu item border
-            const Color border_color = is_selected ? GOLD : GRAY;
-            int border_thickness = is_selected ? 3 : 2;
-            DrawRectangleLines(item_x, item_y, MENU_WIDTH, MENU_ITEM_HEIGHT, border_color);
+            // Update panel position and appearance based on selection
+            auto& panel = menu_item_panels_[i];
+            panel->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
+            panel->SetBackgroundColor(is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.2f));
+            panel->SetBorderColor(is_selected ? GOLD : GRAY);
+            
+            // Render the panel
+            panel->Render();
 
             // Draw menu item text
             const char* text = menu_items_[i].label.c_str();
