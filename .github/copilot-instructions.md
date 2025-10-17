@@ -223,18 +223,15 @@ std::vector<flecs::entity> GetHighSatisfactionFacilitiesVector(
 }
 
 float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
-    auto has_economics = [](const auto& e) { 
-        return e.get<FacilityEconomics>() != nullptr; 
-    };
-    auto get_revenue = [](const auto& e) {
-        const auto* econ = e.get<FacilityEconomics>();
-        return econ->current_rent * econ->current_tenant_count;
-    };
-    
     return std::ranges::fold_left(
         facilities 
-        | std::views::filter(has_economics)
-        | std::views::transform(get_revenue),
+        | std::views::filter([](const auto& e) { 
+            return e.get<FacilityEconomics>() != nullptr; 
+          })
+        | std::views::transform([](const auto& e) {
+            const auto* econ = e.get<FacilityEconomics>();
+            return econ->current_rent * econ->current_tenant_count;
+          }),
         0.0f,
         std::plus{}
     );
