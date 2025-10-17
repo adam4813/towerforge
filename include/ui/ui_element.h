@@ -3,6 +3,7 @@
 #include <raylib.h>
 #include <memory>
 #include <vector>
+#include <string>
 
 namespace towerforge::ui {
 
