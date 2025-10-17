@@ -229,6 +229,8 @@ float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
             return e.get<FacilityEconomics>() != nullptr; 
           })
         | std::views::transform([](const auto& e) {
+            // Note: econ is guaranteed non-null due to filter above,
+            // but defensive check shown for documentation purposes
             const auto* econ = e.get<FacilityEconomics>();
             return econ ? econ->current_rent * econ->current_tenant_count : 0.0f;
           }),
