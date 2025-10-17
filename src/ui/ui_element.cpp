@@ -90,4 +90,40 @@ namespace towerforge::ui {
         }
     }
 
+    // Button implementation
+    Button::Button(const float relative_x, const float relative_y, const float width, const float height,
+                   const std::string& label, const Color background_color, const Color border_color)
+        : UIElement(relative_x, relative_y, width, height)
+          , label_(label)
+          , background_color_(background_color)
+          , border_color_(border_color)
+          , text_color_(WHITE)
+          , font_size_(20) {
+    }
+
+    void Button::Render() const {
+        const Rectangle bounds = GetAbsoluteBounds();
+        
+        // Draw background
+        DrawRectangleRec(bounds, background_color_);
+        
+        // Draw border if not transparent
+        if (border_color_.a > 0) {
+            DrawRectangleLinesEx(bounds, 2, border_color_);
+        }
+        
+        // Draw label text centered
+        if (!label_.empty()) {
+            const int text_width = MeasureText(label_.c_str(), font_size_);
+            const int text_x = bounds.x + (bounds.width - text_width) / 2;
+            const int text_y = bounds.y + (bounds.height - font_size_) / 2;
+            DrawText(label_.c_str(), text_x, text_y, font_size_, text_color_);
+        }
+        
+        // Render all children
+        for (const auto& child : children_) {
+            child->Render();
+        }
+    }
+
 }

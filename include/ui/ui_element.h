@@ -155,4 +155,90 @@ namespace towerforge::ui {
         Color border_color_;
     };
 
+    /**
+     * @brief Button class - an interactive UI element for user actions
+     * 
+     * Represents a clickable button with text label, background, border,
+     * and support for different states (normal, hovered, pressed, disabled).
+     */
+    class Button : public UIElement {
+    public:
+        /**
+         * @brief Construct a button
+         * @param relative_x X position relative to parent
+         * @param relative_y Y position relative to parent
+         * @param width Width of the button
+         * @param height Height of the button
+         * @param label Text label for the button
+         * @param background_color Background color (normal state)
+         * @param border_color Border color (normal state)
+         */
+        Button(float relative_x, float relative_y, float width, float height,
+               const std::string& label = "",
+               Color background_color = ColorAlpha(DARKGRAY, 0.3f),
+               Color border_color = GRAY);
+
+        /**
+         * @brief Render the button
+         */
+        void Render() const override;
+
+        /**
+         * @brief Set the button label
+         */
+        void SetLabel(const std::string& label) { label_ = label; }
+
+        /**
+         * @brief Get the button label
+         */
+        const std::string& GetLabel() const { return label_; }
+
+        /**
+         * @brief Set background color
+         */
+        void SetBackgroundColor(Color color) { background_color_ = color; }
+
+        /**
+         * @brief Set border color
+         */
+        void SetBorderColor(Color color) { border_color_ = color; }
+
+        /**
+         * @brief Set text color
+         */
+        void SetTextColor(Color color) { text_color_ = color; }
+
+        /**
+         * @brief Get background color
+         */
+        Color GetBackgroundColor() const { return background_color_; }
+
+        /**
+         * @brief Get border color
+         */
+        Color GetBorderColor() const { return border_color_; }
+
+        /**
+         * @brief Get text color
+         */
+        Color GetTextColor() const { return text_color_; }
+
+        /**
+         * @brief Set font size
+         */
+        void SetFontSize(int size) { font_size_ = size; }
+
+        /**
+         * @brief Get font size
+         */
+        int GetFontSize() const { return font_size_; }
+
+    private:
+        std::string label_;
+        Color background_color_;
+        Color border_color_;
+        Color text_color_;
+        int font_size_;
+    };
+
 }

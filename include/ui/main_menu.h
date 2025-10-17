@@ -7,8 +7,10 @@
 
 namespace towerforge::ui {
 
-    // Forward declaration
+    // Forward declarations
     class Panel;
+    class Button;
+
     /**
  * @brief Menu options available in the main menu
  */
@@ -95,8 +97,9 @@ namespace towerforge::ui {
     
         std::vector<MenuItem> menu_items_;
         
-        // Optional Panel objects for unified UI system
-        std::vector<std::unique_ptr<Panel>> menu_item_panels_;
+        // Main menu is a Panel container with Button children for menu items
+        std::unique_ptr<Panel> main_panel_;
+        std::vector<std::unique_ptr<Button>> menu_item_buttons_;
     };
 
 }

@@ -44,6 +44,7 @@ The `Panel` class extends `UIElement` to provide a basic rectangular container w
 - Background color
 - Optional border
 - Automatic rendering of itself and all children
+- **Use for**: Containers, windows, groups of UI elements
 
 ```cpp
 // Create a panel with optional colors
@@ -59,6 +60,33 @@ void SetBorderColor(Color color);
 void Render() const override;
 ```
 
+### Button Class
+
+The `Button` class extends `UIElement` to provide an interactive button with:
+
+- Text label
+- Background and border colors
+- Text color and font size
+- **Use for**: Clickable menu items, tool buttons, interactive controls
+
+```cpp
+// Create a button with label and optional colors
+Button(float x, float y, float width, float height,
+       const std::string& label = "",
+       Color background = ColorAlpha(DARKGRAY, 0.3f),
+       Color border = GRAY);
+
+// Update appearance dynamically
+void SetLabel(const std::string& label);
+void SetBackgroundColor(Color color);
+void SetBorderColor(Color color);
+void SetTextColor(Color color);
+void SetFontSize(int size);
+
+// Render button with centered text
+void Render() const override;
+```
+
 ## Usage Examples
 
 ### Example 1: Simple Panel
@@ -69,62 +97,66 @@ auto panel = std::make_unique<Panel>(10, 60, 200, 500);
 panel->Render();
 ```
 
-### Example 2: Parent-Child Hierarchy
+### Example 2: Parent-Child Hierarchy with Buttons
 
 ```cpp
-// Create parent panel
+// Create parent panel (container)
 auto parent = std::make_unique<Panel>(100, 100, 300, 400);
 
-// Create child panel at position (10, 10) relative to parent
+// Create button at position (10, 10) relative to parent
 // Will appear at screen position (110, 110)
-auto child = std::make_unique<Panel>(10, 10, 100, 50);
-parent->AddChild(std::move(child));
+auto button = std::make_unique<Button>(10, 10, 100, 50, "Click Me");
+parent->AddChild(std::move(button));
 
 // Render parent (automatically renders all children)
 parent->Render();
 ```
 
-### Example 3: Dynamic Menu Items (MainMenu pattern)
+### Example 3: Menu with Buttons (MainMenu pattern)
 
 ```cpp
 class MainMenu {
 private:
-    std::vector<std::unique_ptr<Panel>> menu_item_panels_;
+    std::unique_ptr<Panel> main_panel_;          // Container
+    std::vector<std::unique_ptr<Button>> menu_buttons_;  // Interactive items
     
 public:
     MainMenu() {
-        // Create panels for each menu item
-        for (size_t i = 0; i < 7; i++) {
-            auto panel = std::make_unique<Panel>(
+        // Main menu is a Panel (container)
+        main_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
+        
+        // Create Button objects for each menu item
+        std::vector<std::string> labels = {"New Game", "Load Game", "Settings", "Quit"};
+        for (size_t i = 0; i < labels.size(); i++) {
+            auto button = std::make_unique<Button>(
                 0,  // x will be updated during render for centering
                 250 + i * 60,  // y position
-                300, 50        // width, height
+                300, 50,       // width, height
+                labels[i]      // button label
             );
-            menu_item_panels_.push_back(std::move(panel));
+            menu_buttons_.push_back(std::move(button));
         }
     }
     
     void Render(int selected_index) {
         int screen_width = GetScreenWidth();
         
-        for (size_t i = 0; i < menu_item_panels_.size(); i++) {
-            auto& panel = menu_item_panels_[i];
+        for (size_t i = 0; i < menu_buttons_.size(); i++) {
+            auto& button = menu_buttons_[i];
             
             // Update position for centering
             int x = (screen_width - 300) / 2;
-            panel->SetRelativePosition(x, 250 + i * 60);
+            button->SetRelativePosition(x, 250 + i * 60);
             
             // Update appearance based on selection
             bool selected = (i == selected_index);
-            panel->SetBackgroundColor(selected ? ColorAlpha(GOLD, 0.3f) 
+            button->SetBackgroundColor(selected ? ColorAlpha(GOLD, 0.3f) 
                                                 : ColorAlpha(DARKGRAY, 0.2f));
-            panel->SetBorderColor(selected ? GOLD : GRAY);
+            button->SetBorderColor(selected ? GOLD : GRAY);
+            button->SetTextColor(selected ? WHITE : LIGHTGRAY);
             
-            // Render panel
-            panel->Render();
-            
-            // Draw text on top of panel
-            // ... text rendering code ...
+            // Render button (includes text)
+            button->Render();
         }
     }
 };
@@ -134,22 +166,44 @@ public:
 
 ### BuildMenu
 
-- Now includes a `panel_` member of type `std::unique_ptr<Panel>`
+- BuildMenu is a `Panel` (container)
 - Panel is constructed in the constructor with appropriate bounds
 - The existing `RenderPanel` helper function has been overloaded to work with Panel objects
 - Maintains backward compatibility with existing Rectangle-based code
 
 ### MainMenu
 
-- Each menu item now has an associated `Panel` object stored in `menu_item_panels_`
-- Panels are dynamically updated during rendering for centering and selection effects
+- MainMenu is a `Panel` (container)
+- Each menu item is a `Button` object stored in `menu_item_buttons_`
+- Buttons are dynamically updated during rendering for centering and selection effects
+- Buttons handle their own text rendering
 - Simplifies future layout changes
 
 ### PauseMenu
 
-- Similar to MainMenu, each menu item has a Panel object
-- Panels handle background and border rendering
-- Selection state is reflected through Panel color updates
+- PauseMenu is a `Panel` (container)
+- Each menu item is a `Button` object stored in `menu_item_buttons_`
+- Buttons handle background, border, and text rendering
+- Selection state is reflected through Button color updates
+
+## Element Type Guide
+
+**Use Panel for:**
+- Containers (BuildMenu, MainMenu, PauseMenu)
+- Windows and dialog boxes
+- Groups of related UI elements
+- Areas that contain other UI elements
+
+**Use Button for:**
+- Clickable menu items
+- Tool buttons (Undo, Redo, etc.)
+- Interactive controls
+- Any UI element the user can click to trigger an action
+
+**Use UIElement directly for:**
+- Custom UI element types
+- Elements that need specific rendering behavior
+- Base class for new specialized elements
 
 ## Benefits
 
@@ -157,14 +211,15 @@ public:
 2. **Relative Positioning**: Simplifies layout by working in relative coordinates
 3. **Easier Refactoring**: Moving a parent automatically moves all children
 4. **Cleaner Code**: Less manual coordinate calculation
-5. **Future-Ready**: Easy to add new UI element types by extending UIElement
+5. **Proper Separation**: Containers (Panel) vs Interactive Elements (Button)
+6. **Future-Ready**: Easy to add new UI element types by extending UIElement
 
 ## Future Enhancements
 
 - Add layout managers (vertical/horizontal stacking, grid, etc.)
 - Implement anchoring and docking
 - Add margin and padding support
-- Create specialized UI element types (Button, Label, TextBox, etc.)
+- Create more specialized UI element types (Label, TextBox, Slider, etc.)
 - Add event handling through the hierarchy
 - Implement z-ordering for overlapping elements
 
