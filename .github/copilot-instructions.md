@@ -53,6 +53,240 @@ Currently, the project is in early development with basic structure in place.
 - Organize code into logical modules
 - Add comments only when necessary to explain complex logic
 
+## Modern C++ Best Practices
+
+### Resource Management with RAII and Smart Pointers
+
+Always use smart pointers for ownership semantics and automatic resource management:
+
+**❌ Avoid: Manual memory management**
+```cpp
+// Don't do this - prone to leaks and requires manual cleanup
+class Tower {
+    TowerGrid* grid_;
+    FacilityManager* facility_mgr_;
+public:
+    Tower() {
+        grid_ = new TowerGrid(10, 20, 0);
+        facility_mgr_ = new FacilityManager();
+    }
+    ~Tower() {
+        delete grid_;
+        delete facility_mgr_;
+    }
+};
+```
+
+**✅ Prefer: Smart pointers with clear ownership**
+```cpp
+// Good - automatic cleanup, exception-safe, clear ownership
+class Tower {
+    std::unique_ptr<TowerGrid> grid_;
+    std::unique_ptr<FacilityManager> facility_mgr_;
+public:
+    Tower() 
+        : grid_(std::make_unique<TowerGrid>(10, 20, 0)),
+          facility_mgr_(std::make_unique<FacilityManager>()) {}
+    // No destructor needed - RAII handles cleanup
+};
+```
+
+### Small, Composable Functions
+
+Build small, focused functions that do one thing well. Compose them to create complex behavior:
+
+**❌ Avoid: Monolithic functions**
+```cpp
+// Don't do this - hard to test, understand, and maintain
+void ProcessTowerUpdate(ECSWorld& world, float delta_time) {
+    // Update time
+    auto& time_mgr = world.GetWorld().get_mut<TimeManager>();
+    time_mgr->current_hour += delta_time * time_mgr->speed_multiplier / 3600.0f;
+    if (time_mgr->current_hour >= 24.0f) {
+        time_mgr->current_hour -= 24.0f;
+        time_mgr->current_day = (time_mgr->current_day + 1) % 7;
+        if (time_mgr->current_day == 0) {
+            time_mgr->current_week++;
+        }
+    }
+    
+    // Update satisfaction for all facilities
+    world.GetWorld().each<BuildingComponent, Satisfaction>([&](auto e, auto& building, auto& sat) {
+        float crowding_penalty = 0.0f;
+        if (building.current_occupancy > building.capacity * 0.9f) {
+            crowding_penalty = 10.0f;
+        }
+        sat.satisfaction_score = std::max(0.0f, sat.satisfaction_score - crowding_penalty * delta_time);
+    });
+    
+    // Update economics
+    // ... 50+ more lines of mixed concerns
+}
+```
+
+**✅ Prefer: Small, composable functions**
+```cpp
+// Good - each function has a single responsibility
+void UpdateSimulationTime(TimeManager& time_mgr, float delta_time) {
+    time_mgr.current_hour += delta_time * time_mgr.speed_multiplier / 3600.0f;
+    
+    if (time_mgr.current_hour >= 24.0f) {
+        AdvanceToNextDay(time_mgr);
+    }
+}
+
+void AdvanceToNextDay(TimeManager& time_mgr) {
+    time_mgr.current_hour -= 24.0f;
+    time_mgr.current_day = (time_mgr.current_day + 1) % 7;
+    
+    if (time_mgr.current_day == 0) {
+        time_mgr.current_week++;
+    }
+}
+
+float CalculateCrowdingPenalty(const BuildingComponent& building) {
+    if (building.current_occupancy > building.capacity * 0.9f) {
+        return 10.0f;
+    }
+    return 0.0f;
+}
+
+void UpdateFacilitySatisfaction(BuildingComponent& building, Satisfaction& sat, float delta_time) {
+    const float penalty = CalculateCrowdingPenalty(building);
+    sat.satisfaction_score = std::max(0.0f, sat.satisfaction_score - penalty * delta_time);
+}
+
+// Clear, testable, maintainable
+void ProcessTowerUpdate(ECSWorld& world, float delta_time) {
+    auto& time_mgr = world.GetWorld().get_mut<TimeManager>();
+    UpdateSimulationTime(*time_mgr, delta_time);
+    
+    world.GetWorld().each<BuildingComponent, Satisfaction>(
+        [delta_time](auto e, auto& building, auto& sat) {
+            UpdateFacilitySatisfaction(building, sat, delta_time);
+        });
+}
+```
+
+### Declarative Style with Standard Algorithms
+
+Use standard algorithms and ranges to express intent clearly rather than manual loops:
+
+**❌ Avoid: Manual loops with imperative logic**
+```cpp
+// Don't do this - verbose, error-prone, hard to parallelize
+std::vector<flecs::entity> GetHighSatisfactionFacilities(
+    const std::vector<flecs::entity>& facilities) {
+    std::vector<flecs::entity> result;
+    for (int i = 0; i < facilities.size(); i++) {
+        if (facilities[i].has<Satisfaction>()) {
+            const auto* sat = facilities[i].get<Satisfaction>();
+            if (sat && sat->satisfaction_score > 70.0f) {
+                result.push_back(facilities[i]);
+            }
+        }
+    }
+    return result;
+}
+
+float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
+    float total = 0.0f;
+    for (size_t i = 0; i < facilities.size(); i++) {
+        if (facilities[i].has<FacilityEconomics>()) {
+            const auto* econ = facilities[i].get<FacilityEconomics>();
+            if (econ) {
+                total += econ->current_rent * econ->current_tenant_count;
+            }
+        }
+    }
+    return total;
+}
+```
+
+**✅ Prefer: Declarative style with standard algorithms**
+```cpp
+// Good - clear intent, less error-prone, easier to optimize
+auto GetHighSatisfactionFacilities(const std::vector<flecs::entity>& facilities) {
+    return facilities 
+        | std::views::filter([](const auto& e) {
+            return e.has<Satisfaction>() && 
+                   e.get<Satisfaction>()->satisfaction_score > 70.0f;
+          });
+}
+
+float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
+    return std::ranges::fold_left(
+        facilities 
+        | std::views::filter([](const auto& e) { return e.has<FacilityEconomics>(); })
+        | std::views::transform([](const auto& e) {
+            const auto* econ = e.get<FacilityEconomics>();
+            return econ->current_rent * econ->current_tenant_count;
+          }),
+        0.0f,
+        std::plus{}
+    );
+}
+
+// Or using std::transform_reduce for cleaner parallel execution potential
+float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
+    auto has_economics = [](const auto& e) { return e.has<FacilityEconomics>(); };
+    auto get_revenue = [](const auto& e) {
+        const auto* econ = e.get<FacilityEconomics>();
+        return econ->current_rent * econ->current_tenant_count;
+    };
+    
+    return std::transform_reduce(
+        facilities.begin(), facilities.end(),
+        0.0f,
+        std::plus{},
+        [&](const auto& e) { return has_economics(e) ? get_revenue(e) : 0.0f; }
+    );
+}
+```
+
+### Additional Modern C++ Patterns
+
+**Use `std::optional` for optional values instead of pointers or sentinel values:**
+```cpp
+// Good - clearly expresses that a value may not exist
+std::optional<FacilityEconomics> FindFacilityEconomics(flecs::entity e) {
+    if (const auto* econ = e.get<FacilityEconomics>()) {
+        return *econ;
+    }
+    return std::nullopt;
+}
+```
+
+**Use structured bindings for clearer code:**
+```cpp
+// Good - readable and concise
+for (const auto& [entity, position, velocity] : query) {
+    UpdatePosition(position, velocity);
+}
+```
+
+**Use `const` and `constexpr` aggressively:**
+```cpp
+// Good - compile-time constants and immutable values
+constexpr float MAX_SATISFACTION = 100.0f;
+constexpr int DEFAULT_CAPACITY = 20;
+
+void ProcessFacility(const BuildingComponent& building) {
+    const float occupancy_ratio = static_cast<float>(building.current_occupancy) / building.capacity;
+    // building cannot be modified here
+}
+```
+
+### Summary: Key Principles
+
+1. **RAII and Smart Pointers**: Use `std::unique_ptr` and `std::shared_ptr` for automatic resource management
+2. **Small Functions**: Write focused, single-responsibility functions (typically 5-20 lines)
+3. **Declarative Over Imperative**: Use standard algorithms and ranges to express "what" not "how"
+4. **Composability**: Build complex behavior from simple, reusable building blocks
+5. **Type Safety**: Use `std::optional`, `std::variant`, and strong types instead of raw pointers or magic values
+6. **Const Correctness**: Mark everything `const` that doesn't mutate, use `constexpr` for compile-time values
+7. **Meaningful Names**: Function and variable names should clearly express intent and purpose
+
 ### File Organization
 
 - Header files should use `.h` extension
