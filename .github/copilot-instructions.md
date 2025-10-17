@@ -230,7 +230,7 @@ float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
           })
         | std::views::transform([](const auto& e) {
             const auto* econ = e.get<FacilityEconomics>();
-            return econ->current_rent * econ->current_tenant_count;
+            return econ ? econ->current_rent * econ->current_tenant_count : 0.0f;
           }),
         0.0f,
         std::plus{}
