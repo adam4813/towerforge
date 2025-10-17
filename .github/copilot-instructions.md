@@ -206,12 +206,24 @@ float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
 **✅ Prefer: Declarative style with standard algorithms**
 ```cpp
 // Good - clear intent, less error-prone, easier to optimize
+// Returns a lazy-evaluated view that filters entities with high satisfaction
 auto GetHighSatisfactionFacilities(const std::vector<flecs::entity>& facilities) {
     return facilities 
         | std::views::filter([](const auto& e) {
             return e.has<Satisfaction>() && 
                    e.get<Satisfaction>()->satisfaction_score > 70.0f;
           });
+}
+
+// Alternative: If you need a concrete vector, materialize the view
+std::vector<flecs::entity> GetHighSatisfactionFacilitiesVector(
+    const std::vector<flecs::entity>& facilities) {
+    auto filtered = facilities 
+        | std::views::filter([](const auto& e) {
+            return e.has<Satisfaction>() && 
+                   e.get<Satisfaction>()->satisfaction_score > 70.0f;
+          });
+    return std::vector<flecs::entity>(filtered.begin(), filtered.end());
 }
 
 float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
