@@ -179,11 +179,9 @@ std::vector<flecs::entity> GetHighSatisfactionFacilities(
     const std::vector<flecs::entity>& facilities) {
     std::vector<flecs::entity> result;
     for (int i = 0; i < facilities.size(); i++) {
-        if (facilities[i].has<Satisfaction>()) {
-            const auto* sat = facilities[i].get<Satisfaction>();
-            if (sat && sat->satisfaction_score > 70.0f) {
-                result.push_back(facilities[i]);
-            }
+        const auto* sat = facilities[i].get<Satisfaction>();
+        if (sat && sat->satisfaction_score > 70.0f) {
+            result.push_back(facilities[i]);
         }
     }
     return result;
@@ -192,11 +190,9 @@ std::vector<flecs::entity> GetHighSatisfactionFacilities(
 float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
     float total = 0.0f;
     for (size_t i = 0; i < facilities.size(); i++) {
-        if (facilities[i].has<FacilityEconomics>()) {
-            const auto* econ = facilities[i].get<FacilityEconomics>();
-            if (econ) {
-                total += econ->current_rent * econ->current_tenant_count;
-            }
+        const auto* econ = facilities[i].get<FacilityEconomics>();
+        if (econ) {
+            total += econ->current_rent * econ->current_tenant_count;
         }
     }
     return total;
@@ -210,8 +206,8 @@ float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
 auto GetHighSatisfactionFacilities(const std::vector<flecs::entity>& facilities) {
     return facilities 
         | std::views::filter([](const auto& e) {
-            return e.has<Satisfaction>() && 
-                   e.get<Satisfaction>()->satisfaction_score > 70.0f;
+            const auto* sat = e.get<Satisfaction>();
+            return sat && sat->satisfaction_score > 70.0f;
           });
 }
 
@@ -220,38 +216,42 @@ std::vector<flecs::entity> GetHighSatisfactionFacilitiesVector(
     const std::vector<flecs::entity>& facilities) {
     auto filtered = facilities 
         | std::views::filter([](const auto& e) {
-            return e.has<Satisfaction>() && 
-                   e.get<Satisfaction>()->satisfaction_score > 70.0f;
+            const auto* sat = e.get<Satisfaction>();
+            return sat && sat->satisfaction_score > 70.0f;
           });
     return std::vector<flecs::entity>(filtered.begin(), filtered.end());
 }
 
 float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
+    auto has_economics = [](const auto& e) { 
+        return e.get<FacilityEconomics>() != nullptr; 
+    };
+    auto get_revenue = [](const auto& e) {
+        const auto* econ = e.get<FacilityEconomics>();
+        return econ->current_rent * econ->current_tenant_count;
+    };
+    
     return std::ranges::fold_left(
         facilities 
-        | std::views::filter([](const auto& e) { return e.has<FacilityEconomics>(); })
-        | std::views::transform([](const auto& e) {
-            const auto* econ = e.get<FacilityEconomics>();
-            return econ->current_rent * econ->current_tenant_count;
-          }),
+        | std::views::filter(has_economics)
+        | std::views::transform(get_revenue),
         0.0f,
         std::plus{}
     );
 }
 
 // Or using std::transform_reduce for cleaner parallel execution potential
-float CalculateTotalRevenue(const std::vector<flecs::entity>& facilities) {
-    auto has_economics = [](const auto& e) { return e.has<FacilityEconomics>(); };
-    auto get_revenue = [](const auto& e) {
-        const auto* econ = e.get<FacilityEconomics>();
-        return econ->current_rent * econ->current_tenant_count;
-    };
-    
+float CalculateTotalRevenueParallel(const std::vector<flecs::entity>& facilities) {
     return std::transform_reduce(
         facilities.begin(), facilities.end(),
         0.0f,
         std::plus{},
-        [&](const auto& e) { return has_economics(e) ? get_revenue(e) : 0.0f; }
+        [](const auto& e) {
+            if (const auto* econ = e.get<FacilityEconomics>()) {
+                return econ->current_rent * econ->current_tenant_count;
+            }
+            return 0.0f;
+        }
     );
 }
 ```
