@@ -516,6 +516,9 @@ namespace towerforge::core {
 
         // Connect tooltip manager from HUD to other UI components
         build_menu_->SetTooltipManager(hud_->GetTooltipManager());
+        
+        // Connect notification center to research menu
+        research_menu_->SetNotificationCenter(hud_->GetNotificationCenter());
 
         // Create and initialize camera
         camera_ = new rendering::Camera();
@@ -688,13 +691,28 @@ namespace towerforge::core {
         // Handle research menu
         if (research_menu_->IsVisible()) {
             research_menu_->Update(time_step_);
-
-            ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
-            const bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(),
-                                                              IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-                                                              research_tree_ref);
-            if (unlocked) {
-                hud_->AddNotification(Notification::Type::Success, "Research unlocked!", 2.0f);
+            
+            // Handle mouse events for confirmation dialogs first
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                const ui::MouseEvent mouse_event{
+                    static_cast<float>(GetMouseX()),
+                    static_cast<float>(GetMouseY()),
+                    true,  // left_pressed
+                    false, // right_pressed
+                    ui::MouseButton::Left
+                };
+                
+                // Check research menu confirmation dialogs
+                if (research_menu_->ProcessMouseEvent(mouse_event)) {
+                    // Dialog consumed the event, don't process node clicks
+                } else {
+                    // Normal node click handling
+                    ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
+                    const bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(),
+                                                                      true,  // clicked
+                                                                      research_tree_ref);
+                    // Note: unlock notification is now handled in ResearchTreeMenu via notification center
+                }
             }
         }
 
@@ -847,6 +865,15 @@ namespace towerforge::core {
             placement_system_->Update(time_step_);
             placement_system_->HandleKeyboard();
             
+            // Check for pending demolish from confirmation dialog
+            const int pending_change = placement_system_->GetPendingFundsChange();
+            if (pending_change != 0) {
+                game_state_.funds += pending_change;
+                audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
+                hud_->AddNotification(Notification::Type::Info,
+                    TextFormat("Facility demolished! Refund: $%d", pending_change), 3.0f);
+            }
+            
             // Update history panel with current command history
             if (history_panel_ != nullptr && history_panel_->IsVisible()) {
                 history_panel_->UpdateFromHistory(placement_system_->GetCommandHistory());
@@ -880,6 +907,20 @@ namespace towerforge::core {
 
         // Handle mouse clicks (only if not paused)
         if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            // Create mouse event for UI system
+            const ui::MouseEvent mouse_event{
+                static_cast<float>(mouse_x),
+                static_cast<float>(mouse_y),
+                true,  // left_pressed
+                false, // right_pressed
+                ui::MouseButton::Left
+            };
+            
+            // Check placement system confirmation dialogs first
+            if (placement_system_->ProcessMouseEvent(mouse_event)) {
+                return;  // Dialog consumed the event
+            }
+            
             auto &grid = ecs_world_->GetTowerGrid();
 
             // Check history panel first (if visible)
