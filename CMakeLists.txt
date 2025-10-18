@@ -68,10 +68,6 @@ target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 add_executable(test_mods src/test_mods.cpp)
 target_link_libraries(test_mods PRIVATE towerforge_core)
 
-# Test adjacency system
-add_executable(test_adjacency src/test_adjacency.cpp)
-target_link_libraries(test_adjacency PRIVATE towerforge_core)
-
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)
