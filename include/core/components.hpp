@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
@@ -171,6 +172,160 @@ namespace TowerForge::Core {
     };
 
     /**
+ * @brief Visitor profile archetypes
+ */
+    enum class VisitorArchetype {
+        BusinessPerson,    // Focused on efficiency, prefers offices and food
+        Tourist,           // Seeks entertainment and sightseeing
+        Shopper,           // Primarily interested in retail experiences
+        Casual             // General visitor with balanced needs
+    };
+
+    /**
+ * @brief Component tracking visitor needs
+ * 
+ * Each need ranges from 0.0 (fully satisfied) to 100.0 (critical).
+ * Visitors seek facilities to reduce their needs.
+ */
+    struct VisitorNeeds {
+        float hunger;         // Need for food/restaurants
+        float entertainment;  // Need for fun/arcades/theaters
+        float comfort;        // Need for rest/hotels
+        float shopping;       // Desire to shop/browse retail
+
+        VisitorArchetype archetype;  // Visitor personality type
+
+        VisitorNeeds(const VisitorArchetype type = VisitorArchetype::Casual)
+            : hunger(0.0f),
+              entertainment(0.0f),
+              comfort(0.0f),
+              shopping(0.0f),
+              archetype(type) {
+            // Initialize random needs based on archetype
+            InitializeForArchetype();
+        }
+
+        /**
+     * @brief Initialize needs based on visitor archetype
+     */
+        void InitializeForArchetype() {
+            switch (archetype) {
+                case VisitorArchetype::BusinessPerson:
+                    hunger = 30.0f + (rand() % 20);      // Moderate hunger
+                    entertainment = 10.0f + (rand() % 10); // Low entertainment need
+                    comfort = 20.0f + (rand() % 15);      // Some comfort need
+                    shopping = 5.0f + (rand() % 10);      // Low shopping interest
+                    break;
+                case VisitorArchetype::Tourist:
+                    hunger = 20.0f + (rand() % 15);       // Moderate hunger
+                    entertainment = 40.0f + (rand() % 30); // High entertainment need
+                    comfort = 25.0f + (rand() % 20);      // Moderate comfort need
+                    shopping = 30.0f + (rand() % 20);     // Moderate shopping interest
+                    break;
+                case VisitorArchetype::Shopper:
+                    hunger = 15.0f + (rand() % 15);       // Low hunger initially
+                    entertainment = 20.0f + (rand() % 15); // Moderate entertainment
+                    comfort = 15.0f + (rand() % 10);      // Low comfort need
+                    shopping = 50.0f + (rand() % 30);     // High shopping desire
+                    break;
+                case VisitorArchetype::Casual:
+                default:
+                    hunger = 25.0f + (rand() % 20);       // Balanced needs
+                    entertainment = 25.0f + (rand() % 20);
+                    comfort = 25.0f + (rand() % 20);
+                    shopping = 25.0f + (rand() % 20);
+                    break;
+            }
+        }
+
+        /**
+     * @brief Get the highest need value
+     */
+        float GetHighestNeed() const {
+            return std::max({hunger, entertainment, comfort, shopping});
+        }
+
+        /**
+     * @brief Get the type of the highest need
+     */
+        const char* GetHighestNeedType() const {
+            const float max_need = GetHighestNeed();
+            if (max_need == hunger) return "Hunger";
+            if (max_need == entertainment) return "Entertainment";
+            if (max_need == comfort) return "Comfort";
+            if (max_need == shopping) return "Shopping";
+            return "None";
+        }
+
+        /**
+     * @brief Get archetype as string
+     */
+        const char* GetArchetypeString() const {
+            switch (archetype) {
+                case VisitorArchetype::BusinessPerson: return "Business Person";
+                case VisitorArchetype::Tourist: return "Tourist";
+                case VisitorArchetype::Shopper: return "Shopper";
+                case VisitorArchetype::Casual: return "Casual Visitor";
+                default: return "Unknown";
+            }
+        }
+
+        /**
+     * @brief Update needs over time (they increase)
+     */
+        void UpdateNeeds(const float delta_time) {
+            // Needs grow at different rates based on archetype
+            float hunger_rate = 2.0f;
+            float entertainment_rate = 1.5f;
+            float comfort_rate = 1.0f;
+            float shopping_rate = 1.0f;
+
+            switch (archetype) {
+                case VisitorArchetype::BusinessPerson:
+                    hunger_rate = 3.0f;  // Busy people get hungry faster
+                    break;
+                case VisitorArchetype::Tourist:
+                    entertainment_rate = 2.5f;  // Tourists want more fun
+                    comfort_rate = 2.0f;         // And more rest
+                    break;
+                case VisitorArchetype::Shopper:
+                    shopping_rate = 2.5f;  // Shoppers want to shop
+                    break;
+                case VisitorArchetype::Casual:
+                default:
+                    // Use default rates
+                    break;
+            }
+
+            hunger += hunger_rate * delta_time;
+            entertainment += entertainment_rate * delta_time;
+            comfort += comfort_rate * delta_time;
+            shopping += shopping_rate * delta_time;
+
+            // Clamp to maximum
+            hunger = std::min(100.0f, hunger);
+            entertainment = std::min(100.0f, entertainment);
+            comfort = std::min(100.0f, comfort);
+            shopping = std::min(100.0f, shopping);
+        }
+
+        /**
+     * @brief Reduce a specific need
+     */
+        void ReduceNeed(const char* need_type, const float amount) {
+            if (strcmp(need_type, "Hunger") == 0) {
+                hunger = std::max(0.0f, hunger - amount);
+            } else if (strcmp(need_type, "Entertainment") == 0) {
+                entertainment = std::max(0.0f, entertainment - amount);
+            } else if (strcmp(need_type, "Comfort") == 0) {
+                comfort = std::max(0.0f, comfort - amount);
+            } else if (strcmp(need_type, "Shopping") == 0) {
+                shopping = std::max(0.0f, shopping - amount);
+            }
+        }
+    };
+
+    /**
  * @brief Component for visitor NPCs
  * 
  * Tracks visitor-specific information like their activity and visit duration.
@@ -181,13 +336,19 @@ namespace TowerForge::Core {
         float max_visit_duration;      // When they'll leave (seconds)
         int target_facility_floor;     // Floor of facility they're visiting (-1 if none)
         float time_at_destination;     // Time spent at current destination (seconds)
+        bool is_interacting;           // Currently using a facility
+        float interaction_time;        // Time spent at current facility
+        float required_interaction_time; // How long to interact with facility
     
         VisitorInfo(const VisitorActivity act = VisitorActivity::Visiting)
             : activity(act),
               visit_duration(0.0f),
               max_visit_duration(300.0f),  // 5 minutes default
               target_facility_floor(-1),
-              time_at_destination(0.0f) {}
+              time_at_destination(0.0f),
+              is_interacting(false),
+              interaction_time(0.0f),
+              required_interaction_time(20.0f) {}  // 20 seconds default
     
         /**
      * @brief Get the activity as a string
