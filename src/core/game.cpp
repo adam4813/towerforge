@@ -561,6 +561,14 @@ namespace towerforge::core {
         camera_->Initialize(800, 600, 1200.0f, 800.0f);
 
         hud_->SetGameState(game_state_);
+        
+        // Set up analytics callbacks
+        hud_->SetIncomeAnalyticsCallback([this]() {
+            return CollectIncomeAnalytics();
+        });
+        hud_->SetPopulationAnalyticsCallback([this]() {
+            return CollectPopulationAnalytics();
+        });
 
         // Add example notifications to showcase notification center
         hud_->AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
@@ -1609,6 +1617,132 @@ namespace towerforge::core {
         if (ecs_world_) {
             CalculateTowerRatingHelper(game_state_.rating, *ecs_world_, game_state_.income_rate);
         }
+    }
+
+    ui::IncomeBreakdown Game::CollectIncomeAnalytics() const {
+        ui::IncomeBreakdown breakdown;
+        
+        if (!ecs_world_) {
+            return breakdown;
+        }
+        
+        // Helper lambda to convert facility type to string
+        auto GetFacilityTypeName = [](BuildingComponent::Type type) -> std::string {
+            switch (type) {
+                case BuildingComponent::Type::Office:            return "Office";
+                case BuildingComponent::Type::Residential:       return "Residential";
+                case BuildingComponent::Type::RetailShop:        return "Retail Shop";
+                case BuildingComponent::Type::Lobby:             return "Lobby";
+                case BuildingComponent::Type::Restaurant:        return "Restaurant";
+                case BuildingComponent::Type::Hotel:             return "Hotel";
+                case BuildingComponent::Type::Elevator:          return "Elevator";
+                case BuildingComponent::Type::Gym:               return "Gym";
+                case BuildingComponent::Type::Arcade:            return "Arcade";
+                case BuildingComponent::Type::Theater:           return "Theater";
+                case BuildingComponent::Type::ConferenceHall:    return "Conference Hall";
+                case BuildingComponent::Type::FlagshipStore:     return "Flagship Store";
+                case BuildingComponent::Type::ManagementOffice:  return "Management Office";
+                case BuildingComponent::Type::SatelliteOffice:   return "Satellite Office";
+                default:                                         return "Facility";
+            }
+        };
+        
+        // Map to aggregate revenue by facility type
+        std::map<std::string, ui::IncomeBreakdown::FacilityTypeRevenue> revenue_map;
+        
+        // Query all facilities with economics
+        ecs_world_->GetWorld().each([&](flecs::entity e, 
+                                       const BuildingComponent& building,
+                                       const FacilityEconomics& econ) {
+            const std::string type_name = GetFacilityTypeName(building.type);
+            
+            // Initialize or update the revenue data for this type
+            auto& type_revenue = revenue_map[type_name];
+            type_revenue.facility_type = type_name;
+            type_revenue.facility_count++;
+            type_revenue.total_tenants += econ.current_tenants;
+            
+            // Calculate hourly revenue (daily revenue / 24)
+            const float daily_revenue = econ.CalculateDailyRevenue();
+            const float hourly_revenue = daily_revenue / 24.0f;
+            type_revenue.hourly_revenue += hourly_revenue;
+            
+            // Track operating costs
+            breakdown.total_operating_costs += econ.operating_cost / 24.0f;
+            
+            // Calculate average occupancy
+            if (econ.max_tenants > 0) {
+                type_revenue.average_occupancy += econ.GetOccupancyRate();
+            }
+        });
+        
+        // Convert map to vector and calculate averages
+        for (auto& pair : revenue_map) {
+            auto& type_revenue = pair.second;
+            
+            // Average occupancy across all facilities of this type
+            if (type_revenue.facility_count > 0) {
+                type_revenue.average_occupancy /= type_revenue.facility_count;
+            }
+            
+            breakdown.revenues.push_back(type_revenue);
+            breakdown.total_hourly_revenue += type_revenue.hourly_revenue;
+        }
+        
+        // Calculate net profit
+        breakdown.net_hourly_profit = breakdown.total_hourly_revenue - breakdown.total_operating_costs;
+        
+        // Sort by revenue (highest first)
+        std::sort(breakdown.revenues.begin(), breakdown.revenues.end(),
+                 [](const auto& a, const auto& b) {
+                     return a.hourly_revenue > b.hourly_revenue;
+                 });
+        
+        return breakdown;
+    }
+
+    ui::PopulationBreakdown Game::CollectPopulationAnalytics() const {
+        ui::PopulationBreakdown breakdown;
+        
+        if (!ecs_world_) {
+            return breakdown;
+        }
+        
+        // Count employees and visitors
+        ecs_world_->GetWorld().each([&](flecs::entity e, const Person& person) {
+            breakdown.total_population++;
+            
+            if (person.npc_type == NPCType::Employee) {
+                breakdown.employees++;
+            } else {
+                breakdown.visitors++;
+            }
+        });
+        
+        // Calculate residential statistics
+        ecs_world_->GetWorld().each([&](flecs::entity e,
+                                       const BuildingComponent& building,
+                                       const FacilityEconomics& econ) {
+            if (building.type == BuildingComponent::Type::Residential) {
+                breakdown.residential_capacity += econ.max_tenants;
+                breakdown.residential_occupancy += econ.current_tenants;
+            }
+        });
+        
+        // Calculate average satisfaction
+        float total_satisfaction = 0.0f;
+        int satisfaction_count = 0;
+        
+        ecs_world_->GetWorld().each([&](flecs::entity e, const Satisfaction& sat) {
+            total_satisfaction += sat.satisfaction_score;
+            satisfaction_count++;
+        });
+        
+        if (satisfaction_count > 0) {
+            breakdown.average_satisfaction = total_satisfaction / satisfaction_count;
+        }
+        
+        return breakdown;
     }
 
     void Game::UpdateTutorial(const float delta_time) {

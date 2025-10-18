@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace towerforge::ui {
 
@@ -236,14 +237,26 @@ namespace towerforge::ui {
         void ShowPopulationAnalytics(const PopulationBreakdown& data) const;
     
         /**
-     * @brief Toggle income analytics overlay visibility
+     * @brief Set callback for collecting income analytics
+     * @param callback Function to call when income analytics are needed
      */
-        void ToggleIncomeAnalytics();
+        void SetIncomeAnalyticsCallback(std::function<IncomeBreakdown()> callback);
     
         /**
-     * @brief Toggle population analytics overlay visibility
+     * @brief Set callback for collecting population analytics
+     * @param callback Function to call when population analytics are needed
      */
-        void TogglePopulationAnalytics();
+        void SetPopulationAnalyticsCallback(std::function<PopulationBreakdown()> callback);
+    
+        /**
+     * @brief Request income analytics to be shown
+     */
+        void RequestIncomeAnalytics();
+    
+        /**
+     * @brief Request population analytics to be shown
+     */
+        void RequestPopulationAnalytics();
     
     private:
         void RenderTopBar() const;
@@ -271,9 +284,9 @@ namespace towerforge::ui {
         // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;
         
-        // Analytics overlay tracking
-        mutable bool income_analytics_visible_;
-        mutable bool population_analytics_visible_;
+        // Analytics callbacks
+        std::function<IncomeBreakdown()> income_analytics_callback_;
+        std::function<PopulationBreakdown()> population_analytics_callback_;
     
         // UI layout constants
         static constexpr int TOP_BAR_HEIGHT = 40;

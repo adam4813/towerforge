@@ -10,9 +10,7 @@
 
 namespace towerforge::ui {
 
-    HUD::HUD() 
-        : income_analytics_visible_(false)
-          , population_analytics_visible_(false) {
+    HUD::HUD() {
         window_manager_ = std::make_unique<UIWindowManager>();
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
@@ -145,13 +143,13 @@ namespace towerforge::ui {
         if (mouse_y <= TOP_BAR_HEIGHT) {
             // Check income area (left side)
             if (IsMouseOverIncomeArea(mouse_x, mouse_y)) {
-                const_cast<HUD*>(this)->ToggleIncomeAnalytics();
+                const_cast<HUD*>(this)->RequestIncomeAnalytics();
                 return true;
             }
         
             // Check population area
             if (IsMouseOverPopulationArea(mouse_x, mouse_y)) {
-                const_cast<HUD*>(this)->TogglePopulationAnalytics();
+                const_cast<HUD*>(this)->RequestPopulationAnalytics();
                 return true;
             }
         
@@ -642,12 +640,26 @@ namespace towerforge::ui {
         window_manager_->AddWindow(std::move(window));
     }
 
-    void HUD::ToggleIncomeAnalytics() {
-        income_analytics_visible_ = !income_analytics_visible_;
+    void HUD::SetIncomeAnalyticsCallback(std::function<IncomeBreakdown()> callback) {
+        income_analytics_callback_ = std::move(callback);
     }
 
-    void HUD::TogglePopulationAnalytics() {
-        population_analytics_visible_ = !population_analytics_visible_;
+    void HUD::SetPopulationAnalyticsCallback(std::function<PopulationBreakdown()> callback) {
+        population_analytics_callback_ = std::move(callback);
+    }
+
+    void HUD::RequestIncomeAnalytics() {
+        if (income_analytics_callback_) {
+            const IncomeBreakdown data = income_analytics_callback_();
+            ShowIncomeAnalytics(data);
+        }
+    }
+
+    void HUD::RequestPopulationAnalytics() {
+        if (population_analytics_callback_) {
+            const PopulationBreakdown data = population_analytics_callback_();
+            ShowPopulationAnalytics(data);
+        }
     }
 
     bool HUD::IsMouseOverIncomeArea(const int mouse_x, const int mouse_y) const {
