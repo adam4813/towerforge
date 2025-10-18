@@ -432,6 +432,7 @@ namespace TowerForge::Core {
                 entity["building"] = {
                     {"type", static_cast<int>(building.type)},
                     {"floor", building.floor},
+                    {"column", building.column},
                     {"width", building.width},
                     {"capacity", building.capacity},
                     {"current_occupancy", building.current_occupancy}
@@ -708,6 +709,7 @@ namespace TowerForge::Core {
                         BuildingComponent building;
                         building.type = static_cast<BuildingComponent::Type>(building_json.value("type", 0));
                         building.floor = building_json.value("floor", 0);
+                        building.column = building_json.value("column", 0);
                         building.width = building_json.value("width", 1);
                         building.capacity = building_json.value("capacity", 10);
                         building.current_occupancy = building_json.value("current_occupancy", 0);

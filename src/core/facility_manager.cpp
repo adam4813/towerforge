@@ -41,7 +41,7 @@ namespace TowerForge::Core {
     
         // Add BuildingComponent
         int capacity = GetDefaultCapacity(type);
-        facility.set<BuildingComponent>({type, floor, width, capacity});
+        facility.set<BuildingComponent>({type, floor, column, width, capacity});
     
         // Add GridPosition
         facility.set<GridPosition>({floor, column, width});

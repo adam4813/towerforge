@@ -510,19 +510,19 @@ namespace towerforge::core {
         // Create building components
         const auto lobby_entity = ecs_world_->CreateEntity("Lobby");
         lobby_entity.set<Position>({0.0f, 0.0f});
-        lobby_entity.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
+        lobby_entity.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 0, 10, 50});
         lobby_entity.set<Satisfaction>({85.0f});
         lobby_entity.set<FacilityEconomics>({50.0f, 10.0f, 50});
 
         const auto office1_entity = ecs_world_->CreateEntity("Office_Floor_5");
         office1_entity.set<Position>({0.0f, 50.0f});
-        office1_entity.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
+        office1_entity.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 0, 8, 20});
         office1_entity.set<Satisfaction>({70.0f});
         office1_entity.set<FacilityEconomics>({150.0f, 30.0f, 20});
 
         const auto restaurant_entity = ecs_world_->CreateEntity("Restaurant_Floor_3");
         restaurant_entity.set<Position>({0.0f, 30.0f});
-        restaurant_entity.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
+        restaurant_entity.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 0, 6, 30});
         restaurant_entity.set<Satisfaction>({65.0f});
         restaurant_entity.set<FacilityEconomics>({200.0f, 60.0f, 30});
 

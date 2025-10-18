@@ -180,12 +180,14 @@ namespace TowerForge::Core {
         float visit_duration;          // How long they've been in the tower (seconds)
         float max_visit_duration;      // When they'll leave (seconds)
         int target_facility_floor;     // Floor of facility they're visiting (-1 if none)
+        float time_at_destination;     // Time spent at current destination (seconds)
     
         VisitorInfo(const VisitorActivity act = VisitorActivity::Visiting)
             : activity(act),
               visit_duration(0.0f),
               max_visit_duration(300.0f),  // 5 minutes default
-              target_facility_floor(-1) {}
+              target_facility_floor(-1),
+              time_at_destination(0.0f) {}
     
         /**
      * @brief Get the activity as a string
@@ -313,6 +315,7 @@ namespace TowerForge::Core {
 
         Type type;
         int floor;              // Which floor this component is on
+        int column;             // Which column this component starts at
         int width;              // Width in tiles
         int capacity;           // Maximum occupancy
         int current_occupancy;  // Current number of people
@@ -321,8 +324,8 @@ namespace TowerForge::Core {
         float operating_start_hour;  // Start of operating hours (e.g., 9.0 for 9 AM)
         float operating_end_hour;    // End of operating hours (e.g., 21.0 for 9 PM)
 
-        BuildingComponent(const Type t = Type::Office, const int f = 0, const int w = 1, const int cap = 10)
-            : type(t), floor(f), width(w), capacity(cap), current_occupancy(0), job_openings(0),
+        BuildingComponent(const Type t = Type::Office, const int f = 0, const int col = 0, const int w = 1, const int cap = 10)
+            : type(t), floor(f), column(col), width(w), capacity(cap), current_occupancy(0), job_openings(0),
               current_staff(0), operating_start_hour(9.0f), operating_end_hour(17.0f) {}
     
         /**
@@ -394,13 +397,15 @@ namespace TowerForge::Core {
         int total_visitors_spawned;         // Total count of spawned visitors
         int total_employees_hired;          // Total count of employees hired
         int next_visitor_id;                // ID counter for naming visitors
+        int max_active_visitors;            // Maximum number of active visitors at once
     
-        NPCSpawner(const float interval = 30.0f)
+        NPCSpawner(const float interval = 30.0f, const int max_visitors = 50)
             : time_since_last_spawn(0.0f),
               spawn_interval(interval),
               total_visitors_spawned(0),
               total_employees_hired(0),
-              next_visitor_id(1) {}
+              next_visitor_id(1),
+              max_active_visitors(max_visitors) {}
     
         /**
      * @brief Calculate dynamic spawn rate based on tower state
