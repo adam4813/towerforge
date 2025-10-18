@@ -8,6 +8,7 @@
 #include "core/components.hpp"
 #include "core/command_history.hpp"
 #include "ui/build_menu.h"
+#include "ui/ui_element.h"
 
 // Forward declaration
 namespace towerforge::rendering {
@@ -86,6 +87,13 @@ namespace towerforge::ui {
                         float current_funds);
     
         /**
+     * @brief Process mouse events for confirmation dialogs
+     * @param event Mouse event data
+     * @return true if event was consumed
+     */
+        bool ProcessMouseEvent(const ui::MouseEvent& event);
+    
+        /**
      * @brief Handle keyboard shortcuts
      * @return true if a shortcut was handled
      */
@@ -153,6 +161,12 @@ namespace towerforge::ui {
      */
         void SetTooltipManager(TooltipManager* tooltip_manager) { tooltip_manager_ = tooltip_manager; }
     
+        /**
+     * @brief Check if a confirmation dialog is currently showing
+     */
+        bool HasPendingConfirmation() const { 
+            return demolish_confirmation_ && demolish_confirmation_->IsVisible(); 
+        }
     private:
         /**
      * @brief Convert mouse position to grid coordinates
@@ -200,6 +214,13 @@ namespace towerforge::ui {
         std::vector<ConstructionState> constructions_in_progress_;
         TowerForge::Core::CommandHistory command_history_;
         TooltipManager* tooltip_manager_;
+    
+        // Confirmation dialog for destructive actions
+        std::unique_ptr<ui::ConfirmationDialog> demolish_confirmation_;
+        int pending_demolish_floor_;
+        int pending_demolish_column_;
+        float pending_demolish_funds_;
+        int pending_funds_change_;  // Stores the result of confirmed demolish
     
         static constexpr float RECOVERY_PERCENTAGE = 0.5f; // 50% recovery on demolish
     };

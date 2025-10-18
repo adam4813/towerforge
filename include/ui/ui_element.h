@@ -220,6 +220,12 @@ namespace towerforge::ui {
         void Render() const override;
 
         /**
+         * @brief Update button state for animations
+         * @param delta_time Time elapsed since last frame
+         */
+        void Update(float delta_time);
+
+        /**
          * @brief Handle hover event
          */
         bool OnHover(const MouseEvent& event) override;
@@ -295,6 +301,11 @@ namespace towerforge::ui {
          */
         bool IsEnabled() const { return enabled_; }
 
+        /**
+         * @brief Check if button is currently pressed
+         */
+        bool IsPressed() const { return is_pressed_; }
+
     private:
         std::string label_;
         Color background_color_;
@@ -302,7 +313,94 @@ namespace towerforge::ui {
         Color text_color_;
         int font_size_;
         bool enabled_;
+        bool is_pressed_;           // Visual pressed state for feedback
+        float press_animation_;     // Animation timer for press feedback (0.0 - 1.0)
         ClickCallback click_callback_;
+    };
+
+    /**
+     * @brief ConfirmationDialog class - a modal dialog for confirming actions
+     * 
+     * Displays a message with "Confirm" and "Cancel" buttons.
+     * Used for destructive or expensive actions.
+     */
+    class ConfirmationDialog : public Panel {
+    public:
+        /**
+         * @brief Callback types for dialog buttons
+         */
+        using ConfirmCallback = std::function<void()>;
+        using CancelCallback = std::function<void()>;
+
+        /**
+         * @brief Construct a confirmation dialog
+         * @param title Dialog title
+         * @param message Dialog message
+         * @param confirm_text Text for confirm button (default: "Confirm")
+         * @param cancel_text Text for cancel button (default: "Cancel")
+         */
+        ConfirmationDialog(const std::string& title,
+                          const std::string& message,
+                          const std::string& confirm_text = "Confirm",
+                          const std::string& cancel_text = "Cancel");
+
+        /**
+         * @brief Render the dialog (centered on screen)
+         */
+        void Render() const override;
+
+        /**
+         * @brief Update dialog state
+         * @param delta_time Time elapsed since last frame
+         */
+        void Update(float delta_time);
+
+        /**
+         * @brief Handle mouse event
+         * @param event Mouse event data
+         * @return true if event was consumed
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
+
+        /**
+         * @brief Set confirm callback
+         */
+        void SetConfirmCallback(ConfirmCallback callback) { confirm_callback_ = callback; }
+
+        /**
+         * @brief Set cancel callback
+         */
+        void SetCancelCallback(CancelCallback callback) { cancel_callback_ = callback; }
+
+        /**
+         * @brief Check if dialog is visible
+         */
+        bool IsVisible() const { return is_visible_; }
+
+        /**
+         * @brief Show the dialog
+         */
+        void Show() { is_visible_ = true; }
+
+        /**
+         * @brief Hide the dialog
+         */
+        void Hide() { is_visible_ = false; }
+
+    private:
+        std::string title_;
+        std::string message_;
+        std::unique_ptr<Button> confirm_button_;
+        std::unique_ptr<Button> cancel_button_;
+        ConfirmCallback confirm_callback_;
+        CancelCallback cancel_callback_;
+        bool is_visible_;
+        float animation_time_;
+        
+        static constexpr int DIALOG_WIDTH = 400;
+        static constexpr int DIALOG_HEIGHT = 200;
+        static constexpr int BUTTON_WIDTH = 120;
+        static constexpr int BUTTON_HEIGHT = 40;
     };
 
 }
