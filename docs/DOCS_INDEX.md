@@ -27,13 +27,14 @@ Other docs left unchanged (examples / remaining subsystems):
 - `docs/BUILD_INSTRUCTIONS.md`
 - `docs/CI_WORKFLOW.md`
 - `docs/CAMERA_SYSTEM.md`
+- `docs/COMMAND_PATTERN_HISTORY.md` - **NEW**: Command Pattern and History System
 - `docs/DYNAMIC_FLOOR_SYSTEM.md`
 - `docs/FIXES_QUICKREF.md`
 - `docs/GAME_CLASS_ARCHITECTURE.md`
 - `docs/GENERAL_SETTINGS_MENU_IMPLEMENTATION.md`
 - `docs/MODDING_API.md`
 - `docs/PAUSE_MENU_IMPLEMENTATION.md`
-- `docs/PLACEMENT_SYSTEM.md`
+- `docs/PLACEMENT_SYSTEM.md` - **UPDATED**: Enhanced with Command Pattern documentation
 - `docs/README_ACHIEVEMENTS.md`
 - `docs/RESEARCH_TREE_SYSTEM.md`
 - `docs/STAR_RATING_IMPLEMENTATION.md`
