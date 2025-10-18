@@ -132,6 +132,17 @@ namespace TowerForge::Core {
      * @return true if successful, false otherwise
      */
         bool BuildFloorsForFacility(int floor, int column, int width) const;
+    
+        /**
+     * @brief Manually clean a facility
+     * 
+     * Immediately cleans the facility by resetting its CleanlinessStatus to Clean.
+     * This can be used for manual cleaning actions triggered by the player.
+     * 
+     * @param facility_entity The facility entity to clean
+     * @return true if the facility was cleaned, false if it doesn't have CleanlinessStatus
+     */
+        bool CleanFacility(flecs::entity facility_entity) const;
 
     private:
         flecs::world& world_;

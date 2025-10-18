@@ -1266,6 +1266,18 @@ namespace towerforge::core {
                                         info.has_security_issue = false;
                                     }
                                     
+                                    // Get CleanlinessStatus state information
+                                    if (facility_entity.is_alive() && facility_entity.has<CleanlinessStatus>()) {
+                                        const CleanlinessStatus& cleanliness = facility_entity.ensure<CleanlinessStatus>();
+                                        info.cleanliness_state = cleanliness.GetStateString();
+                                        info.needs_cleaning = cleanliness.NeedsCleaning();
+                                        // Override cleanliness percentage with state-based value if available
+                                        info.cleanliness = cleanliness.GetCleanlinessPercent();
+                                    } else {
+                                        info.cleanliness_state = "";
+                                        info.needs_cleaning = false;
+                                    }
+                                    
                                     hud_->ShowFacilityInfo(info);
                                 }
                             }

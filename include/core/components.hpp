@@ -1288,6 +1288,97 @@ namespace TowerForge::Core {
     };
 
     /**
+ * @brief Component for facility cleanliness tracking
+ * 
+ * Each facility has a cleanliness status that degrades over time or with heavy use.
+ * Cleanliness impacts visitor/tenant satisfaction and facility performance.
+ * Cleaning is performed by janitor staff.
+ */
+    struct CleanlinessStatus {
+        enum class State { Clean, NeedsCleaning, Dirty };
+        State status;
+        float time_since_last_clean;  // Seconds since last cleaned
+        float dirty_rate;              // How quickly facility gets dirty (tuned per facility type and usage)
+
+        CleanlinessStatus()
+            : status(State::Clean),
+              time_since_last_clean(0.0f),
+              dirty_rate(1.0f) {}
+
+        /**
+     * @brief Get the state as a string for display
+     */
+        const char* GetStateString() const {
+            switch (status) {
+                case State::Clean:          return "Clean";
+                case State::NeedsCleaning:  return "Needs Cleaning";
+                case State::Dirty:          return "Dirty";
+                default:                    return "Unknown";
+            }
+        }
+
+        /**
+     * @brief Get cleanliness as a percentage (for compatibility with existing systems)
+     */
+        float GetCleanlinessPercent() const {
+            switch (status) {
+                case State::Clean:          return 100.0f;
+                case State::NeedsCleaning:  return 60.0f;
+                case State::Dirty:          return 30.0f;
+                default:                    return 50.0f;
+            }
+        }
+
+        /**
+     * @brief Update cleanliness state based on time elapsed
+     * @param delta_time Time elapsed in seconds
+     * @param occupancy_factor Multiplier based on facility usage (higher = faster degradation)
+     */
+        void Update(const float delta_time, const float occupancy_factor = 1.0f) {
+            time_since_last_clean += delta_time;
+
+            // Thresholds for state transitions (can be tuned)
+            const float needs_cleaning_threshold = 1800.0f / dirty_rate;  // 30 minutes base
+            const float dirty_threshold = 3600.0f / dirty_rate;           // 60 minutes base
+
+            // Apply occupancy factor to thresholds (busier facilities get dirty faster)
+            const float adjusted_needs_cleaning = needs_cleaning_threshold / occupancy_factor;
+            const float adjusted_dirty = dirty_threshold / occupancy_factor;
+
+            // Update state based on time since last clean
+            if (time_since_last_clean >= adjusted_dirty) {
+                status = State::Dirty;
+            } else if (time_since_last_clean >= adjusted_needs_cleaning) {
+                status = State::NeedsCleaning;
+            } else {
+                status = State::Clean;
+            }
+        }
+
+        /**
+     * @brief Perform cleaning action
+     */
+        void Clean() {
+            status = State::Clean;
+            time_since_last_clean = 0.0f;
+        }
+
+        /**
+     * @brief Check if facility needs cleaning
+     */
+        bool NeedsCleaning() const {
+            return status == State::NeedsCleaning || status == State::Dirty;
+        }
+
+        /**
+     * @brief Check if facility is dirty
+     */
+        bool IsDirty() const {
+            return status == State::Dirty;
+        }
+    };
+
+    /**
  * @brief Facility maintenance and cleanliness status
  * 
  * Tracks the cleanliness and maintenance condition of a facility.
@@ -1303,7 +1394,7 @@ namespace TowerForge::Core {
         float time_since_cleaning;  // Seconds since last cleaned
         float time_since_maintenance; // Seconds since last maintained
         float degradation_rate;     // How quickly cleanliness/maintenance degrades
-    
+
         FacilityStatus()
             : cleanliness(100.0f),
               maintenance_level(100.0f),

@@ -60,6 +60,9 @@ namespace towerforge::ui {
         std::string maintenance_rating;
         bool has_fire;
         bool has_security_issue;
+        // CleanlinessStatus state info
+        std::string cleanliness_state;  // "Clean", "Needs Cleaning", or "Dirty"
+        bool needs_cleaning;            // True if facility needs cleaning
     };
 
     /**
