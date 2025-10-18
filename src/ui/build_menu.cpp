@@ -1,6 +1,7 @@
 #include "ui/build_menu.h"
 #include "ui/tooltip.h"
 #include "ui/ui_element.h"
+#include "ui/help_system.h"
 #include <sstream>
 
 namespace towerforge::ui {
@@ -143,6 +144,15 @@ namespace towerforge::ui {
         }
 
         RenderPanel(panel_bounds_, "FACILITIES", MENU_PADDING, TOP);
+
+        // Help icon in the panel header area
+        const Rectangle help_icon_bounds = {
+            panel_bounds_.x + panel_bounds_.width - 35.0f,
+            panel_bounds_.y + MENU_PADDING - 2.0f,
+            20.0f,
+            20.0f
+        };
+        HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
 
         int y = content_bounds_.y;
 

@@ -1,5 +1,6 @@
 #include "ui/research_tree_menu.h"
 #include "ui/notification_center.h"
+#include "ui/help_system.h"
 #include <raylib.h>
 #include <string>
 
@@ -100,8 +101,17 @@ namespace towerforge::ui {
         const std::string staff_text = "Management Staff: " + std::to_string(research_tree.management_staff_count);
         DrawText(staff_text.c_str(), menu_x + 20, menu_y + 70, 14, LIGHTGRAY);
 
+        // Help icon button in top-right corner
+        const Rectangle help_icon_bounds = {
+            static_cast<float>(menu_x + MENU_WIDTH - 50),
+            static_cast<float>(menu_y + 10),
+            30.0f,
+            30.0f
+        };
+        HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
+
         // Close hint
-        DrawText("Press ESC to close", menu_x + MENU_WIDTH - 200, menu_y + 50, 14, LIGHTGRAY);
+        DrawText("Press ESC or R to close | F1 for help", menu_x + MENU_WIDTH - 300, menu_y + 50, 14, LIGHTGRAY);
 
         // Separator line
         DrawLine(menu_x + 10, menu_y + HEADER_HEIGHT,

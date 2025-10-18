@@ -360,6 +360,28 @@ The project is in its initial stages. Future development will add:
 6. Respect the ECS architecture pattern when adding game logic
 7. When adding new features, create and add relevant screenshots to the `screenshots/` folder whenever possible.
 8. Documentation should be written or updated in the form of a user manual, focusing on usage and gameplay, not as an implementation summary.
+9. **Always build and test the project before completing work** to catch any compile errors or issues early.
+
+---
+
+## Build Verification Before Completion
+
+Before marking any work as complete, you must:
+
+1. Build the project using the native preset:
+```bash
+export VCPKG_ROOT=/path/to/vcpkg
+cmake --build --preset native-debug --parallel $(nproc)
+```
+
+2. Verify the build completes without errors or warnings
+
+3. If there are build errors:
+   - Fix all compilation errors
+   - Rebuild to verify the fixes
+   - Do not mark work as complete until the build succeeds
+
+This ensures code quality and prevents breaking changes from being merged.
 
 ---
 
