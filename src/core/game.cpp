@@ -104,6 +104,7 @@ namespace towerforge::core {
           , audio_manager_(nullptr)
           , tutorial_manager_(nullptr)
           , tutorial_active_(false)
+          , help_system_(nullptr)
           , in_audio_settings_(false)
           , in_accessibility_settings_(false)
           , ecs_world_(nullptr)
@@ -655,6 +656,10 @@ namespace towerforge::core {
             hud_->AddNotification(Notification::Type::Info, "Welcome to the tutorial!", 5.0f);
         }
 
+        // Initialize help system
+        help_system_ = new HelpSystem();
+        help_system_->Initialize();
+
         // Reset timing
         elapsed_time_ = 0.0f;
         sim_time_ = 0.0f;
@@ -665,9 +670,30 @@ namespace towerforge::core {
     }
 
     void Game::UpdateInGame(float delta_time) {
-        // Handle ESC key to open pause menu or close research menu
+        // Handle F1 key to toggle help system
+        if (help_system_ != nullptr && IsKeyPressed(KEY_F1)) {
+            if (help_system_->IsVisible()) {
+                help_system_->Hide();
+            } else {
+                // Determine current context based on active UI
+                ui::HelpContext context = ui::HelpContext::MainGame;
+                if (is_paused_) {
+                    context = ui::HelpContext::PauseMenu;
+                } else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
+                    context = ui::HelpContext::ResearchTree;
+                } else if (mods_menu_ != nullptr && mods_menu_->IsVisible()) {
+                    context = ui::HelpContext::ModsMenu;
+                }
+                help_system_->Show(context);
+            }
+            return;
+        }
+
+        // Handle ESC key to close help, pause menu, or research menu
         if (IsKeyPressed(KEY_ESCAPE)) {
-            if (save_load_menu_ != nullptr &&save_load_menu_->IsOpen()) {
+            if (help_system_ != nullptr && help_system_->IsVisible()) {
+                help_system_->Hide();
+            } else if (save_load_menu_ != nullptr &&save_load_menu_->IsOpen()) {
                 save_load_menu_->Close();
             } else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
                 research_menu_->SetVisible(false);
@@ -723,6 +749,11 @@ namespace towerforge::core {
 
         hud_->SetGameState(game_state_);
         hud_->Update(time_step_);
+
+        // Update help system
+        if (help_system_ != nullptr) {
+            help_system_->Update(delta_time);
+        }
 
         // Handle research menu
         if (research_menu_->IsVisible()) {
@@ -928,6 +959,12 @@ namespace towerforge::core {
         // Update tooltips for mouse position (even when paused, for UI tooltips)
         const int mouse_x = GetMouseX();
         const int mouse_y = GetMouseY();
+
+        // Handle help system mouse input first (if visible)
+        if (help_system_ != nullptr && help_system_->IsVisible()) {
+            help_system_->HandleMouse(mouse_x, mouse_y, IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            return;  // Help system consumes all input when visible
+        }
 
         // Update HUD tooltips
         hud_->UpdateTooltips(mouse_x, mouse_y);
@@ -1513,6 +1550,11 @@ namespace towerforge::core {
             research_menu_->Render(research_tree_ref);
         }
 
+        // Render help system overlay if visible (render last, on top of everything)
+        if (help_system_ != nullptr && help_system_->IsVisible()) {
+            help_system_->Render();
+        }
+
         renderer_.EndFrame();
     }
 
@@ -1541,6 +1583,7 @@ namespace towerforge::core {
         delete save_load_manager_;
         delete ecs_world_;
         delete tutorial_manager_;
+        delete help_system_;
 
         placement_system_ = nullptr;
         history_panel_.reset();  // Explicit reset for clarity, though automatic
@@ -1554,6 +1597,7 @@ namespace towerforge::core {
         save_load_manager_ = nullptr;
         ecs_world_ = nullptr;
         tutorial_manager_ = nullptr;
+        help_system_ = nullptr;
     }
 
     void Game::CalculateTowerRating() {

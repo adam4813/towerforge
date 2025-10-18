@@ -20,6 +20,7 @@
 #include "ui/accessibility_settings_menu.h"
 #include "ui/tutorial_manager.h"
 #include "ui/mods_menu.h"
+#include "ui/help_system.h"
 #include "audio/audio_manager.h"
 
 namespace towerforge::core {
@@ -113,6 +114,9 @@ namespace towerforge::core {
         // Tutorial system
         ui::TutorialManager* tutorial_manager_;
         bool tutorial_active_;
+
+        // Help system
+        ui::HelpSystem* help_system_;
 
         // Settings screen state
         bool in_audio_settings_;
