@@ -2,9 +2,11 @@
 // This demonstrates how to use the MouseEventManager for non-UI game objects
 
 #include "ui/mouse_event_manager.h"
+#include <raylib.h>
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 namespace example {
 

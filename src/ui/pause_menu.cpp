@@ -270,16 +270,11 @@ namespace towerforge::ui {
         // Process mouse event through the panel
         pause_panel_->ProcessMouseEvent(event);
 
-        // Update selected_option_ based on hover state (for keyboard selection sync)
-        const int screen_width = GetScreenWidth();
-        for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-            const int item_x = (screen_width - MENU_WIDTH) / 2;
-
-            // Check if mouse is over this item
-            if (mouse_x >= item_x && mouse_x <= item_x + MENU_WIDTH &&
-                mouse_y >= item_y && mouse_y <= item_y + MENU_ITEM_HEIGHT) {
+        // Update selected_option_ based on which button is hovered
+        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
+            if (menu_item_buttons_[i]->IsHovered()) {
                 selected_option_ = static_cast<int>(i);
+                break;
             }
         }
 
