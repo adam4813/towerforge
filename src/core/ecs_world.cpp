@@ -710,7 +710,28 @@ namespace TowerForge::Core {
                     const float delta_time = e.world().delta_time();
                     visitor.visit_duration += delta_time;
             
-                    // Check if visitor should leave
+                    // Track time at destination
+                    if (person.state == PersonState::AtDestination) {
+                        visitor.time_at_destination += delta_time;
+                        
+                        // If visitor has been at destination for 30-60 seconds (random), they're done visiting
+                        const float min_visit_time = 30.0f;
+                        const float max_visit_time = 60.0f;
+                        const float visit_threshold = min_visit_time + (rand() % static_cast<int>(max_visit_time - min_visit_time));
+                        
+                        if (visitor.time_at_destination >= visit_threshold && 
+                            visitor.activity != VisitorActivity::Leaving &&
+                            visitor.activity != VisitorActivity::JobSeeking) {
+                            // Visitor is done, time to leave
+                            visitor.activity = VisitorActivity::Leaving;
+                            person.SetDestination(0, 5.0f, "Leaving tower");
+                        }
+                    } else {
+                        // Reset timer if not at destination
+                        visitor.time_at_destination = 0.0f;
+                    }
+            
+                    // Check if visitor should leave based on max duration
                     if (visitor.ShouldLeave() && visitor.activity != VisitorActivity::Leaving) {
                         visitor.activity = VisitorActivity::Leaving;
                         // Set destination to lobby (floor 0)
@@ -801,13 +822,35 @@ namespace TowerForge::Core {
                     const float delta_time = e.world().delta_time();
                     spawner.time_since_last_spawn += delta_time;
             
-                    // Count total job openings in the tower
+                    // Count active visitors
+                    int active_visitor_count = 0;
+                    const auto visitor_count_query = e.world().query<const Person, const VisitorInfo>();
+                    visitor_count_query.each([&](const flecs::entity, const Person&, const VisitorInfo&) {
+                        active_visitor_count++;
+                    });
+            
+                    // Don't spawn if at or over visitor cap
+                    if (active_visitor_count >= spawner.max_active_visitors) {
+                        return;
+                    }
+            
+                    // Count total job openings and collect visitable facilities
                     int total_job_openings = 0;
                     int facility_count = 0;
+                    std::vector<flecs::entity> visitable_facilities;
                     const auto facility_query = e.world().query<const BuildingComponent>();
-                    facility_query.each([&](const BuildingComponent& facility) {
+                    facility_query.each([&](const flecs::entity facility_entity, const BuildingComponent& facility) {
                         facility_count++;
                         total_job_openings += facility.job_openings;
+                        
+                        // Collect facilities that visitors might want to visit
+                        if (facility.type == BuildingComponent::Type::RetailShop ||
+                            facility.type == BuildingComponent::Type::Restaurant ||
+                            facility.type == BuildingComponent::Type::Arcade ||
+                            facility.type == BuildingComponent::Type::Theater ||
+                            facility.type == BuildingComponent::Type::FlagshipStore) {
+                            visitable_facilities.push_back(facility_entity);
+                        }
                     });
             
                     // Dynamic spawn rate based on facility count
@@ -839,12 +882,37 @@ namespace TowerForge::Core {
                         visitor.set<VisitorInfo>({activity});
                         visitor.set<Satisfaction>({75.0f});
                 
-                        spawner.total_visitors_spawned++;
+                        // Assign a destination for shopping/visiting visitors
+                        if ((activity == VisitorActivity::Shopping || activity == VisitorActivity::Visiting) 
+                            && !visitable_facilities.empty()) {
+                            // Pick a random facility to visit
+                            const int random_index = rand() % visitable_facilities.size();
+                            const auto target_facility = visitable_facilities[random_index];
+                            
+                            if (target_facility.has<BuildingComponent>()) {
+                                const auto& building = target_facility.ensure<BuildingComponent>();
+                                
+                                // Set destination to the center of the facility
+                                auto& person_ref = visitor.ensure<Person>();
+                                const int target_floor = building.floor;
+                                const float target_column = building.column + (building.width / 2.0f);
+                                person_ref.SetDestination(target_floor, target_column, activity == VisitorActivity::Shopping ? "Shopping" : "Visiting");
+                                
+                                auto& visitor_info = visitor.ensure<VisitorInfo>();
+                                visitor_info.target_facility_floor = target_floor;
+                                
+                                std::cout << "  [Spawned] " << visitor_name << " (" 
+                                        << (activity == VisitorActivity::Shopping ? "Shopping" : "Visiting")
+                                        << ") heading to Floor " << target_floor << std::endl;
+                            }
+                        } else {
+                            std::cout << "  [Spawned] " << visitor_name << " (" 
+                                    << (activity == VisitorActivity::JobSeeking ? "Job Seeking" : 
+                                            (activity == VisitorActivity::Shopping ? "Shopping" : "Visiting"))
+                                    << ")" << std::endl;
+                        }
                 
-                        std::cout << "  [Spawned] " << visitor_name << " (" 
-                                << (activity == VisitorActivity::JobSeeking ? "Job Seeking" : 
-                                        (activity == VisitorActivity::Shopping ? "Shopping" : "Visiting"))
-                                << ")" << std::endl;
+                        spawner.total_visitors_spawned++;
                     }
                 });
     
@@ -908,7 +976,7 @@ namespace TowerForge::Core {
                         // Found a job! Save the details
                         target_facility = facility_entity;
                         target_floor = facility.floor;
-                        target_column = facility.width / 2;  // Center of facility
+                        target_column = facility.column + (facility.width / 2);  // Center of facility
                         facility.job_openings--;  // Reduce opening count
                     });
             
