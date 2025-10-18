@@ -116,6 +116,12 @@ namespace TowerForge::Core {
         lua_pushcfunction(lua_state_, Lua_RegisterResearchNode);
         lua_setfield(lua_state_, -2, "RegisterResearchNode");
     
+        lua_pushcfunction(lua_state_, Lua_RegisterStaffRole);
+        lua_setfield(lua_state_, -2, "RegisterStaffRole");
+    
+        lua_pushcfunction(lua_state_, Lua_RegisterEventType);
+        lua_setfield(lua_state_, -2, "RegisterEventType");
+    
         lua_pushcfunction(lua_state_, Lua_Log);
         lua_setfield(lua_state_, -2, "Log");
     
@@ -637,6 +643,204 @@ namespace TowerForge::Core {
                 << node.name << "' (ID: " << node.id << ")" << std::endl;
     
         return 0;
+    }
+
+    int LuaModManager::Lua_RegisterStaffRole(lua_State* L) {
+        LuaModManager* manager = GetManager(L);
+        if (!manager) {
+            luaL_error(L, "Failed to get mod manager");
+            return 0;
+        }
+    
+        // Expect a table as the first argument
+        if (!lua_istable(L, 1)) {
+            luaL_error(L, "RegisterStaffRole expects a table as argument");
+            return 0;
+        }
+    
+        LuaStaffRole staff;
+    
+        // Get id (required)
+        lua_getfield(L, 1, "id");
+        if (!lua_isstring(L, -1)) {
+            luaL_error(L, "Staff role must have an 'id' field (string)");
+            return 0;
+        }
+        staff.id = lua_tostring(L, -1);
+        lua_pop(L, 1);
+    
+        // Get name (required)
+        lua_getfield(L, 1, "name");
+        if (!lua_isstring(L, -1)) {
+            luaL_error(L, "Staff role must have a 'name' field (string)");
+            return 0;
+        }
+        staff.name = lua_tostring(L, -1);
+        lua_pop(L, 1);
+    
+        // Get optional fields
+        lua_getfield(L, 1, "work_efficiency");
+        if (lua_isnumber(L, -1)) {
+            staff.work_efficiency = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "default_wage");
+        if (lua_isnumber(L, -1)) {
+            staff.default_wage = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "shift_start_hour");
+        if (lua_isnumber(L, -1)) {
+            staff.shift_start_hour = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "shift_end_hour");
+        if (lua_isnumber(L, -1)) {
+            staff.shift_end_hour = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "work_type");
+        if (lua_isstring(L, -1)) {
+            staff.work_type = lua_tostring(L, -1);
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "work_function");
+        if (lua_isstring(L, -1)) {
+            staff.work_function = lua_tostring(L, -1);
+        }
+        lua_pop(L, 1);
+    
+        // Register the staff role
+        manager->custom_staff_roles_[staff.id] = staff;
+    
+        std::cout << "LuaModManager: Registered custom staff role '" 
+                << staff.name << "' (ID: " << staff.id << ")" << std::endl;
+    
+        return 0;
+    }
+
+    int LuaModManager::Lua_RegisterEventType(lua_State* L) {
+        LuaModManager* manager = GetManager(L);
+        if (!manager) {
+            luaL_error(L, "Failed to get mod manager");
+            return 0;
+        }
+    
+        // Expect a table as the first argument
+        if (!lua_istable(L, 1)) {
+            luaL_error(L, "RegisterEventType expects a table as argument");
+            return 0;
+        }
+    
+        LuaEventType event;
+    
+        // Get id (required)
+        lua_getfield(L, 1, "id");
+        if (!lua_isstring(L, -1)) {
+            luaL_error(L, "Event type must have an 'id' field (string)");
+            return 0;
+        }
+        event.id = lua_tostring(L, -1);
+        lua_pop(L, 1);
+    
+        // Get name (required)
+        lua_getfield(L, 1, "name");
+        if (!lua_isstring(L, -1)) {
+            luaL_error(L, "Event type must have a 'name' field (string)");
+            return 0;
+        }
+        event.name = lua_tostring(L, -1);
+        lua_pop(L, 1);
+    
+        // Get optional fields
+        lua_getfield(L, 1, "description");
+        if (lua_isstring(L, -1)) {
+            event.description = lua_tostring(L, -1);
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "spawn_chance");
+        if (lua_isnumber(L, -1)) {
+            event.spawn_chance = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "duration");
+        if (lua_isnumber(L, -1)) {
+            event.duration = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "requires_staff_response");
+        if (lua_isboolean(L, -1)) {
+            event.requires_staff_response = lua_toboolean(L, -1);
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "required_staff_type");
+        if (lua_isstring(L, -1)) {
+            event.required_staff_type = lua_tostring(L, -1);
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "resolution_time");
+        if (lua_isnumber(L, -1)) {
+            event.resolution_time = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "satisfaction_penalty");
+        if (lua_isnumber(L, -1)) {
+            event.satisfaction_penalty = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "maintenance_damage");
+        if (lua_isnumber(L, -1)) {
+            event.maintenance_damage = static_cast<float>(lua_tonumber(L, -1));
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "on_spawn_function");
+        if (lua_isstring(L, -1)) {
+            event.on_spawn_function = lua_tostring(L, -1);
+        }
+        lua_pop(L, 1);
+    
+        lua_getfield(L, 1, "on_resolve_function");
+        if (lua_isstring(L, -1)) {
+            event.on_resolve_function = lua_tostring(L, -1);
+        }
+        lua_pop(L, 1);
+    
+        // Register the event type
+        manager->custom_event_types_[event.id] = event;
+    
+        std::cout << "LuaModManager: Registered custom event type '" 
+                << event.name << "' (ID: " << event.id << ")" << std::endl;
+    
+        return 0;
+    }
+
+    const LuaStaffRole* LuaModManager::GetCustomStaffRole(const std::string& id) const {
+        const auto it = custom_staff_roles_.find(id);
+        if (it != custom_staff_roles_.end()) {
+            return &it->second;
+        }
+        return nullptr;
+    }
+
+    const LuaEventType* LuaModManager::GetCustomEventType(const std::string& id) const {
+        const auto it = custom_event_types_.find(id);
+        if (it != custom_event_types_.end()) {
+            return &it->second;
+        }
+        return nullptr;
     }
 
     int LuaModManager::Lua_Log(lua_State* L) {

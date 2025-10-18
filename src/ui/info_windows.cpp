@@ -4,7 +4,7 @@ namespace towerforge::ui {
 
     // FacilityWindow implementation
     FacilityWindow::FacilityWindow(const FacilityInfo& info)
-        : UIWindow("Facility Info", 250, 220)
+        : UIWindow("Facility Info", 250, 300)
           , info_(info) {
     }
 
@@ -41,7 +41,37 @@ namespace towerforge::ui {
         // Tenants
         const std::string tenants = "Tenants: " + std::to_string(info_.tenant_count) + " workers";
         DrawText(tenants.c_str(), x, y, 14, LIGHTGRAY);
-        y += 30;
+        y += 25;
+    
+        // Status section header
+        DrawText("--- Facility Status ---", x, y, 14, YELLOW);
+        y += 20;
+    
+        // Cleanliness
+        const std::string cleanliness = "Cleanliness: " + info_.cleanliness_rating + 
+                                  " (" + std::to_string(static_cast<int>(info_.cleanliness)) + "%)";
+        const Color clean_color = info_.cleanliness >= 70.0f ? GREEN : (info_.cleanliness >= 50.0f ? YELLOW : RED);
+        DrawText(cleanliness.c_str(), x, y, 14, clean_color);
+        y += 20;
+    
+        // Maintenance
+        const std::string maintenance = "Maintenance: " + info_.maintenance_rating + 
+                                  " (" + std::to_string(static_cast<int>(info_.maintenance_level)) + "%)";
+        const Color maint_color = info_.maintenance_level >= 70.0f ? GREEN : (info_.maintenance_level >= 50.0f ? YELLOW : RED);
+        DrawText(maintenance.c_str(), x, y, 14, maint_color);
+        y += 20;
+    
+        // Alerts
+        if (info_.has_fire) {
+            DrawText("! FIRE - Firefighter needed !", x, y, 14, RED);
+            y += 20;
+        }
+        if (info_.has_security_issue) {
+            DrawText("! Security Issue - Guard needed !", x, y, 14, ORANGE);
+            y += 20;
+        }
+    
+        y += 10;
     
         // Buttons (placeholder)
         DrawRectangle(x, y, 100, 25, DARKGRAY);
@@ -60,7 +90,7 @@ namespace towerforge::ui {
 
     // PersonWindow implementation
     PersonWindow::PersonWindow(const PersonInfo& info)
-        : UIWindow("Person Info", 250, 210)
+        : UIWindow("Person Info", 250, 240)
           , info_(info) {
     }
 
@@ -80,6 +110,24 @@ namespace towerforge::ui {
         const std::string type = "Type: " + info_.npc_type;
         DrawText(type.c_str(), x, y, 14, SKYBLUE);
         y += 20;
+    
+        // Staff-specific information
+        if (info_.is_staff) {
+            DrawText("--- Staff Info ---", x, y, 14, GOLD);
+            y += 20;
+        
+            const std::string role = "Role: " + info_.staff_role;
+            DrawText(role.c_str(), x, y, 14, LIGHTGRAY);
+            y += 20;
+        
+            const std::string duty = std::string("Status: ") + (info_.on_duty ? "On Duty" : "Off Duty");
+            DrawText(duty.c_str(), x, y, 14, info_.on_duty ? GREEN : GRAY);
+            y += 20;
+        
+            const std::string shift = "Shift: " + info_.shift_hours;
+            DrawText(shift.c_str(), x, y, 14, LIGHTGRAY);
+            y += 25;
+        }
     
         // Status (current activity)
         const std::string status = "Status: " + info_.status;
@@ -101,16 +149,20 @@ namespace towerforge::ui {
         DrawText(dest.c_str(), x, y, 14, LIGHTGRAY);
         y += 20;
     
-        // Wait time
-        std::stringstream wait_ss;
-        wait_ss << "Wait Time: " << std::fixed << std::setprecision(0) << info_.wait_time << "s";
-        DrawText(wait_ss.str().c_str(), x, y, 14, info_.wait_time > 30 ? RED : LIGHTGRAY);
-        y += 20;
+        // Wait time (only show for non-staff or if waiting)
+        if (!info_.is_staff || info_.wait_time > 0) {
+            std::stringstream wait_ss;
+            wait_ss << "Wait Time: " << std::fixed << std::setprecision(0) << info_.wait_time << "s";
+            DrawText(wait_ss.str().c_str(), x, y, 14, info_.wait_time > 30 ? RED : LIGHTGRAY);
+            y += 20;
+        }
     
-        // Satisfaction
-        const std::string satisfaction = "Satisfaction: " + GetSatisfactionEmoji(info_.satisfaction) + 
-                                   " " + std::to_string(static_cast<int>(info_.satisfaction)) + "%";
-        DrawText(satisfaction.c_str(), x, y, 14, LIGHTGRAY);
+        // Satisfaction (less relevant for staff, but show if available)
+        if (!info_.is_staff) {
+            const std::string satisfaction = "Satisfaction: " + GetSatisfactionEmoji(info_.satisfaction) + 
+                                       " " + std::to_string(static_cast<int>(info_.satisfaction)) + "%";
+            DrawText(satisfaction.c_str(), x, y, 14, LIGHTGRAY);
+        }
     }
 
     std::string PersonWindow::GetSatisfactionEmoji(const float satisfaction) {

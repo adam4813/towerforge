@@ -38,6 +38,7 @@ Other docs left unchanged (examples / remaining subsystems):
 - `docs/PLACEMENT_SYSTEM.md` - **UPDATED**: Enhanced with Command Pattern documentation
 - `docs/README_ACHIEVEMENTS.md`
 - `docs/RESEARCH_TREE_SYSTEM.md`
+- `docs/STAFF_MANAGEMENT.md` - **NEW**: Staff Management System (Janitors, Maintenance, Fire, Security)
 - `docs/STAR_RATING_IMPLEMENTATION.md`
 - `docs/TITLE_SCREEN_IMPLEMENTATION.md`
 - `docs/TUTORIAL_IMPLEMENTATION.md`
