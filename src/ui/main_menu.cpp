@@ -102,11 +102,11 @@ namespace towerforge::ui {
     void MainMenu::RenderTitle() {
         const int screen_width = GetScreenWidth();
 
-        // Draw main title
+        // Draw main title with responsive sizing
         const auto title = "TOWERFORGE";
-        const int title_font_size = UITheme::FONT_SIZE_TITLE;
+        const int title_font_size = UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE);
         const int title_width = MeasureText(title, title_font_size);
-        const int title_x = (screen_width - title_width) / 2;
+        const int title_x = UITheme::CenterPosition(screen_width, title_width);
 
         // Draw title shadow for depth
         DrawText(title, title_x + 3, TITLE_Y + 3, title_font_size, ColorAlpha(BLACK, 0.5f));
@@ -114,35 +114,57 @@ namespace towerforge::ui {
         // Draw title with primary color
         DrawText(title, title_x, TITLE_Y, title_font_size, UITheme::PRIMARY);
 
-        // Draw tagline
+        // Draw tagline with responsive sizing
         const auto tagline = "\"Build, Survive, Thrive!\"";
-        const int tagline_font_size = UITheme::FONT_SIZE_MEDIUM;
+        const int tagline_font_size = UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_MEDIUM);
         const int tagline_width = MeasureText(tagline, tagline_font_size);
-        const int tagline_x = (screen_width - tagline_width) / 2;
+        const int tagline_x = UITheme::CenterPosition(screen_width, tagline_width);
 
         DrawText(tagline, tagline_x, TITLE_Y + 70, tagline_font_size, UITheme::TEXT_SECONDARY);
 
-        // Draw decorative line
-        constexpr int line_width = 400;
-        const int line_x = (screen_width - line_width) / 2;
+        // Draw decorative line with responsive width
+        const int line_width = UITheme::ClampSize(
+            UITheme::ResponsiveWidth(0.35f),  // 35% of screen width
+            300,
+            500
+        );
+        const int line_x = UITheme::CenterPosition(screen_width, line_width);
         DrawRectangle(line_x, TITLE_Y + 100, line_width, 2, UITheme::PRIMARY);
     }
 
     void MainMenu::RenderMenuOptions() const {
         const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+
+        // Responsive menu sizing
+        const int responsive_menu_width = UITheme::ClampSize(
+            UITheme::ResponsiveWidth(0.25f),  // 25% of screen width
+            250,  // Minimum width
+            400   // Maximum width
+        );
+        const int responsive_item_height = UITheme::ClampSize(
+            screen_height / 18,  // Scale with screen height
+            40,  // Minimum
+            60   // Maximum
+        );
+        const int responsive_spacing = UITheme::MARGIN_SMALL;
 
         for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-            const int item_x = (screen_width - MENU_WIDTH) / 2;
+            const int item_y = MENU_START_Y + i * (responsive_item_height + responsive_spacing);
+            const int item_x = UITheme::CenterPosition(screen_width, responsive_menu_width);
 
             const bool is_selected = (static_cast<int>(i) == selected_option_);
 
             // Update button position and appearance based on selection
             auto& button = menu_item_buttons_[i];
             button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
+            button->SetSize(static_cast<float>(responsive_menu_width), static_cast<float>(responsive_item_height));
             button->SetBackgroundColor(is_selected ? ColorAlpha(UITheme::PRIMARY, 0.3f) : UITheme::BUTTON_BACKGROUND);
             button->SetBorderColor(is_selected ? UITheme::PRIMARY : UITheme::BUTTON_BORDER);
-            button->SetFontSize(is_selected ? UITheme::FONT_SIZE_LARGE : UITheme::FONT_SIZE_MEDIUM);
+            
+            // Responsive font sizing
+            const int base_font_size = is_selected ? UITheme::FONT_SIZE_LARGE : UITheme::FONT_SIZE_MEDIUM;
+            button->SetFontSize(UITheme::ResponsiveFontSize(base_font_size));
             
             // Add subtle animation to selected item
             Color text_color = is_selected ? UITheme::TEXT_PRIMARY : UITheme::TEXT_SECONDARY;
@@ -157,9 +179,10 @@ namespace towerforge::ui {
 
             // Draw selection indicator
             if (is_selected) {
-                const int indicator_x = item_x - 30;
-                const int indicator_y = item_y + MENU_ITEM_HEIGHT / 2;
-                DrawText(">", indicator_x, indicator_y - 12, UITheme::FONT_SIZE_LARGE, UITheme::PRIMARY);
+                const int indicator_x = item_x - UITheme::PADDING_LARGE;
+                const int indicator_y = item_y + responsive_item_height / 2 - 12;
+                DrawText(">", indicator_x, indicator_y, UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_LARGE), 
+                        UITheme::PRIMARY);
             }
         }
     }
