@@ -122,12 +122,8 @@ namespace towerforge::ui {
 
         DrawText(tagline, tagline_x, TITLE_Y + 70, tagline_font_size, UITheme::TEXT_SECONDARY);
 
-        // Draw decorative line with responsive width
-        const int line_width = UITheme::ClampSize(
-            UITheme::ResponsiveWidth(0.35f),  // 35% of screen width
-            300,
-            500
-        );
+        // Draw decorative line with responsive width (35% of screen, clamped between 300-500px)
+        const int line_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.35f), 300, 500);
         const int line_x = UITheme::CenterPosition(screen_width, line_width);
         DrawRectangle(line_x, TITLE_Y + 100, line_width, 2, UITheme::PRIMARY);
     }
@@ -136,17 +132,10 @@ namespace towerforge::ui {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
 
-        // Responsive menu sizing
-        const int responsive_menu_width = UITheme::ClampSize(
-            UITheme::ResponsiveWidth(0.25f),  // 25% of screen width
-            250,  // Minimum width
-            400   // Maximum width
-        );
-        const int responsive_item_height = UITheme::ClampSize(
-            screen_height / 18,  // Scale with screen height
-            40,  // Minimum
-            60   // Maximum
-        );
+        // Responsive menu sizing (25% of screen width, clamped between 250-400px)
+        const int responsive_menu_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.25f), 250, 400);
+        // Scale item height with screen height, clamped between 40-60px
+        const int responsive_item_height = UITheme::ClampSize(screen_height / 18, 40, 60);
         const int responsive_spacing = UITheme::MARGIN_SMALL;
 
         for (size_t i = 0; i < menu_items_.size(); ++i) {
@@ -180,9 +169,9 @@ namespace towerforge::ui {
             // Draw selection indicator
             if (is_selected) {
                 const int indicator_x = item_x - UITheme::PADDING_LARGE;
-                const int indicator_y = item_y + responsive_item_height / 2 - 12;
-                DrawText(">", indicator_x, indicator_y, UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_LARGE), 
-                        UITheme::PRIMARY);
+                const int indicator_font_size = UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_LARGE);
+                const int indicator_y = item_y + responsive_item_height / 2 - indicator_font_size / 2;
+                DrawText(">", indicator_x, indicator_y, indicator_font_size, UITheme::PRIMARY);
             }
         }
     }
