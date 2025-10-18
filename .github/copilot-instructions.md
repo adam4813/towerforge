@@ -1,5 +1,7 @@
 # Copilot Instructions for TowerForge
 
+The first thing you MUST do is install the x11 dev dependency, install and bootstrap vcpkg, and configure CMake using the `native` preset.
+
 ## Minimum Requirements (must be satisfied before any build steps)
 
 You must have these installed and validated before configuring or building the project:
