@@ -112,28 +112,28 @@ namespace towerforge::core {
         ui::AccessibilitySettingsMenu accessibility_settings_menu_;
 
         // Tutorial system
-        ui::TutorialManager* tutorial_manager_;
+        std::unique_ptr<ui::TutorialManager> tutorial_manager_;
         bool tutorial_active_;
 
         // Help system
-        ui::HelpSystem* help_system_;
+        std::unique_ptr<ui::HelpSystem> help_system_;
 
         // Settings screen state
         bool in_audio_settings_;
         bool in_accessibility_settings_;
 
         // InGame systems (initialized on demand)
-        TowerForge::Core::ECSWorld* ecs_world_;
-        TowerForge::Core::SaveLoadManager* save_load_manager_;
-        TowerForge::Core::AchievementManager* achievement_manager_;
-        ui::HUD* hud_;
-        ui::BuildMenu* build_menu_;
-        ui::PauseMenu* pause_menu_;
-        ui::SaveLoadMenu* save_load_menu_;
-        ui::ResearchTreeMenu* research_menu_;
-        ui::ModsMenu* mods_menu_;
-        rendering::Camera* camera_;
-        ui::PlacementSystem* placement_system_;
+        std::unique_ptr<TowerForge::Core::ECSWorld> ecs_world_;
+        std::unique_ptr<TowerForge::Core::SaveLoadManager> save_load_manager_;
+        std::unique_ptr<TowerForge::Core::AchievementManager> achievement_manager_;
+        std::unique_ptr<ui::HUD> hud_;
+        std::unique_ptr<ui::BuildMenu> build_menu_;
+        std::unique_ptr<ui::PauseMenu> pause_menu_;
+        std::unique_ptr<ui::SaveLoadMenu> save_load_menu_;
+        std::unique_ptr<ui::ResearchTreeMenu> research_menu_;
+        std::unique_ptr<ui::ModsMenu> mods_menu_;
+        std::unique_ptr<rendering::Camera> camera_;
+        std::unique_ptr<ui::PlacementSystem> placement_system_;
         std::unique_ptr<ui::HistoryPanel> history_panel_;
 
         // InGame state

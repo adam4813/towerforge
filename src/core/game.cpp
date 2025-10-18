@@ -102,22 +102,23 @@ namespace towerforge::core {
         : current_state_(GameState::TitleScreen)
           , previous_state_(GameState::TitleScreen)
           , audio_manager_(nullptr)
-          , tutorial_manager_(nullptr)
+          , tutorial_manager_()
           , tutorial_active_(false)
-          , help_system_(nullptr)
+          , help_system_()
           , in_audio_settings_(false)
           , in_accessibility_settings_(false)
-          , ecs_world_(nullptr)
-          , save_load_manager_(nullptr)
-          , achievement_manager_(nullptr)
-          , hud_(nullptr)
-          , build_menu_(nullptr)
-          , pause_menu_(nullptr)
-          , save_load_menu_(nullptr)
-          , research_menu_(nullptr)
-          , camera_(nullptr)
-          , placement_system_(nullptr)
-          , history_panel_(nullptr)  // std::unique_ptr initialized to nullptr
+          , ecs_world_()
+          , save_load_manager_()
+          , achievement_manager_()
+          , hud_()
+          , build_menu_()
+          , pause_menu_()
+          , save_load_menu_()
+          , research_menu_()
+          , mods_menu_()
+          , camera_()
+          , placement_system_()
+          , history_panel_()
           , is_paused_(false)
           , in_settings_from_pause_(false)
           , in_audio_settings_from_pause_(false)
@@ -166,11 +167,11 @@ namespace towerforge::core {
         audio_manager_->SetVolume(audio::AudioType::SFX, preferences.GetSFXVolume());
 
         // Create achievement manager for persistent achievements
-        achievement_manager_ = new AchievementManager();
+        achievement_manager_ = std::make_unique<AchievementManager>();
         achievement_manager_->Initialize();
 
         // Set achievement manager for achievements menu
-        achievements_menu_.SetAchievementManager(achievement_manager_);
+        achievements_menu_.SetAchievementManager(achievement_manager_.get());
 
         // Play main theme music (volume already set from preferences)
         audio_manager_->PlayMusic(audio::AudioCue::MainTheme, true, 1.0f);
@@ -444,19 +445,19 @@ namespace towerforge::core {
         audio_manager_->PlayMusic(audio::AudioCue::GameplayLoop, true, 2.0f);
 
         // Create and initialize the ECS world
-        ecs_world_ = new ECSWorld();
+        ecs_world_ = std::make_unique<ECSWorld>();
         ecs_world_->Initialize();
 
         // Create and initialize save/load manager
-        save_load_manager_ = new SaveLoadManager();
+        save_load_manager_ = std::make_unique<SaveLoadManager>();
         save_load_manager_->Initialize();
         save_load_manager_->SetAutosaveEnabled(true);
         save_load_manager_->SetAutosaveInterval(120.0f);
-        save_load_manager_->SetAchievementManager(achievement_manager_);
+        save_load_manager_->SetAchievementManager(achievement_manager_.get());
 
         // Create save/load menu
-        save_load_menu_ = new SaveLoadMenu();
-        save_load_menu_->SetSaveLoadManager(save_load_manager_);
+        save_load_menu_ = std::make_unique<SaveLoadMenu>();
+        save_load_menu_->SetSaveLoadManager(save_load_manager_.get());
 
         // Create the global TimeManager as a singleton
         ecs_world_->GetWorld().set<TimeManager>({60.0f});
@@ -542,11 +543,11 @@ namespace towerforge::core {
         std::cout << "  Created 2 actors and 3 building components with satisfaction and economics" << std::endl;
 
         // Create HUD and build menu
-        hud_ = new HUD();
-        build_menu_ = new BuildMenu();
-        pause_menu_ = new PauseMenu();
-        research_menu_ = new ResearchTreeMenu();
-        mods_menu_ = new ModsMenu();
+        hud_ = std::make_unique<HUD>();
+        build_menu_ = std::make_unique<BuildMenu>();
+        pause_menu_ = std::make_unique<PauseMenu>();
+        research_menu_ = std::make_unique<ResearchTreeMenu>();
+        mods_menu_ = std::make_unique<ModsMenu>();
         mods_menu_->SetModManager(&ecs_world_->GetModManager());
 
         // Connect tooltip manager from HUD to other UI components
@@ -556,7 +557,7 @@ namespace towerforge::core {
         research_menu_->SetNotificationCenter(hud_->GetNotificationCenter());
 
         // Create and initialize camera
-        camera_ = new rendering::Camera();
+        camera_ = std::make_unique<rendering::Camera>();
         camera_->Initialize(800, 600, 1200.0f, 800.0f);
 
         hud_->SetGameState(game_state_);
@@ -601,8 +602,8 @@ namespace towerforge::core {
         auto &grid = ecs_world_->GetTowerGrid();
         auto &facility_mgr = ecs_world_->GetFacilityManager();
 
-        placement_system_ = new PlacementSystem(grid, facility_mgr, *build_menu_);
-        placement_system_->SetCamera(camera_);
+        placement_system_ = std::make_unique<PlacementSystem>(grid, facility_mgr, *build_menu_);
+        placement_system_->SetCamera(camera_.get());
         placement_system_->SetTooltipManager(hud_->GetTooltipManager());
 
         // Create history panel
@@ -651,13 +652,13 @@ namespace towerforge::core {
 
         // If this is tutorial mode, initialize the tutorial manager
         if (current_state_ == GameState::Tutorial) {
-            tutorial_manager_ = new TutorialManager();
+            tutorial_manager_ = std::make_unique<TutorialManager>();
             tutorial_manager_->Initialize();
             hud_->AddNotification(Notification::Type::Info, "Welcome to the tutorial!", 5.0f);
         }
 
         // Initialize help system
-        help_system_ = new HelpSystem();
+        help_system_ = std::make_unique<HelpSystem>();
         help_system_->Initialize();
 
         // Reset timing
@@ -1572,32 +1573,22 @@ namespace towerforge::core {
             }
         }
 
-        delete placement_system_;
-        delete camera_;
-        delete research_menu_;
-        delete save_load_menu_;
-        delete mods_menu_;
-        delete pause_menu_;
-        delete build_menu_;
-        delete hud_;
-        delete save_load_manager_;
-        delete ecs_world_;
-        delete tutorial_manager_;
-        delete help_system_;
+        // Smart pointers automatically clean up when reset or go out of scope
+        placement_system_.reset();
+        camera_.reset();
+        research_menu_.reset();
+        save_load_menu_.reset();
+        mods_menu_.reset();
+        pause_menu_.reset();
+        build_menu_.reset();
+        hud_.reset();
+        save_load_manager_.reset();
+        ecs_world_.reset();
+        tutorial_manager_.reset();
+        help_system_.reset();
+        history_panel_.reset();
 
-        placement_system_ = nullptr;
-        history_panel_.reset();  // Explicit reset for clarity, though automatic
-        camera_ = nullptr;
-        research_menu_ = nullptr;
-        save_load_menu_ = nullptr;
-        mods_menu_ = nullptr;
-        pause_menu_ = nullptr;
-        build_menu_ = nullptr;
-        hud_ = nullptr;
-        save_load_manager_ = nullptr;
-        ecs_world_ = nullptr;
-        tutorial_manager_ = nullptr;
-        help_system_ = nullptr;
+        game_initialized_ = false;
     }
 
     void Game::CalculateTowerRating() {
@@ -1609,7 +1600,7 @@ namespace towerforge::core {
     void Game::UpdateTutorial(const float delta_time) {
         // Initialize tutorial manager if needed
         if (!tutorial_manager_) {
-            tutorial_manager_ = new TutorialManager();
+            tutorial_manager_ = std::make_unique<TutorialManager>();
             tutorial_manager_->Initialize();
         }
 
@@ -1645,8 +1636,7 @@ namespace towerforge::core {
                 // Tutorial skipped - transition to normal game with starter tower
                 tutorial_active_ = false;
                 build_menu_->SetTutorialMode(false);
-                delete tutorial_manager_;
-                tutorial_manager_ = nullptr;
+                tutorial_manager_.reset();
                 CreateStarterTower();
                 current_state_ = GameState::InGame;
                 hud_->AddNotification(Notification::Type::Info, "Tutorial skipped - Good luck!", 5.0f);
@@ -1657,8 +1647,7 @@ namespace towerforge::core {
             if (tutorial_manager_->IsComplete()) {
                 tutorial_active_ = false;
                 build_menu_->SetTutorialMode(false);
-                delete tutorial_manager_;
-                tutorial_manager_ = nullptr;
+                tutorial_manager_.reset();
                 current_state_ = GameState::InGame;
                 hud_->AddNotification(Notification::Type::Success, "Tutorial complete! Keep building!", 5.0f);
                 return;
