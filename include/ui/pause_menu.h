@@ -110,7 +110,8 @@ namespace towerforge::ui {
         
         // Pause menu is a Panel container with Button children for menu items
         std::unique_ptr<Panel> pause_panel_;
-        std::vector<std::unique_ptr<Button>> menu_item_buttons_;
+        std::vector<Button*> menu_item_buttons_;  // Raw pointers to buttons (owned by pause_panel_)
+        int selected_menu_option_;  // Stores the menu option selected via click callback
     };
 
 }

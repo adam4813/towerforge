@@ -8,7 +8,8 @@ namespace towerforge::ui {
         : selected_option_(0)
           , animation_time_(0.0f)
           , show_quit_confirmation_(false)
-          , quit_confirmation_selection_(0) {
+          , quit_confirmation_selection_(0)
+          , selected_menu_option_(-1) {
 
         // Initialize menu items
         menu_items_.push_back({"Resume Game", PauseMenuOption::Resume});
@@ -21,7 +22,7 @@ namespace towerforge::ui {
         // PauseMenu is a Panel (container)
         pause_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
         
-        // Create Button objects for each menu item
+        // Create Button objects for each menu item and add as children
         for (size_t i = 0; i < menu_items_.size(); ++i) {
             const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
             auto button = std::make_unique<Button>(
@@ -34,7 +35,19 @@ namespace towerforge::ui {
                 GRAY
             );
             button->SetFontSize(22);
-            menu_item_buttons_.push_back(std::move(button));
+            
+            // Set click callback
+            const int option_index = static_cast<int>(i);
+            button->SetClickCallback([this, option_index]() {
+                selected_menu_option_ = option_index;
+            });
+            
+            // Store raw pointer for later access
+            Button* button_ptr = button.get();
+            menu_item_buttons_.push_back(button_ptr);
+            
+            // Add as child to panel
+            pause_panel_->AddChild(std::move(button));
         }
     }
 
@@ -241,8 +254,24 @@ namespace towerforge::ui {
             return -1;
         }
 
-        const int screen_width = GetScreenWidth();
+        // Create mouse event
+        MouseEvent event(
+            static_cast<float>(mouse_x), 
+            static_cast<float>(mouse_y),
+            false, // left_down
+            false, // right_down
+            clicked, // left_pressed
+            false  // right_pressed
+        );
 
+        // Reset selected menu option
+        selected_menu_option_ = -1;
+
+        // Process mouse event through the panel
+        pause_panel_->ProcessMouseEvent(event);
+
+        // Update selected_option_ based on hover state (for keyboard selection sync)
+        const int screen_width = GetScreenWidth();
         for (size_t i = 0; i < menu_items_.size(); ++i) {
             const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
             const int item_x = (screen_width - MENU_WIDTH) / 2;
@@ -250,18 +279,11 @@ namespace towerforge::ui {
             // Check if mouse is over this item
             if (mouse_x >= item_x && mouse_x <= item_x + MENU_WIDTH &&
                 mouse_y >= item_y && mouse_y <= item_y + MENU_ITEM_HEIGHT) {
-
-                // Update selected option on hover
                 selected_option_ = static_cast<int>(i);
-
-                // Return selection on click
-                if (clicked) {
-                    return static_cast<int>(i);
-                }
             }
         }
 
-        return -1;
+        return selected_menu_option_;
     }
 
     int PauseMenu::HandleQuitConfirmation() {
