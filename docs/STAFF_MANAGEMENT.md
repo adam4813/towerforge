@@ -10,39 +10,39 @@ The Staff Management System introduces tower staff roles that automatically main
 - **Primary Function**: Cleans facilities when cleanliness drops below 70%
 - **Coverage**: Tower-wide or floor-specific assignment
 - **Effect**: Restores cleanliness by 30% per cleaning cycle
-- **Recommended Ratio**: 1 janitor per 3 facilities or per 5 floors
+- **Recommended Ratio**: 1 janitor per 3 facilities (minimum) or 1 per 5 floors for tower-wide coverage
 
 ### Maintenance Technician
 - **Primary Function**: Maintains facilities when maintenance drops below 70%
 - **Coverage**: Tower-wide or floor-specific assignment
 - **Effect**: Restores maintenance level by 25% per cycle
-- **Recommended Ratio**: 1 maintenance tech per 5 facilities
+- **Recommended Ratio**: 1 maintenance tech per 5 facilities (minimum)
 
 ### Firefighter
 - **Primary Function**: Extinguishes fires in facilities
 - **Coverage**: Tower-wide, 24/7 availability
-- **Effect**: Immediately extinguishes fires, facility resumes operation after cleaning
-- **Recommended Ratio**: 1 firefighter per 10 floors
-- **Note**: Fires are isolated events that don't spread; once extinguished, facility continues operating
+- **Effect**: Immediately extinguishes fires; facilities continue operating but require cleaning afterward
+- **Recommended Ratio**: 1 firefighter per 10 floors (minimum)
+- **Note**: Fires are isolated events that don't spread; facilities remain operational during fires but may have reduced satisfaction
 
 ### Security Guard
 - **Primary Function**: Resolves security issues (shoplifters, disturbances)
 - **Coverage**: Tower-wide or floor-specific assignment
 - **Effect**: Resolves security issues, minimally impacts visitor satisfaction
-- **Recommended Ratio**: 1 guard per 15 facilities or per 10 floors
+- **Recommended Ratio**: 1 guard per 15 facilities or 1 per 10 floors (minimum)
 - **Note**: Security issues don't affect player directly but may slightly reduce visitor satisfaction
 
 ### Cleaner (Specialized)
 - **Primary Function**: Advanced cleaning specialist
 - **Coverage**: Facility-specific or floor-specific assignment
 - **Effect**: More efficient than janitors for high-traffic facilities
-- **Recommended Ratio**: 1 cleaner per 5 high-traffic facilities
+- **Recommended Ratio**: 1 cleaner per 5 high-traffic facilities (optimal)
 
 ### Repairer (Specialized)
 - **Primary Function**: Advanced maintenance specialist
 - **Coverage**: Facility-specific or floor-specific assignment
 - **Effect**: More efficient than general maintenance for complex facilities
-- **Recommended Ratio**: 1 repairer per 7 facilities
+- **Recommended Ratio**: 1 repairer per 7 facilities (optimal)
 
 ## Components
 
@@ -168,14 +168,14 @@ All systems are registered in `src/core/ecs_world.cpp`:
 - **Details**:
   - Counts all staff entities with StaffAssignment component
   - Updates role-specific counters
-  - Calculates total wages ($50/day per staff member)
+  - Calculates total wages (hardcoded at $50/day per staff member; may be configurable in future)
 
 ### Staff Wage System
 - **Frequency**: Every 1 second
 - **Function**: Deducts staff wages from tower economy
 - **Details**:
   - Adds wages to daily expenses
-  - Spreads cost over 24 hours
+  - Spreads cost over 24 hours ($50/day per staff = ~$0.0006/second)
   - Integrates with existing economy system
 
 ### Staff Status Reporting System
@@ -253,13 +253,8 @@ The starter tower automatically creates three staff members:
 - **Staff Satisfaction**: Staff happiness affects work efficiency
 - **Schedule Templates**: Quick-apply shift schedules
 - **Emergency Response**: Priority system for fires and security issues
-
-### Modding Support
-The staff system is fully exposed to the modding API:
-- Custom staff roles via Lua
-- Custom work behaviors
-- Custom facility status effects
-- Event triggers for staff activities
+- **Modding Support**: Expose staff system to modding API for custom roles and behaviors
+- **NotificationCenter Integration**: Connect staff activities to the NotificationCenter for in-game notifications
 
 ## Technical Notes
 
@@ -273,7 +268,7 @@ The staff system is fully exposed to the modding API:
 - Staff wages integrate with existing `TowerEconomy` system
 - Facility status uses existing `Satisfaction` system for impact
 - Staff use existing `Person` component for basic entity properties
-- Notifications use console logs and can be connected to `NotificationCenter`
+- Staff activities currently log to console; future integration with `NotificationCenter` is planned
 
 ### Extensibility
 - New staff roles can be added by extending `StaffRole` enum
