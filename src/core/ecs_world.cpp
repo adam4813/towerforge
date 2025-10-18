@@ -1692,21 +1692,24 @@ namespace TowerForge::Core {
                 
                     const TowerEconomy& economy = world.get<TowerEconomy>();
                 
+                    // Repair cost constants
+                    constexpr float BASE_REPAIR_COST = 100.0f;
+                    constexpr float BROKEN_REPAIR_COST = 500.0f;
+                    constexpr float ELEVATOR_COST_MULTIPLIER = 2.0f;
+                    constexpr float COMPLEX_FACILITY_MULTIPLIER = 1.5f;
+                
                     // Calculate repair cost based on facility type and severity
-                    float repair_cost = 100.0f;  // Base cost
-                    if (maintenance.IsBroken()) {
-                        repair_cost = 500.0f;  // Broken facilities cost more to repair
-                    }
+                    float repair_cost = maintenance.IsBroken() ? BROKEN_REPAIR_COST : BASE_REPAIR_COST;
                 
                     // Different facility types have different repair costs
                     switch (facility.type) {
                         case BuildingComponent::Type::Elevator:
-                            repair_cost *= 2.0f;  // Elevators are expensive
+                            repair_cost *= ELEVATOR_COST_MULTIPLIER;
                             break;
                         case BuildingComponent::Type::Hotel:
                         case BuildingComponent::Type::Restaurant:
                         case BuildingComponent::Type::Theater:
-                            repair_cost *= 1.5f;  // Complex facilities cost more
+                            repair_cost *= COMPLEX_FACILITY_MULTIPLIER;
                             break;
                         default:
                             break;

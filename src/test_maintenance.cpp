@@ -107,8 +107,8 @@ int main() {
     // Test auto-repair functionality
     std::cout << "\n=== Testing Auto-Repair Functionality ===" << std::endl;
     
-    // Create a TowerEconomy singleton with initial funds
-    ecs_world.GetWorld().set<TowerEconomy>({10000.0f});  // Start with $10,000
+    // Create a TowerEconomy singleton with initial funds using explicit constructor
+    ecs_world.GetWorld().set<TowerEconomy>(TowerEconomy(10000.0f));
     
     std::cout << "Created TowerEconomy singleton with $10,000 initial balance" << std::endl;
     
