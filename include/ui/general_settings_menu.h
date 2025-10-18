@@ -3,8 +3,13 @@
 #include <raylib.h>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace towerforge::ui {
+
+    // Forward declarations
+    class Panel;
+    class Button;
 
     /**
  * @brief Settings options available in the general settings menu
@@ -78,6 +83,11 @@ namespace towerforge::ui {
         };
     
         std::vector<MenuItem> menu_items_;
+        
+        // Settings menu panel with Button children
+        std::unique_ptr<Panel> settings_panel_;
+        std::vector<Button*> menu_item_buttons_;  // Raw pointers to buttons (owned by settings_panel_)
+        int selected_menu_option_;  // Stores the menu option selected via click callback
     };
 
 }
