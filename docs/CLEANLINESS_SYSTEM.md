@@ -47,9 +47,11 @@ The system uses time-based thresholds that are adjusted by the dirty rate and oc
 - **Needs Cleaning**: Base threshold of 30 minutes (1800 seconds)
 - **Dirty**: Base threshold of 60 minutes (3600 seconds)
 
-These thresholds are divided by:
-1. The facility's `dirty_rate`
-2. An occupancy factor: `1.0 + (occupancy_rate * 2.0)` (1x to 3x multiplier)
+These thresholds are divided by both the dirty_rate and the occupancy factor using the formula:
+
+```
+adjusted_threshold = base_threshold / (dirty_rate * occupancy_factor)
+```
 
 **Example**: A restaurant at 80% occupancy:
 - Occupancy factor: 1.0 + (0.8 * 2.0) = 2.6x
@@ -138,7 +140,9 @@ When a facility needs cleaning (`needs_cleaning = true`), a "Clean Now" button a
 [Clean Now]  [Color: Yellow for "Needs Cleaning", Red for "Dirty"]
 ```
 
-**Note**: The button is currently a visual indicator. Click handling will be implemented when the UI button system is enhanced. For now, cleaning is handled automatically by janitor staff.
+**Current Status**: The button is displayed as a **visual indicator only**. The UI framework does not yet have click handling implemented for this button. Cleaning is handled automatically by janitor staff through the Staff Cleaning System.
+
+**Future Enhancement**: When UI button click handling is implemented, this button will call `FacilityManager::CleanFacility()` to provide manual cleaning on demand. This requires enhancing the UI window system to support button callbacks.
 
 ### Manual Cleaning API
 
@@ -176,12 +180,14 @@ Players need to consider:
 
 ### Recommended Staffing
 
-Following the existing staff calculation system:
+Following the existing staff calculation system, the formula recommends:
 
 ```cpp
-// 1 janitor per 3 facilities or per 5 floors
-int recommended_janitors = max(facility_count / 3, total_floors / 5);
+// 1 janitor per 3 facilities or per 5 floors (using ceiling division for proper coverage)
+int recommended_janitors = max(ceil(facility_count / 3.0), ceil(total_floors / 5.0));
 ```
+
+**Note**: The actual implementation in `StaffManager::CalculateRecommendedStaff()` uses integer division which may truncate fractional values. For example, 7 facilities would calculate as `(7 + 2) / 3 = 3` janitors using the `(facility_count + 2) / 3` pattern to avoid underestimation.
 
 ## Technical Details
 
