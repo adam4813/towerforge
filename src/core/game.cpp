@@ -9,6 +9,30 @@ using namespace towerforge::ui;
 using namespace towerforge::rendering;
 
 namespace towerforge::core {
+    // Constants
+    constexpr float HOURS_PER_DAY = 24.0f;
+    
+    // Helper function to convert facility type enum to string
+    static std::string GetFacilityTypeName(BuildingComponent::Type type) {
+        switch (type) {
+            case BuildingComponent::Type::Office:            return "Office";
+            case BuildingComponent::Type::Residential:       return "Residential";
+            case BuildingComponent::Type::RetailShop:        return "Retail Shop";
+            case BuildingComponent::Type::Lobby:             return "Lobby";
+            case BuildingComponent::Type::Restaurant:        return "Restaurant";
+            case BuildingComponent::Type::Hotel:             return "Hotel";
+            case BuildingComponent::Type::Elevator:          return "Elevator";
+            case BuildingComponent::Type::Gym:               return "Gym";
+            case BuildingComponent::Type::Arcade:            return "Arcade";
+            case BuildingComponent::Type::Theater:           return "Theater";
+            case BuildingComponent::Type::ConferenceHall:    return "Conference Hall";
+            case BuildingComponent::Type::FlagshipStore:     return "Flagship Store";
+            case BuildingComponent::Type::ManagementOffice:  return "Management Office";
+            case BuildingComponent::Type::SatelliteOffice:   return "Satellite Office";
+            default:                                         return "Facility";
+        }
+    }
+    
     // Helper function to calculate tower rating based on statistics
     static void CalculateTowerRatingHelper(TowerRating &rating, ECSWorld &ecs_world, const float income_rate) {
         // Collect statistics from ECS world
@@ -1626,27 +1650,6 @@ namespace towerforge::core {
             return breakdown;
         }
         
-        // Helper lambda to convert facility type to string
-        auto GetFacilityTypeName = [](BuildingComponent::Type type) -> std::string {
-            switch (type) {
-                case BuildingComponent::Type::Office:            return "Office";
-                case BuildingComponent::Type::Residential:       return "Residential";
-                case BuildingComponent::Type::RetailShop:        return "Retail Shop";
-                case BuildingComponent::Type::Lobby:             return "Lobby";
-                case BuildingComponent::Type::Restaurant:        return "Restaurant";
-                case BuildingComponent::Type::Hotel:             return "Hotel";
-                case BuildingComponent::Type::Elevator:          return "Elevator";
-                case BuildingComponent::Type::Gym:               return "Gym";
-                case BuildingComponent::Type::Arcade:            return "Arcade";
-                case BuildingComponent::Type::Theater:           return "Theater";
-                case BuildingComponent::Type::ConferenceHall:    return "Conference Hall";
-                case BuildingComponent::Type::FlagshipStore:     return "Flagship Store";
-                case BuildingComponent::Type::ManagementOffice:  return "Management Office";
-                case BuildingComponent::Type::SatelliteOffice:   return "Satellite Office";
-                default:                                         return "Facility";
-            }
-        };
-        
         // Map to aggregate revenue by facility type
         std::map<std::string, ui::IncomeBreakdown::FacilityTypeRevenue> revenue_map;
         
@@ -1662,13 +1665,13 @@ namespace towerforge::core {
             type_revenue.facility_count++;
             type_revenue.total_tenants += econ.current_tenants;
             
-            // Calculate hourly revenue (daily revenue / 24)
+            // Calculate hourly revenue (daily revenue / HOURS_PER_DAY)
             const float daily_revenue = econ.CalculateDailyRevenue();
-            const float hourly_revenue = daily_revenue / 24.0f;
+            const float hourly_revenue = daily_revenue / HOURS_PER_DAY;
             type_revenue.hourly_revenue += hourly_revenue;
             
             // Track operating costs
-            breakdown.total_operating_costs += econ.operating_cost / 24.0f;
+            breakdown.total_operating_costs += econ.operating_cost / HOURS_PER_DAY;
             
             // Calculate average occupancy
             if (econ.max_tenants > 0) {
