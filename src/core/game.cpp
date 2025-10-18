@@ -1330,6 +1330,14 @@ namespace towerforge::core {
                                         info.is_broken = false;
                                     }
                                     
+                                    // Get adjacency effects
+                                    if (facility_entity.is_alive() && facility_entity.has<AdjacencyEffects>()) {
+                                        const AdjacencyEffects& adjacency = facility_entity.ensure<AdjacencyEffects>();
+                                        for (const auto& effect : adjacency.effects) {
+                                            info.adjacency_effects.push_back(effect.description);
+                                        }
+                                    }
+                                    
                                     hud_->ShowFacilityInfo(info);
                                 }
                             }

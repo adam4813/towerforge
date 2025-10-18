@@ -49,6 +49,9 @@ namespace TowerForge::Core {
         // Add FacilityStatus for tracking cleanliness and maintenance
         facility.set<FacilityStatus>({});
     
+        // Add AdjacencyEffects component
+        facility.set<AdjacencyEffects>({});
+    
         // Add CleanlinessStatus for state-based cleanliness tracking
         CleanlinessStatus cleanliness;
         // Set dirty_rate based on facility type
@@ -108,6 +111,10 @@ namespace TowerForge::Core {
             return flecs::entity::null();
         }
     
+        // Update adjacency effects for this facility and adjacent facilities
+        UpdateAdjacencyEffects(facility);
+        UpdateAdjacentFacilityEffects(floor, column, width);
+    
         return facility;
     }
 
@@ -116,15 +123,28 @@ namespace TowerForge::Core {
             return false;
         }
     
+        // Get position before removing to update adjacent facilities
+        int floor = -1;
+        int column = -1;
+        int width = 0;
+    
         // Check if entity has GridPosition component
         if (facility_entity.has<GridPosition>()) {
             // Get the grid position to remove from grid
             const auto grid_pos = facility_entity.get<GridPosition>();
+            floor = grid_pos.floor;
+            column = grid_pos.column;
+            width = grid_pos.width;
             grid_.RemoveFacilityAt(grid_pos.floor, grid_pos.column);
         }
     
         // Destroy the entity
         facility_entity.destruct();
+    
+        // Update adjacency effects for adjacent facilities
+        if (floor >= 0 && column >= 0 && width > 0) {
+            UpdateAdjacentFacilityEffects(floor, column, width);
+        }
     
         return true;
     }
@@ -359,6 +379,279 @@ namespace TowerForge::Core {
         }
     
         return false;
+    }
+
+    void FacilityManager::UpdateAdjacencyEffects(const flecs::entity facility_entity) const {
+        if (!facility_entity.is_alive() || !facility_entity.has<BuildingComponent>() || 
+            !facility_entity.has<GridPosition>()) {
+            return;
+        }
+
+        const auto building = facility_entity.get<BuildingComponent>();
+        const auto grid_pos = facility_entity.get<GridPosition>();
+
+        // Get or create AdjacencyEffects component
+        auto& adjacency = facility_entity.ensure<AdjacencyEffects>();
+        adjacency.Clear();
+
+        // Check neighbors on the same floor (left and right)
+        // Left neighbor
+        if (grid_pos.column > 0) {
+            const int left_facility_id = grid_.GetFacilityAt(grid_pos.floor, grid_pos.column - 1);
+            if (left_facility_id >= 0) {
+                const auto neighbor_type = GetFacilityType(left_facility_id);
+                if (const auto effect = CalculateAdjacencyEffect(building.type, neighbor_type)) {
+                    adjacency.AddEffect(*effect);
+                }
+            }
+        }
+
+        // Right neighbor
+        const int right_column = grid_pos.column + grid_pos.width;
+        if (right_column < grid_.GetColumnCount()) {
+            const int right_facility_id = grid_.GetFacilityAt(grid_pos.floor, right_column);
+            if (right_facility_id >= 0) {
+                const auto neighbor_type = GetFacilityType(right_facility_id);
+                if (const auto effect = CalculateAdjacencyEffect(building.type, neighbor_type)) {
+                    adjacency.AddEffect(*effect);
+                }
+            }
+        }
+
+        // Check neighbor above
+        const int floor_above = grid_pos.floor + 1;
+        if (floor_above <= grid_.GetHighestFloorIndex()) {
+            // Check all columns this facility occupies
+            for (int col = grid_pos.column; col < grid_pos.column + grid_pos.width; ++col) {
+                const int above_facility_id = grid_.GetFacilityAt(floor_above, col);
+                if (above_facility_id >= 0) {
+                    const auto neighbor_type = GetFacilityType(above_facility_id);
+                    if (const auto effect = CalculateAdjacencyEffect(building.type, neighbor_type)) {
+                        // Only add if we haven't already added this neighbor type from above
+                        bool already_added = false;
+                        for (const auto& existing : adjacency.effects) {
+                            if (existing.source_type == GetTypeName(neighbor_type) && 
+                                existing.description.find("above") != std::string::npos) {
+                                already_added = true;
+                                break;
+                            }
+                        }
+                        if (!already_added) {
+                            adjacency.AddEffect(*effect);
+                        }
+                    }
+                    break; // Only check once for facility above
+                }
+            }
+        }
+
+        // Check neighbor below
+        const int floor_below = grid_pos.floor - 1;
+        if (floor_below >= grid_.GetLowestFloorIndex()) {
+            // Check all columns this facility occupies
+            for (int col = grid_pos.column; col < grid_pos.column + grid_pos.width; ++col) {
+                const int below_facility_id = grid_.GetFacilityAt(floor_below, col);
+                if (below_facility_id >= 0) {
+                    const auto neighbor_type = GetFacilityType(below_facility_id);
+                    if (const auto effect = CalculateAdjacencyEffect(building.type, neighbor_type)) {
+                        // Only add if we haven't already added this neighbor type from below
+                        bool already_added = false;
+                        for (const auto& existing : adjacency.effects) {
+                            if (existing.source_type == GetTypeName(neighbor_type) && 
+                                existing.description.find("below") != std::string::npos) {
+                                already_added = true;
+                                break;
+                            }
+                        }
+                        if (!already_added) {
+                            adjacency.AddEffect(*effect);
+                        }
+                    }
+                    break; // Only check once for facility below
+                }
+            }
+        }
+    }
+
+    void FacilityManager::UpdateAdjacentFacilityEffects(const int floor, const int column, const int width) const {
+        // Update left neighbor
+        if (column > 0) {
+            const int left_facility_id = grid_.GetFacilityAt(floor, column - 1);
+            if (left_facility_id >= 0) {
+                const auto left_entity = world_.entity(static_cast<flecs::entity_t>(left_facility_id));
+                if (left_entity.is_alive()) {
+                    UpdateAdjacencyEffects(left_entity);
+                }
+            }
+        }
+
+        // Update right neighbor
+        const int right_column = column + width;
+        if (right_column < grid_.GetColumnCount()) {
+            const int right_facility_id = grid_.GetFacilityAt(floor, right_column);
+            if (right_facility_id >= 0) {
+                const auto right_entity = world_.entity(static_cast<flecs::entity_t>(right_facility_id));
+                if (right_entity.is_alive()) {
+                    UpdateAdjacencyEffects(right_entity);
+                }
+            }
+        }
+
+        // Update facilities above
+        const int floor_above = floor + 1;
+        if (floor_above <= grid_.GetHighestFloorIndex()) {
+            for (int col = column; col < column + width; ++col) {
+                const int above_facility_id = grid_.GetFacilityAt(floor_above, col);
+                if (above_facility_id >= 0) {
+                    const auto above_entity = world_.entity(static_cast<flecs::entity_t>(above_facility_id));
+                    if (above_entity.is_alive()) {
+                        UpdateAdjacencyEffects(above_entity);
+                    }
+                    break; // Only update once per facility above
+                }
+            }
+        }
+
+        // Update facilities below
+        const int floor_below = floor - 1;
+        if (floor_below >= grid_.GetLowestFloorIndex()) {
+            for (int col = column; col < column + width; ++col) {
+                const int below_facility_id = grid_.GetFacilityAt(floor_below, col);
+                if (below_facility_id >= 0) {
+                    const auto below_entity = world_.entity(static_cast<flecs::entity_t>(below_facility_id));
+                    if (below_entity.is_alive()) {
+                        UpdateAdjacencyEffects(below_entity);
+                    }
+                    break; // Only update once per facility below
+                }
+            }
+        }
+    }
+
+    std::optional<AdjacencyEffect> FacilityManager::CalculateAdjacencyEffect(
+        const BuildingComponent::Type facility_type,
+        const BuildingComponent::Type neighbor_type
+    ) {
+        // Define adjacency rules here
+        // Positive values are bonuses, negative values are penalties
+
+        // Restaurant next to entertainment (Theater, Arcade) - revenue bonus
+        if (facility_type == BuildingComponent::Type::Restaurant) {
+            if (neighbor_type == BuildingComponent::Type::Theater) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Revenue,
+                    10.0f,
+                    GetTypeName(neighbor_type),
+                    "+10% revenue: next to theater"
+                );
+            }
+            if (neighbor_type == BuildingComponent::Type::Arcade) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Revenue,
+                    8.0f,
+                    GetTypeName(neighbor_type),
+                    "+8% revenue: next to arcade"
+                );
+            }
+        }
+
+        // Entertainment next to Restaurant - traffic bonus
+        if (facility_type == BuildingComponent::Type::Theater || 
+            facility_type == BuildingComponent::Type::Arcade) {
+            if (neighbor_type == BuildingComponent::Type::Restaurant) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Traffic,
+                    10.0f,
+                    GetTypeName(neighbor_type),
+                    "+10% traffic: next to restaurant"
+                );
+            }
+        }
+
+        // Residential next to Arcade - satisfaction penalty (noise)
+        if (facility_type == BuildingComponent::Type::Residential) {
+            if (neighbor_type == BuildingComponent::Type::Arcade) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Satisfaction,
+                    -8.0f,
+                    GetTypeName(neighbor_type),
+                    "-8% satisfaction: noisy arcade nearby"
+                );
+            }
+            if (neighbor_type == BuildingComponent::Type::Theater) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Satisfaction,
+                    -5.0f,
+                    GetTypeName(neighbor_type),
+                    "-5% satisfaction: noisy theater nearby"
+                );
+            }
+        }
+
+        // Residential next to Gym - satisfaction bonus (amenity)
+        if (facility_type == BuildingComponent::Type::Residential) {
+            if (neighbor_type == BuildingComponent::Type::Gym) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Satisfaction,
+                    5.0f,
+                    GetTypeName(neighbor_type),
+                    "+5% satisfaction: gym nearby"
+                );
+            }
+        }
+
+        // Office next to Restaurant - satisfaction bonus (convenience)
+        if (facility_type == BuildingComponent::Type::Office) {
+            if (neighbor_type == BuildingComponent::Type::Restaurant) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Satisfaction,
+                    5.0f,
+                    GetTypeName(neighbor_type),
+                    "+5% satisfaction: restaurant nearby"
+                );
+            }
+        }
+
+        // Retail shops benefit from being near other retail (shopping district)
+        if (facility_type == BuildingComponent::Type::RetailShop || 
+            facility_type == BuildingComponent::Type::FlagshipStore) {
+            if (neighbor_type == BuildingComponent::Type::RetailShop || 
+                neighbor_type == BuildingComponent::Type::FlagshipStore) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Traffic,
+                    5.0f,
+                    GetTypeName(neighbor_type),
+                    "+5% traffic: shopping district"
+                );
+            }
+        }
+
+        // Hotel next to Restaurant - satisfaction bonus
+        if (facility_type == BuildingComponent::Type::Hotel) {
+            if (neighbor_type == BuildingComponent::Type::Restaurant) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Satisfaction,
+                    8.0f,
+                    GetTypeName(neighbor_type),
+                    "+8% satisfaction: restaurant nearby"
+                );
+            }
+        }
+
+        // ConferenceHall next to Hotel - synergy bonus
+        if (facility_type == BuildingComponent::Type::ConferenceHall) {
+            if (neighbor_type == BuildingComponent::Type::Hotel) {
+                return AdjacencyEffect(
+                    AdjacencyEffect::Type::Revenue,
+                    10.0f,
+                    GetTypeName(neighbor_type),
+                    "+10% revenue: hotel nearby"
+                );
+            }
+        }
+
+        // No effect found
+        return std::nullopt;
     }
 
 }

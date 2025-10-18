@@ -4,13 +4,18 @@ namespace towerforge::ui {
 
     // FacilityWindow implementation
     FacilityWindow::FacilityWindow(const FacilityInfo& info)
-        : UIWindow("Facility Info", 250, 300)
+        : UIWindow("Facility Info", 250, 300 + static_cast<int>(info.adjacency_effects.size() * 18))
           , info_(info) {
     }
 
     void FacilityWindow::Update(const FacilityInfo& info) {
         info_ = info;
         title_ = info.type + " - Floor " + std::to_string(info.floor);
+        // Adjust height based on adjacency effects
+        height_ = 300 + static_cast<int>(info.adjacency_effects.size() * 18);
+        if (!info.adjacency_effects.empty()) {
+            height_ += 30;  // Extra space for section header
+        }
     }
 
     void FacilityWindow::Render() {
@@ -95,6 +100,28 @@ namespace towerforge::ui {
         if (info_.has_security_issue) {
             DrawText("! Security Issue - Guard needed !", x, y, 14, ORANGE);
             y += 20;
+        }
+    
+        // Adjacency effects section
+        if (!info_.adjacency_effects.empty()) {
+            y += 5;
+            DrawText("--- Adjacency Effects ---", x, y, 14, GOLD);
+            y += 20;
+        
+            for (const auto& effect : info_.adjacency_effects) {
+                // Determine color based on effect type (bonus vs penalty)
+                Color effect_color = LIGHTGRAY;
+                if (effect.find("+") != std::string::npos) {
+                    effect_color = GREEN;  // Bonuses in green
+                } else if (effect.find("-") != std::string::npos) {
+                    effect_color = ORANGE;  // Penalties in orange
+                }
+            
+                DrawText(effect.c_str(), x, y, 13, effect_color);
+                y += 18;
+            }
+        
+            y += 7;
         }
     
         y += 10;
