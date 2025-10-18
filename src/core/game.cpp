@@ -1,5 +1,6 @@
 #include "core/game.h"
 #include "core/components.hpp"
+#include "core/user_preferences.hpp"
 #include "ui/notification_center.h"
 #include <iostream>
 
@@ -147,12 +148,21 @@ namespace towerforge::core {
         std::cout << "Version: 0.1.0" << std::endl;
         std::cout << "Initializing Raylib renderer..." << std::endl;
 
+        // Load user preferences first (this happens in the singleton constructor)
+        auto& preferences = UserPreferences::GetInstance();
+        std::cout << "User preferences loaded" << std::endl;
+
         // Initialize renderer
         renderer_.Initialize(800, 600, "TowerForge");
 
         // Initialize audio system
         audio_manager_ = &audio::AudioManager::GetInstance();
         audio_manager_->Initialize();
+
+        // Apply audio preferences from loaded settings
+        audio_manager_->SetMasterVolume(preferences.GetMasterVolume());
+        audio_manager_->SetVolume(audio::AudioType::Music, preferences.GetMusicVolume());
+        audio_manager_->SetVolume(audio::AudioType::SFX, preferences.GetSFXVolume());
 
         // Create achievement manager for persistent achievements
         achievement_manager_ = new AchievementManager();
@@ -161,8 +171,10 @@ namespace towerforge::core {
         // Set achievement manager for achievements menu
         achievements_menu_.SetAchievementManager(achievement_manager_);
 
-        // Play main theme music
+        // Play main theme music (volume already set from preferences)
         audio_manager_->PlayMusic(audio::AudioCue::MainTheme, true, 1.0f);
+
+        std::cout << "User preferences applied to all systems" << std::endl;
 
         return true;
     }

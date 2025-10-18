@@ -1,5 +1,6 @@
 #include "ui/audio_settings_menu.h"
 #include "audio/audio_manager.h"
+#include "core/user_preferences.hpp"
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -22,7 +23,7 @@ namespace towerforge::ui {
     }
 
     AudioSettingsMenu::~AudioSettingsMenu() {
-        SaveSettings();
+        // Settings are saved automatically by UserPreferences
     }
 
     void AudioSettingsMenu::Update(const float delta_time) {
@@ -352,83 +353,27 @@ namespace towerforge::ui {
     }
 
     void AudioSettingsMenu::LoadSettings() {
-        // Determine config file path
-        std::string config_path;
-
-#ifdef _WIN32
-        if (const char* appdata = std::getenv("APPDATA")) {
-            config_path = std::string(appdata) + "/TowerForge/audio_settings.cfg";
-        } else {
-            config_path = "audio_settings.cfg";
-        }
-#else
-        const char* home = std::getenv("HOME");
-        if (home) {
-            config_path = std::string(home) + "/.towerforge/audio_settings.cfg";
-        } else {
-            config_path = "audio_settings.cfg";
-        }
-#endif
-
-        // Try to load settings from file
-        if (std::ifstream file(config_path); file.is_open()) {
-            int master_vol_int = 70, music_vol_int = 50, sfx_vol_int = 60;
-            int mute_all_int = 0, mute_music_int = 0, mute_sfx_int = 0, enable_ambient_int = 1;
-
-            file >> master_vol_int >> music_vol_int >> sfx_vol_int;
-            file >> mute_all_int >> mute_music_int >> mute_sfx_int >> enable_ambient_int;
-
-            master_volume_ = master_vol_int / 100.0f;
-            music_volume_ = music_vol_int / 100.0f;
-            sfx_volume_ = sfx_vol_int / 100.0f;
-
-            mute_all_ = (mute_all_int == 1);
-            mute_music_ = (mute_music_int == 1);
-            mute_sfx_ = (mute_sfx_int == 1);
-            enable_ambient_ = (enable_ambient_int == 1);
-
-            file.close();
-        }
+        // Load from unified UserPreferences
+        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        master_volume_ = prefs.GetMasterVolume();
+        music_volume_ = prefs.GetMusicVolume();
+        sfx_volume_ = prefs.GetSFXVolume();
+        mute_all_ = prefs.GetMuteAll();
+        mute_music_ = prefs.GetMuteMusic();
+        mute_sfx_ = prefs.GetMuteSFX();
+        enable_ambient_ = prefs.GetEnableAmbient();
     }
 
     void AudioSettingsMenu::SaveSettings() const {
-        // Determine config file path
-        std::string config_path;
-        std::string config_dir;
-
-#ifdef _WIN32
-        if (const char* appdata = std::getenv("APPDATA")) {
-            config_dir = std::string(appdata) + "/TowerForge";
-            config_path = config_dir + "/audio_settings.cfg";
-        } else {
-            config_path = "audio_settings.cfg";
-        }
-#else
-        const char* home = std::getenv("HOME");
-        if (home) {
-            config_dir = std::string(home) + "/.towerforge";
-            config_path = config_dir + "/audio_settings.cfg";
-        } else {
-            config_path = "audio_settings.cfg";
-        }
-#endif
-
-        // Create directory if it doesn't exist
-        if (!config_dir.empty()) {
-            std::filesystem::create_directory(config_dir.c_str());
-        }
-
-        // Save settings to file
-        if (std::ofstream file(config_path); file.is_open()) {
-            file << static_cast<int>(master_volume_ * 100) << " ";
-            file << static_cast<int>(music_volume_ * 100) << " ";
-            file << static_cast<int>(sfx_volume_ * 100) << "\n";
-            file << (mute_all_ ? 1 : 0) << " ";
-            file << (mute_music_ ? 1 : 0) << " ";
-            file << (mute_sfx_ ? 1 : 0) << " ";
-            file << (enable_ambient_ ? 1 : 0) << "\n";
-            file.close();
-        }
+        // Save to unified UserPreferences
+        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        prefs.SetMasterVolume(master_volume_);
+        prefs.SetMusicVolume(music_volume_);
+        prefs.SetSFXVolume(sfx_volume_);
+        prefs.SetMuteAll(mute_all_);
+        prefs.SetMuteMusic(mute_music_);
+        prefs.SetMuteSFX(mute_sfx_);
+        prefs.SetEnableAmbient(enable_ambient_);
     }
 
     void AudioSettingsMenu::ApplyAudioSettings() {

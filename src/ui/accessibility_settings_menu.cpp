@@ -1,5 +1,6 @@
 #include "ui/accessibility_settings_menu.h"
 #include "core/accessibility_settings.hpp"
+#include "core/user_preferences.hpp"
 #include <cmath>
 #include <string>
 
@@ -21,13 +22,27 @@ namespace towerforge::ui {
     }
 
     void AccessibilitySettingsMenu::SyncWithSettings() {
+        // Use unified UserPreferences
+        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        high_contrast_enabled_ = prefs.IsHighContrastEnabled();
+        font_scale_ = prefs.GetFontScale();
+        keyboard_navigation_enabled_ = prefs.IsKeyboardNavigationEnabled();
+        
+        // Also sync with legacy AccessibilitySettings for backwards compatibility
         auto& settings = TowerForge::Core::AccessibilitySettings::GetInstance();
-        high_contrast_enabled_ = settings.IsHighContrastEnabled();
-        font_scale_ = settings.GetFontScale();
-        keyboard_navigation_enabled_ = settings.IsKeyboardNavigationEnabled();
+        settings.SetHighContrastEnabled(high_contrast_enabled_);
+        settings.SetFontScale(font_scale_);
+        settings.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
     }
 
     void AccessibilitySettingsMenu::ApplySettings() {
+        // Save to unified UserPreferences
+        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        prefs.SetHighContrastEnabled(high_contrast_enabled_);
+        prefs.SetFontScale(font_scale_);
+        prefs.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
+        
+        // Also apply to legacy AccessibilitySettings for backwards compatibility
         auto& settings = TowerForge::Core::AccessibilitySettings::GetInstance();
         settings.SetHighContrastEnabled(high_contrast_enabled_);
         settings.SetFontScale(font_scale_);

@@ -7,6 +7,11 @@
 #include <functional>
 #include <chrono>
 
+// Forward declaration
+namespace TowerForge::Core {
+    class UserPreferences;
+}
+
 namespace towerforge::ui {
 
     /**
@@ -227,7 +232,11 @@ namespace towerforge::ui {
         /**
      * @brief Set filter settings
      */
-        void SetFilter(const NotificationFilter& filter) { filter_ = filter; }
+        void SetFilter(const NotificationFilter& filter) { 
+            filter_ = filter; 
+            // Save filter to UserPreferences
+            TowerForge::Core::UserPreferences::GetInstance().SetNotificationFilter(filter);
+        }
     
         /**
      * @brief Get count of unread notifications

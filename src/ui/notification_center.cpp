@@ -1,4 +1,5 @@
 #include "ui/notification_center.h"
+#include "core/user_preferences.hpp"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -26,6 +27,9 @@ namespace towerforge::ui {
           scroll_offset_(0),
           hovered_index_(-1),
           next_id_(1) {
+        // Load notification filter from UserPreferences
+        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        filter_ = prefs.GetNotificationFilter();
     }
 
     NotificationCenter::~NotificationCenter() = default;
