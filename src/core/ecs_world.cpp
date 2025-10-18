@@ -999,11 +999,10 @@ namespace TowerForge::Core {
                     if (!assignment.DoesCleaningWork()) return;
                 
                     // Find facilities that need cleaning
-                    auto& world = staff_entity.world();
+                    auto world = staff_entity.world();
                     bool cleaned_something = false;
                 
-                    world.each<FacilityStatus, BuildingComponent>(
-                        [&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
                             if (cleaned_something) return;  // Only clean one facility per cycle
                         
                             // Check if staff is assigned to this facility or floor
@@ -1050,11 +1049,10 @@ namespace TowerForge::Core {
                     if (!assignment.DoesMaintenanceWork()) return;
                 
                     // Find facilities that need maintenance
-                    auto& world = staff_entity.world();
+                    auto world = staff_entity.world();
                     bool maintained_something = false;
                 
-                    world.each<FacilityStatus, BuildingComponent>(
-                        [&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
                             if (maintained_something) return;
                         
                             // Check if staff is assigned to this facility or floor
@@ -1101,11 +1099,10 @@ namespace TowerForge::Core {
                     if (assignment.role != StaffRole::Firefighter && !assignment.DoesEmergencyWork()) return;
                 
                     // Find facilities with fires
-                    auto& world = staff_entity.world();
+                    auto world = staff_entity.world();
                     bool extinguished_fire = false;
                 
-                    world.each<FacilityStatus, BuildingComponent>(
-                        [&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
                             if (extinguished_fire) return;
                         
                             if (status.has_fire) {
@@ -1137,11 +1134,10 @@ namespace TowerForge::Core {
                     if (assignment.role != StaffRole::Security && !assignment.DoesEmergencyWork()) return;
                 
                     // Find facilities with security issues
-                    auto& world = staff_entity.world();
+                    auto world = staff_entity.world();
                     bool resolved_issue = false;
                 
-                    world.each<FacilityStatus, BuildingComponent>(
-                        [&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
                             if (resolved_issue) return;
                         
                             if (status.has_security_issue) {
@@ -1187,7 +1183,7 @@ namespace TowerForge::Core {
                 .kind(flecs::OnUpdate)
                 .interval(5.0f)  // Update every 5 seconds
                 .each([](const flecs::entity e, StaffManager& manager) {
-                    auto& world = e.world();
+                    auto world = e.world();
                 
                     // Reset counts
                     manager.total_staff_count = 0;
@@ -1199,7 +1195,7 @@ namespace TowerForge::Core {
                     manager.repairers = 0;
                 
                     // Count staff by role
-                    world.each<const StaffAssignment>([&](flecs::entity staff_entity, const StaffAssignment& assignment) {
+                    world.each([&](flecs::entity staff_entity, const StaffAssignment& assignment) {
                         manager.total_staff_count++;
                         switch (assignment.role) {
                             case StaffRole::Firefighter:  manager.firefighters++; break;

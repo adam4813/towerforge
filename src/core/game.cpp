@@ -442,7 +442,7 @@ namespace towerforge::core {
         ecs_world_->GetWorld().set<NPCSpawner>({30.0f}); // Spawn visitors every 30 seconds base rate
 
         // Create the global StaffManager as a singleton
-        ecs_world_->GetWorld().set<StaffManager>();
+        ecs_world_->GetWorld().set<StaffManager>({});
 
         std::cout << std::endl << "Creating example entities..." << std::endl;
         std::cout << "Renderer initialized. Window opened." << std::endl;
@@ -1576,7 +1576,7 @@ namespace towerforge::core {
             // Add FacilityStatus to all facilities
             ecs_world_->GetWorld().each<BuildingComponent>([&](flecs::entity facility_entity, BuildingComponent& facility) {
                 if (!facility_entity.has<FacilityStatus>()) {
-                    facility_entity.set<FacilityStatus>();
+                    facility_entity.set<FacilityStatus>({});
                 }
             });
         
