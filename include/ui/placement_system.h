@@ -6,6 +6,7 @@
 #include "core/tower_grid.hpp"
 #include "core/facility_manager.hpp"
 #include "core/components.hpp"
+#include "core/command_history.hpp"
 #include "ui/build_menu.h"
 
 // Forward declaration
@@ -38,28 +39,6 @@ namespace towerforge::ui {
         bool IsComplete() const {
             return build_time_elapsed >= build_time_total;
         }
-    };
-
-    /**
- * @brief Action for undo/redo system
- */
-    struct PlacementAction {
-        enum class Type {
-            Place,
-            Demolish
-        };
-    
-        Type type;
-        int entity_id;
-        int floor;
-        int column;
-        int width;
-        int facility_type_index;
-        int cost;
-    
-        PlacementAction(const Type t, const int id, const int f, const int c, const int w, const int type_idx, const int cst)
-            : type(t), entity_id(id), floor(f), column(c), width(w),
-              facility_type_index(type_idx), cost(cst) {}
     };
 
     /**
@@ -124,23 +103,32 @@ namespace towerforge::ui {
     
         /**
      * @brief Undo last action
+     * @param funds Current funds to adjust
+     * @return true if undo succeeded
      */
-        void Undo();
+        bool Undo(float& funds);
     
         /**
      * @brief Redo last undone action
+     * @param funds Current funds to adjust
+     * @return true if redo succeeded
      */
-        void Redo();
+        bool Redo(float& funds);
     
         /**
      * @brief Check if undo is available
      */
-        bool CanUndo() const { return !undo_stack_.empty(); }
+        bool CanUndo() const;
     
         /**
      * @brief Check if redo is available
      */
-        bool CanRedo() const { return !redo_stack_.empty(); }
+        bool CanRedo() const;
+    
+        /**
+     * @brief Get the command history
+     */
+        const TowerForge::Core::CommandHistory& GetCommandHistory() const { return command_history_; }
     
         /**
      * @brief Set the camera for coordinate transformation
@@ -210,11 +198,9 @@ namespace towerforge::ui {
         bool hover_valid_;
     
         std::vector<ConstructionState> constructions_in_progress_;
-        std::vector<PlacementAction> undo_stack_;
-        std::vector<PlacementAction> redo_stack_;
+        TowerForge::Core::CommandHistory command_history_;
         TooltipManager* tooltip_manager_;
     
-        static constexpr int MAX_UNDO_ACTIONS = 20;
         static constexpr float RECOVERY_PERCENTAGE = 0.5f; // 50% recovery on demolish
     };
 

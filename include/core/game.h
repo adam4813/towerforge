@@ -8,6 +8,7 @@
 #include "ui/hud.h"
 #include "ui/build_menu.h"
 #include "ui/placement_system.h"
+#include "ui/history_panel.h"
 #include "ui/main_menu.h"
 #include "ui/pause_menu.h"
 #include "ui/save_load_menu.h"
@@ -125,6 +126,7 @@ namespace towerforge::core {
         ui::ModsMenu* mods_menu_;
         rendering::Camera* camera_;
         ui::PlacementSystem* placement_system_;
+        ui::HistoryPanel* history_panel_;
 
         // InGame state
         ui::GameState game_state_;
