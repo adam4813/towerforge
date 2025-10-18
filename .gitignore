@@ -49,6 +49,7 @@ Thumbs.db
 # User settings and save files
 accessibility_settings.json
 audio_settings.json
+user_preferences.json
 *.sav
 
 # Assets (audio, textures, etc. - add manually if needed)

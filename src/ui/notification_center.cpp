@@ -1,4 +1,5 @@
 #include "ui/notification_center.h"
+#include "core/user_preferences.hpp"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -26,9 +27,18 @@ namespace towerforge::ui {
           scroll_offset_(0),
           hovered_index_(-1),
           next_id_(1) {
+        // Load notification filter from UserPreferences
+        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        filter_ = prefs.GetNotificationFilter();
     }
 
     NotificationCenter::~NotificationCenter() = default;
+
+    void NotificationCenter::SetFilter(const NotificationFilter& filter) {
+        filter_ = filter;
+        // Save filter to UserPreferences
+        TowerForge::Core::UserPreferences::GetInstance().SetNotificationFilter(filter);
+    }
 
     void NotificationCenter::Update(const float delta_time) {
         // Update notifications - remove expired ones that aren't pinned
@@ -205,6 +215,9 @@ namespace towerforge::ui {
             for (auto& button : buttons) {
                 if (mouse_x >= x && mouse_x <= x + button_size && mouse_y >= filter_y && mouse_y <= filter_y + button_size) {
                     *button.flag = !*button.flag;
+                    // Note: We could batch filter updates, but for now save immediately
+                    // to ensure user changes persist even if the game crashes
+                    SetFilter(filter_);
                     return true;
                 }
                 x += button_size + 3;
