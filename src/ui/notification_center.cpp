@@ -215,7 +215,8 @@ namespace towerforge::ui {
             for (auto& button : buttons) {
                 if (mouse_x >= x && mouse_x <= x + button_size && mouse_y >= filter_y && mouse_y <= filter_y + button_size) {
                     *button.flag = !*button.flag;
-                    // Save the updated filter
+                    // Note: We could batch filter updates, but for now save immediately
+                    // to ensure user changes persist even if the game crashes
                     SetFilter(filter_);
                     return true;
                 }
