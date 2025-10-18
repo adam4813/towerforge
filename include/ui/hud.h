@@ -10,6 +10,7 @@ namespace towerforge::ui {
     // Forward declarations
     class UIWindowManager;
     class TooltipManager;
+    class NotificationCenter;
 
     /**
  * @brief Structure to hold tower rating information
@@ -177,6 +178,16 @@ namespace towerforge::ui {
      */
         TooltipManager* GetTooltipManager() const { return tooltip_manager_.get(); }
     
+        /**
+     * @brief Get the notification center
+     */
+        NotificationCenter* GetNotificationCenter() const { return notification_center_.get(); }
+    
+        /**
+     * @brief Toggle notification center visibility
+     */
+        void ToggleNotificationCenter();
+    
     private:
         void RenderTopBar() const;
         void RenderStarRating() const;
@@ -194,7 +205,10 @@ namespace towerforge::ui {
         // Tooltip manager
         std::unique_ptr<TooltipManager> tooltip_manager_;
     
-        // Notifications
+        // Notification center
+        std::unique_ptr<NotificationCenter> notification_center_;
+    
+        // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;
     
         // UI layout constants

@@ -608,6 +608,11 @@ namespace towerforge::core {
         if (research_menu_ != nullptr && !is_paused_ && IsKeyPressed(KEY_R)) {
             research_menu_->Toggle();
         }
+    
+        // Handle N key to toggle notification center
+        if (IsKeyPressed(KEY_N)) {
+            hud_->ToggleNotificationCenter();
+        }
 
         // Only update simulation if not paused
         if (!is_paused_) {
@@ -675,6 +680,26 @@ namespace towerforge::core {
                         if (achievement.id == achievement_id) {
                             std::string message = "Achievement Unlocked: " + achievement.name;
                             hud_->AddNotification(Notification::Type::Success, message, 5.0f);
+                        
+                            // Also add to notification center with clickable callback
+                            auto* nc = hud_->GetNotificationCenter();
+                            if (nc) {
+                                nc->AddNotification(
+                                    achievement.name,
+                                    achievement.description,
+                                    NotificationType::Achievement,
+                                    NotificationPriority::High,
+                                    -1.0f,  // Don't auto-dismiss achievements
+                                    [this]() {
+                                        // When clicked, open achievements menu
+                                        if (achievements_menu_.IsOpen()) {
+                                            achievements_menu_.Close();
+                                        } else {
+                                            achievements_menu_.Open();
+                                        }
+                                    }
+                                );
+                            }
                             break;
                         }
                     }
