@@ -27,6 +27,7 @@ Other docs left unchanged (examples / remaining subsystems):
 - `docs/BUILD_INSTRUCTIONS.md`
 - `docs/CI_WORKFLOW.md`
 - `docs/CAMERA_SYSTEM.md`
+- `docs/CLEANLINESS_SYSTEM.md` - **NEW**: Facility Cleanliness System
 - `docs/COMMAND_PATTERN_HISTORY.md` - **NEW**: Command Pattern and History System
 - `docs/DYNAMIC_FLOOR_SYSTEM.md`
 - `docs/FIXES_QUICKREF.md`
