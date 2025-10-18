@@ -153,6 +153,7 @@ namespace towerforge::ui {
      * 
      * Represents a panel that can contain other UI elements and provides
      * basic rendering with background and optional border.
+     * Supports animated show/hide transitions.
      */
     class Panel : public UIElement {
     public:
@@ -168,6 +169,12 @@ namespace towerforge::ui {
         Panel(float relative_x, float relative_y, float width, float height,
               Color background_color = ColorAlpha(BLACK, 0.8f),
               Color border_color = BLANK);
+
+        /**
+         * @brief Update panel state for animations
+         * @param delta_time Time elapsed since last frame
+         */
+        void Update(float delta_time);
 
         /**
          * @brief Render the panel
@@ -194,9 +201,35 @@ namespace towerforge::ui {
          */
         Color GetBorderColor() const { return border_color_; }
 
+        /**
+         * @brief Show panel with animation
+         * @param animate Whether to animate the transition
+         */
+        void Show(bool animate = true);
+
+        /**
+         * @brief Hide panel with animation
+         * @param animate Whether to animate the transition
+         */
+        void Hide(bool animate = true);
+
+        /**
+         * @brief Check if panel is visible
+         */
+        bool IsVisible() const { return is_visible_; }
+
+        /**
+         * @brief Check if panel animation is complete
+         */
+        bool IsAnimationComplete() const { return animation_progress_ >= 1.0f || animation_progress_ <= 0.0f; }
+
     private:
         Color background_color_;
         Color border_color_;
+        bool is_visible_;
+        bool is_animating_;
+        float animation_progress_;  // 0.0 = fully hidden, 1.0 = fully visible
+        float animation_speed_;
     };
 
     /**
