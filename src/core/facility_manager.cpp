@@ -346,4 +346,19 @@ namespace TowerForge::Core {
         return false;
     }
 
+    bool FacilityManager::SetAutoRepair(const flecs::entity facility_entity, const bool enabled) const {
+        if (!facility_entity.is_alive()) {
+            return false;
+        }
+    
+        // Check if the facility has MaintenanceStatus
+        if (facility_entity.has<MaintenanceStatus>()) {
+            auto& maintenance = facility_entity.ensure<MaintenanceStatus>();
+            maintenance.auto_repair_enabled = enabled;
+            return true;
+        }
+    
+        return false;
+    }
+
 }

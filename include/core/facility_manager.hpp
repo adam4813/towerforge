@@ -155,6 +155,18 @@ namespace TowerForge::Core {
      */
         bool RepairFacility(flecs::entity facility_entity) const;
 
+        /**
+     * @brief Enable or disable auto-repair for a facility
+     * 
+     * When enabled, the facility will be automatically repaired when it needs service
+     * or is broken, provided the tower has sufficient funds.
+     * 
+     * @param facility_entity The facility entity to configure
+     * @param enabled Whether to enable auto-repair
+     * @return true if the setting was applied, false if facility doesn't have MaintenanceStatus
+     */
+        bool SetAutoRepair(flecs::entity facility_entity, bool enabled) const;
+
     private:
         flecs::world& world_;
         TowerGrid& grid_;

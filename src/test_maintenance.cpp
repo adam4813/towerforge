@@ -104,6 +104,67 @@ int main() {
     std::cout << "Final Maintenance Status: " << final_status.GetStateString() << std::endl;
     std::cout << "Final Time Since Service: " << final_status.time_since_last_service << " seconds" << std::endl;
     
+    // Test auto-repair functionality
+    std::cout << "\n=== Testing Auto-Repair Functionality ===" << std::endl;
+    
+    // Create a TowerEconomy singleton with initial funds
+    ecs_world.GetWorld().set<TowerEconomy>({10000.0f});  // Start with $10,000
+    
+    std::cout << "Created TowerEconomy singleton with $10,000 initial balance" << std::endl;
+    
+    // Expand the tower grid to have more floors
+    TowerGrid& grid = ecs_world.GetTowerGrid();
+    grid.AddFloors(2);  // Add 2 floors above
+    std::cout << "Added 2 floors to tower (now has " << grid.GetFloorCount() << " floors)" << std::endl;
+    
+    // Create a new office and enable auto-repair
+    flecs::entity auto_office = facility_mgr.CreateFacility(
+        BuildingComponent::Type::Office,
+        1,  // floor 1 (should exist now)
+        5,  // column
+        8   // width
+    );
+    
+    if (auto_office.is_alive()) {
+        std::cout << "\nCreated office with auto-repair enabled" << std::endl;
+        
+        // Enable auto-repair
+        facility_mgr.SetAutoRepair(auto_office, true);
+        
+        MaintenanceStatus& auto_maint = auto_office.ensure<MaintenanceStatus>();
+        std::cout << "Auto-repair enabled: " << (auto_maint.auto_repair_enabled ? "YES" : "NO") << std::endl;
+        
+        // Manually set to broken state for testing
+        auto_maint.status = MaintenanceStatus::State::Broken;
+        auto_maint.time_since_last_service = 15000.0f;  // Simulate long time without service
+        
+        std::cout << "Manually set facility to BROKEN state" << std::endl;
+        std::cout << "Initial Balance: $" << ecs_world.GetWorld().get<TowerEconomy>().total_balance << std::endl;
+        
+        // Run an update cycle to trigger auto-repair (system runs every 10 seconds)
+        std::cout << "\nRunning updates to trigger auto-repair (waits 10 seconds)..." << std::endl;
+        for (int i = 0; i < 12; i++) {
+            ecs_world.Update(1.0f);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        
+        // Check if repair happened
+        const MaintenanceStatus& after_auto = auto_office.ensure<MaintenanceStatus>();
+        const TowerEconomy& after_economy = ecs_world.GetWorld().get<TowerEconomy>();
+        
+        std::cout << "\nAfter auto-repair:" << std::endl;
+        std::cout << "Maintenance Status: " << after_auto.GetStateString() << std::endl;
+        std::cout << "Time Since Service: " << after_auto.time_since_last_service << " seconds" << std::endl;
+        std::cout << "Tower Balance: $" << after_economy.total_balance << std::endl;
+        std::cout << "Total Expenses: $" << after_economy.total_expenses << std::endl;
+        
+        if (after_auto.status == MaintenanceStatus::State::Good) {
+            std::cout << "\n✓ Auto-repair worked successfully!" << std::endl;
+        } else {
+            std::cout << "\n✗ Auto-repair did not trigger" << std::endl;
+        }
+    }
+    
     std::cout << "\nMaintenance system test completed successfully!" << std::endl;
     return 0;
 }

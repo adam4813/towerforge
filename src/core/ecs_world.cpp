@@ -1676,6 +1676,58 @@ namespace TowerForge::Core {
                     }
                 });
     
+        // Auto-repair system
+        // Automatically repairs broken facilities if auto_repair is enabled and funds are available
+        world_.system<MaintenanceStatus, const BuildingComponent>()
+                .kind(flecs::OnUpdate)
+                .interval(10.0f)  // Check every 10 seconds
+                .each([](const flecs::entity e, MaintenanceStatus& maintenance, const BuildingComponent& facility) {
+                    // Only auto-repair if enabled and facility is broken or needs service
+                    if (!maintenance.auto_repair_enabled) return;
+                    if (!maintenance.NeedsService()) return;
+                
+                    // Get TowerEconomy singleton from world
+                    auto world = e.world();
+                    if (!world.has<TowerEconomy>()) return;
+                
+                    const TowerEconomy& economy = world.get<TowerEconomy>();
+                
+                    // Calculate repair cost based on facility type and severity
+                    float repair_cost = 100.0f;  // Base cost
+                    if (maintenance.IsBroken()) {
+                        repair_cost = 500.0f;  // Broken facilities cost more to repair
+                    }
+                
+                    // Different facility types have different repair costs
+                    switch (facility.type) {
+                        case BuildingComponent::Type::Elevator:
+                            repair_cost *= 2.0f;  // Elevators are expensive
+                            break;
+                        case BuildingComponent::Type::Hotel:
+                        case BuildingComponent::Type::Restaurant:
+                        case BuildingComponent::Type::Theater:
+                            repair_cost *= 1.5f;  // Complex facilities cost more
+                            break;
+                        default:
+                            break;
+                    }
+                
+                    // Only repair if we can afford it
+                    if (economy.total_balance >= repair_cost) {
+                        // Deduct cost from tower economy
+                        auto& mut_economy = world.ensure<TowerEconomy>();
+                        mut_economy.total_balance -= repair_cost;
+                        mut_economy.total_expenses += repair_cost;
+                    
+                        // Perform repair
+                        maintenance.Repair();
+                    
+                        const char* facility_type = FacilityManager::GetTypeName(facility.type);
+                        std::cout << "  [Auto-Repair] " << facility_type << " on Floor " << facility.floor 
+                                << " repaired automatically (Cost: $" << static_cast<int>(repair_cost) << ")" << std::endl;
+                    }
+                });
+    
         // Staff manager update system
         // Updates staff counts and wages
         world_.system<StaffManager>()
@@ -1750,7 +1802,7 @@ namespace TowerForge::Core {
                     std::cout << "  ====================" << std::endl;
                 });
     
-        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Needs Growth, Visitor Needs-Driven Behavior, Visitor Facility Interaction, Visitor Satisfaction Calculation, Visitor Behavior, Visitor Needs Display, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, CleanlinessStatus Degradation, MaintenanceStatus Degradation, Maintenance Breakdown Notification, Cleanliness Notification, Staff Shift Management, Staff Cleaning, Staff Maintenance (FacilityStatus), Staff Maintenance (MaintenanceStatus), Staff Firefighting, Staff Security, Facility Status Impact, CleanlinessStatus Impact, Broken Facility Impact, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
+        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Needs Growth, Visitor Needs-Driven Behavior, Visitor Facility Interaction, Visitor Satisfaction Calculation, Visitor Behavior, Visitor Needs Display, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, CleanlinessStatus Degradation, MaintenanceStatus Degradation, Maintenance Breakdown Notification, Cleanliness Notification, Staff Shift Management, Staff Cleaning, Staff Maintenance (FacilityStatus), Staff Maintenance (MaintenanceStatus), Staff Firefighting, Staff Security, Facility Status Impact, CleanlinessStatus Impact, Broken Facility Impact, Auto-Repair, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
     }
 
 }
