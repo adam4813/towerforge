@@ -65,6 +65,40 @@ namespace towerforge::ui {
                y >= bounds.y && y <= bounds.y + bounds.height;
     }
 
+    bool UIElement::ProcessMouseEvent(const MouseEvent& event) {
+        // Update hover state
+        const bool was_hovered = is_hovered_;
+        is_hovered_ = Contains(event.x, event.y);
+
+        // If mouse is not over this element or any children, nothing to do
+        if (!is_hovered_) {
+            return false;
+        }
+
+        // Bubble-down: Process children first (reverse order so top children get events first)
+        for (auto it = children_.rbegin(); it != children_.rend(); ++it) {
+            if ((*it)->ProcessMouseEvent(event)) {
+                // Event was consumed by a child
+                return true;
+            }
+        }
+
+        // Process hover event for this element
+        bool consumed = false;
+        if (is_hovered_) {
+            consumed = OnHover(event);
+        }
+
+        // Process click event if a button was pressed
+        if (!consumed && (event.left_pressed || event.right_pressed)) {
+            if (is_hovered_) {
+                consumed = OnClick(event);
+            }
+        }
+
+        return consumed;
+    }
+
     // Panel implementation
     Panel::Panel(const float relative_x, const float relative_y, const float width, const float height,
                  const Color background_color, const Color border_color)
@@ -98,18 +132,57 @@ namespace towerforge::ui {
           , background_color_(background_color)
           , border_color_(border_color)
           , text_color_(WHITE)
-          , font_size_(20) {
+          , font_size_(20)
+          , enabled_(true)
+          , click_callback_(nullptr) {
+    }
+
+    bool Button::OnHover(const MouseEvent& event) {
+        // Hover handling can be used for visual feedback
+        // For now, just return false to allow event propagation
+        return false;
+    }
+
+    bool Button::OnClick(const MouseEvent& event) {
+        if (!enabled_) {
+            return false;
+        }
+
+        // Only handle left clicks
+        if (event.left_pressed) {
+            if (click_callback_) {
+                click_callback_();
+            }
+            return true; // Consume the event
+        }
+
+        return false;
     }
 
     void Button::Render() const {
         const Rectangle bounds = GetAbsoluteBounds();
         
+        // Determine colors based on state
+        Color bg_color = background_color_;
+        Color border_col = border_color_;
+        Color text_col = text_color_;
+
+        if (!enabled_) {
+            bg_color = ColorAlpha(bg_color, 0.5f);
+            border_col = ColorAlpha(border_col, 0.5f);
+            text_col = ColorAlpha(text_col, 0.5f);
+        } else if (is_hovered_) {
+            // Brighten colors when hovered
+            bg_color = ColorAlpha(bg_color, bg_color.a / 255.0f * 1.5f);
+            border_col = ColorBrightness(border_col, 0.2f);
+        }
+        
         // Draw background
-        DrawRectangleRec(bounds, background_color_);
+        DrawRectangleRec(bounds, bg_color);
         
         // Draw border if not transparent
-        if (border_color_.a > 0) {
-            DrawRectangleLinesEx(bounds, 2, border_color_);
+        if (border_col.a > 0) {
+            DrawRectangleLinesEx(bounds, 2, border_col);
         }
         
         // Draw label text centered
@@ -117,7 +190,7 @@ namespace towerforge::ui {
             const int text_width = MeasureText(label_.c_str(), font_size_);
             const int text_x = bounds.x + (bounds.width - text_width) / 2;
             const int text_y = bounds.y + (bounds.height - font_size_) / 2;
-            DrawText(label_.c_str(), text_x, text_y, font_size_, text_color_);
+            DrawText(label_.c_str(), text_x, text_y, font_size_, text_col);
         }
         
         // Render all children
