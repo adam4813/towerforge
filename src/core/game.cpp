@@ -113,7 +113,7 @@ namespace towerforge::core {
           , research_menu_(nullptr)
           , camera_(nullptr)
           , placement_system_(nullptr)
-          , history_panel_(nullptr)
+          , history_panel_(nullptr)  // std::unique_ptr initialized to nullptr
           , is_paused_(false)
           , in_settings_from_pause_(false)
           , in_audio_settings_from_pause_(false)
@@ -536,7 +536,7 @@ namespace towerforge::core {
         placement_system_->SetTooltipManager(hud_->GetTooltipManager());
 
         // Create history panel
-        history_panel_ = new ui::HistoryPanel();
+        history_panel_ = std::make_unique<ui::HistoryPanel>();
         history_panel_->SetVisible(false);  // Hidden by default
 
         std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x "
@@ -1263,7 +1263,6 @@ namespace towerforge::core {
         }
 
         delete placement_system_;
-        delete history_panel_;
         delete camera_;
         delete research_menu_;
         delete save_load_menu_;
@@ -1276,7 +1275,7 @@ namespace towerforge::core {
         delete tutorial_manager_;
 
         placement_system_ = nullptr;
-        history_panel_ = nullptr;
+        history_panel_.reset();  // Explicit reset for clarity, though automatic
         camera_ = nullptr;
         research_menu_ = nullptr;
         save_load_menu_ = nullptr;
