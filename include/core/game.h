@@ -21,6 +21,7 @@
 #include "ui/tutorial_manager.h"
 #include "ui/mods_menu.h"
 #include "ui/help_system.h"
+#include "ui/analytics_overlay.h"
 #include "audio/audio_manager.h"
 
 namespace towerforge::core {
@@ -95,6 +96,8 @@ namespace towerforge::core {
 
         // Helper methods
         void CalculateTowerRating();
+        ui::IncomeBreakdown CollectIncomeAnalytics() const;
+        ui::PopulationBreakdown CollectPopulationAnalytics() const;
 
         // Game state
         GameState current_state_;
