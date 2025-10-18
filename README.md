@@ -697,9 +697,20 @@ The interactive building and placement system provides a complete mouse-driven i
 - **Placement Preview**: Green/red highlights show valid/invalid placements
 - **Construction Progress**: Orange overlays with progress bars show ongoing construction
 - **Demolish Mode**: Red highlights for facilities that can be demolished
-- **Keyboard Shortcuts**: D for demolish, Ctrl+Z/Y for undo/redo
+- **Advanced Undo/Redo**: Command Pattern implementation with full state restoration
+- **History Panel**: Visual timeline of actions with timestamps (toggle with H key)
+- **Multi-Action Undo/Redo**: Click any history entry to undo/redo multiple actions
+- **Funds Validation**: Prevents undo/redo when insufficient funds
+- **Keyboard Shortcuts**: D for demolish, H for history, Ctrl+Z/Y for undo/redo
 
-See [docs/PLACEMENT_SYSTEM.md](docs/PLACEMENT_SYSTEM.md) for complete documentation.
+**New in Latest Update:**
+- Complete rewrite using Command Pattern for robust undo/redo
+- Demolish operations now properly restore facilities with all properties
+- Visual history panel shows up to 50 recent actions with cost changes
+- Interactive timeline - click any action to jump to that point in history
+- Full funds validation ensures operations only succeed when affordable
+
+See [docs/PLACEMENT_SYSTEM.md](docs/PLACEMENT_SYSTEM.md) and [docs/COMMAND_PATTERN_HISTORY.md](docs/COMMAND_PATTERN_HISTORY.md) for complete documentation.
 
 ### In-Game Pause Menu
 
@@ -743,11 +754,12 @@ The application demonstrates:
 - Economic simulation with revenue collection and expense tracking
 - Interactive building and placement with the mouse
 - Real-time construction progress
-- Undo/redo functionality
+- **Advanced undo/redo with Command Pattern and visual history panel**
 - **Star rating system with progression tracking**
 - **Interactive HUD with real-time game information**
   - Top bar with funds, population, time, and simulation speed
   - Star rating overlay with tower statistics and next milestone
+  - History panel with action timeline (press H to toggle)
   - Info panels for facilities, people, and elevators
   - Notification system
   - Build menu with facility types and costs

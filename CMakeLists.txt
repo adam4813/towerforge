@@ -31,6 +31,7 @@ set(SOURCE_FILES
     src/ui/hud.cpp
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp
+    src/ui/history_panel.cpp
     src/ui/main_menu.cpp
     src/ui/pause_menu.cpp
     src/ui/save_load_menu.cpp

@@ -113,6 +113,7 @@ namespace towerforge::core {
           , research_menu_(nullptr)
           , camera_(nullptr)
           , placement_system_(nullptr)
+          , history_panel_(nullptr)  // std::unique_ptr initialized to nullptr
           , is_paused_(false)
           , in_settings_from_pause_(false)
           , in_audio_settings_from_pause_(false)
@@ -534,6 +535,10 @@ namespace towerforge::core {
         placement_system_->SetCamera(camera_);
         placement_system_->SetTooltipManager(hud_->GetTooltipManager());
 
+        // Create history panel
+        history_panel_ = std::make_unique<ui::HistoryPanel>();
+        history_panel_->SetVisible(false);  // Hidden by default
+
         std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x "
                 << grid.GetColumnCount() << " columns" << std::endl;
 
@@ -607,6 +612,11 @@ namespace towerforge::core {
         // Handle R key to toggle research menu (only if not paused)
         if (research_menu_ != nullptr && !is_paused_ && IsKeyPressed(KEY_R)) {
             research_menu_->Toggle();
+        }
+
+        // Handle H key to toggle history panel (only if not paused)
+        if (history_panel_ != nullptr && !is_paused_ && IsKeyPressed(KEY_H)) {
+            history_panel_->ToggleVisible();
         }
 
         // Only update simulation if not paused
@@ -782,6 +792,12 @@ namespace towerforge::core {
         if (!is_paused_) {
             placement_system_->Update(time_step_);
             placement_system_->HandleKeyboard();
+            
+            // Update history panel with current command history
+            if (history_panel_ != nullptr && history_panel_->IsVisible()) {
+                history_panel_->UpdateFromHistory(placement_system_->GetCommandHistory());
+            }
+            
             camera_->Update(time_step_);
         }
 
@@ -812,6 +828,42 @@ namespace towerforge::core {
         if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             auto &grid = ecs_world_->GetTowerGrid();
 
+            // Check history panel first (if visible)
+            if (history_panel_ != nullptr && history_panel_->IsVisible() && 
+                history_panel_->IsMouseOver(mouse_x, mouse_y)) {
+                const int steps = history_panel_->HandleClick(mouse_x, mouse_y);
+                if (steps > 0) {
+                    // Undo 'steps' times
+                    int success_count = 0;
+                    for (int i = 0; i < steps; i++) {
+                        if (placement_system_->Undo(game_state_.funds)) {
+                            success_count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (success_count > 0) {
+                        hud_->AddNotification(Notification::Type::Info, 
+                            TextFormat("Undid %d action(s)", success_count), 2.0f);
+                    }
+                } else if (steps < 0) {
+                    // Redo 'steps' times
+                    int success_count = 0;
+                    for (int i = 0; i < -steps; i++) {
+                        if (placement_system_->Redo(game_state_.funds)) {
+                            success_count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (success_count > 0) {
+                        hud_->AddNotification(Notification::Type::Info, 
+                            TextFormat("Redid %d action(s)", success_count), 2.0f);
+                    }
+                }
+                return;  // Don't process other clicks
+            }
+
             const int menu_result = build_menu_->HandleClick(mouse_x, mouse_y,
                                                              placement_system_->CanUndo(),
                                                              placement_system_->CanRedo());
@@ -823,11 +875,19 @@ namespace towerforge::core {
                                       placement_system_->IsDemolishMode() ? "Demolish mode ON" : "Demolish mode OFF",
                                       3.0f);
             } else if (menu_result == -3) {
-                placement_system_->Undo();
-                hud_->AddNotification(Notification::Type::Info, "Undid last action", 2.0f);
+                // Undo button clicked
+                if (placement_system_->Undo(game_state_.funds)) {
+                    hud_->AddNotification(Notification::Type::Info, "Undid last action", 2.0f);
+                } else {
+                    hud_->AddNotification(Notification::Type::Warning, "Cannot undo (insufficient funds or nothing to undo)", 2.0f);
+                }
             } else if (menu_result == -4) {
-                placement_system_->Redo();
-                hud_->AddNotification(Notification::Type::Info, "Redid action", 2.0f);
+                // Redo button clicked
+                if (placement_system_->Redo(game_state_.funds)) {
+                    hud_->AddNotification(Notification::Type::Info, "Redid action", 2.0f);
+                } else {
+                    hud_->AddNotification(Notification::Type::Warning, "Cannot redo (insufficient funds or nothing to redo)", 2.0f);
+                }
             } else if (menu_result == -5) {
                 // Add floor
                 const int floor_cost = TowerGrid::GetFloorBuildCost() * grid.GetColumnCount();
@@ -1105,6 +1165,11 @@ namespace towerforge::core {
         build_menu_->Render(placement_system_->CanUndo(), placement_system_->CanRedo(),
                             placement_system_->IsDemolishMode());
 
+        // Render history panel (if visible)
+        if (history_panel_ != nullptr) {
+            history_panel_->Render();
+        }
+
         camera_->RenderControlsOverlay();
         camera_->RenderFollowIndicator();
 
@@ -1210,6 +1275,7 @@ namespace towerforge::core {
         delete tutorial_manager_;
 
         placement_system_ = nullptr;
+        history_panel_.reset();  // Explicit reset for clarity, though automatic
         camera_ = nullptr;
         research_menu_ = nullptr;
         save_load_menu_ = nullptr;

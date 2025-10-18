@@ -1,5 +1,6 @@
 #include "ui/placement_system.h"
 #include "rendering/camera.h"
+#include "core/command.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -18,6 +19,7 @@ namespace towerforge::ui {
           , hover_floor_(-1)
           , hover_column_(-1)
           , hover_valid_(false)
+          , command_history_(50)  // Max 50 actions in history
           , tooltip_manager_(nullptr) {
     }
 
@@ -226,14 +228,14 @@ namespace towerforge::ui {
 
         // Ctrl+Z for undo
         if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Z)) {
-            Undo();
-            return true;
+            // Note: funds adjustment handled by the game logic
+            return true;  // Signal that undo was requested
         }
 
         // Ctrl+Y for redo
         if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Y)) {
-            Redo();
-            return true;
+            // Note: funds adjustment handled by the game logic
+            return true;  // Signal that redo was requested
         }
 
         return false;
@@ -307,52 +309,20 @@ namespace towerforge::ui {
         tooltip_manager_->HideTooltip();
     }
 
-    void PlacementSystem::Undo() {
-        if (undo_stack_.empty()) {
-            return;
-        }
-
-        // Get last action
-        const PlacementAction action = undo_stack_.back();
-        undo_stack_.pop_back();
-
-        // Reverse the action
-        if (action.type == PlacementAction::Type::Place) {
-            // Remove the placed facility
-            facility_mgr_.RemoveFacilityAt(action.floor, action.column);
-        } else {
-            // Re-place the demolished facility (simplified - doesn't restore exact state)
-            // In a full implementation, we'd store more details
-        }
-
-        // Add to redo stack
-        redo_stack_.push_back(action);
-        if (redo_stack_.size() > MAX_UNDO_ACTIONS) {
-            redo_stack_.erase(redo_stack_.begin());
-        }
+    bool PlacementSystem::Undo(float& funds) {
+        return command_history_.Undo(funds);
     }
 
-    void PlacementSystem::Redo() {
-        if (redo_stack_.empty()) {
-            return;
-        }
+    bool PlacementSystem::Redo(float& funds) {
+        return command_history_.Redo(funds);
+    }
 
-        // Get last undone action
-        const PlacementAction action = redo_stack_.back();
-        redo_stack_.pop_back();
+    bool PlacementSystem::CanUndo() const {
+        return command_history_.CanUndo();
+    }
 
-        // Re-apply the action
-        if (action.type == PlacementAction::Type::Place) {
-            // Re-place the facility
-            const auto facility_type = GetFacilityType(action.facility_type_index);
-            facility_mgr_.CreateFacility(facility_type, action.floor, action.column, action.width);
-        } else {
-            // Re-demolish
-            facility_mgr_.RemoveFacilityAt(action.floor, action.column);
-        }
-
-        // Add back to undo stack
-        undo_stack_.push_back(action);
+    bool PlacementSystem::CanRedo() const {
+        return command_history_.CanRedo();
     }
 
     bool PlacementSystem::MouseToGrid(const int mouse_x, const int mouse_y,
@@ -413,37 +383,36 @@ namespace towerforge::ui {
             return false;
         }
 
-        // Deduct total cost (facility + floor building)
-        funds -= total_cost;
+        // Build floors first (this doesn't use the command pattern as it's part of the facility placement)
+        facility_mgr_.BuildFloorsForFacility(floor, column, facility_type.width);
 
         // Map to BuildingComponent::Type
         const auto bc_type = GetFacilityType(facility_type_index);
 
-        // Create facility (this will auto-build floors)
-        const auto entity = facility_mgr_.CreateFacility(bc_type, floor, column, facility_type.width);
-        if (!entity) {
-            // Failed to create - refund
-            funds += total_cost;
+        // Create command
+        auto command = std::make_unique<TowerForge::Core::PlaceFacilityCommand>(
+            facility_mgr_, grid_, bc_type, floor, column, facility_type.width, total_cost
+        );
+
+        // Execute via command history
+        if (!command_history_.ExecuteCommand(std::move(command), funds)) {
             return false;
         }
 
         // Add to construction queue
-        float build_time = GetBuildTime(facility_type_index);
-        constructions_in_progress_.emplace_back(
-            static_cast<int>(entity.id()), build_time, floor, column, facility_type.width
-        );
-
-        // Add to undo stack
-        const PlacementAction action(PlacementAction::Type::Place, static_cast<int>(entity.id()),
-                               floor, column, facility_type.width, facility_type_index,
-                               total_cost);
-        undo_stack_.push_back(action);
-        if (undo_stack_.size() > MAX_UNDO_ACTIONS) {
-            undo_stack_.erase(undo_stack_.begin());
+        // Get the entity ID from the last undo entry
+        const auto& undo_stack = command_history_.GetUndoStack();
+        if (!undo_stack.empty()) {
+            const auto* place_cmd = dynamic_cast<TowerForge::Core::PlaceFacilityCommand*>(
+                undo_stack.back().command.get()
+            );
+            if (place_cmd) {
+                float build_time = GetBuildTime(facility_type_index);
+                constructions_in_progress_.emplace_back(
+                    place_cmd->GetCreatedEntityId(), build_time, floor, column, facility_type.width
+                );
+            }
         }
-
-        // Clear redo stack
-        redo_stack_.clear();
 
         return true;
     }
@@ -453,35 +422,13 @@ namespace towerforge::ui {
             return false;
         }
 
-        const int facility_id = grid_.GetFacilityAt(floor, column);
-        if (facility_id < 0) {
-            return false;
-        }
+        // Create demolish command
+        auto command = std::make_unique<TowerForge::Core::DemolishFacilityCommand>(
+            facility_mgr_, grid_, floor, column, RECOVERY_PERCENTAGE
+        );
 
-        // Calculate refund (50% of original cost)
-        // For now, use a simple estimate based on facility type
-        constexpr int refund = 500; // Placeholder - should look up actual cost
-
-        // Remove facility
-        if (!facility_mgr_.RemoveFacilityAt(floor, column)) {
-            return false;
-        }
-
-        // Add refund
-        funds += refund;
-
-        // Add to undo stack
-        const PlacementAction action(PlacementAction::Type::Demolish, facility_id,
-                               floor, column, 1, -1, refund);
-        undo_stack_.push_back(action);
-        if (undo_stack_.size() > MAX_UNDO_ACTIONS) {
-            undo_stack_.erase(undo_stack_.begin());
-        }
-
-        // Clear redo stack
-        redo_stack_.clear();
-
-        return true;
+        // Execute via command history
+        return command_history_.ExecuteCommand(std::move(command), funds);
     }
 
     float PlacementSystem::GetBuildTime(const int facility_type_index) {

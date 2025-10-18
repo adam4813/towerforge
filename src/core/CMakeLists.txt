@@ -7,6 +7,8 @@ add_library(towerforge_core
     achievement_manager.cpp
     lua_mod_manager.cpp
     game.cpp
+    command.cpp
+    command_history.cpp
 )
 
 # Find flecs package

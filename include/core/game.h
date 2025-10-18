@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "rendering/renderer.h"
 #include "rendering/camera.h"
 #include "core/ecs_world.hpp"
@@ -8,6 +9,7 @@
 #include "ui/hud.h"
 #include "ui/build_menu.h"
 #include "ui/placement_system.h"
+#include "ui/history_panel.h"
 #include "ui/main_menu.h"
 #include "ui/pause_menu.h"
 #include "ui/save_load_menu.h"
@@ -125,6 +127,7 @@ namespace towerforge::core {
         ui::ModsMenu* mods_menu_;
         rendering::Camera* camera_;
         ui::PlacementSystem* placement_system_;
+        std::unique_ptr<ui::HistoryPanel> history_panel_;
 
         // InGame state
         ui::GameState game_state_;
