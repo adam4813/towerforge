@@ -697,9 +697,10 @@ namespace towerforge::core {
                 const ui::MouseEvent mouse_event{
                     static_cast<float>(GetMouseX()),
                     static_cast<float>(GetMouseY()),
+                    false, // left_down
+                    false, // right_down
                     true,  // left_pressed
-                    false, // right_pressed
-                    ui::MouseButton::Left
+                    false  // right_pressed
                 };
                 
                 // Check research menu confirmation dialogs
@@ -911,9 +912,10 @@ namespace towerforge::core {
             const ui::MouseEvent mouse_event{
                 static_cast<float>(mouse_x),
                 static_cast<float>(mouse_y),
+                false, // left_down
+                false, // right_down
                 true,  // left_pressed
-                false, // right_pressed
-                ui::MouseButton::Left
+                false  // right_pressed
             };
             
             // Check placement system confirmation dialogs first
