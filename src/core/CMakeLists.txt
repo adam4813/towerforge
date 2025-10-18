@@ -5,6 +5,7 @@ add_library(towerforge_core
     facility_manager.cpp
     save_load_manager.cpp
     achievement_manager.cpp
+    accessibility_settings.cpp
     lua_mod_manager.cpp
     game.cpp
     command.cpp

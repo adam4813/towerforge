@@ -1,6 +1,6 @@
 # TowerForge Lua Modding API Documentation
 
-Welcome to the TowerForge Modding API! This guide will help you create custom facilities and visitor types for TowerForge using Lua scripting.
+Welcome to the TowerForge Modding API! This guide will help you create custom facilities, visitor types, staff roles, and event types for TowerForge using Lua scripting.
 
 ## Table of Contents
 - [Getting Started](#getting-started)
@@ -8,6 +8,8 @@ Welcome to the TowerForge Modding API! This guide will help you create custom fa
 - [API Reference](#api-reference)
   - [TowerForge.RegisterFacilityType](#towerforgeregisterfacilitytype)
   - [TowerForge.RegisterVisitorType](#towerforgeregistervisitortype)
+  - [TowerForge.RegisterStaffRole](#towerforgeregisterstaffrole)
+  - [TowerForge.RegisterEventType](#towerforgeregistereventtype)
   - [TowerForge.Log](#towerforgelog)
 - [Examples](#examples)
 - [Security and Sandboxing](#security-and-sandboxing)
@@ -156,6 +158,125 @@ TowerForge.RegisterVisitorType({
 
 ---
 
+### TowerForge.RegisterStaffRole
+
+Registers a new custom staff role that can be hired to work in the tower.
+
+**Syntax:**
+```lua
+TowerForge.RegisterStaffRole({
+    id = "unique_id",              -- Required: Unique identifier (string)
+    name = "Display Name",         -- Required: Display name (string)
+    
+    -- Optional: Work characteristics
+    work_efficiency = 1.0,         -- Default: 1.0 (normal speed)
+    default_wage = 50.0,           -- Default: $50 per day
+    
+    -- Optional: Shift hours (24-hour format)
+    shift_start_hour = 9.0,        -- Default: 9 AM
+    shift_end_hour = 17.0,         -- Default: 5 PM
+    
+    -- Optional: Work behavior
+    work_type = "custom",          -- Default: "custom" (options: "cleaning", "maintenance", "emergency", "custom")
+    work_function = "MyWorkFunc"   -- Default: "" (Lua function name for custom work behavior)
+})
+```
+
+**Parameters:**
+- `id` (string, required): Unique identifier for this staff role
+- `name` (string, required): Human-readable name displayed in the UI
+- `work_efficiency` (number, optional): Work speed multiplier, higher = faster (default: 1.0)
+- `default_wage` (number, optional): Daily wage per staff member (default: 50.0)
+- `shift_start_hour` (number, optional): Shift start time in 24-hour format (default: 9.0)
+- `shift_end_hour` (number, optional): Shift end time in 24-hour format (default: 17.0)
+- `work_type` (string, optional): Type of work performed: "cleaning", "maintenance", "emergency", or "custom" (default: "custom")
+- `work_function` (string, optional): Name of Lua function to call for custom work behavior (default: "")
+
+**Work Types:**
+- `"cleaning"`: Staff will automatically clean facilities when cleanliness drops below 70%
+- `"maintenance"`: Staff will automatically maintain facilities when maintenance drops below 70%
+- `"emergency"`: Staff will respond to fires and security issues
+- `"custom"`: Staff will call the specified Lua function for custom behavior
+
+**Example:**
+```lua
+TowerForge.RegisterStaffRole({
+    id = "night_janitor",
+    name = "Night Janitor",
+    work_efficiency = 1.25,        -- 25% more efficient
+    default_wage = 60.0,           -- Higher wage for night shift
+    shift_start_hour = 22.0,       -- 10 PM
+    shift_end_hour = 6.0,          -- 6 AM
+    work_type = "cleaning"
+})
+```
+
+---
+
+### TowerForge.RegisterEventType
+
+Registers a new custom event type that can occur in facilities (e.g., fires, security issues, equipment failures).
+
+**Syntax:**
+```lua
+TowerForge.RegisterEventType({
+    id = "unique_id",              -- Required: Unique identifier (string)
+    name = "Display Name",         -- Required: Display name (string)
+    
+    -- Optional: Event description
+    description = "Description",   -- Default: "" (what the event represents)
+    
+    -- Optional: Occurrence parameters
+    spawn_chance = 0.001,          -- Default: 0.001 (0.1% chance per hour per facility)
+    duration = 300.0,              -- Default: 300 seconds (how long event lasts if not resolved)
+    
+    -- Optional: Staff response
+    requires_staff_response = true,        -- Default: true (whether staff can resolve it)
+    required_staff_type = "Firefighter",   -- Default: "" (staff type that can resolve it)
+    resolution_time = 10.0,                -- Default: 10 seconds (time for staff to resolve)
+    
+    -- Optional: Impact on facility
+    satisfaction_penalty = 5.0,    -- Default: 5.0 (satisfaction reduction while active)
+    maintenance_damage = 10.0,     -- Default: 10.0 (maintenance damage when resolved)
+    
+    -- Optional: Lua callbacks
+    on_spawn_function = "OnSpawn",     -- Default: "" (function called when event spawns)
+    on_resolve_function = "OnResolve"  -- Default: "" (function called when event is resolved)
+})
+```
+
+**Parameters:**
+- `id` (string, required): Unique identifier for this event type
+- `name` (string, required): Human-readable name displayed in the UI
+- `description` (string, optional): Description of what the event represents (default: "")
+- `spawn_chance` (number, optional): Probability per hour per facility (0.0-1.0) (default: 0.001)
+- `duration` (number, optional): How long event lasts in seconds, 0 = permanent until resolved (default: 300.0)
+- `requires_staff_response` (boolean, optional): Whether staff need to resolve it (default: true)
+- `required_staff_type` (string, optional): Staff type that can resolve it (e.g., "Firefighter", "Security", "Janitor") (default: "")
+- `resolution_time` (number, optional): Time in seconds for staff to resolve (default: 10.0)
+- `satisfaction_penalty` (number, optional): Satisfaction reduction while event is active (default: 5.0)
+- `maintenance_damage` (number, optional): Maintenance damage caused when event occurs or is resolved (default: 10.0)
+- `on_spawn_function` (string, optional): Name of Lua function to call when event spawns (default: "")
+- `on_resolve_function` (string, optional): Name of Lua function to call when event is resolved (default: "")
+
+**Example:**
+```lua
+TowerForge.RegisterEventType({
+    id = "electrical_fire",
+    name = "Electrical Fire",
+    description = "An electrical malfunction has caused a fire",
+    spawn_chance = 0.0005,         -- 0.05% chance per hour (rare)
+    duration = 0.0,                -- Permanent until extinguished
+    requires_staff_response = true,
+    required_staff_type = "Firefighter",
+    resolution_time = 15.0,        -- Takes 15 seconds to extinguish
+    satisfaction_penalty = 20.0,   -- Major satisfaction penalty
+    maintenance_damage = 15.0      -- Causes significant damage
+})
+```
+
+---
+
 ### TowerForge.Log
 
 Logs a message to the console for debugging purposes.
@@ -294,6 +415,112 @@ TowerForge.RegisterVisitorType({
 TowerForge.Log("Entertainment Pack loaded successfully!")
 ```
 
+### Example 5: Night Janitor Staff Role
+
+```lua
+-- Mod: Night Janitor
+ModInfo = {
+    id = "night_janitor",
+    name = "Night Janitor Mod",
+    version = "1.0.0",
+    author = "Community",
+    description = "Adds night janitors with enhanced efficiency"
+}
+
+TowerForge.RegisterStaffRole({
+    id = "night_janitor",
+    name = "Night Janitor",
+    work_efficiency = 1.25,        -- 25% more efficient
+    default_wage = 60.0,
+    shift_start_hour = 22.0,       -- 10 PM
+    shift_end_hour = 6.0,          -- 6 AM
+    work_type = "cleaning"
+})
+
+TowerForge.Log("Night Janitor registered!")
+```
+
+### Example 6: HVAC Technician Staff Role
+
+```lua
+-- Mod: HVAC Technician
+ModInfo = {
+    id = "hvac_tech",
+    name = "HVAC Technician Mod",
+    version = "1.0.0",
+    author = "Community",
+    description = "Specialized climate control maintenance"
+}
+
+TowerForge.RegisterStaffRole({
+    id = "hvac_tech",
+    name = "HVAC Technician",
+    work_efficiency = 1.5,         -- Very efficient
+    default_wage = 75.0,           -- Higher pay for specialization
+    shift_start_hour = 8.0,
+    shift_end_hour = 17.0,
+    work_type = "maintenance"
+})
+
+TowerForge.Log("HVAC Technician registered!")
+```
+
+### Example 7: Electrical Fire Event
+
+```lua
+-- Mod: Electrical Fire Event
+ModInfo = {
+    id = "electrical_fire",
+    name = "Electrical Fire Event",
+    version = "1.0.0",
+    author = "Community",
+    description = "Adds dangerous electrical fire events"
+}
+
+TowerForge.RegisterEventType({
+    id = "electrical_fire",
+    name = "Electrical Fire",
+    description = "Electrical malfunction caused a fire",
+    spawn_chance = 0.0005,         -- Rare event
+    duration = 0.0,                -- Doesn't go away without staff
+    requires_staff_response = true,
+    required_staff_type = "Firefighter",
+    resolution_time = 15.0,
+    satisfaction_penalty = 20.0,   -- Major penalty
+    maintenance_damage = 15.0      -- Significant damage
+})
+
+TowerForge.Log("Electrical Fire event registered!")
+```
+
+### Example 8: Pest Infestation Event
+
+```lua
+-- Mod: Pest Infestation Event
+ModInfo = {
+    id = "pest_infestation",
+    name = "Pest Infestation Event",
+    version = "1.0.0",
+    author = "Community",
+    description = "Adds pest infestation events"
+}
+
+TowerForge.RegisterEventType({
+    id = "pest_infestation",
+    name = "Pest Infestation",
+    description = "Pests spotted in facility",
+    spawn_chance = 0.001,          -- Uncommon
+    duration = 600.0,              -- 10 minutes
+    requires_staff_response = true,
+    required_staff_type = "Janitor",
+    resolution_time = 30.0,        -- Takes 30 seconds to resolve
+    satisfaction_penalty = 15.0,
+    maintenance_damage = 5.0       -- Minor damage
+})
+
+TowerForge.Log("Pest Infestation event registered!")
+```
+
 ---
 
 ## Security and Sandboxing
@@ -301,7 +528,7 @@ TowerForge.Log("Entertainment Pack loaded successfully!")
 For security reasons, Lua mods run in a sandboxed environment with restricted access:
 
 **Allowed:**
-- ✅ Registering custom facilities and visitor types
+- ✅ Registering custom facilities, visitor types, staff roles, and event types
 - ✅ Logging messages
 - ✅ Basic Lua operations (math, string manipulation, tables, etc.)
 - ✅ Defining mod metadata

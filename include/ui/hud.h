@@ -54,6 +54,12 @@ namespace towerforge::ui {
         float revenue;
         float satisfaction;
         int tenant_count;
+        float cleanliness;          // 0-100
+        float maintenance_level;    // 0-100
+        std::string cleanliness_rating;
+        std::string maintenance_rating;
+        bool has_fire;
+        bool has_security_issue;
     };
 
     /**
@@ -62,14 +68,19 @@ namespace towerforge::ui {
     struct PersonInfo {
         int id;
         std::string name;
-        std::string npc_type;      // "Visitor" or "Employee"
+        std::string npc_type;      // "Visitor", "Employee", or "Staff"
         std::string state;
-        std::string status;        // Current activity/status (e.g., "Shopping", "On shift: Office Worker")
+        std::string status;        // Current activity/status (e.g., "Shopping", "On shift: Office Worker", "Cleaning")
         int current_floor;
         int destination_floor;
         float wait_time;
         std::string needs;
         float satisfaction;
+        // Staff-specific fields
+        bool is_staff;
+        std::string staff_role;    // "Janitor", "Maintenance", etc.
+        bool on_duty;
+        std::string shift_hours;
     };
 
     /**

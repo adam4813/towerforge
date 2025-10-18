@@ -41,10 +41,13 @@ namespace TowerForge::Core {
     
         // Add BuildingComponent
         int capacity = GetDefaultCapacity(type);
-        facility.set<BuildingComponent>({type, floor, width, capacity});
+        facility.set<BuildingComponent>({type, floor, column, width, capacity});
     
         // Add GridPosition
         facility.set<GridPosition>({floor, column, width});
+    
+        // Add FacilityStatus for tracking cleanliness and maintenance
+        facility.set<FacilityStatus>({});
     
         // Place on the grid using the entity ID
         if (!grid_.PlaceFacility(floor, column, width, static_cast<int>(facility.id()))) {

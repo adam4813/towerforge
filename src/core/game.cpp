@@ -104,6 +104,7 @@ namespace towerforge::core {
           , tutorial_manager_(nullptr)
           , tutorial_active_(false)
           , in_audio_settings_(false)
+          , in_accessibility_settings_(false)
           , ecs_world_(nullptr)
           , save_load_manager_(nullptr)
           , achievement_manager_(nullptr)
@@ -118,6 +119,7 @@ namespace towerforge::core {
           , is_paused_(false)
           , in_settings_from_pause_(false)
           , in_audio_settings_from_pause_(false)
+          , in_accessibility_settings_from_pause_(false)
           , elapsed_time_(0.0f)
           , sim_time_(0.0f)
           , time_step_(1.0f / 60.0f)
@@ -299,7 +301,10 @@ namespace towerforge::core {
     }
 
     void Game::UpdateSettingsScreen(const float delta_time) {
-        if (in_audio_settings_) {
+        if (in_accessibility_settings_) {
+            accessibility_settings_menu_.Update(delta_time);
+            HandleSettingsInput();
+        } else if (in_audio_settings_) {
             audio_settings_menu_.Update(delta_time);
             HandleSettingsInput();
         } else {
@@ -312,7 +317,9 @@ namespace towerforge::core {
         renderer_.BeginFrame();
         ClearBackground(Color{20, 20, 30, 255});
 
-        if (in_audio_settings_) {
+        if (in_accessibility_settings_) {
+            accessibility_settings_menu_.Render();
+        } else if (in_audio_settings_) {
             audio_settings_menu_.Render();
         } else {
             general_settings_menu_.Render();
@@ -322,7 +329,16 @@ namespace towerforge::core {
     }
 
     void Game::HandleSettingsInput() {
-        if (in_audio_settings_) {
+        if (in_accessibility_settings_) {
+            if (accessibility_settings_menu_.HandleKeyboard()) {
+                in_accessibility_settings_ = false;
+            }
+            const bool back_clicked = accessibility_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
+                                                                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            if (back_clicked) {
+                in_accessibility_settings_ = false;
+            }
+        } else if (in_audio_settings_) {
             if (audio_settings_menu_.HandleKeyboard()) {
                 in_audio_settings_ = false;
             }
@@ -344,15 +360,18 @@ namespace towerforge::core {
                     case SettingsOption::Audio:
                         in_audio_settings_ = true;
                         break;
+                    case SettingsOption::Accessibility:
+                        in_accessibility_settings_ = true;
+                        break;
                     case SettingsOption::Controls:
                     case SettingsOption::Display:
-                    case SettingsOption::Accessibility:
                     case SettingsOption::Gameplay:
                         std::cout << "Settings option not yet implemented" << std::endl;
                         break;
                     case SettingsOption::Back:
                         current_state_ = GameState::TitleScreen;
                         in_audio_settings_ = false;
+                        in_accessibility_settings_ = false;
                         break;
                 }
             }
@@ -441,6 +460,9 @@ namespace towerforge::core {
         // Create the global NPCSpawner as a singleton
         ecs_world_->GetWorld().set<NPCSpawner>({30.0f}); // Spawn visitors every 30 seconds base rate
 
+        // Create the global StaffManager as a singleton
+        ecs_world_->GetWorld().set<StaffManager>({});
+
         std::cout << std::endl << "Creating example entities..." << std::endl;
         std::cout << "Renderer initialized. Window opened." << std::endl;
         std::cout << "Press ESC or close window to exit." << std::endl;
@@ -488,19 +510,19 @@ namespace towerforge::core {
         // Create building components
         const auto lobby_entity = ecs_world_->CreateEntity("Lobby");
         lobby_entity.set<Position>({0.0f, 0.0f});
-        lobby_entity.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 10, 50});
+        lobby_entity.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 0, 10, 50});
         lobby_entity.set<Satisfaction>({85.0f});
         lobby_entity.set<FacilityEconomics>({50.0f, 10.0f, 50});
 
         const auto office1_entity = ecs_world_->CreateEntity("Office_Floor_5");
         office1_entity.set<Position>({0.0f, 50.0f});
-        office1_entity.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 8, 20});
+        office1_entity.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 0, 8, 20});
         office1_entity.set<Satisfaction>({70.0f});
         office1_entity.set<FacilityEconomics>({150.0f, 30.0f, 20});
 
         const auto restaurant_entity = ecs_world_->CreateEntity("Restaurant_Floor_3");
         restaurant_entity.set<Position>({0.0f, 30.0f});
-        restaurant_entity.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 6, 30});
+        restaurant_entity.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 0, 6, 30});
         restaurant_entity.set<Satisfaction>({65.0f});
         restaurant_entity.set<FacilityEconomics>({200.0f, 60.0f, 30});
 
@@ -627,6 +649,7 @@ namespace towerforge::core {
         is_paused_ = false;
         in_settings_from_pause_ = false;
         in_audio_settings_from_pause_ = false;
+        in_accessibility_settings_from_pause_ = false;
     }
 
     void Game::UpdateInGame(float delta_time) {
@@ -636,7 +659,8 @@ namespace towerforge::core {
                 save_load_menu_->Close();
             } else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
                 research_menu_->SetVisible(false);
-            } else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ && !is_paused_) {
+            } else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ && 
+                       !in_accessibility_settings_from_pause_ && !is_paused_) {
                 is_paused_ = true;
                 audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
                 game_state_.paused = true;
@@ -800,9 +824,11 @@ namespace towerforge::core {
                         case SettingsOption::Audio:
                             in_audio_settings_from_pause_ = true;
                             break;
+                        case SettingsOption::Accessibility:
+                            in_accessibility_settings_from_pause_ = true;
+                            break;
                         case SettingsOption::Controls:
                         case SettingsOption::Display:
-                        case SettingsOption::Accessibility:
                         case SettingsOption::Gameplay:
                             hud_->AddNotification(Notification::Type::Info, "Settings option not yet implemented",
                                                   3.0f);
@@ -1112,9 +1138,31 @@ namespace towerforge::core {
                                     info.destination_floor = person.destination_floor;
                                     info.wait_time = person.wait_time;
                                     info.needs = person.current_need;
+                                    info.is_staff = false;
+                                    info.staff_role = "";
+                                    info.on_duty = false;
+                                    info.shift_hours = "";
 
+                                    // Check if this is staff
+                                    if (e.has<StaffAssignment>()) {
+                                        const StaffAssignment& assignment = e.ensure<StaffAssignment>();
+                                        info.is_staff = true;
+                                        info.npc_type = "Staff";
+                                        info.staff_role = assignment.GetRoleName();
+                                        info.on_duty = assignment.is_active;
+                                        
+                                        // Format shift hours
+                                        char shift_buffer[32];
+                                        snprintf(shift_buffer, sizeof(shift_buffer), "%.0f:00 - %.0f:00",
+                                                assignment.shift_start_time, assignment.shift_end_time);
+                                        info.shift_hours = shift_buffer;
+                                        
+                                        info.status = info.on_duty ? 
+                                            (std::string("On duty: ") + info.staff_role) : 
+                                            (std::string("Off duty: ") + info.staff_role);
+                                    }
                                     // Get status based on NPC type
-                                    if (person.npc_type == NPCType::Employee && e.has<EmploymentInfo>()) {
+                                    else if (person.npc_type == NPCType::Employee && e.has<EmploymentInfo>()) {
                                         const EmploymentInfo &emp = e.ensure<EmploymentInfo>();
                                         info.status = emp.GetStatusString();
                                     } else if (person.npc_type == NPCType::Visitor && e.has<VisitorInfo>()) {
@@ -1139,15 +1187,75 @@ namespace towerforge::core {
 
                             // If no person was clicked, check for facility
                             if (!person_clicked && grid.IsOccupied(clicked_floor, clicked_column)) {
-                                FacilityInfo info;
-                                info.type = "FACILITY";
-                                info.floor = clicked_floor;
-                                info.occupancy = 0;
-                                info.max_occupancy = 10;
-                                info.revenue = 100.0f;
-                                info.satisfaction = 75.0f;
-                                info.tenant_count = 0;
-                                hud_->ShowFacilityInfo(info);
+                                // Get facility entity at this location
+                                const int facility_id = grid.GetFacilityAt(clicked_floor, clicked_column);
+                                if (facility_id >= 0) {
+                                    const flecs::entity facility_entity = ecs_world_->GetWorld().entity(
+                                        static_cast<flecs::entity_t>(facility_id));
+                                    
+                                    FacilityInfo info;
+                                    info.type = "FACILITY";
+                                    info.floor = clicked_floor;
+                                    info.occupancy = 0;
+                                    info.max_occupancy = 10;
+                                    info.revenue = 100.0f;
+                                    info.satisfaction = 75.0f;
+                                    info.tenant_count = 0;
+                                    
+                                    // Get actual facility data if available
+                                    if (facility_entity.is_alive() && facility_entity.has<BuildingComponent>()) {
+                                        const BuildingComponent& facility = facility_entity.ensure<BuildingComponent>();
+                                        info.occupancy = facility.current_occupancy;
+                                        info.max_occupancy = facility.capacity;
+                                        
+                                        // Get facility type name
+                                        switch (facility.type) {
+                                            case BuildingComponent::Type::Office:      info.type = "Office"; break;
+                                            case BuildingComponent::Type::Residential: info.type = "Residential"; break;
+                                            case BuildingComponent::Type::RetailShop:  info.type = "Retail Shop"; break;
+                                            case BuildingComponent::Type::Lobby:       info.type = "Lobby"; break;
+                                            case BuildingComponent::Type::Restaurant:  info.type = "Restaurant"; break;
+                                            case BuildingComponent::Type::Hotel:       info.type = "Hotel"; break;
+                                            case BuildingComponent::Type::Elevator:    info.type = "Elevator"; break;
+                                            case BuildingComponent::Type::Gym:         info.type = "Gym"; break;
+                                            case BuildingComponent::Type::Arcade:      info.type = "Arcade"; break;
+                                            default: info.type = "Facility"; break;
+                                        }
+                                    }
+                                    
+                                    // Get economics data
+                                    if (facility_entity.is_alive() && facility_entity.has<FacilityEconomics>()) {
+                                        const FacilityEconomics& econ = facility_entity.ensure<FacilityEconomics>();
+                                        info.revenue = econ.CalculateDailyRevenue();
+                                        info.tenant_count = econ.current_tenants;
+                                    }
+                                    
+                                    // Get satisfaction
+                                    if (facility_entity.is_alive() && facility_entity.has<Satisfaction>()) {
+                                        const Satisfaction& sat = facility_entity.ensure<Satisfaction>();
+                                        info.satisfaction = sat.satisfaction_score;
+                                    }
+                                    
+                                    // Get facility status (cleanliness and maintenance)
+                                    if (facility_entity.is_alive() && facility_entity.has<FacilityStatus>()) {
+                                        const FacilityStatus& status = facility_entity.ensure<FacilityStatus>();
+                                        info.cleanliness = status.cleanliness;
+                                        info.maintenance_level = status.maintenance_level;
+                                        info.cleanliness_rating = status.GetCleanlinessRating();
+                                        info.maintenance_rating = status.GetMaintenanceRating();
+                                        info.has_fire = status.has_fire;
+                                        info.has_security_issue = status.has_security_issue;
+                                    } else {
+                                        info.cleanliness = 100.0f;
+                                        info.maintenance_level = 100.0f;
+                                        info.cleanliness_rating = "Spotless";
+                                        info.maintenance_rating = "Excellent";
+                                        info.has_fire = false;
+                                        info.has_security_issue = false;
+                                    }
+                                    
+                                    hud_->ShowFacilityInfo(info);
+                                }
                             }
                         }
                     }
@@ -1362,6 +1470,8 @@ namespace towerforge::core {
         if (is_paused_) {
             if (save_load_menu_->IsOpen()) {
                 save_load_menu_->Render();
+            } else if (in_accessibility_settings_from_pause_) {
+                pause_accessibility_settings_menu_.Render();
             } else if (in_audio_settings_from_pause_) {
                 pause_audio_settings_menu_.Render();
             } else if (in_settings_from_pause_) {
@@ -1546,6 +1656,63 @@ namespace towerforge::core {
 
             std::cout << "Starter tower created successfully" << std::endl;
             hud_->AddNotification(Notification::Type::Info, "Starter tower ready!", 5.0f);
+        
+            // Create initial staff for the tower
+            std::cout << "Hiring initial staff..." << std::endl;
+        
+            // Hire a janitor for general cleaning (tower-wide)
+            const auto janitor = ecs_world_->CreateEntity("Bob the Janitor");
+            janitor.set<Person>({"Bob", 0, 3.0f, 2.0f, NPCType::Employee});
+            janitor.set<StaffAssignment>({StaffRole::Janitor, -1, 6.0f, 18.0f});
+            std::cout << "  Hired janitor: Bob (6:00 AM - 6:00 PM, tower-wide)" << std::endl;
+        
+            // Hire a maintenance technician (tower-wide)
+            const auto maintenance = ecs_world_->CreateEntity("Carlos the Maintenance Tech");
+            maintenance.set<Person>({"Carlos", 0, 4.0f, 2.0f, NPCType::Employee});
+            maintenance.set<StaffAssignment>({StaffRole::Maintenance, -1, 8.0f, 17.0f});
+            std::cout << "  Hired maintenance tech: Carlos (8:00 AM - 5:00 PM, tower-wide)" << std::endl;
+        
+            // Hire a firefighter (tower-wide, 24-hour shift)
+            const auto firefighter = ecs_world_->CreateEntity("Dana the Firefighter");
+            firefighter.set<Person>({"Dana", 0, 2.0f, 2.0f, NPCType::Employee});
+            firefighter.set<StaffAssignment>({StaffRole::Firefighter, -1, 0.0f, 24.0f});
+            std::cout << "  Hired firefighter: Dana (24/7, tower-wide)" << std::endl;
+        
+            // Add FacilityStatus to all facilities
+            ecs_world_->GetWorld().each<BuildingComponent>([&](flecs::entity facility_entity, BuildingComponent& facility) {
+                if (!facility_entity.has<FacilityStatus>()) {
+                    facility_entity.set<FacilityStatus>({});
+                }
+            });
+        
+            std::cout << "Initial staff hired" << std::endl;
+            hud_->AddNotification(Notification::Type::Info, "Staff hired!", 3.0f);
+        
+            // Create staff from custom Lua roles (demo purposes - one of each type)
+            const auto& custom_roles = ecs_world_->GetModManager().GetCustomStaffRoles();
+            int custom_staff_count = 0;
+            for (const auto& [role_id, role_data] : custom_roles) {
+                // Create one staff member for each custom role
+                const std::string staff_name = role_data.name + " #" + std::to_string(custom_staff_count + 1);
+                const auto custom_staff = ecs_world_->CreateEntity(staff_name.c_str());
+                custom_staff.set<Person>({staff_name, 0, 3.0f, 2.0f, NPCType::Employee});
+            
+                // Create custom staff assignment
+                StaffAssignment assignment(StaffRole::Janitor, -1, role_data.shift_start_hour, role_data.shift_end_hour);
+                assignment.custom_role_id = role_id;
+                assignment.work_type = role_data.work_type;
+                assignment.work_efficiency = role_data.work_efficiency;
+                custom_staff.set<StaffAssignment>(assignment);
+            
+                std::cout << "  Hired custom staff: " << staff_name << " (" << role_data.name 
+                        << ", " << role_data.shift_start_hour << ":00 - " << role_data.shift_end_hour 
+                        << ":00, work type: " << role_data.work_type << ")" << std::endl;
+                custom_staff_count++;
+            }
+        
+            if (custom_staff_count > 0) {
+                std::cout << "Hired " << custom_staff_count << " custom staff from mods" << std::endl;
+            }
         } catch (const std::exception &e) {
             std::cerr << "Error creating starter tower: " << e.what() << std::endl;
         }

@@ -17,6 +17,7 @@
 #include "ui/achievements_menu.h"
 #include "ui/general_settings_menu.h"
 #include "ui/audio_settings_menu.h"
+#include "ui/accessibility_settings_menu.h"
 #include "ui/tutorial_manager.h"
 #include "ui/mods_menu.h"
 #include "audio/audio_manager.h"
@@ -107,6 +108,7 @@ namespace towerforge::core {
         ui::AchievementsMenu achievements_menu_;
         ui::GeneralSettingsMenu general_settings_menu_;
         ui::AudioSettingsMenu audio_settings_menu_;
+        ui::AccessibilitySettingsMenu accessibility_settings_menu_;
 
         // Tutorial system
         ui::TutorialManager* tutorial_manager_;
@@ -114,6 +116,7 @@ namespace towerforge::core {
 
         // Settings screen state
         bool in_audio_settings_;
+        bool in_accessibility_settings_;
 
         // InGame systems (initialized on demand)
         TowerForge::Core::ECSWorld* ecs_world_;
@@ -134,8 +137,10 @@ namespace towerforge::core {
         bool is_paused_;
         bool in_settings_from_pause_;
         bool in_audio_settings_from_pause_;
+        bool in_accessibility_settings_from_pause_;
         ui::GeneralSettingsMenu pause_general_settings_menu_;
         ui::AudioSettingsMenu pause_audio_settings_menu_;
+        ui::AccessibilitySettingsMenu pause_accessibility_settings_menu_;
 
         // Timing
         float elapsed_time_;

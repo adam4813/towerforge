@@ -180,12 +180,14 @@ namespace TowerForge::Core {
         float visit_duration;          // How long they've been in the tower (seconds)
         float max_visit_duration;      // When they'll leave (seconds)
         int target_facility_floor;     // Floor of facility they're visiting (-1 if none)
+        float time_at_destination;     // Time spent at current destination (seconds)
     
         VisitorInfo(const VisitorActivity act = VisitorActivity::Visiting)
             : activity(act),
               visit_duration(0.0f),
               max_visit_duration(300.0f),  // 5 minutes default
-              target_facility_floor(-1) {}
+              target_facility_floor(-1),
+              time_at_destination(0.0f) {}
     
         /**
      * @brief Get the activity as a string
@@ -313,6 +315,7 @@ namespace TowerForge::Core {
 
         Type type;
         int floor;              // Which floor this component is on
+        int column;             // Which column this component starts at
         int width;              // Width in tiles
         int capacity;           // Maximum occupancy
         int current_occupancy;  // Current number of people
@@ -321,8 +324,8 @@ namespace TowerForge::Core {
         float operating_start_hour;  // Start of operating hours (e.g., 9.0 for 9 AM)
         float operating_end_hour;    // End of operating hours (e.g., 21.0 for 9 PM)
 
-        BuildingComponent(const Type t = Type::Office, const int f = 0, const int w = 1, const int cap = 10)
-            : type(t), floor(f), width(w), capacity(cap), current_occupancy(0), job_openings(0),
+        BuildingComponent(const Type t = Type::Office, const int f = 0, const int col = 0, const int w = 1, const int cap = 10)
+            : type(t), floor(f), column(col), width(w), capacity(cap), current_occupancy(0), job_openings(0),
               current_staff(0), operating_start_hour(9.0f), operating_end_hour(17.0f) {}
     
         /**
@@ -394,13 +397,15 @@ namespace TowerForge::Core {
         int total_visitors_spawned;         // Total count of spawned visitors
         int total_employees_hired;          // Total count of employees hired
         int next_visitor_id;                // ID counter for naming visitors
+        int max_active_visitors;            // Maximum number of active visitors at once
     
-        NPCSpawner(const float interval = 30.0f)
+        NPCSpawner(const float interval = 30.0f, const int max_visitors = 50)
             : time_since_last_spawn(0.0f),
               spawn_interval(interval),
               total_visitors_spawned(0),
               total_employees_hired(0),
-              next_visitor_id(1) {}
+              next_visitor_id(1),
+              max_active_visitors(max_visitors) {}
     
         /**
      * @brief Calculate dynamic spawn rate based on tower state
@@ -996,6 +1001,352 @@ namespace TowerForge::Core {
                 case ResearchNodeState::Upgradable: return "✨";
                 case ResearchNodeState::Unlocked: return "✅";
                 default: return "❓";
+            }
+        }
+    };
+
+    /**
+ * @brief Staff role types for facility and tower management
+ */
+    enum class StaffRole {
+        Firefighter,     // Responds to fires in facilities
+        Security,        // Handles security issues (shoplifters, etc.)
+        Janitor,         // General cleaning of facilities
+        Maintenance,     // Repairs broken equipment and prevents breakdowns
+        Cleaner,         // Specialized cleaning staff
+        Repairer         // Specialized repair staff
+    };
+
+    /**
+ * @brief Component for staff assignment tracking
+ * 
+ * Tracks staff assignments to facilities or floors, schedules,
+ * and current work status. Staff automatically perform their
+ * assigned duties during their shift hours.
+ * Supports both built-in roles and custom roles from Lua mods.
+ */
+    struct StaffAssignment {
+        StaffRole role;
+        std::string custom_role_id;      // Custom role ID from Lua (empty if built-in)
+        std::string work_type;           // "cleaning", "maintenance", "emergency", or "custom"
+        int assigned_floor;              // Floor assigned to (-1 for tower-wide)
+        int assigned_facility_entity;    // Specific facility entity ID (-1 for floor-wide)
+        float shift_start_time;          // Hour when shift starts (0-24)
+        float shift_end_time;            // Hour when shift ends (0-24)
+        bool is_active;                  // Currently on duty
+        bool auto_assigned;              // Automatically assigned by system
+        float work_efficiency;           // 0.0-1.0, affects how quickly tasks are completed
+    
+        StaffAssignment(const StaffRole r = StaffRole::Janitor,
+                       const int floor = -1,
+                       const float start = 8.0f,
+                       const float end = 17.0f)
+            : role(r),
+              custom_role_id(""),
+              work_type(""),
+              assigned_floor(floor),
+              assigned_facility_entity(-1),
+              shift_start_time(start),
+              shift_end_time(end),
+              is_active(false),
+              auto_assigned(true),
+              work_efficiency(1.0f) {
+            // Set default work type based on built-in role
+            switch (r) {
+                case StaffRole::Janitor:
+                case StaffRole::Cleaner:
+                    work_type = "cleaning";
+                    break;
+                case StaffRole::Maintenance:
+                case StaffRole::Repairer:
+                    work_type = "maintenance";
+                    break;
+                case StaffRole::Firefighter:
+                case StaffRole::Security:
+                    work_type = "emergency";
+                    break;
+            }
+        }
+    
+        /**
+     * @brief Check if this is a custom role from Lua
+     */
+        bool IsCustomRole() const {
+            return !custom_role_id.empty();
+        }
+    
+        /**
+     * @brief Get role as a string
+     */
+        const char* GetRoleName() const {
+            if (IsCustomRole()) {
+                return custom_role_id.c_str();
+            }
+            switch (role) {
+                case StaffRole::Firefighter:  return "Firefighter";
+                case StaffRole::Security:     return "Security";
+                case StaffRole::Janitor:      return "Janitor";
+                case StaffRole::Maintenance:  return "Maintenance";
+                case StaffRole::Cleaner:      return "Cleaner";
+                case StaffRole::Repairer:     return "Repairer";
+                default:                      return "Unknown";
+            }
+        }
+    
+        /**
+     * @brief Check if this staff performs cleaning work
+     */
+        bool DoesCleaningWork() const {
+            return work_type == "cleaning";
+        }
+    
+        /**
+     * @brief Check if this staff performs maintenance work
+     */
+        bool DoesMaintenanceWork() const {
+            return work_type == "maintenance";
+        }
+    
+        /**
+     * @brief Check if this staff performs emergency work
+     */
+        bool DoesEmergencyWork() const {
+            return work_type == "emergency";
+        }
+    
+        /**
+     * @brief Check if staff should be working at current time
+     */
+        bool ShouldBeWorking(const float current_hour) const {
+            // Handle overnight shifts (e.g., 22:00 to 06:00)
+            if (shift_start_time > shift_end_time) {
+                return current_hour >= shift_start_time || current_hour < shift_end_time;
+            }
+            return current_hour >= shift_start_time && current_hour < shift_end_time;
+        }
+    };
+
+    /**
+ * @brief Facility maintenance and cleanliness status
+ * 
+ * Tracks the cleanliness and maintenance condition of a facility.
+ * Poor conditions can reduce satisfaction but don't cause hard penalties.
+ * Supports both built-in events and custom events from Lua mods.
+ */
+    struct FacilityStatus {
+        float cleanliness;          // 0.0-100.0, degrades over time with use
+        float maintenance_level;    // 0.0-100.0, degrades over time
+        bool has_fire;              // Active fire that needs firefighter
+        bool has_security_issue;    // Active security issue (shoplifter, etc.)
+        std::vector<std::string> active_custom_events;  // Custom event IDs from Lua
+        float time_since_cleaning;  // Seconds since last cleaned
+        float time_since_maintenance; // Seconds since last maintained
+        float degradation_rate;     // How quickly cleanliness/maintenance degrades
+    
+        FacilityStatus()
+            : cleanliness(100.0f),
+              maintenance_level(100.0f),
+              has_fire(false),
+              has_security_issue(false),
+              time_since_cleaning(0.0f),
+              time_since_maintenance(0.0f),
+              degradation_rate(1.0f) {}
+    
+        /**
+     * @brief Get cleanliness as a rating string
+     */
+        const char* GetCleanlinessRating() const {
+            if (cleanliness >= 90.0f) return "Spotless";
+            if (cleanliness >= 70.0f) return "Clean";
+            if (cleanliness >= 50.0f) return "Acceptable";
+            if (cleanliness >= 30.0f) return "Dirty";
+            return "Filthy";
+        }
+    
+        /**
+     * @brief Get maintenance level as a rating string
+     */
+        const char* GetMaintenanceRating() const {
+            if (maintenance_level >= 90.0f) return "Excellent";
+            if (maintenance_level >= 70.0f) return "Good";
+            if (maintenance_level >= 50.0f) return "Fair";
+            if (maintenance_level >= 30.0f) return "Poor";
+            return "Critical";
+        }
+    
+        /**
+     * @brief Check if facility needs cleaning
+     */
+        bool NeedsCleaning() const {
+            return cleanliness < 70.0f;
+        }
+    
+        /**
+     * @brief Check if facility needs maintenance
+     */
+        bool NeedsMaintenance() const {
+            return maintenance_level < 70.0f;
+        }
+    
+        /**
+     * @brief Check if facility has any active events
+     */
+        bool HasActiveEvents() const {
+            return has_fire || has_security_issue || !active_custom_events.empty();
+        }
+    
+        /**
+     * @brief Add a custom event
+     */
+        void AddCustomEvent(const std::string& event_id) {
+            // Check if event already exists
+            for (const auto& evt : active_custom_events) {
+                if (evt == event_id) return;
+            }
+            active_custom_events.push_back(event_id);
+        }
+    
+        /**
+     * @brief Remove a custom event
+     */
+        void RemoveCustomEvent(const std::string& event_id) {
+            active_custom_events.erase(
+                std::remove(active_custom_events.begin(), active_custom_events.end(), event_id),
+                active_custom_events.end());
+        }
+    
+        /**
+     * @brief Check if a specific custom event is active
+     */
+        bool HasCustomEvent(const std::string& event_id) const {
+            for (const auto& evt : active_custom_events) {
+                if (evt == event_id) return true;
+            }
+            return false;
+        }
+    
+        /**
+     * @brief Update status over time
+     */
+        void Update(const float delta_time, const int current_occupancy) {
+            time_since_cleaning += delta_time;
+            time_since_maintenance += delta_time;
+        
+            // Degrade cleanliness based on occupancy and time
+            const float occupancy_factor = 1.0f + (current_occupancy * 0.1f);
+            cleanliness -= degradation_rate * occupancy_factor * delta_time / 3600.0f;
+            if (cleanliness < 0.0f) cleanliness = 0.0f;
+        
+            // Degrade maintenance over time (slower than cleanliness)
+            maintenance_level -= (degradation_rate * 0.5f) * delta_time / 3600.0f;
+            if (maintenance_level < 0.0f) maintenance_level = 0.0f;
+        }
+    
+        /**
+     * @brief Perform cleaning action
+     */
+        void Clean(const float efficiency) {
+            const float clean_amount = 30.0f * efficiency;
+            cleanliness += clean_amount;
+            if (cleanliness > 100.0f) cleanliness = 100.0f;
+            time_since_cleaning = 0.0f;
+        }
+    
+        /**
+     * @brief Perform maintenance action
+     */
+        void Maintain(const float efficiency) {
+            const float maintain_amount = 25.0f * efficiency;
+            maintenance_level += maintain_amount;
+            if (maintenance_level > 100.0f) maintenance_level = 100.0f;
+            time_since_maintenance = 0.0f;
+        }
+    
+        /**
+     * @brief Extinguish fire
+     */
+        void ExtinguishFire() {
+            has_fire = false;
+            // Fire causes some damage to maintenance level
+            maintenance_level -= 10.0f;
+            if (maintenance_level < 0.0f) maintenance_level = 0.0f;
+        }
+    
+        /**
+     * @brief Resolve security issue
+     */
+        void ResolveSecurityIssue() {
+            has_security_issue = false;
+        }
+    };
+
+    /**
+ * @brief Global singleton for staff management
+ * 
+ * Tracks all staff in the tower and manages hiring/firing.
+ */
+    struct StaffManager {
+        int total_staff_count;           // Total number of staff employed
+        int firefighters;                // Count by role
+        int security_guards;
+        int janitors;
+        int maintenance_staff;
+        int cleaners;
+        int repairers;
+        float total_staff_wages;         // Daily wages for all staff
+        bool auto_hire_enabled;          // Automatically hire staff when needed
+    
+        StaffManager()
+            : total_staff_count(0),
+              firefighters(0),
+              security_guards(0),
+              janitors(0),
+              maintenance_staff(0),
+              cleaners(0),
+              repairers(0),
+              total_staff_wages(0.0f),
+              auto_hire_enabled(true) {}
+    
+        /**
+     * @brief Get staff count by role
+     */
+        int GetStaffCount(const StaffRole role) const {
+            switch (role) {
+                case StaffRole::Firefighter:  return firefighters;
+                case StaffRole::Security:     return security_guards;
+                case StaffRole::Janitor:      return janitors;
+                case StaffRole::Maintenance:  return maintenance_staff;
+                case StaffRole::Cleaner:      return cleaners;
+                case StaffRole::Repairer:     return repairers;
+                default:                      return 0;
+            }
+        }
+    
+        /**
+     * @brief Calculate recommended staff count based on facilities
+     */
+        static int CalculateRecommendedStaff(const StaffRole role, const int facility_count, const int total_floors) {
+            switch (role) {
+                case StaffRole::Janitor:
+                    // 1 janitor per 3 facilities or per 5 floors
+                    return std::max((facility_count + 2) / 3, (total_floors + 4) / 5);
+                case StaffRole::Maintenance:
+                    // 1 maintenance per 5 facilities
+                    return (facility_count + 4) / 5;
+                case StaffRole::Firefighter:
+                    // 1 firefighter per 10 floors
+                    return std::max(1, (total_floors + 9) / 10);
+                case StaffRole::Security:
+                    // 1 security per 15 facilities or per 10 floors
+                    return std::max((facility_count + 14) / 15, (total_floors + 9) / 10);
+                case StaffRole::Cleaner:
+                    // Cleaners are specialized janitors
+                    return (facility_count + 4) / 5;
+                case StaffRole::Repairer:
+                    // Repairers are specialized maintenance
+                    return (facility_count + 6) / 7;
+                default:
+                    return 0;
             }
         }
     };

@@ -1,5 +1,6 @@
 #include "ui/general_settings_menu.h"
 #include "ui/ui_element.h"
+#include "core/accessibility_settings.hpp"
 #include <cmath>
 
 namespace towerforge::ui {
@@ -79,20 +80,32 @@ namespace towerforge::ui {
 
     void GeneralSettingsMenu::RenderHeader() {
         const int screen_width = GetScreenWidth();
+        
+        // Apply font scaling from accessibility settings
+        const auto& accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const float font_scale = accessibility.GetFontScale();
+        const bool high_contrast = accessibility.IsHighContrastEnabled();
 
         const auto title = "GENERAL SETTINGS MENU";
-        const int title_width = MeasureText(title, 28);
-        DrawText(title, (screen_width - title_width) / 2, HEADER_Y, 28, GOLD);
+        const int scaled_font_size = static_cast<int>(28 * font_scale);
+        const int title_width = MeasureText(title, scaled_font_size);
+        const Color title_color = high_contrast ? YELLOW : GOLD;
+        DrawText(title, (screen_width - title_width) / 2, HEADER_Y, scaled_font_size, title_color);
 
         // Underline
         const int line_width = title_width + 40;
         const int line_x = (screen_width - line_width) / 2;
-        DrawRectangle(line_x, HEADER_Y + 35, line_width, 2, GOLD);
+        DrawRectangle(line_x, HEADER_Y + 35, line_width, 2, title_color);
     }
 
     void GeneralSettingsMenu::RenderMenuOptions() const {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
+        
+        // Apply accessibility settings
+        const auto& accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const float font_scale = accessibility.GetFontScale();
+        const bool high_contrast = accessibility.IsHighContrastEnabled();
 
         for (size_t i = 0; i < menu_items_.size(); ++i) {
             const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
@@ -103,9 +116,22 @@ namespace towerforge::ui {
             // Update button position and appearance based on selection
             auto& button = menu_item_buttons_[i];
             button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
-            button->SetBackgroundColor(is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f));
-            button->SetBorderColor(is_selected ? GOLD : GRAY);
-            button->SetTextColor(is_selected ? GOLD : LIGHTGRAY);
+            
+            // Apply high-contrast colors if enabled
+            Color bg_color, border_color, text_color;
+            if (high_contrast) {
+                bg_color = is_selected ? ColorAlpha(YELLOW, 0.5f) : ColorAlpha(WHITE, 0.2f);
+                border_color = is_selected ? YELLOW : WHITE;
+                text_color = is_selected ? BLACK : WHITE;
+            } else {
+                bg_color = is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f);
+                border_color = is_selected ? GOLD : GRAY;
+                text_color = is_selected ? GOLD : LIGHTGRAY;
+            }
+            
+            button->SetBackgroundColor(bg_color);
+            button->SetBorderColor(border_color);
+            button->SetTextColor(text_color);
 
             // Render the button
             button->Render();
@@ -115,15 +141,20 @@ namespace towerforge::ui {
                 const float pulse = 0.5f + 0.5f * sinf(animation_time_ * 4.0f);
                 const int indicator_x = item_x - 30;
                 const int indicator_y = item_y + MENU_ITEM_HEIGHT / 2;
-                DrawText(">", indicator_x, indicator_y - 12, 24, ColorAlpha(GOLD, pulse));
+                const int indicator_font_size = static_cast<int>(24 * font_scale);
+                const Color indicator_color = high_contrast ? YELLOW : GOLD;
+                DrawText(">", indicator_x, indicator_y - indicator_font_size / 2, 
+                        indicator_font_size, ColorAlpha(indicator_color, pulse));
             }
         }
 
         // Draw instruction at bottom
         const auto instruction = "UP/DOWN: Navigate | ENTER: Select | ESC: Back";
-        const int instruction_width = MeasureText(instruction, 16);
+        const int instruction_font_size = static_cast<int>(16 * font_scale);
+        const int instruction_width = MeasureText(instruction, instruction_font_size);
+        const Color instruction_color = high_contrast ? WHITE : LIGHTGRAY;
         DrawText(instruction, (screen_width - instruction_width) / 2,
-                 screen_height - 50, 16, LIGHTGRAY);
+                 screen_height - 50, instruction_font_size, instruction_color);
     }
 
     int GeneralSettingsMenu::HandleKeyboard() {

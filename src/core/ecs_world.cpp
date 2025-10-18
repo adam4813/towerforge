@@ -86,8 +86,11 @@ namespace TowerForge::Core {
         world_.component<ElevatorShaft>();
         world_.component<ElevatorCar>();
         world_.component<PersonElevatorRequest>();
+        world_.component<StaffAssignment>();
+        world_.component<FacilityStatus>();
+        world_.component<StaffManager>();
     
-        std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest" << std::endl;
+        std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest, StaffAssignment, FacilityStatus, StaffManager" << std::endl;
     }
 
     void ECSWorld::RegisterSystems() const {
@@ -710,7 +713,29 @@ namespace TowerForge::Core {
                     const float delta_time = e.world().delta_time();
                     visitor.visit_duration += delta_time;
             
-                    // Check if visitor should leave
+                    // Track time at destination
+                    if (person.state == PersonState::AtDestination) {
+                        visitor.time_at_destination += delta_time;
+                        
+                        // If visitor has been at destination for 30-60 seconds (random), they're done visiting
+                        const float min_visit_time = 30.0f;
+                        const float max_visit_time = 60.0f;
+                        const float range = max_visit_time - min_visit_time;
+                        const float visit_threshold = min_visit_time + (static_cast<float>(rand()) / RAND_MAX) * range;
+                        
+                        if (visitor.time_at_destination >= visit_threshold && 
+                            visitor.activity != VisitorActivity::Leaving &&
+                            visitor.activity != VisitorActivity::JobSeeking) {
+                            // Visitor is done, time to leave
+                            visitor.activity = VisitorActivity::Leaving;
+                            person.SetDestination(0, 5.0f, "Leaving tower");
+                        }
+                    } else {
+                        // Reset timer if not at destination
+                        visitor.time_at_destination = 0.0f;
+                    }
+            
+                    // Check if visitor should leave based on max duration
                     if (visitor.ShouldLeave() && visitor.activity != VisitorActivity::Leaving) {
                         visitor.activity = VisitorActivity::Leaving;
                         // Set destination to lobby (floor 0)
@@ -801,13 +826,35 @@ namespace TowerForge::Core {
                     const float delta_time = e.world().delta_time();
                     spawner.time_since_last_spawn += delta_time;
             
-                    // Count total job openings in the tower
+                    // Count active visitors
+                    int active_visitor_count = 0;
+                    const auto visitor_count_query = e.world().query<const Person, const VisitorInfo>();
+                    visitor_count_query.each([&](const flecs::entity, const Person&, const VisitorInfo&) {
+                        active_visitor_count++;
+                    });
+            
+                    // Don't spawn if at or over visitor cap
+                    if (active_visitor_count >= spawner.max_active_visitors) {
+                        return;
+                    }
+            
+                    // Count total job openings and collect visitable facilities
                     int total_job_openings = 0;
                     int facility_count = 0;
+                    std::vector<flecs::entity> visitable_facilities;
                     const auto facility_query = e.world().query<const BuildingComponent>();
-                    facility_query.each([&](const BuildingComponent& facility) {
+                    facility_query.each([&](const flecs::entity facility_entity, const BuildingComponent& facility) {
                         facility_count++;
                         total_job_openings += facility.job_openings;
+                        
+                        // Collect facilities that visitors might want to visit
+                        if (facility.type == BuildingComponent::Type::RetailShop ||
+                            facility.type == BuildingComponent::Type::Restaurant ||
+                            facility.type == BuildingComponent::Type::Arcade ||
+                            facility.type == BuildingComponent::Type::Theater ||
+                            facility.type == BuildingComponent::Type::FlagshipStore) {
+                            visitable_facilities.push_back(facility_entity);
+                        }
                     });
             
                     // Dynamic spawn rate based on facility count
@@ -839,12 +886,37 @@ namespace TowerForge::Core {
                         visitor.set<VisitorInfo>({activity});
                         visitor.set<Satisfaction>({75.0f});
                 
-                        spawner.total_visitors_spawned++;
+                        // Assign a destination for shopping/visiting visitors
+                        if ((activity == VisitorActivity::Shopping || activity == VisitorActivity::Visiting) 
+                            && !visitable_facilities.empty()) {
+                            // Pick a random facility to visit (using modulo is acceptable for small arrays)
+                            const size_t random_index = static_cast<size_t>(rand()) % visitable_facilities.size();
+                            const auto target_facility = visitable_facilities[random_index];
+                            
+                            if (target_facility.has<BuildingComponent>()) {
+                                const auto& building = target_facility.ensure<BuildingComponent>();
+                                
+                                // Set destination to the center of the facility
+                                auto& person_ref = visitor.ensure<Person>();
+                                const int target_floor = building.floor;
+                                const float target_column = static_cast<float>(building.column) + (static_cast<float>(building.width) / 2.0f);
+                                person_ref.SetDestination(target_floor, target_column, activity == VisitorActivity::Shopping ? "Shopping" : "Visiting");
+                                
+                                auto& visitor_info = visitor.ensure<VisitorInfo>();
+                                visitor_info.target_facility_floor = target_floor;
+                                
+                                std::cout << "  [Spawned] " << visitor_name << " (" 
+                                        << (activity == VisitorActivity::Shopping ? "Shopping" : "Visiting")
+                                        << ") heading to Floor " << target_floor << std::endl;
+                            }
+                        } else {
+                            std::cout << "  [Spawned] " << visitor_name << " (" 
+                                    << (activity == VisitorActivity::JobSeeking ? "Job Seeking" : 
+                                            (activity == VisitorActivity::Shopping ? "Shopping" : "Visiting"))
+                                    << ")" << std::endl;
+                        }
                 
-                        std::cout << "  [Spawned] " << visitor_name << " (" 
-                                << (activity == VisitorActivity::JobSeeking ? "Job Seeking" : 
-                                        (activity == VisitorActivity::Shopping ? "Shopping" : "Visiting"))
-                                << ")" << std::endl;
+                        spawner.total_visitors_spawned++;
                     }
                 });
     
@@ -908,7 +980,7 @@ namespace TowerForge::Core {
                         // Found a job! Save the details
                         target_facility = facility_entity;
                         target_floor = facility.floor;
-                        target_column = facility.width / 2;  // Center of facility
+                        target_column = facility.column + (facility.width / 2);  // Center of facility (integer division is fine here)
                         facility.job_openings--;  // Reduce opening count
                     });
             
@@ -951,7 +1023,304 @@ namespace TowerForge::Core {
                     }
                 });
     
-        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Behavior, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup" << std::endl;
+        // Facility status degradation system
+        // Updates facility cleanliness and maintenance over time
+        world_.system<FacilityStatus, const BuildingComponent>()
+                .kind(flecs::OnUpdate)
+                .interval(1.0f)  // Update every second
+                .each([](const flecs::entity e, FacilityStatus& status, const BuildingComponent& facility) {
+                    const float delta_time = e.world().delta_time();
+                    status.Update(delta_time, facility.current_occupancy);
+                });
+    
+        // Staff shift management system
+        // Activates/deactivates staff based on shift times
+        world_.system<StaffAssignment, Person>()
+                .kind(flecs::OnUpdate)
+                .interval(1.0f)  // Check every second
+                .each([](const flecs::entity e, StaffAssignment& assignment, Person& person) {
+                    const auto& time_mgr = e.world().get<TimeManager>();
+                    const bool should_be_working = assignment.ShouldBeWorking(time_mgr.current_hour);
+                
+                    if (should_be_working && !assignment.is_active) {
+                        // Start shift
+                        assignment.is_active = true;
+                        person.current_need = "Working";
+                        std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() 
+                                << ") started shift" << std::endl;
+                    } else if (!should_be_working && assignment.is_active) {
+                        // End shift
+                        assignment.is_active = false;
+                        person.current_need = "Off Duty";
+                        std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() 
+                                << ") ended shift" << std::endl;
+                    }
+                });
+    
+        // Staff cleaning system
+        // Janitors and cleaners automatically clean facilities
+        world_.system<const StaffAssignment, const Person>()
+                .kind(flecs::OnUpdate)
+                .interval(5.0f)  // Check every 5 seconds
+                .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
+                    // Only active staff who do cleaning work
+                    if (!assignment.is_active) return;
+                    if (!assignment.DoesCleaningWork()) return;
+                
+                    // Find facilities that need cleaning
+                    auto world = staff_entity.world();
+                    bool cleaned_something = false;
+                
+                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                            if (cleaned_something) return;  // Only clean one facility per cycle
+                        
+                            // Check if staff is assigned to this facility or floor
+                            bool is_assigned = false;
+                            if (assignment.assigned_facility_entity == static_cast<int>(facility_entity.id())) {
+                                is_assigned = true;
+                            } else if (assignment.assigned_floor == -1 || assignment.assigned_floor == facility.floor) {
+                                is_assigned = true;
+                            }
+                        
+                            if (!is_assigned) return;
+                        
+                            // Check if facility needs cleaning
+                            if (status.NeedsCleaning()) {
+                                status.Clean(assignment.work_efficiency);
+                                cleaned_something = true;
+                            
+                                const char* facility_type = "Facility";
+                                switch (facility.type) {
+                                    case BuildingComponent::Type::Office: facility_type = "Office"; break;
+                                    case BuildingComponent::Type::Restaurant: facility_type = "Restaurant"; break;
+                                    case BuildingComponent::Type::RetailShop: facility_type = "Retail Shop"; break;
+                                    case BuildingComponent::Type::Arcade: facility_type = "Arcade"; break;
+                                    case BuildingComponent::Type::Gym: facility_type = "Gym"; break;
+                                    case BuildingComponent::Type::Hotel: facility_type = "Hotel"; break;
+                                    default: break;
+                                }
+                            
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") cleaned " 
+                                        << facility_type << " on Floor " << facility.floor 
+                                        << " (Cleanliness: " << static_cast<int>(status.cleanliness) << "%)" << std::endl;
+                            }
+                        });
+                });
+    
+        // Staff maintenance system
+        // Maintenance staff and repairers automatically maintain facilities
+        world_.system<const StaffAssignment, const Person>()
+                .kind(flecs::OnUpdate)
+                .interval(8.0f)  // Check every 8 seconds (maintenance is slower)
+                .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
+                    // Only active staff who do maintenance work
+                    if (!assignment.is_active) return;
+                    if (!assignment.DoesMaintenanceWork()) return;
+                
+                    // Find facilities that need maintenance
+                    auto world = staff_entity.world();
+                    bool maintained_something = false;
+                
+                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                            if (maintained_something) return;
+                        
+                            // Check if staff is assigned to this facility or floor
+                            bool is_assigned = false;
+                            if (assignment.assigned_facility_entity == static_cast<int>(facility_entity.id())) {
+                                is_assigned = true;
+                            } else if (assignment.assigned_floor == -1 || assignment.assigned_floor == facility.floor) {
+                                is_assigned = true;
+                            }
+                        
+                            if (!is_assigned) return;
+                        
+                            // Check if facility needs maintenance
+                            if (status.NeedsMaintenance()) {
+                                status.Maintain(assignment.work_efficiency);
+                                maintained_something = true;
+                            
+                                const char* facility_type = "Facility";
+                                switch (facility.type) {
+                                    case BuildingComponent::Type::Office: facility_type = "Office"; break;
+                                    case BuildingComponent::Type::Restaurant: facility_type = "Restaurant"; break;
+                                    case BuildingComponent::Type::RetailShop: facility_type = "Retail Shop"; break;
+                                    case BuildingComponent::Type::Arcade: facility_type = "Arcade"; break;
+                                    case BuildingComponent::Type::Gym: facility_type = "Gym"; break;
+                                    case BuildingComponent::Type::Hotel: facility_type = "Hotel"; break;
+                                    default: break;
+                                }
+                            
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") performed maintenance on " 
+                                        << facility_type << " on Floor " << facility.floor 
+                                        << " (Maintenance: " << static_cast<int>(status.maintenance_level) << "%)" << std::endl;
+                            }
+                        });
+                });
+    
+        // Staff firefighting system
+        // Firefighters respond to fires
+        world_.system<const StaffAssignment, const Person>()
+                .kind(flecs::OnUpdate)
+                .interval(2.0f)  // Check frequently for fires
+                .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
+                    if (!assignment.is_active) return;
+                    // Check if this is a firefighter (built-in or custom with emergency work type)
+                    if (assignment.role != StaffRole::Firefighter && !assignment.DoesEmergencyWork()) return;
+                
+                    // Find facilities with fires
+                    auto world = staff_entity.world();
+                    bool extinguished_fire = false;
+                
+                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                            if (extinguished_fire) return;
+                        
+                            if (status.has_fire) {
+                                status.ExtinguishFire();
+                                extinguished_fire = true;
+                            
+                                const char* facility_type = "Facility";
+                                switch (facility.type) {
+                                    case BuildingComponent::Type::Office: facility_type = "Office"; break;
+                                    case BuildingComponent::Type::Restaurant: facility_type = "Restaurant"; break;
+                                    case BuildingComponent::Type::RetailShop: facility_type = "Retail Shop"; break;
+                                    default: break;
+                                }
+                            
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") extinguished fire at " 
+                                        << facility_type << " on Floor " << facility.floor << std::endl;
+                            }
+                        });
+                });
+    
+        // Staff security system
+        // Security guards handle security issues
+        world_.system<const StaffAssignment, const Person>()
+                .kind(flecs::OnUpdate)
+                .interval(3.0f)  // Check every 3 seconds
+                .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
+                    if (!assignment.is_active) return;
+                    // Check if this is security (built-in or custom with emergency work type)
+                    if (assignment.role != StaffRole::Security && !assignment.DoesEmergencyWork()) return;
+                
+                    // Find facilities with security issues
+                    auto world = staff_entity.world();
+                    bool resolved_issue = false;
+                
+                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                            if (resolved_issue) return;
+                        
+                            if (status.has_security_issue) {
+                                status.ResolveSecurityIssue();
+                                resolved_issue = true;
+                            
+                                const char* facility_type = "Facility";
+                                switch (facility.type) {
+                                    case BuildingComponent::Type::RetailShop: facility_type = "Retail Shop"; break;
+                                    case BuildingComponent::Type::FlagshipStore: facility_type = "Flagship Store"; break;
+                                    default: facility_type = "Facility"; break;
+                                }
+                            
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") resolved security issue at " 
+                                        << facility_type << " on Floor " << facility.floor << std::endl;
+                            }
+                        });
+                });
+    
+        // Facility status impact on satisfaction system
+        // Poor cleanliness/maintenance reduces satisfaction (cozy, not punitive)
+        world_.system<Satisfaction, const FacilityStatus>()
+                .kind(flecs::OnUpdate)
+                .interval(2.0f)  // Update every 2 seconds
+                .each([](const flecs::entity e, Satisfaction& satisfaction, const FacilityStatus& status) {
+                    // Gentle penalties for poor conditions
+                    if (status.cleanliness < 50.0f) {
+                        satisfaction.quality_bonus = std::max(0.0f, satisfaction.quality_bonus - 1.0f);
+                    }
+                    if (status.maintenance_level < 50.0f) {
+                        satisfaction.quality_bonus = std::max(0.0f, satisfaction.quality_bonus - 1.0f);
+                    }
+                
+                    // Small bonus for excellent conditions
+                    if (status.cleanliness >= 90.0f && status.maintenance_level >= 90.0f) {
+                        satisfaction.quality_bonus = std::min(20.0f, satisfaction.quality_bonus + 0.5f);
+                    }
+                });
+    
+        // Staff manager update system
+        // Updates staff counts and wages
+        world_.system<StaffManager>()
+                .kind(flecs::OnUpdate)
+                .interval(5.0f)  // Update every 5 seconds
+                .each([](const flecs::entity e, StaffManager& manager) {
+                    auto world = e.world();
+                
+                    // Reset counts
+                    manager.total_staff_count = 0;
+                    manager.firefighters = 0;
+                    manager.security_guards = 0;
+                    manager.janitors = 0;
+                    manager.maintenance_staff = 0;
+                    manager.cleaners = 0;
+                    manager.repairers = 0;
+                
+                    // Count staff by role
+                    world.each([&](flecs::entity staff_entity, const StaffAssignment& assignment) {
+                        manager.total_staff_count++;
+                        switch (assignment.role) {
+                            case StaffRole::Firefighter:  manager.firefighters++; break;
+                            case StaffRole::Security:     manager.security_guards++; break;
+                            case StaffRole::Janitor:      manager.janitors++; break;
+                            case StaffRole::Maintenance:  manager.maintenance_staff++; break;
+                            case StaffRole::Cleaner:      manager.cleaners++; break;
+                            case StaffRole::Repairer:     manager.repairers++; break;
+                        }
+                    });
+                
+                    // Calculate wages (simplified: $50/day per staff member)
+                    manager.total_staff_wages = manager.total_staff_count * 50.0f;
+                });
+    
+        // Staff wage system
+        // Deducts staff wages from tower economy
+        world_.system<const StaffManager>()
+                .kind(flecs::OnUpdate)
+                .interval(1.0f)  // Update every second
+                .each([](const flecs::entity e, const StaffManager& manager) {
+                    if (manager.total_staff_count == 0) return;
+                
+                    auto& mut_economy = e.world().ensure<TowerEconomy>();
+                
+                    // Add wages to daily expenses (spread over 24 hours)
+                    const float wage_per_second = manager.total_staff_wages / (24.0f * 3600.0f);
+                    mut_economy.daily_expenses += wage_per_second;
+                });
+    
+        // Staff status reporting system
+        world_.system<const StaffManager>()
+                .kind(flecs::OnUpdate)
+                .interval(30.0f)  // Report every 30 seconds
+                .each([](const flecs::entity e, const StaffManager& manager) {
+                    if (manager.total_staff_count == 0) return;
+                
+                    std::cout << "  === Staff Report ===" << std::endl;
+                    std::cout << "  Total Staff: " << manager.total_staff_count << std::endl;
+                    if (manager.firefighters > 0) 
+                        std::cout << "  Firefighters: " << manager.firefighters << std::endl;
+                    if (manager.security_guards > 0) 
+                        std::cout << "  Security: " << manager.security_guards << std::endl;
+                    if (manager.janitors > 0) 
+                        std::cout << "  Janitors: " << manager.janitors << std::endl;
+                    if (manager.maintenance_staff > 0) 
+                        std::cout << "  Maintenance: " << manager.maintenance_staff << std::endl;
+                    if (manager.cleaners > 0) 
+                        std::cout << "  Cleaners: " << manager.cleaners << std::endl;
+                    if (manager.repairers > 0) 
+                        std::cout << "  Repairers: " << manager.repairers << std::endl;
+                    std::cout << "  Daily Wages: $" << manager.total_staff_wages << std::endl;
+                    std::cout << "  ====================" << std::endl;
+                });
+    
+        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Behavior, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, Staff Shift Management, Staff Cleaning, Staff Maintenance, Staff Firefighting, Staff Security, Facility Status Impact, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
     }
 
 }
