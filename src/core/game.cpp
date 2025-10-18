@@ -1,5 +1,6 @@
 #include "core/game.h"
 #include "core/components.hpp"
+#include "ui/notification_center.h"
 #include <iostream>
 
 using namespace TowerForge::Core;
@@ -522,9 +523,40 @@ namespace towerforge::core {
 
         hud_->SetGameState(game_state_);
 
-        // Add example notifications
+        // Add example notifications to showcase notification center
         hud_->AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
         hud_->AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
+    
+        // Add notifications directly to notification center with clickable callbacks
+        auto* nc = hud_->GetNotificationCenter();
+        if (nc) {
+            // Welcome notification
+            nc->AddNotification(
+                "Welcome to TowerForge",
+                "Start building your tower empire! Press N to toggle the notification center.",
+                NotificationType::Info,
+                NotificationPriority::Medium,
+                15.0f
+            );
+        
+            // Tutorial notification
+            nc->AddNotification(
+                "Getting Started",
+                "Use the build menu on the left to place facilities. Click the notification button (top right) or press N to view all notifications.",
+                NotificationType::Info,
+                NotificationPriority::Medium,
+                -1.0f  // Pin important tutorials
+            );
+        
+            // Feature showcase
+            nc->AddNotification(
+                "Notification Center Features",
+                "Pin important notifications, filter by type, and click to trigger actions!",
+                NotificationType::Event,
+                NotificationPriority::Low,
+                20.0f
+            );
+        }
 
         // Setup tower grid and facilities
         std::cout << std::endl << "Demonstrating Tower Grid System and Facility Manager..." << std::endl;
@@ -613,6 +645,11 @@ namespace towerforge::core {
         if (research_menu_ != nullptr && !is_paused_ && IsKeyPressed(KEY_R)) {
             research_menu_->Toggle();
         }
+    
+        // Handle N key to toggle notification center
+        if (IsKeyPressed(KEY_N)) {
+            hud_->ToggleNotificationCenter();
+        }
 
         // Handle H key to toggle history panel (only if not paused)
         if (history_panel_ != nullptr && !is_paused_ && IsKeyPressed(KEY_H)) {
@@ -685,6 +722,23 @@ namespace towerforge::core {
                         if (achievement.id == achievement_id) {
                             std::string message = "Achievement Unlocked: " + achievement.name;
                             hud_->AddNotification(Notification::Type::Success, message, 5.0f);
+                        
+                            // Also add to notification center with clickable callback
+                            auto* nc = hud_->GetNotificationCenter();
+                            if (nc) {
+                                nc->AddNotification(
+                                    achievement.name,
+                                    achievement.description,
+                                    NotificationType::Achievement,
+                                    NotificationPriority::High,
+                                    -1.0f,  // Don't auto-dismiss achievements
+                                    [this]() {
+                                        // When clicked, switch to achievements screen
+                                        previous_state_ = current_state_;
+                                        current_state_ = GameState::Achievements;
+                                    }
+                                );
+                            }
                             break;
                         }
                     }

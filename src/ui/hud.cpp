@@ -2,6 +2,7 @@
 #include "ui/ui_window_manager.h"
 #include "ui/info_windows.h"
 #include "ui/tooltip.h"
+#include "ui/notification_center.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -11,6 +12,7 @@ namespace towerforge::ui {
     HUD::HUD() {
         window_manager_ = std::make_unique<UIWindowManager>();
         tooltip_manager_ = std::make_unique<TooltipManager>();
+        notification_center_ = std::make_unique<NotificationCenter>();
     }
 
     HUD::~HUD() = default;
@@ -25,6 +27,9 @@ namespace towerforge::ui {
                 ++it;
             }
         }
+    
+        // Update notification center
+        notification_center_->Update(delta_time);
     }
 
     void HUD::Render() {
@@ -34,7 +39,15 @@ namespace towerforge::ui {
         // Render all info windows through the window manager
         window_manager_->Render();
 
+        // Render legacy notifications (for backward compatibility)
         RenderNotifications();
+    
+        // Render notification center toasts
+        notification_center_->RenderToasts();
+    
+        // Render notification center panel if visible
+        notification_center_->Render();
+    
         RenderSpeedControls();
 
         // Render tooltips on top
@@ -73,14 +86,45 @@ namespace towerforge::ui {
     }
 
     void HUD::AddNotification(Notification::Type type, const std::string& message, float duration) {
+        // Add to legacy notification system for backward compatibility
         notifications_.emplace_back(type, message, duration);
         // Keep only the last 5 notifications
         if (notifications_.size() > 5) {
             notifications_.erase(notifications_.begin());
         }
+    
+        // Also add to new notification center
+        NotificationType nc_type;
+        switch (type) {
+            case Notification::Type::Warning:
+                nc_type = NotificationType::Warning;
+                break;
+            case Notification::Type::Success:
+                nc_type = NotificationType::Success;
+                break;
+            case Notification::Type::Info:
+                nc_type = NotificationType::Info;
+                break;
+            case Notification::Type::Error:
+                nc_type = NotificationType::Error;
+                break;
+            default:
+                nc_type = NotificationType::Info;
+                break;
+        }
+    
+        notification_center_->AddNotification("Notification", message, nc_type, 
+                                               NotificationPriority::Medium, duration);
     }
 
     bool HUD::HandleClick(const int mouse_x, const int mouse_y) const {
+        // Check notification center first if visible (need to cast away const for interaction)
+        if (notification_center_->IsVisible()) {
+            if (const_cast<NotificationCenter*>(notification_center_.get())->HandleClick(mouse_x, mouse_y)) {
+                return true;
+            }
+        }
+    
         // Check if click is in speed controls area (bottom right)
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
@@ -96,6 +140,18 @@ namespace towerforge::ui {
 
         // Check if click is on top bar
         if (mouse_y <= TOP_BAR_HEIGHT) {
+            // Check notification center button
+            const int notif_button_x = screen_width - 80;
+            const int notif_button_y = 5;
+            const int notif_button_width = 70;
+            const int notif_button_height = 30;
+        
+            if (mouse_x >= notif_button_x && mouse_x <= notif_button_x + notif_button_width &&
+                mouse_y >= notif_button_y && mouse_y <= notif_button_y + notif_button_height) {
+                const_cast<HUD*>(this)->ToggleNotificationCenter();
+                return true;
+            }
+        
             return true;
         }
 
@@ -156,6 +212,21 @@ namespace towerforge::ui {
                 }
                 Tooltip tooltip(tooltip_text.str());
                 tooltip_manager_->ShowTooltip(tooltip, x, 0, 100, TOP_BAR_HEIGHT);
+                return;
+            }
+        
+            // Notification center button tooltip
+            int notif_button_x = screen_width - 80;
+            if (mouse_x >= notif_button_x && mouse_x <= notif_button_x + 70) {
+                std::stringstream tooltip_text;
+                tooltip_text << "Notification Center\n";
+                tooltip_text << "Hotkey: N\n";
+                int unread = notification_center_->GetUnreadCount();
+                if (unread > 0) {
+                    tooltip_text << unread << " unread notification" << (unread > 1 ? "s" : "");
+                }
+                Tooltip tooltip(tooltip_text.str());
+                tooltip_manager_->ShowTooltip(tooltip, notif_button_x, 0, 70, TOP_BAR_HEIGHT);
                 return;
             }
         }
@@ -262,6 +333,32 @@ namespace towerforge::ui {
             speed_text = std::to_string(game_state_.speed_multiplier) + "x";
         }
         DrawText(speed_text.c_str(), x, y, 20, game_state_.paused ? RED : YELLOW);
+    
+        // Draw notification center button
+        const int notif_button_x = screen_width - 80;
+        const int notif_button_y = 5;
+        const int notif_button_width = 70;
+        const int notif_button_height = 30;
+    
+        // Button background
+        const Color button_color = notification_center_->IsVisible() ? GOLD : DARKGRAY;
+        DrawRectangle(notif_button_x, notif_button_y, notif_button_width, notif_button_height, button_color);
+        DrawRectangleLines(notif_button_x, notif_button_y, notif_button_width, notif_button_height, WHITE);
+    
+        // Notification icon and count
+        const int unread_count = notification_center_->GetUnreadCount();
+        DrawText("N", notif_button_x + 10, notif_button_y + 7, 16, WHITE);
+    
+        if (unread_count > 0) {
+            // Draw badge with count
+            const int badge_x = notif_button_x + 50;
+            const int badge_y = notif_button_y + 10;
+            DrawCircle(badge_x, badge_y, 10, RED);
+            std::string count_str = std::to_string(unread_count);
+            if (unread_count > 99) count_str = "99+";
+            const int text_width = MeasureText(count_str.c_str(), 10);
+            DrawText(count_str.c_str(), badge_x - text_width / 2, badge_y - 5, 10, WHITE);
+        }
     }
 
     void HUD::RenderStarRating() const {
@@ -508,6 +605,10 @@ namespace towerforge::ui {
 
         // Continue message
         DrawText("(Continue playing to build more!)", x + 55, y, 12, GRAY);
+    }
+
+    void HUD::ToggleNotificationCenter() {
+        notification_center_->ToggleVisibility();
     }
 
 }

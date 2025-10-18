@@ -33,6 +33,7 @@ Other docs left unchanged (examples / remaining subsystems):
 - `docs/GAME_CLASS_ARCHITECTURE.md`
 - `docs/GENERAL_SETTINGS_MENU_IMPLEMENTATION.md`
 - `docs/MODDING_API.md`
+- `docs/NOTIFICATION_CENTER.md` - Notification Center system (NEW)
 - `docs/PAUSE_MENU_IMPLEMENTATION.md`
 - `docs/PLACEMENT_SYSTEM.md` - **UPDATED**: Enhanced with Command Pattern documentation
 - `docs/README_ACHIEVEMENTS.md`
