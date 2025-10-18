@@ -11,6 +11,10 @@ namespace towerforge::ui {
     class UIWindowManager;
     class TooltipManager;
     class NotificationCenter;
+    struct IncomeBreakdown;
+    struct ElevatorAnalytics;
+    struct PopulationBreakdown;
+    class PopulationAnalyticsOverlay;
 
     /**
  * @brief Structure to hold tower rating information
@@ -213,12 +217,43 @@ namespace towerforge::ui {
      */
         void ToggleNotificationCenter();
     
+        /**
+     * @brief Show income analytics overlay
+     * @param data Income breakdown data to display
+     */
+        void ShowIncomeAnalytics(const IncomeBreakdown& data) const;
+    
+        /**
+     * @brief Show elevator analytics overlay
+     * @param data Elevator analytics data to display
+     */
+        void ShowElevatorAnalytics(const ElevatorAnalytics& data) const;
+    
+        /**
+     * @brief Show population analytics overlay
+     * @param data Population breakdown data to display
+     */
+        void ShowPopulationAnalytics(const PopulationBreakdown& data) const;
+    
+        /**
+     * @brief Toggle income analytics overlay visibility
+     */
+        void ToggleIncomeAnalytics();
+    
+        /**
+     * @brief Toggle population analytics overlay visibility
+     */
+        void TogglePopulationAnalytics();
+    
     private:
         void RenderTopBar() const;
         void RenderStarRating() const;
         void RenderNotifications();
         void RenderSpeedControls() const;
         void RenderEndGameSummary() const;
+        
+        bool IsMouseOverIncomeArea(int mouse_x, int mouse_y) const;
+        bool IsMouseOverPopulationArea(int mouse_x, int mouse_y) const;
 
         static std::string FormatTime(float time);
     
@@ -235,6 +270,10 @@ namespace towerforge::ui {
     
         // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;
+        
+        // Analytics overlay tracking
+        mutable bool income_analytics_visible_;
+        mutable bool population_analytics_visible_;
     
         // UI layout constants
         static constexpr int TOP_BAR_HEIGHT = 40;

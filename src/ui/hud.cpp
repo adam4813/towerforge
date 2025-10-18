@@ -3,13 +3,16 @@
 #include "ui/info_windows.h"
 #include "ui/tooltip.h"
 #include "ui/notification_center.h"
+#include "ui/analytics_overlay.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 
 namespace towerforge::ui {
 
-    HUD::HUD() {
+    HUD::HUD() 
+        : income_analytics_visible_(false)
+          , population_analytics_visible_(false) {
         window_manager_ = std::make_unique<UIWindowManager>();
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
@@ -140,6 +143,18 @@ namespace towerforge::ui {
 
         // Check if click is on top bar
         if (mouse_y <= TOP_BAR_HEIGHT) {
+            // Check income area (left side)
+            if (IsMouseOverIncomeArea(mouse_x, mouse_y)) {
+                const_cast<HUD*>(this)->ToggleIncomeAnalytics();
+                return true;
+            }
+        
+            // Check population area
+            if (IsMouseOverPopulationArea(mouse_x, mouse_y)) {
+                const_cast<HUD*>(this)->TogglePopulationAnalytics();
+                return true;
+            }
+        
             // Check notification center button
             const int notif_button_x = screen_width - 80;
             const int notif_button_y = 5;
@@ -178,7 +193,8 @@ namespace towerforge::ui {
             if (mouse_x >= x && mouse_x <= x + 280) {
                 std::stringstream tooltip_text;
                 tooltip_text << "Current funds and hourly income rate.\n";
-                tooltip_text << "Build facilities to increase income.";
+                tooltip_text << "Build facilities to increase income.\n";
+                tooltip_text << "Click for detailed income analytics.";
                 Tooltip tooltip(tooltip_text.str());
                 tooltip_manager_->ShowTooltip(tooltip, x, 0, 280, TOP_BAR_HEIGHT);
                 return;
@@ -187,7 +203,7 @@ namespace towerforge::ui {
             x += 300;
             // Population tooltip
             if (mouse_x >= x && mouse_x <= x + 180) {
-                Tooltip tooltip("Total population in your tower.\nIncreases as you build residential facilities.");
+                Tooltip tooltip("Total population in your tower.\nIncreases as you build residential facilities.\nClick for detailed population analytics.");
                 tooltip_manager_->ShowTooltip(tooltip, x, 0, 180, TOP_BAR_HEIGHT);
                 return;
             }
@@ -609,6 +625,41 @@ namespace towerforge::ui {
 
     void HUD::ToggleNotificationCenter() {
         notification_center_->ToggleVisibility();
+    }
+
+    void HUD::ShowIncomeAnalytics(const IncomeBreakdown& data) const {
+        auto window = std::make_unique<IncomeAnalyticsOverlay>(data);
+        window_manager_->AddWindow(std::move(window));
+    }
+
+    void HUD::ShowElevatorAnalytics(const ElevatorAnalytics& data) const {
+        auto window = std::make_unique<ElevatorAnalyticsOverlay>(data);
+        window_manager_->AddWindow(std::move(window));
+    }
+
+    void HUD::ShowPopulationAnalytics(const PopulationBreakdown& data) const {
+        auto window = std::make_unique<PopulationAnalyticsOverlay>(data);
+        window_manager_->AddWindow(std::move(window));
+    }
+
+    void HUD::ToggleIncomeAnalytics() {
+        income_analytics_visible_ = !income_analytics_visible_;
+    }
+
+    void HUD::TogglePopulationAnalytics() {
+        population_analytics_visible_ = !population_analytics_visible_;
+    }
+
+    bool HUD::IsMouseOverIncomeArea(const int mouse_x, const int mouse_y) const {
+        // Income is displayed at position x=10, y=10 in top bar
+        // Approximately 280 pixels wide
+        return mouse_y <= TOP_BAR_HEIGHT && mouse_x >= 10 && mouse_x <= 290;
+    }
+
+    bool HUD::IsMouseOverPopulationArea(const int mouse_x, const int mouse_y) const {
+        // Population is displayed at position x=310, y=10 in top bar
+        // Approximately 180 pixels wide
+        return mouse_y <= TOP_BAR_HEIGHT && mouse_x >= 310 && mouse_x <= 490;
     }
 
 }
