@@ -46,6 +46,9 @@ namespace TowerForge::Core {
         // Add GridPosition
         facility.set<GridPosition>({floor, column, width});
     
+        // Add FacilityStatus for tracking cleanliness and maintenance
+        facility.set<FacilityStatus>();
+    
         // Place on the grid using the entity ID
         if (!grid_.PlaceFacility(floor, column, width, static_cast<int>(facility.id()))) {
             // If placement fails, destroy the entity and return null

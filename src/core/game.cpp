@@ -441,6 +441,9 @@ namespace towerforge::core {
         // Create the global NPCSpawner as a singleton
         ecs_world_->GetWorld().set<NPCSpawner>({30.0f}); // Spawn visitors every 30 seconds base rate
 
+        // Create the global StaffManager as a singleton
+        ecs_world_->GetWorld().set<StaffManager>();
+
         std::cout << std::endl << "Creating example entities..." << std::endl;
         std::cout << "Renderer initialized. Window opened." << std::endl;
         std::cout << "Press ESC or close window to exit." << std::endl;
@@ -1466,6 +1469,37 @@ namespace towerforge::core {
 
             std::cout << "Starter tower created successfully" << std::endl;
             hud_->AddNotification(Notification::Type::Info, "Starter tower ready!", 5.0f);
+        
+            // Create initial staff for the tower
+            std::cout << "Hiring initial staff..." << std::endl;
+        
+            // Hire a janitor for general cleaning (tower-wide)
+            const auto janitor = ecs_world_->CreateEntity("Bob the Janitor");
+            janitor.set<Person>({"Bob", 0, 3.0f, 2.0f, NPCType::Employee});
+            janitor.set<StaffAssignment>({StaffRole::Janitor, -1, 6.0f, 18.0f});
+            std::cout << "  Hired janitor: Bob (6:00 AM - 6:00 PM, tower-wide)" << std::endl;
+        
+            // Hire a maintenance technician (tower-wide)
+            const auto maintenance = ecs_world_->CreateEntity("Carlos the Maintenance Tech");
+            maintenance.set<Person>({"Carlos", 0, 4.0f, 2.0f, NPCType::Employee});
+            maintenance.set<StaffAssignment>({StaffRole::Maintenance, -1, 8.0f, 17.0f});
+            std::cout << "  Hired maintenance tech: Carlos (8:00 AM - 5:00 PM, tower-wide)" << std::endl;
+        
+            // Hire a firefighter (tower-wide, 24-hour shift)
+            const auto firefighter = ecs_world_->CreateEntity("Dana the Firefighter");
+            firefighter.set<Person>({"Dana", 0, 2.0f, 2.0f, NPCType::Employee});
+            firefighter.set<StaffAssignment>({StaffRole::Firefighter, -1, 0.0f, 24.0f});
+            std::cout << "  Hired firefighter: Dana (24/7, tower-wide)" << std::endl;
+        
+            // Add FacilityStatus to all facilities
+            ecs_world_->GetWorld().each<BuildingComponent>([&](flecs::entity facility_entity, BuildingComponent& facility) {
+                if (!facility_entity.has<FacilityStatus>()) {
+                    facility_entity.set<FacilityStatus>();
+                }
+            });
+        
+            std::cout << "Initial staff hired" << std::endl;
+            hud_->AddNotification(Notification::Type::Info, "Staff hired!", 3.0f);
         } catch (const std::exception &e) {
             std::cerr << "Error creating starter tower: " << e.what() << std::endl;
         }
