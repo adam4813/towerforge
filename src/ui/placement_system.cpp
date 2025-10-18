@@ -20,7 +20,32 @@ namespace towerforge::ui {
           , hover_column_(-1)
           , hover_valid_(false)
           , command_history_(50)  // Max 50 actions in history
-          , tooltip_manager_(nullptr) {
+          , tooltip_manager_(nullptr)
+          , pending_demolish_floor_(-1)
+          , pending_demolish_column_(-1)
+          , pending_demolish_funds_(0.0f)
+          , pending_funds_change_(0) {
+        
+        // Create demolish confirmation dialog
+        demolish_confirmation_ = std::make_unique<ConfirmationDialog>(
+            "Confirm Demolish",
+            "Are you sure you want to demolish this facility? You will receive 50% of the original cost as a refund.",
+            "Demolish",
+            "Cancel"
+        );
+        
+        // Set up the confirmation callback to actually perform demolish
+        demolish_confirmation_->SetConfirmCallback([this]() {
+            if (pending_demolish_floor_ >= 0 && pending_demolish_column_ >= 0) {
+                float funds = pending_demolish_funds_;
+                const float funds_before = funds;
+                if (DemolishFacility(pending_demolish_floor_, pending_demolish_column_, funds)) {
+                    pending_funds_change_ = static_cast<int>(funds - funds_before);
+                }
+                pending_demolish_floor_ = -1;
+                pending_demolish_column_ = -1;
+            }
+        });
     }
 
     PlacementSystem::~PlacementSystem() = default;
@@ -36,6 +61,11 @@ namespace towerforge::ui {
             } else {
                 ++it;
             }
+        }
+        
+        // Update confirmation dialog
+        if (demolish_confirmation_) {
+            demolish_confirmation_->Update(delta_time);
         }
     }
 
@@ -156,6 +186,11 @@ namespace towerforge::ui {
             DrawText(TextFormat("Building... %d%%", static_cast<int>(construction.GetProgress() * 100)),
                      x + 5, y + 5, 10, WHITE);
         }
+        
+        // Render confirmation dialog if visible
+        if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
+            demolish_confirmation_->Render();
+        }
     }
 
     int PlacementSystem::HandleClick(const int mouse_x, const int mouse_y,
@@ -169,9 +204,20 @@ namespace towerforge::ui {
         }
 
         if (demolish_mode_) {
-            // Demolish facility
-            if (float funds = current_funds; DemolishFacility(floor, column, funds)) {
-                return static_cast<int>(funds - current_funds); // Positive (refund)
+            // Show confirmation dialog for demolish
+            if (grid_.IsOccupied(floor, column)) {
+                pending_demolish_floor_ = floor;
+                pending_demolish_column_ = column;
+                pending_demolish_funds_ = current_funds;
+                
+                // Get facility info for dialog message
+                const int facility_id = grid_.GetFacilityAt(floor, column);
+                const auto facility_type = facility_mgr_.GetFacilityType(facility_id);
+                const std::string facility_name = TowerForge::Core::FacilityManager::GetTypeName(facility_type);
+                
+                demolish_confirmation_->Show();
+                
+                return 0; // Don't apply funds change yet, wait for confirmation
             }
         } else {
             if (const int selected = build_menu_.GetSelectedFacility(); selected >= 0) {
@@ -182,6 +228,20 @@ namespace towerforge::ui {
         }
 
         return 0;
+    }
+    
+    bool PlacementSystem::ProcessMouseEvent(const ui::MouseEvent& event) {
+        // If confirmation dialog is visible, route events to it first
+        if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
+            return demolish_confirmation_->ProcessMouseEvent(event);
+        }
+        return false;
+    }
+    
+    int PlacementSystem::GetPendingFundsChange() {
+        const int change = pending_funds_change_;
+        pending_funds_change_ = 0;  // Reset after reading
+        return change;
     }
 
     bool PlacementSystem::HandleKeyboard() {
@@ -380,6 +440,12 @@ namespace towerforge::ui {
 
         // Validate placement
         if (!IsPlacementValid(floor, column, facility_type.width, funds, total_cost)) {
+            // Provide specific feedback on why placement failed
+            if (funds < total_cost) {
+                // Insufficient funds feedback will be handled by game.cpp
+            } else if (!grid_.IsSpaceAvailable(floor, column, facility_type.width)) {
+                // Space not available feedback will be handled by game.cpp
+            }
             return false;
         }
 
