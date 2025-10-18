@@ -248,6 +248,8 @@ namespace towerforge::ui {
         : Panel(0, 0, DIALOG_WIDTH, DIALOG_HEIGHT, ColorAlpha(Color{30, 30, 40, 255}, 0.95f), GOLD)
           , title_(title)
           , message_(message)
+          , confirm_button_(nullptr)
+          , cancel_button_(nullptr)
           , confirm_callback_(nullptr)
           , cancel_callback_(nullptr)
           , is_visible_(false)
@@ -311,15 +313,41 @@ namespace towerforge::ui {
     bool ConfirmationDialog::ProcessMouseEvent(const MouseEvent& event) {
         if (!is_visible_) return false;
         
-        // Process children (buttons)
-        for (auto it = children_.rbegin(); it != children_.rend(); ++it) {
-            if ((*it)->ProcessMouseEvent(event)) {
-                return true;
+        // Calculate centered dialog position
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const int dialog_x = (screen_width - DIALOG_WIDTH) / 2;
+        const int dialog_y = (screen_height - DIALOG_HEIGHT) / 2;
+        
+        // Check if click is on any button and handle it directly
+        if (event.left_pressed) {
+            for (auto it = children_.rbegin(); it != children_.rend(); ++it) {
+                if (const auto* btn = dynamic_cast<Button*>(it->get())) {
+                    const Rectangle child_bounds = btn->GetRelativeBounds();
+                    const int btn_x = dialog_x + static_cast<int>(child_bounds.x);
+                    const int btn_y = dialog_y + static_cast<int>(child_bounds.y);
+                    
+                    // Check if click is within button bounds
+                    if (event.x >= btn_x && event.x <= btn_x + child_bounds.width &&
+                        event.y >= btn_y && event.y <= btn_y + child_bounds.height) {
+                        
+                        if (btn->IsEnabled()) {
+                            // Manually trigger the button's callback
+                            // We need to access the callback somehow...
+                            // Actually, let's call OnClick directly
+                            MouseEvent btn_event = event;
+                            const_cast<Button*>(btn)->OnClick(btn_event);
+                            return true;
+                        }
+                    }
+                }
             }
         }
         
         // Consume all events if dialog is visible (modal behavior)
-        return Contains(event.x, event.y);
+        // Check if click is within dialog bounds
+        return (event.x >= dialog_x && event.x <= dialog_x + DIALOG_WIDTH &&
+                event.y >= dialog_y && event.y <= dialog_y + DIALOG_HEIGHT);
     }
 
     void ConfirmationDialog::Render() const {
@@ -334,11 +362,13 @@ namespace towerforge::ui {
         const int dialog_x = (screen_width - DIALOG_WIDTH) / 2;
         const int dialog_y = (screen_height - DIALOG_HEIGHT) / 2;
         
-        // Temporarily set position to centered
-        const_cast<ConfirmationDialog*>(this)->SetRelativePosition(dialog_x, dialog_y);
-        
-        // Draw dialog background and border
-        Panel::Render();
+        // Draw dialog background and border (at centered position)
+        DrawRectangle(dialog_x, dialog_y, DIALOG_WIDTH, DIALOG_HEIGHT, GetBackgroundColor());
+        if (GetBorderColor().a > 0) {
+            DrawRectangleLinesEx(Rectangle{static_cast<float>(dialog_x), static_cast<float>(dialog_y), 
+                                          static_cast<float>(DIALOG_WIDTH), static_cast<float>(DIALOG_HEIGHT)}, 
+                                2, GetBorderColor());
+        }
         
         // Draw title
         const int title_width = MeasureText(title_.c_str(), 24);
@@ -389,6 +419,49 @@ namespace towerforge::ui {
             // Trim leading spaces from next line
             while (!remaining.empty() && remaining[0] == ' ') {
                 remaining = remaining.substr(1);
+            }
+        }
+        
+        // Render buttons by temporarily adjusting their parent's position in the rendering context
+        // Since buttons are children, we need to render them with the dialog's centered position
+        // We'll do this by directly drawing them at the correct absolute positions
+        for (const auto& child : GetChildren()) {
+            if (const auto* btn = dynamic_cast<const Button*>(child.get())) {
+                // Calculate absolute button position
+                const Rectangle child_bounds = child->GetRelativeBounds();
+                const int btn_x = dialog_x + static_cast<int>(child_bounds.x);
+                const int btn_y = dialog_y + static_cast<int>(child_bounds.y);
+                
+                // Draw button background
+                Color bg_color = btn->GetBackgroundColor();
+                Color border_color = btn->GetBorderColor();
+                Color text_color = btn->GetTextColor();
+                
+                if (!btn->IsEnabled()) {
+                    bg_color = ColorAlpha(bg_color, 0.5f);
+                    border_color = ColorAlpha(border_color, 0.5f);
+                    text_color = ColorAlpha(text_color, 0.5f);
+                } else if (btn->IsHovered()) {
+                    bg_color = ColorBrightness(bg_color, 0.2f);
+                    border_color = ColorBrightness(border_color, 0.2f);
+                }
+                
+                const Rectangle btn_rect{static_cast<float>(btn_x), static_cast<float>(btn_y), 
+                                        child_bounds.width, child_bounds.height};
+                
+                DrawRectangleRec(btn_rect, bg_color);
+                if (border_color.a > 0) {
+                    DrawRectangleLinesEx(btn_rect, 2, border_color);
+                }
+                
+                // Draw button text
+                const std::string& label = btn->GetLabel();
+                if (!label.empty()) {
+                    const int text_width = MeasureText(label.c_str(), btn->GetFontSize());
+                    const int text_x = btn_x + (static_cast<int>(child_bounds.width) - text_width) / 2;
+                    const int text_y = btn_y + (static_cast<int>(child_bounds.height) - btn->GetFontSize()) / 2;
+                    DrawText(label.c_str(), text_x, text_y, btn->GetFontSize(), text_color);
+                }
             }
         }
     }
