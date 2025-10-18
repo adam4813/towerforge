@@ -999,6 +999,43 @@ namespace towerforge::core {
                                               TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
                     }
                 } else {
+                    // Check if placement was attempted but failed
+                    const int selected = build_menu_->GetSelectedFacility();
+                    if (selected >= 0 && !placement_system_->IsDemolishMode()) {
+                        // Placement was attempted but failed - provide feedback
+                        const auto &facility_types = build_menu_->GetFacilityTypes();
+                        if (selected < static_cast<int>(facility_types.size())) {
+                            const auto& facility_type = facility_types[selected];
+                            
+                            // Check specific reason for failure
+                            const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
+                            const int rel_y = static_cast<int>(world_y) - grid_offset_y_;
+                            
+                            if (rel_x >= 0 && rel_y >= 0) {
+                                const int clicked_floor = rel_y / cell_height_;
+                                const int clicked_column = rel_x / cell_width_;
+                                
+                                if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
+                                    clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
+                                    
+                                    const int floor_build_cost = ecs_world_->GetFacilityManager().CalculateFloorBuildCost(
+                                        clicked_floor, clicked_column, facility_type.width);
+                                    const int total_cost = facility_type.cost + floor_build_cost;
+                                    
+                                    if (game_state_.funds < total_cost) {
+                                        hud_->AddNotification(Notification::Type::Error,
+                                            TextFormat("Insufficient funds! Need $%d (have $%.0f)", 
+                                                total_cost, game_state_.funds), 3.0f);
+                                    } else if (!grid.IsSpaceAvailable(clicked_floor, clicked_column, facility_type.width)) {
+                                        hud_->AddNotification(Notification::Type::Warning,
+                                            "Cannot place facility here - space not available", 3.0f);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Original code for entity selection continues below...
                     const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
                     const int rel_y = static_cast<int>(world_y) - grid_offset_y_;
 

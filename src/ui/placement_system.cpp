@@ -440,6 +440,12 @@ namespace towerforge::ui {
 
         // Validate placement
         if (!IsPlacementValid(floor, column, facility_type.width, funds, total_cost)) {
+            // Provide specific feedback on why placement failed
+            if (funds < total_cost) {
+                // Insufficient funds feedback will be handled by game.cpp
+            } else if (!grid_.IsSpaceAvailable(floor, column, facility_type.width)) {
+                // Space not available feedback will be handled by game.cpp
+            }
             return false;
         }
 
