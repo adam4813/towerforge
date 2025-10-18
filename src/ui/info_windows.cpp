@@ -47,6 +47,19 @@ namespace towerforge::ui {
         DrawText("--- Facility Status ---", x, y, 14, YELLOW);
         y += 20;
     
+        // CleanlinessStatus state (if available)
+        if (!info_.cleanliness_state.empty()) {
+            const std::string clean_state = "Status: " + info_.cleanliness_state;
+            Color state_color = GREEN;
+            if (info_.cleanliness_state == "Dirty") {
+                state_color = RED;
+            } else if (info_.cleanliness_state == "Needs Cleaning") {
+                state_color = YELLOW;
+            }
+            DrawText(clean_state.c_str(), x, y, 14, state_color);
+            y += 20;
+        }
+    
         // Cleanliness
         const std::string cleanliness = "Cleanliness: " + info_.cleanliness_rating + 
                                   " (" + std::to_string(static_cast<int>(info_.cleanliness)) + "%)";
@@ -73,12 +86,21 @@ namespace towerforge::ui {
     
         y += 10;
     
-        // Buttons (placeholder)
+        // Buttons row 1
         DrawRectangle(x, y, 100, 25, DARKGRAY);
         DrawText("[Demolish]", x + 5, y + 5, 14, RED);
     
         DrawRectangle(x + 110, y, 100, 25, DARKGRAY);
         DrawText("[Upgrade]", x + 115, y + 5, 14, YELLOW);
+    
+        y += 30;
+    
+        // "Clean now" button (only show if facility needs cleaning)
+        if (info_.needs_cleaning) {
+            const Color clean_btn_color = info_.cleanliness_state == "Dirty" ? RED : YELLOW;
+            DrawRectangle(x, y, 210, 25, clean_btn_color);
+            DrawText("[Clean Now]", x + 65, y + 5, 14, BLACK);
+        }
     }
 
     std::string FacilityWindow::GetSatisfactionEmoji(const float satisfaction) {

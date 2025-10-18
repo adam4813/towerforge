@@ -49,6 +49,30 @@ namespace TowerForge::Core {
         // Add FacilityStatus for tracking cleanliness and maintenance
         facility.set<FacilityStatus>({});
     
+        // Add CleanlinessStatus for state-based cleanliness tracking
+        CleanlinessStatus cleanliness;
+        // Set dirty_rate based on facility type
+        switch (type) {
+            case BuildingComponent::Type::Restaurant:
+            case BuildingComponent::Type::Hotel:
+                cleanliness.dirty_rate = 1.5f;  // Get dirty faster
+                break;
+            case BuildingComponent::Type::RetailShop:
+            case BuildingComponent::Type::Arcade:
+            case BuildingComponent::Type::FlagshipStore:
+                cleanliness.dirty_rate = 1.2f;  // Slightly faster
+                break;
+            case BuildingComponent::Type::Office:
+            case BuildingComponent::Type::Gym:
+            case BuildingComponent::Type::Theater:
+                cleanliness.dirty_rate = 1.0f;  // Normal rate
+                break;
+            default:
+                cleanliness.dirty_rate = 0.8f;  // Slower degradation
+                break;
+        }
+        facility.set<CleanlinessStatus>(cleanliness);
+    
         // Place on the grid using the entity ID
         if (!grid_.PlaceFacility(floor, column, width, static_cast<int>(facility.id()))) {
             // If placement fails, destroy the entity and return null

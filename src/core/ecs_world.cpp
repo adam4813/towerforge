@@ -4,6 +4,7 @@
 #include "core/facility_manager.hpp"
 #include "core/lua_mod_manager.hpp"
 #include <iostream>
+#include <set>
 
 namespace TowerForge::Core {
 
@@ -89,8 +90,9 @@ namespace TowerForge::Core {
         world_.component<StaffAssignment>();
         world_.component<FacilityStatus>();
         world_.component<StaffManager>();
+        world_.component<CleanlinessStatus>();
     
-        std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest, StaffAssignment, FacilityStatus, StaffManager" << std::endl;
+        std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest, StaffAssignment, FacilityStatus, StaffManager, CleanlinessStatus" << std::endl;
     }
 
     void ECSWorld::RegisterSystems() const {
@@ -1033,6 +1035,59 @@ namespace TowerForge::Core {
                     status.Update(delta_time, facility.current_occupancy);
                 });
     
+        // CleanlinessStatus degradation system
+        // Updates cleanliness state based on time and facility usage
+        world_.system<CleanlinessStatus, const BuildingComponent>()
+                .kind(flecs::OnUpdate)
+                .interval(1.0f)  // Update every second
+                .each([](const flecs::entity e, CleanlinessStatus& cleanliness, const BuildingComponent& facility) {
+                    const float delta_time = e.world().delta_time();
+                
+                    // Calculate occupancy factor (busier facilities get dirty faster)
+                    const float occupancy_rate = static_cast<float>(facility.current_occupancy) / 
+                                                 std::max(1, facility.capacity);
+                    const float occupancy_factor = 1.0f + (occupancy_rate * 2.0f);  // 1x to 3x multiplier
+                
+                    // Update cleanliness state
+                    cleanliness.Update(delta_time, occupancy_factor);
+                });
+    
+        // Cleanliness notification system
+        // Sends notifications when facilities become dirty
+        world_.system<const CleanlinessStatus, const BuildingComponent>()
+                .kind(flecs::OnUpdate)
+                .interval(5.0f)  // Check every 5 seconds
+                .each([](const flecs::entity e, const CleanlinessStatus& cleanliness, const BuildingComponent& facility) {
+                    // Only notify when facility becomes dirty
+                    static std::set<flecs::entity_t> notified_dirty;
+                    static std::set<flecs::entity_t> notified_needs_cleaning;
+                
+                    const auto entity_id = e.id();
+                
+                    if (cleanliness.status == CleanlinessStatus::State::Dirty) {
+                        if (notified_dirty.find(entity_id) == notified_dirty.end()) {
+                            notified_dirty.insert(entity_id);
+                            notified_needs_cleaning.erase(entity_id);
+                        
+                            const char* facility_type = FacilityManager::GetTypeName(facility.type);
+                            std::cout << "  [NOTIFICATION] " << facility_type << " on Floor " << facility.floor 
+                                    << " is dirty! Guests are unhappy." << std::endl;
+                        }
+                    } else if (cleanliness.status == CleanlinessStatus::State::NeedsCleaning) {
+                        if (notified_needs_cleaning.find(entity_id) == notified_needs_cleaning.end()) {
+                            notified_needs_cleaning.insert(entity_id);
+                        
+                            const char* facility_type = FacilityManager::GetTypeName(facility.type);
+                            std::cout << "  [NOTIFICATION] " << facility_type << " on Floor " << facility.floor 
+                                    << " needs cleaning." << std::endl;
+                        }
+                    } else if (cleanliness.status == CleanlinessStatus::State::Clean) {
+                        // Clear notification flags when cleaned
+                        notified_dirty.erase(entity_id);
+                        notified_needs_cleaning.erase(entity_id);
+                    }
+                });
+    
         // Staff shift management system
         // Activates/deactivates staff based on shift times
         world_.system<StaffAssignment, Person>()
@@ -1071,7 +1126,8 @@ namespace TowerForge::Core {
                     auto world = staff_entity.world();
                     bool cleaned_something = false;
                 
-                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                    // First try to clean facilities with CleanlinessStatus
+                    world.each([&](flecs::entity facility_entity, CleanlinessStatus& cleanliness, const BuildingComponent& facility) {
                             if (cleaned_something) return;  // Only clean one facility per cycle
                         
                             // Check if staff is assigned to this facility or floor
@@ -1085,8 +1141,8 @@ namespace TowerForge::Core {
                             if (!is_assigned) return;
                         
                             // Check if facility needs cleaning
-                            if (status.NeedsCleaning()) {
-                                status.Clean(assignment.work_efficiency);
+                            if (cleanliness.NeedsCleaning()) {
+                                cleanliness.Clean();
                                 cleaned_something = true;
                             
                                 const char* facility_type = "Facility";
@@ -1097,14 +1153,54 @@ namespace TowerForge::Core {
                                     case BuildingComponent::Type::Arcade: facility_type = "Arcade"; break;
                                     case BuildingComponent::Type::Gym: facility_type = "Gym"; break;
                                     case BuildingComponent::Type::Hotel: facility_type = "Hotel"; break;
+                                    case BuildingComponent::Type::Theater: facility_type = "Theater"; break;
+                                    case BuildingComponent::Type::FlagshipStore: facility_type = "Flagship Store"; break;
                                     default: break;
                                 }
                             
                                 std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") cleaned " 
                                         << facility_type << " on Floor " << facility.floor 
-                                        << " (Cleanliness: " << static_cast<int>(status.cleanliness) << "%)" << std::endl;
+                                        << " (Status: " << cleanliness.GetStateString() << ")" << std::endl;
                             }
                         });
+                
+                    // Fallback to FacilityStatus for compatibility
+                    if (!cleaned_something) {
+                        world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                                if (cleaned_something) return;  // Only clean one facility per cycle
+                            
+                                // Check if staff is assigned to this facility or floor
+                                bool is_assigned = false;
+                                if (assignment.assigned_facility_entity == static_cast<int>(facility_entity.id())) {
+                                    is_assigned = true;
+                                } else if (assignment.assigned_floor == -1 || assignment.assigned_floor == facility.floor) {
+                                    is_assigned = true;
+                                }
+                            
+                                if (!is_assigned) return;
+                            
+                                // Check if facility needs cleaning
+                                if (status.NeedsCleaning()) {
+                                    status.Clean(assignment.work_efficiency);
+                                    cleaned_something = true;
+                                
+                                    const char* facility_type = "Facility";
+                                    switch (facility.type) {
+                                        case BuildingComponent::Type::Office: facility_type = "Office"; break;
+                                        case BuildingComponent::Type::Restaurant: facility_type = "Restaurant"; break;
+                                        case BuildingComponent::Type::RetailShop: facility_type = "Retail Shop"; break;
+                                        case BuildingComponent::Type::Arcade: facility_type = "Arcade"; break;
+                                        case BuildingComponent::Type::Gym: facility_type = "Gym"; break;
+                                        case BuildingComponent::Type::Hotel: facility_type = "Hotel"; break;
+                                        default: break;
+                                    }
+                                
+                                    std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") cleaned " 
+                                            << facility_type << " on Floor " << facility.floor 
+                                            << " (Cleanliness: " << static_cast<int>(status.cleanliness) << "%)" << std::endl;
+                                }
+                            });
+                    }
                 });
     
         // Staff maintenance system
@@ -1246,6 +1342,29 @@ namespace TowerForge::Core {
                     }
                 });
     
+        // CleanlinessStatus impact on satisfaction system
+        // Dirty facilities gently reduce satisfaction (cozy, not punitive)
+        world_.system<Satisfaction, const CleanlinessStatus>()
+                .kind(flecs::OnUpdate)
+                .interval(2.0f)  // Update every 2 seconds
+                .each([](const flecs::entity e, Satisfaction& satisfaction, const CleanlinessStatus& cleanliness) {
+                    // Gentle, progressive penalties based on cleanliness state
+                    switch (cleanliness.status) {
+                        case CleanlinessStatus::State::Dirty:
+                            // Dirty facilities have a noticeable but not severe impact
+                            satisfaction.quality_bonus = std::max(0.0f, satisfaction.quality_bonus - 2.0f);
+                            break;
+                        case CleanlinessStatus::State::NeedsCleaning:
+                            // Facilities that need cleaning have a small impact
+                            satisfaction.quality_bonus = std::max(0.0f, satisfaction.quality_bonus - 0.5f);
+                            break;
+                        case CleanlinessStatus::State::Clean:
+                            // Clean facilities get a small bonus
+                            satisfaction.quality_bonus = std::min(20.0f, satisfaction.quality_bonus + 0.3f);
+                            break;
+                    }
+                });
+    
         // Staff manager update system
         // Updates staff counts and wages
         world_.system<StaffManager>()
@@ -1320,7 +1439,7 @@ namespace TowerForge::Core {
                     std::cout << "  ====================" << std::endl;
                 });
     
-        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Behavior, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, Staff Shift Management, Staff Cleaning, Staff Maintenance, Staff Firefighting, Staff Security, Facility Status Impact, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
+        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Behavior, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, CleanlinessStatus Degradation, Cleanliness Notification, Staff Shift Management, Staff Cleaning, Staff Maintenance, Staff Firefighting, Staff Security, Facility Status Impact, CleanlinessStatus Impact, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
     }
 
 }
