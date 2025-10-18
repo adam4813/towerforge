@@ -67,10 +67,6 @@ target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 add_executable(test_mods src/test_mods.cpp)
 target_link_libraries(test_mods PRIVATE towerforge_core)
 
-# Test user preferences application
-add_executable(test_user_preferences src/test_user_preferences.cpp)
-target_link_libraries(test_user_preferences PRIVATE towerforge_core)
-
 # Future modules (uncomment as needed)
 # add_subdirectory(src/rendering)
 # add_subdirectory(src/simulation)

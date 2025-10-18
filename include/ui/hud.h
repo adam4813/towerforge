@@ -63,6 +63,10 @@ namespace towerforge::ui {
         // CleanlinessStatus state info
         std::string cleanliness_state;  // "Clean", "Needs Cleaning", or "Dirty"
         bool needs_cleaning;            // True if facility needs cleaning
+        // MaintenanceStatus state info
+        std::string maintenance_state;  // "Good", "Needs Service", or "Broken"
+        bool needs_repair;              // True if facility needs repair
+        bool is_broken;                 // True if facility is broken
     };
 
     /**

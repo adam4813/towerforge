@@ -1278,6 +1278,20 @@ namespace towerforge::core {
                                         info.needs_cleaning = false;
                                     }
                                     
+                                    // Get MaintenanceStatus state information
+                                    if (facility_entity.is_alive() && facility_entity.has<MaintenanceStatus>()) {
+                                        const MaintenanceStatus& maintenance = facility_entity.ensure<MaintenanceStatus>();
+                                        info.maintenance_state = maintenance.GetStateString();
+                                        info.needs_repair = maintenance.NeedsService();
+                                        info.is_broken = maintenance.IsBroken();
+                                        // Override maintenance percentage with state-based value if available
+                                        info.maintenance_level = maintenance.GetMaintenancePercent();
+                                    } else {
+                                        info.maintenance_state = "";
+                                        info.needs_repair = false;
+                                        info.is_broken = false;
+                                    }
+                                    
                                     hud_->ShowFacilityInfo(info);
                                 }
                             }
