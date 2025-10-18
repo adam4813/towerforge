@@ -104,6 +104,7 @@ namespace towerforge::core {
           , tutorial_manager_(nullptr)
           , tutorial_active_(false)
           , in_audio_settings_(false)
+          , in_accessibility_settings_(false)
           , ecs_world_(nullptr)
           , save_load_manager_(nullptr)
           , achievement_manager_(nullptr)
@@ -118,6 +119,7 @@ namespace towerforge::core {
           , is_paused_(false)
           , in_settings_from_pause_(false)
           , in_audio_settings_from_pause_(false)
+          , in_accessibility_settings_from_pause_(false)
           , elapsed_time_(0.0f)
           , sim_time_(0.0f)
           , time_step_(1.0f / 60.0f)
@@ -299,7 +301,10 @@ namespace towerforge::core {
     }
 
     void Game::UpdateSettingsScreen(const float delta_time) {
-        if (in_audio_settings_) {
+        if (in_accessibility_settings_) {
+            accessibility_settings_menu_.Update(delta_time);
+            HandleSettingsInput();
+        } else if (in_audio_settings_) {
             audio_settings_menu_.Update(delta_time);
             HandleSettingsInput();
         } else {
@@ -312,7 +317,9 @@ namespace towerforge::core {
         renderer_.BeginFrame();
         ClearBackground(Color{20, 20, 30, 255});
 
-        if (in_audio_settings_) {
+        if (in_accessibility_settings_) {
+            accessibility_settings_menu_.Render();
+        } else if (in_audio_settings_) {
             audio_settings_menu_.Render();
         } else {
             general_settings_menu_.Render();
@@ -322,7 +329,16 @@ namespace towerforge::core {
     }
 
     void Game::HandleSettingsInput() {
-        if (in_audio_settings_) {
+        if (in_accessibility_settings_) {
+            if (accessibility_settings_menu_.HandleKeyboard()) {
+                in_accessibility_settings_ = false;
+            }
+            const bool back_clicked = accessibility_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
+                                                                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            if (back_clicked) {
+                in_accessibility_settings_ = false;
+            }
+        } else if (in_audio_settings_) {
             if (audio_settings_menu_.HandleKeyboard()) {
                 in_audio_settings_ = false;
             }
@@ -344,15 +360,18 @@ namespace towerforge::core {
                     case SettingsOption::Audio:
                         in_audio_settings_ = true;
                         break;
+                    case SettingsOption::Accessibility:
+                        in_accessibility_settings_ = true;
+                        break;
                     case SettingsOption::Controls:
                     case SettingsOption::Display:
-                    case SettingsOption::Accessibility:
                     case SettingsOption::Gameplay:
                         std::cout << "Settings option not yet implemented" << std::endl;
                         break;
                     case SettingsOption::Back:
                         current_state_ = GameState::TitleScreen;
                         in_audio_settings_ = false;
+                        in_accessibility_settings_ = false;
                         break;
                 }
             }
@@ -627,6 +646,7 @@ namespace towerforge::core {
         is_paused_ = false;
         in_settings_from_pause_ = false;
         in_audio_settings_from_pause_ = false;
+        in_accessibility_settings_from_pause_ = false;
     }
 
     void Game::UpdateInGame(float delta_time) {
@@ -636,7 +656,8 @@ namespace towerforge::core {
                 save_load_menu_->Close();
             } else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
                 research_menu_->SetVisible(false);
-            } else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ && !is_paused_) {
+            } else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ && 
+                       !in_accessibility_settings_from_pause_ && !is_paused_) {
                 is_paused_ = true;
                 audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
                 game_state_.paused = true;
@@ -784,9 +805,11 @@ namespace towerforge::core {
                         case SettingsOption::Audio:
                             in_audio_settings_from_pause_ = true;
                             break;
+                        case SettingsOption::Accessibility:
+                            in_accessibility_settings_from_pause_ = true;
+                            break;
                         case SettingsOption::Controls:
                         case SettingsOption::Display:
-                        case SettingsOption::Accessibility:
                         case SettingsOption::Gameplay:
                             hud_->AddNotification(Notification::Type::Info, "Settings option not yet implemented",
                                                   3.0f);
@@ -1367,6 +1390,8 @@ namespace towerforge::core {
         if (is_paused_) {
             if (save_load_menu_->IsOpen()) {
                 save_load_menu_->Render();
+            } else if (in_accessibility_settings_from_pause_) {
+                pause_accessibility_settings_menu_.Render();
             } else if (in_audio_settings_from_pause_) {
                 pause_audio_settings_menu_.Render();
             } else if (in_settings_from_pause_) {

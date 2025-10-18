@@ -1,4 +1,5 @@
 #include "ui/ui_element.h"
+#include "core/accessibility_settings.hpp"
 #include <algorithm>
 
 namespace towerforge::ui {
@@ -8,6 +9,7 @@ namespace towerforge::ui {
           , relative_y_(relative_y)
           , width_(width)
           , height_(height)
+          , is_focused_(false)
           , parent_(nullptr) {
     }
 
@@ -162,6 +164,11 @@ namespace towerforge::ui {
     void Button::Render() const {
         const Rectangle bounds = GetAbsoluteBounds();
         
+        // Get accessibility settings
+        const auto& accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const bool high_contrast = accessibility.IsHighContrastEnabled();
+        const float font_scale = accessibility.GetFontScale();
+        
         // Determine colors based on state
         Color bg_color = background_color_;
         Color border_col = border_color_;
@@ -171,26 +178,41 @@ namespace towerforge::ui {
             bg_color = ColorAlpha(bg_color, 0.5f);
             border_col = ColorAlpha(border_col, 0.5f);
             text_col = ColorAlpha(text_col, 0.5f);
-        } else if (is_hovered_) {
-            // Brighten colors when hovered
-            bg_color = ColorAlpha(bg_color, bg_color.a / 255.0f * 1.5f);
-            border_col = ColorBrightness(border_col, 0.2f);
+        } else if (is_hovered_ || is_focused_) {
+            // Brighten colors when hovered or focused
+            if (high_contrast) {
+                // In high-contrast mode, use more distinct colors
+                bg_color = is_focused_ ? ColorAlpha(YELLOW, 0.5f) : ColorAlpha(bg_color, bg_color.a / 255.0f * 1.5f);
+                border_col = is_focused_ ? YELLOW : ColorBrightness(border_col, 0.2f);
+                text_col = is_focused_ ? BLACK : text_col;
+            } else {
+                bg_color = ColorAlpha(bg_color, bg_color.a / 255.0f * 1.5f);
+                border_col = ColorBrightness(border_col, 0.2f);
+            }
+        }
+        
+        // Apply high-contrast mode adjustments
+        if (high_contrast && enabled_) {
+            // Increase contrast for better visibility
+            border_col = ColorBrightness(border_col, 0.3f);
         }
         
         // Draw background
         DrawRectangleRec(bounds, bg_color);
         
-        // Draw border if not transparent
+        // Draw border (thicker in high-contrast mode or when focused)
+        const float border_thickness = (high_contrast || is_focused_) ? 3.0f : 2.0f;
         if (border_col.a > 0) {
-            DrawRectangleLinesEx(bounds, 2, border_col);
+            DrawRectangleLinesEx(bounds, border_thickness, border_col);
         }
         
-        // Draw label text centered
+        // Draw label text centered with font scaling
         if (!label_.empty()) {
-            const int text_width = MeasureText(label_.c_str(), font_size_);
+            const int scaled_font_size = static_cast<int>(font_size_ * font_scale);
+            const int text_width = MeasureText(label_.c_str(), scaled_font_size);
             const int text_x = bounds.x + (bounds.width - text_width) / 2;
-            const int text_y = bounds.y + (bounds.height - font_size_) / 2;
-            DrawText(label_.c_str(), text_x, text_y, font_size_, text_col);
+            const int text_y = bounds.y + (bounds.height - scaled_font_size) / 2;
+            DrawText(label_.c_str(), text_x, text_y, scaled_font_size, text_col);
         }
         
         // Render all children

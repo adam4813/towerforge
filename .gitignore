@@ -46,5 +46,10 @@ vcpkg_installed/
 .DS_Store
 Thumbs.db
 
+# User settings and save files
+accessibility_settings.json
+audio_settings.json
+*.sav
+
 # Assets (audio, textures, etc. - add manually if needed)
 assets/

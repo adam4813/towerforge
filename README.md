@@ -677,6 +677,13 @@ TowerForge.RegisterFacilityType({
   - Interactive grid-based UI with hover details
   - Full save/load persistence
   - Global bonus tracking (multipliers and bonuses)
+- ✅ **Accessibility Features**
+  - Full keyboard navigation support for all UI elements
+  - High-contrast mode for improved visibility
+  - Font scaling from 50% to 300%
+  - Settings persistence across sessions
+  - Keyboard focus indicators
+  - Accessible from Settings menu (main menu or pause menu)
 
 ### Tower Grid System Demo
 
@@ -769,6 +776,8 @@ The application demonstrates:
 For detailed documentation on the HUD system, see [docs/HUD_SYSTEM.md](docs/deprecated_archive/HUD_SYSTEM.md).
 
 For detailed documentation on the tooltip system, see [docs/TOOLTIP_SYSTEM.md](docs/TOOLTIP_SYSTEM.md).
+
+For detailed documentation on accessibility features, see [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 
