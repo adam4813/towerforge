@@ -1,11 +1,13 @@
 #include "ui/general_settings_menu.h"
+#include "ui/ui_element.h"
 #include <cmath>
 
 namespace towerforge::ui {
 
     GeneralSettingsMenu::GeneralSettingsMenu()
         : selected_option_(0)
-          , animation_time_(0.0f) {
+          , animation_time_(0.0f)
+          , selected_menu_option_(-1) {
 
         // Initialize menu items
         menu_items_.push_back({"Audio Settings  >", SettingsOption::Audio});
@@ -14,6 +16,37 @@ namespace towerforge::ui {
         menu_items_.push_back({"Accessibility  >", SettingsOption::Accessibility});
         menu_items_.push_back({"Gameplay Settings  >", SettingsOption::Gameplay});
         menu_items_.push_back({"Back", SettingsOption::Back});
+
+        // Create main panel
+        settings_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
+
+        // Create Button objects for each menu item and add as children
+        for (size_t i = 0; i < menu_items_.size(); ++i) {
+            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
+            auto button = std::make_unique<Button>(
+                0, // x will be set during render
+                static_cast<float>(item_y),
+                static_cast<float>(MENU_WIDTH),
+                static_cast<float>(MENU_ITEM_HEIGHT),
+                menu_items_[i].label,
+                ColorAlpha(DARKGRAY, 0.2f),
+                DARKGRAY
+            );
+            button->SetFontSize(24);
+
+            // Set click callback
+            const int option_index = static_cast<int>(i);
+            button->SetClickCallback([this, option_index]() {
+                selected_menu_option_ = option_index;
+            });
+
+            // Store raw pointer for later access
+            Button* button_ptr = button.get();
+            menu_item_buttons_.push_back(button_ptr);
+
+            // Add as child to panel
+            settings_panel_->AddChild(std::move(button));
+        }
     }
 
     GeneralSettingsMenu::~GeneralSettingsMenu() = default;
@@ -67,20 +100,15 @@ namespace towerforge::ui {
 
             const bool is_selected = (static_cast<int>(i) == selected_option_);
 
-            // Draw menu item background
-            const Color bg_color = is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f);
-            DrawRectangle(item_x, item_y, MENU_WIDTH, MENU_ITEM_HEIGHT, bg_color);
+            // Update button position and appearance based on selection
+            auto& button = menu_item_buttons_[i];
+            button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
+            button->SetBackgroundColor(is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f));
+            button->SetBorderColor(is_selected ? GOLD : GRAY);
+            button->SetTextColor(is_selected ? GOLD : LIGHTGRAY);
 
-            // Draw menu item border
-            const Color border_color = is_selected ? GOLD : GRAY;
-            int border_thickness = is_selected ? 3 : 2;
-            DrawRectangleLines(item_x, item_y, MENU_WIDTH, MENU_ITEM_HEIGHT, border_color);
-
-            // Draw menu item text
-            const char* text = menu_items_[i].label.c_str();
-            int text_width = MeasureText(text, 20);
-            const Color text_color = is_selected ? GOLD : LIGHTGRAY;
-            DrawText(text, item_x + 20, item_y + (MENU_ITEM_HEIGHT - 20) / 2, 20, text_color);
+            // Render the button
+            button->Render();
 
             // Draw selection indicator
             if (is_selected) {
@@ -129,24 +157,31 @@ namespace towerforge::ui {
     }
 
     int GeneralSettingsMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        const int screen_width = GetScreenWidth();
+        // Create mouse event
+        MouseEvent event(
+            static_cast<float>(mouse_x),
+            static_cast<float>(mouse_y),
+            false, // left_down
+            false, // right_down
+            clicked, // left_pressed
+            false  // right_pressed
+        );
 
-        for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-            const int item_x = (screen_width - MENU_WIDTH) / 2;
+        // Reset selected menu option
+        selected_menu_option_ = -1;
 
-            // Check if mouse is over this item
-            if (mouse_x >= item_x && mouse_x <= item_x + MENU_WIDTH &&
-                mouse_y >= item_y && mouse_y <= item_y + MENU_ITEM_HEIGHT) {
+        // Process mouse event through the panel
+        settings_panel_->ProcessMouseEvent(event);
+
+        // Update selected_option_ based on which button is hovered
+        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
+            if (menu_item_buttons_[i]->IsHovered()) {
                 selected_option_ = static_cast<int>(i);
-
-                if (clicked) {
-                    return selected_option_;
-                }
+                break;
             }
         }
 
-        return -1;
+        return selected_menu_option_;
     }
 
 }

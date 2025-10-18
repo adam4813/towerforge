@@ -47,6 +47,7 @@ set(SOURCE_FILES
     src/ui/tooltip.cpp
     src/ui/notification_center.cpp
     src/ui/ui_element.cpp
+    src/ui/mouse_event_manager.cpp
     src/audio/audio_manager.cpp
 )
 

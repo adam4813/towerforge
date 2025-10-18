@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <functional>
+#include "mouse_interface.h"
 
 namespace towerforge::ui {
 
@@ -12,8 +14,9 @@ namespace towerforge::ui {
      * 
      * This class provides a unified concept for UI elements throughout the codebase.
      * Each UI element maintains its bounding rectangle relative to its parent's position.
+     * Implements IMouseInteractive for unified mouse event handling.
      */
-    class UIElement {
+    class UIElement : public IMouseInteractive {
     public:
         /**
          * @brief Construct a UI element with relative positioning
@@ -88,12 +91,39 @@ namespace towerforge::ui {
          * @param y Screen Y coordinate
          * @return True if point is inside element
          */
-        bool Contains(float x, float y) const;
+        bool Contains(float x, float y) const override;
 
         /**
          * @brief Render the element (can be overridden by derived classes)
          */
         virtual void Render() const {}
+
+        /**
+         * @brief Process mouse events with bubble-down propagation
+         * 
+         * This method handles mouse events by first propagating them to children
+         * (bubble-down), then calling the element's own event handlers if not consumed.
+         * 
+         * @param event Mouse event data
+         * @return true if the event was handled and should not propagate further
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
+
+        /**
+         * @brief Handle mouse hover event (override in derived classes)
+         * 
+         * @param event Mouse event data
+         * @return true if the event was consumed
+         */
+        bool OnHover(const MouseEvent& event) override { return false; }
+
+        /**
+         * @brief Handle mouse click event (override in derived classes)
+         * 
+         * @param event Mouse event data
+         * @return true if the event was consumed
+         */
+        bool OnClick(const MouseEvent& event) override { return false; }
 
     protected:
         float relative_x_;      // X position relative to parent
@@ -165,6 +195,11 @@ namespace towerforge::ui {
     class Button : public UIElement {
     public:
         /**
+         * @brief Callback type for button click events
+         */
+        using ClickCallback = std::function<void()>;
+
+        /**
          * @brief Construct a button
          * @param relative_x X position relative to parent
          * @param relative_y Y position relative to parent
@@ -183,6 +218,22 @@ namespace towerforge::ui {
          * @brief Render the button
          */
         void Render() const override;
+
+        /**
+         * @brief Handle hover event
+         */
+        bool OnHover(const MouseEvent& event) override;
+
+        /**
+         * @brief Handle click event
+         */
+        bool OnClick(const MouseEvent& event) override;
+
+        /**
+         * @brief Set click callback
+         * @param callback Function to call when button is clicked
+         */
+        void SetClickCallback(ClickCallback callback) { click_callback_ = callback; }
 
         /**
          * @brief Set the button label
@@ -234,12 +285,24 @@ namespace towerforge::ui {
          */
         int GetFontSize() const { return font_size_; }
 
+        /**
+         * @brief Set enabled state
+         */
+        void SetEnabled(bool enabled) { enabled_ = enabled; }
+
+        /**
+         * @brief Get enabled state
+         */
+        bool IsEnabled() const { return enabled_; }
+
     private:
         std::string label_;
         Color background_color_;
         Color border_color_;
         Color text_color_;
         int font_size_;
+        bool enabled_;
+        ClickCallback click_callback_;
     };
 
 }

@@ -6,7 +6,8 @@ namespace towerforge::ui {
 
     MainMenu::MainMenu()
         : selected_option_(0)
-          , animation_time_(0.0f) {
+          , animation_time_(0.0f)
+          , selected_menu_option_(-1) {
 
         // Initialize menu items
         menu_items_.push_back({"New Game", MenuOption::NewGame});
@@ -20,7 +21,7 @@ namespace towerforge::ui {
         // MainMenu is a Panel (container) - position and size don't matter much since it's full screen
         main_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
         
-        // Create Button objects for each menu item
+        // Create Button objects for each menu item and add them as children
         // Buttons are children of the main panel with relative positioning
         for (size_t i = 0; i < menu_items_.size(); ++i) {
             const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
@@ -35,7 +36,19 @@ namespace towerforge::ui {
                 GRAY
             );
             button->SetFontSize(22); // Default size, will be adjusted for selected item
-            menu_item_buttons_.push_back(std::move(button));
+            
+            // Set click callback for this button
+            const int option_index = static_cast<int>(i);
+            button->SetClickCallback([this, option_index]() {
+                selected_menu_option_ = option_index;
+            });
+            
+            // Store raw pointer for later access
+            Button* button_ptr = button.get();
+            menu_item_buttons_.push_back(button_ptr);
+            
+            // Add button as child to main panel
+            main_panel_->AddChild(std::move(button));
         }
     }
 
@@ -207,27 +220,32 @@ namespace towerforge::ui {
     }
 
     int MainMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        const int screen_width = GetScreenWidth();
+        // Create mouse event
+        MouseEvent event(
+            static_cast<float>(mouse_x), 
+            static_cast<float>(mouse_y),
+            false, // left_down (not used currently)
+            false, // right_down (not used currently)
+            clicked, // left_pressed
+            false  // right_pressed
+        );
 
-        for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-            const int item_x = (screen_width - MENU_WIDTH) / 2;
+        // Reset selected menu option
+        selected_menu_option_ = -1;
 
-            // Check if mouse is over this item
-            if (mouse_x >= item_x && mouse_x <= item_x + MENU_WIDTH &&
-                mouse_y >= item_y && mouse_y <= item_y + MENU_ITEM_HEIGHT) {
+        // Process mouse event through the panel (which will propagate to children)
+        main_panel_->ProcessMouseEvent(event);
 
-                // Update selected option on hover
+        // Update selected_option_ based on which button is hovered
+        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
+            if (menu_item_buttons_[i]->IsHovered()) {
                 selected_option_ = static_cast<int>(i);
-
-                // Return selection on click
-                if (clicked) {
-                    return static_cast<int>(i);
-                }
+                break;
             }
         }
 
-        return -1;
+        // Return the selected menu option if a button was clicked
+        return selected_menu_option_;
     }
 
 }
