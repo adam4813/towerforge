@@ -289,4 +289,19 @@ namespace TowerForge::Core {
         return grid_.BuildFloor(floor, column, width);
     }
 
+    bool FacilityManager::CleanFacility(const flecs::entity facility_entity) const {
+        if (!facility_entity.is_alive()) {
+            return false;
+        }
+    
+        // Check if the facility has CleanlinessStatus
+        if (facility_entity.has<CleanlinessStatus>()) {
+            auto cleanliness = facility_entity.get_mut<CleanlinessStatus>();
+            cleanliness->Clean();
+            return true;
+        }
+    
+        return false;
+    }
+
 }
