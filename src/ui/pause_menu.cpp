@@ -1,4 +1,5 @@
 #include "ui/pause_menu.h"
+#include "ui/ui_element.h"
 #include <cmath>
 
 namespace towerforge::ui {
@@ -16,6 +17,25 @@ namespace towerforge::ui {
         menu_items_.push_back({"Settings", PauseMenuOption::Settings});
         menu_items_.push_back({"Mods", PauseMenuOption::Mods});
         menu_items_.push_back({"Quit to Title", PauseMenuOption::QuitToTitle});
+        
+        // PauseMenu is a Panel (container)
+        pause_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
+        
+        // Create Button objects for each menu item
+        for (size_t i = 0; i < menu_items_.size(); ++i) {
+            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
+            auto button = std::make_unique<Button>(
+                0, // x will be set during render
+                static_cast<float>(item_y),
+                static_cast<float>(MENU_WIDTH),
+                static_cast<float>(MENU_ITEM_HEIGHT),
+                menu_items_[i].label,
+                ColorAlpha(DARKGRAY, 0.3f),
+                GRAY
+            );
+            button->SetFontSize(22);
+            menu_item_buttons_.push_back(std::move(button));
+        }
     }
 
     PauseMenu::~PauseMenu() = default;
@@ -77,31 +97,23 @@ namespace towerforge::ui {
 
             const bool is_selected = (static_cast<int>(i) == selected_option_);
 
-            // Draw menu item background
-            const Color bg_color = is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f);
-            DrawRectangle(item_x, item_y, MENU_WIDTH, MENU_ITEM_HEIGHT, bg_color);
-
-            // Draw menu item border
-            const Color border_color = is_selected ? GOLD : GRAY;
-            int border_thickness = is_selected ? 3 : 2;
-            DrawRectangleLines(item_x, item_y, MENU_WIDTH, MENU_ITEM_HEIGHT, border_color);
-
-            // Draw menu item text
-            const char* text = menu_items_[i].label.c_str();
-            const int font_size = is_selected ? 24 : 22;
-            const int text_width = MeasureText(text, font_size);
-            const int text_x = item_x + (MENU_WIDTH - text_width) / 2;
-            const int text_y = item_y + (MENU_ITEM_HEIGHT - font_size) / 2;
-
-            Color text_color = is_selected ? WHITE : LIGHTGRAY;
-
+            // Update button position and appearance based on selection
+            auto& button = menu_item_buttons_[i];
+            button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
+            button->SetBackgroundColor(is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f));
+            button->SetBorderColor(is_selected ? GOLD : GRAY);
+            button->SetFontSize(is_selected ? 24 : 22);
+            
             // Add subtle animation to selected item
+            Color text_color = is_selected ? WHITE : LIGHTGRAY;
             if (is_selected) {
                 const float pulse = sin(animation_time_ * 3.0f) * 0.1f + 0.9f;
                 text_color = ColorAlpha(WHITE, pulse);
             }
-
-            DrawText(text, text_x, text_y, font_size, text_color);
+            button->SetTextColor(text_color);
+            
+            // Render the button
+            button->Render();
 
             // Draw selection indicator
             if (is_selected) {
