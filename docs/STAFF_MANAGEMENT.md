@@ -243,6 +243,111 @@ The starter tower automatically creates three staff members:
 - Excellent conditions (≥90%): Small satisfaction bonus
 - Changes are gradual and recoverable
 
+## Lua Modding Integration
+
+The staff management system is fully integrated with TowerForge's Lua modding API, allowing modders to create custom staff roles and facility events that work seamlessly with the built-in systems.
+
+### Custom Staff Roles
+
+Custom staff roles registered via Lua are automatically integrated:
+
+1. **Automatic Instantiation**: When mods are loaded, the game creates one staff member for each custom role in the starter tower
+2. **Work Type Integration**: Custom roles specify a `work_type` ("cleaning", "maintenance", "emergency", or "custom")
+3. **System Compatibility**: Built-in ECS systems recognize custom staff by their work type, not their specific role
+4. **Efficiency & Wages**: Custom roles can have custom efficiency multipliers and wage rates
+
+**Example: Custom Night Janitor**
+```lua
+TowerForge.RegisterStaffRole({
+    id = "night_janitor",
+    name = "Night Janitor",
+    work_efficiency = 1.25,        -- 25% more efficient
+    default_wage = 60.0,
+    shift_start_hour = 22.0,       -- 10 PM
+    shift_end_hour = 6.0,          -- 6 AM
+    work_type = "cleaning"         -- Integrated with cleaning system
+})
+```
+
+### Custom Event Types
+
+Custom facility events registered via Lua are tracked in the `FacilityStatus` component:
+
+1. **Event Tracking**: Events are stored in `active_custom_events` vector
+2. **Staff Response**: Events specify which staff type can resolve them
+3. **Satisfaction Impact**: Events apply configurable satisfaction penalties while active
+4. **Maintenance Damage**: Events can cause maintenance damage when spawned or resolved
+
+**Example: Custom Gas Leak Event**
+```lua
+TowerForge.RegisterEventType({
+    id = "gas_leak",
+    name = "Gas Leak",
+    spawn_chance = 0.0003,         -- Rare event
+    requires_staff_response = true,
+    required_staff_type = "emergency_coordinator",
+    satisfaction_penalty = 25.0,   -- Major penalty
+    maintenance_damage = 20.0
+})
+```
+
+### How Integration Works
+
+#### Staff Assignment Component
+The `StaffAssignment` component supports both built-in and custom roles:
+
+```cpp
+struct StaffAssignment {
+    StaffRole role;                  // Built-in role enum
+    std::string custom_role_id;      // Custom role ID from Lua (empty if built-in)
+    std::string work_type;           // "cleaning", "maintenance", "emergency", "custom"
+    // ... other fields
+    
+    bool IsCustomRole() const;       // Check if custom
+    bool DoesCleaningWork() const;   // Check work type
+    bool DoesMaintenanceWork() const;
+    bool DoesEmergencyWork() const;
+};
+```
+
+#### Facility Status Component
+The `FacilityStatus` component tracks both built-in and custom events:
+
+```cpp
+struct FacilityStatus {
+    bool has_fire;                           // Built-in fire event
+    bool has_security_issue;                 // Built-in security event
+    std::vector<std::string> active_custom_events;  // Custom event IDs
+    
+    void AddCustomEvent(const std::string& event_id);
+    void RemoveCustomEvent(const std::string& event_id);
+    bool HasCustomEvent(const std::string& event_id) const;
+};
+```
+
+#### ECS Systems
+All staff systems check work type instead of specific roles:
+
+```cpp
+// Cleaning system works with ANY staff that has work_type = "cleaning"
+if (!assignment.DoesCleaningWork()) return;  // Includes custom cleaning staff
+
+// Maintenance system works with ANY staff that has work_type = "maintenance"
+if (!assignment.DoesMaintenanceWork()) return;  // Includes custom maintenance staff
+
+// Emergency system works with ANY staff that has work_type = "emergency"
+if (!assignment.DoesEmergencyWork()) return;  // Includes custom emergency staff
+```
+
+### Complete Integration Example
+
+See `mods/example_emergency_response_team.lua` for a complete example that demonstrates:
+- 3 custom staff roles (Emergency Coordinator, Building Inspector, Night Custodian)
+- 3 custom event types (Gas Leak, Plumbing Failure, Major Spill)
+- Full integration with work types and event resolution
+- Different efficiency levels, wages, and shift hours
+- Events that require specific custom staff types
+
 ## Future Enhancements
 
 ### Planned Features
@@ -253,7 +358,8 @@ The starter tower automatically creates three staff members:
 - **Staff Satisfaction**: Staff happiness affects work efficiency
 - **Schedule Templates**: Quick-apply shift schedules
 - **Emergency Response**: Priority system for fires and security issues
-- **Modding Support**: Expose staff system to modding API for custom roles and behaviors
+- **Custom Work Behaviors**: Lua callbacks for custom staff work functions
+- **Event Callbacks**: Lua functions called when events spawn/resolve
 - **NotificationCenter Integration**: Connect staff activities to the NotificationCenter for in-game notifications
 
 ## Technical Notes
@@ -268,13 +374,15 @@ The starter tower automatically creates three staff members:
 - Staff wages integrate with existing `TowerEconomy` system
 - Facility status uses existing `Satisfaction` system for impact
 - Staff use existing `Person` component for basic entity properties
+- Custom Lua staff and events are automatically integrated via work type matching
 - Staff activities currently log to console; future integration with `NotificationCenter` is planned
 
 ### Extensibility
-- New staff roles can be added by extending `StaffRole` enum
+- Custom staff roles can be added via Lua without modifying C++ code
+- Custom events can be added via Lua with configurable parameters
+- Work type system allows arbitrary staff behaviors
+- Facility status can track unlimited custom events
 - New systems can be added following existing patterns
-- Facility status can be extended with additional metrics
-- Staff assignment can be made more sophisticated (e.g., dynamic assignment)
 
 ## Example Usage
 
