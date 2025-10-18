@@ -322,7 +322,7 @@ namespace towerforge::ui {
         // Check if click is on any button and handle it directly
         if (event.left_pressed) {
             for (auto it = children_.rbegin(); it != children_.rend(); ++it) {
-                if (const auto* btn = dynamic_cast<Button*>(it->get())) {
+                if (auto* btn = dynamic_cast<Button*>(it->get())) {
                     const Rectangle child_bounds = btn->GetRelativeBounds();
                     const int btn_x = dialog_x + static_cast<int>(child_bounds.x);
                     const int btn_y = dialog_y + static_cast<int>(child_bounds.y);
@@ -332,11 +332,9 @@ namespace towerforge::ui {
                         event.y >= btn_y && event.y <= btn_y + child_bounds.height) {
                         
                         if (btn->IsEnabled()) {
-                            // Manually trigger the button's callback
-                            // We need to access the callback somehow...
-                            // Actually, let's call OnClick directly
+                            // Trigger the button's OnClick handler
                             MouseEvent btn_event = event;
-                            const_cast<Button*>(btn)->OnClick(btn_event);
+                            btn->OnClick(btn_event);
                             return true;
                         }
                     }
