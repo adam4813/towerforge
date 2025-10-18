@@ -1,4 +1,5 @@
 #include "ui/notification_center.h"
+#include "ui/ui_theme.h"
 #include "core/user_preferences.hpp"
 #include <sstream>
 #include <iomanip>
@@ -42,7 +43,17 @@ namespace towerforge::ui {
 
     void NotificationCenter::Update(const float delta_time) {
         // Update notifications - remove expired ones that aren't pinned
+        // Also animate fade-in for new notifications
         for (auto it = notifications_.begin(); it != notifications_.end();) {
+            // Animate fade-in
+            if (it->animation_progress < 1.0f) {
+                it->animation_progress += delta_time * UITheme::ANIMATION_SPEED_FAST;
+                if (it->animation_progress > 1.0f) {
+                    it->animation_progress = 1.0f;
+                }
+            }
+            
+            // Update time remaining
             if (it->time_remaining > 0.0f) {
                 it->time_remaining -= delta_time;
                 if (it->time_remaining <= 0.0f && !it->pinned) {
@@ -63,8 +74,8 @@ namespace towerforge::ui {
     void NotificationCenter::RenderToasts() {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
-        constexpr int x = 10;
-        int y = screen_height - 10;
+        constexpr int x = UITheme::PADDING_SMALL;
+        int y = screen_height - UITheme::PADDING_SMALL;
     
         // Show up to MAX_TOASTS recent unread notifications
         int toast_count = 0;
@@ -72,28 +83,38 @@ namespace towerforge::ui {
             if (!it->read && it->time_remaining > 0.0f) {
                 y -= TOAST_HEIGHT + TOAST_SPACING;
             
-                const Color bg_color = ColorAlpha(GetTypeColor(it->type), 0.9f);
+                // Apply fade-in animation
+                const float alpha = it->animation_progress;
+                const Color bg_color = ColorAlpha(GetTypeColor(it->type), 0.9f * alpha);
+                const Color border_color = ColorAlpha(UITheme::TEXT_PRIMARY, 0.5f * alpha);
+                
                 DrawRectangle(x, y, TOAST_WIDTH, TOAST_HEIGHT, bg_color);
-                DrawRectangleLines(x, y, TOAST_WIDTH, TOAST_HEIGHT, ColorAlpha(WHITE, 0.5f));
+                DrawRectangleLinesEx(Rectangle{static_cast<float>(x), static_cast<float>(y), 
+                                              static_cast<float>(TOAST_WIDTH), static_cast<float>(TOAST_HEIGHT)}, 
+                                    UITheme::BORDER_THIN, border_color);
             
                 // Icon
                 const char* icon = GetTypeIcon(it->type);
-                DrawText(icon, x + 10, y + 10, 24, WHITE);
+                DrawText(icon, x + UITheme::PADDING_SMALL, y + UITheme::PADDING_SMALL, 
+                        UITheme::FONT_SIZE_LARGE, ColorAlpha(UITheme::TEXT_PRIMARY, alpha));
             
                 // Title
-                DrawText(it->title.c_str(), x + 45, y + 10, 16, WHITE);
+                DrawText(it->title.c_str(), x + 45, y + UITheme::PADDING_SMALL, 
+                        UITheme::FONT_SIZE_NORMAL, ColorAlpha(UITheme::TEXT_PRIMARY, alpha));
             
                 // Message (truncated if too long)
                 std::string display_msg = it->message;
                 if (display_msg.length() > 50) {
                     display_msg = display_msg.substr(0, 47) + "...";
                 }
-                DrawText(display_msg.c_str(), x + 45, y + 32, 12, ColorAlpha(WHITE, 0.9f));
+                DrawText(display_msg.c_str(), x + 45, y + 32, 
+                        12, ColorAlpha(UITheme::TEXT_SECONDARY, 0.9f * alpha));
             
                 // Time remaining indicator
                 if (it->time_remaining > 0.0f) {
-                    const int bar_width = static_cast<int>((it->time_remaining / 5.0f) * TOAST_WIDTH);
-                    DrawRectangle(x, y + TOAST_HEIGHT - 3, bar_width, 3, ColorAlpha(WHITE, 0.7f));
+                    const int bar_width = static_cast<int>((it->time_remaining / UITheme::NOTIFICATION_DURATION_NORMAL) * TOAST_WIDTH);
+                    DrawRectangle(x, y + TOAST_HEIGHT - 3, bar_width, 3, 
+                                ColorAlpha(UITheme::TEXT_PRIMARY, 0.7f * alpha));
                 }
             
                 toast_count++;
@@ -313,17 +334,15 @@ namespace towerforge::ui {
     void NotificationCenter::RenderNotificationPanel() {
         const Rectangle bounds = GetBounds();
     
-        // Background
+        // Background with theme colors
         DrawRectangle(static_cast<int>(bounds.x), static_cast<int>(bounds.y), 
                       static_cast<int>(bounds.width), static_cast<int>(bounds.height), 
-                      ColorAlpha(BLACK, 0.95f));
-        DrawRectangleLines(static_cast<int>(bounds.x), static_cast<int>(bounds.y), 
-                           static_cast<int>(bounds.width), static_cast<int>(bounds.height), 
-                           GOLD);
+                      ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f));
+        DrawRectangleLinesEx(bounds, UITheme::BORDER_NORMAL, UITheme::PRIMARY);
     
         // Title bar
-        DrawText("Notifications", static_cast<int>(bounds.x) + PANEL_PADDING, 
-                 static_cast<int>(bounds.y) + 5, 20, GOLD);
+        DrawText("Notifications", static_cast<int>(bounds.x) + UITheme::PADDING_SMALL, 
+                 static_cast<int>(bounds.y) + UITheme::PADDING_TINY, UITheme::FONT_SIZE_MEDIUM, UITheme::PRIMARY);
     
         // Unread count badge
         const int unread_count = GetUnreadCount();
@@ -331,22 +350,22 @@ namespace towerforge::ui {
             std::string count_str = std::to_string(unread_count);
             const int badge_x = static_cast<int>(bounds.x) + 160;
             const int badge_y = static_cast<int>(bounds.y) + 8;
-            DrawCircle(badge_x, badge_y, 12, RED);
-            const int text_width = MeasureText(count_str.c_str(), 14);
-            DrawText(count_str.c_str(), badge_x - text_width / 2, badge_y - 7, 14, WHITE);
+            DrawCircle(badge_x, badge_y, 12, UITheme::ERROR);
+            const int text_width = MeasureText(count_str.c_str(), UITheme::FONT_SIZE_SMALL);
+            DrawText(count_str.c_str(), badge_x - text_width / 2, badge_y - 7, UITheme::FONT_SIZE_SMALL, UITheme::TEXT_PRIMARY);
         }
     
         // Close button
-        const int close_x = static_cast<int>(bounds.x + bounds.width - 30);
-        const int close_y = static_cast<int>(bounds.y + 5);
-        DrawText("X", close_x, close_y, 20, RED);
+        const int close_x = static_cast<int>(bounds.x + bounds.width - UITheme::PADDING_LARGE - UITheme::PADDING_SMALL);
+        const int close_y = static_cast<int>(bounds.y + UITheme::PADDING_TINY);
+        DrawText("X", close_x, close_y, UITheme::FONT_SIZE_MEDIUM, UITheme::ERROR);
     
         // Render filter controls
         RenderFilterControls();
     
         // Notification list area
-        const int list_y = static_cast<int>(bounds.y) + 30 + FILTER_HEIGHT + PANEL_PADDING;
-        const int list_height = static_cast<int>(bounds.height) - 30 - FILTER_HEIGHT - PANEL_PADDING * 2;
+        const int list_y = static_cast<int>(bounds.y) + UITheme::PADDING_LARGE + FILTER_HEIGHT + UITheme::PADDING_SMALL;
+        const int list_height = static_cast<int>(bounds.height) - UITheme::PADDING_LARGE - FILTER_HEIGHT - UITheme::PADDING_SMALL * 2;
     
         // Render notifications
         int y_offset = list_y;
@@ -508,13 +527,13 @@ namespace towerforge::ui {
 
     Color NotificationCenter::GetTypeColor(const NotificationType type) const {
         switch (type) {
-            case NotificationType::Info:        return SKYBLUE;
-            case NotificationType::Warning:     return ORANGE;
-            case NotificationType::Error:       return RED;
-            case NotificationType::Success:     return GREEN;
-            case NotificationType::Achievement: return GOLD;
+            case NotificationType::Info:        return UITheme::INFO;
+            case NotificationType::Warning:     return UITheme::WARNING;
+            case NotificationType::Error:       return UITheme::ERROR;
+            case NotificationType::Success:     return UITheme::SUCCESS;
+            case NotificationType::Achievement: return UITheme::PRIMARY;
             case NotificationType::Event:       return PURPLE;
-            default:                            return WHITE;
+            default:                            return UITheme::TEXT_PRIMARY;
         }
     }
 

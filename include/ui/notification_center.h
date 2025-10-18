@@ -50,6 +50,7 @@ namespace towerforge::ui {
         std::chrono::system_clock::time_point timestamp; // When created
         std::function<void()> on_click;  // Callback when notification is clicked
         float time_remaining;            // Time until auto-dismiss (-1 for no auto-dismiss)
+        float animation_progress;        // Animation state (0.0 to 1.0 for fade-in)
     
         NotificationEntry(const std::string& id_val,
                           const std::string& title_val,
@@ -67,7 +68,8 @@ namespace towerforge::ui {
               read(false),
               timestamp(std::chrono::system_clock::now()),
               on_click(std::move(callback)),
-              time_remaining(duration) {}
+              time_remaining(duration),
+              animation_progress(0.0f) {}
     
         /**
      * @brief Get formatted timestamp string
