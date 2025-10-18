@@ -1,5 +1,6 @@
 #include "ui/build_menu.h"
 #include "ui/tooltip.h"
+#include "ui/ui_element.h"
 #include <sstream>
 
 namespace towerforge::ui {
@@ -39,6 +40,16 @@ namespace towerforge::ui {
             panel_bounds_.width - MENU_PADDING * 2,
             panel_bounds_.height - MENU_PADDING * 2
         };
+        
+        // Create Panel object for unified UI system
+        panel_ = std::make_unique<Panel>(
+            panel_bounds_.x,
+            panel_bounds_.y,
+            panel_bounds_.width,
+            panel_bounds_.height,
+            ColorAlpha(BLACK, 0.8f),
+            BLANK  // No border from Panel itself, we use custom decorative borders
+        );
     }
 
     BuildMenu::~BuildMenu() = default;
@@ -78,6 +89,32 @@ namespace towerforge::ui {
         DrawRectangleRec(bounds, ColorAlpha(BLACK, 0.8f));
         DrawText(title, bounds.x + padding, bounds.y + padding, 14, WHITE);
 
+        switch (border) {
+            case TOP:
+                DrawRectangle(bounds.x, bounds.y, bounds.width, 2, GOLD);
+                break;
+            case BOTTOM:
+                DrawRectangle(bounds.x, bounds.y + bounds.height - 2, bounds.width, 2, GOLD);
+                break;
+            case NONE:
+            default: ;
+        }
+    }
+
+    /**
+     * @brief Enhanced RenderPanel that works with Panel objects
+     * Renders a panel with title and optional border decoration
+     */
+    void RenderPanel(const Panel& panel, const char *title, const float padding, const PanelBorder border) {
+        const Rectangle bounds = panel.GetAbsoluteBounds();
+        
+        // Render the panel itself (background and border from Panel)
+        panel.Render();
+        
+        // Draw title
+        DrawText(title, bounds.x + padding, bounds.y + padding, 14, WHITE);
+
+        // Draw decorative border based on type
         switch (border) {
             case TOP:
                 DrawRectangle(bounds.x, bounds.y, bounds.width, 2, GOLD);

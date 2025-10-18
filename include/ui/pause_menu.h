@@ -3,9 +3,13 @@
 #include <raylib.h>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace towerforge::ui {
 
+    // Forward declarations
+    class Panel;
+    class Button;
     /**
  * @brief Menu options available in the pause menu
  */
@@ -103,6 +107,10 @@ namespace towerforge::ui {
         };
     
         std::vector<MenuItem> menu_items_;
+        
+        // Pause menu is a Panel container with Button children for menu items
+        std::unique_ptr<Panel> pause_panel_;
+        std::vector<std::unique_ptr<Button>> menu_item_buttons_;
     };
 
 }

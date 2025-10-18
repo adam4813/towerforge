@@ -6,8 +6,9 @@
 #include <memory>
 
 namespace towerforge::ui {
-    // Forward declaration
+    // Forward declarations
     class TooltipManager;
+    class Panel;
 
     /**
  * @brief Structure representing a buildable facility type
@@ -119,5 +120,8 @@ namespace towerforge::ui {
 
         Rectangle panel_bounds_{};
         Rectangle content_bounds_{};
+        
+        // Optional Panel object for unified UI system
+        std::unique_ptr<Panel> panel_;
     };
 }

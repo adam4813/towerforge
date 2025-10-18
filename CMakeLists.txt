@@ -45,6 +45,7 @@ set(SOURCE_FILES
     src/ui/info_windows.cpp
     src/ui/tooltip.cpp
     src/ui/notification_center.cpp
+    src/ui/ui_element.cpp
     src/audio/audio_manager.cpp
 )
 
