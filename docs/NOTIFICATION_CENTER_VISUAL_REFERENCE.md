@@ -84,7 +84,7 @@ Each entry has:
 1. **Type Icon** (left side):
    - Info: "i"
    - Warning: "!"
-   - Error: "X"
+   - Error: "X" (in type color area, not to be confused with dismiss button)
    - Success: "+"
    - Achievement: "*"
    - Event: "@"
@@ -138,7 +138,9 @@ Three buttons:
 - Type icon (left side)
 - Title (top)
 - Message (bottom, truncated if too long)
-- Progress bar showing time remaining
+- Progress bar showing time remaining (visual representation - fills from left to right)
+
+**Note:** The progress bar is a visual indicator. The exact pattern may vary based on remaining time.
 
 **Colors by Type:**
 - Info: Sky blue
@@ -154,14 +156,16 @@ Three buttons:
 
 ### Colors
 
-| Type        | Color       | Hex/RGB           |
-|-------------|-------------|-------------------|
-| Info        | Sky Blue    | SKYBLUE (raylib)  |
-| Warning     | Orange      | ORANGE (raylib)   |
-| Error       | Red         | RED (raylib)      |
-| Success     | Green       | GREEN (raylib)    |
-| Achievement | Gold        | GOLD (raylib)     |
-| Event       | Purple      | PURPLE (raylib)   |
+| Type        | Color       | Raylib Constant | Approximate RGB    |
+|-------------|-------------|-----------------|--------------------|
+| Info        | Sky Blue    | SKYBLUE         | RGB(102, 191, 255) |
+| Warning     | Orange      | ORANGE          | RGB(255, 161, 0)   |
+| Error       | Red         | RED             | RGB(230, 41, 55)   |
+| Success     | Green       | GREEN           | RGB(0, 228, 48)    |
+| Achievement | Gold        | GOLD            | RGB(255, 203, 0)   |
+| Event       | Purple      | PURPLE          | RGB(200, 122, 255) |
+
+**Note:** Actual colors may vary slightly based on Raylib version and platform rendering.
 
 ### UI Elements
 
@@ -273,9 +277,11 @@ Three buttons:
    - Updates visible notifications immediately
 
 6. **Click Bottom Action Buttons:**
-   - Clear Read: Removes all read except pinned
-   - Clear All: Removes all except pinned
-   - Mark All Read: Marks all as read
+   - Clear Read: Removes all read except pinned (immediate, no confirmation)
+   - Clear All: Removes all except pinned (immediate, no confirmation - use with care!)
+   - Mark All Read: Marks all as read (immediate, no confirmation)
+
+**Note:** All bulk actions are immediate without confirmation dialogs. Pinned notifications are always protected from removal.
 
 7. **Scroll:**
    - Mouse wheel scrolls notification list
