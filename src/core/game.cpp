@@ -521,9 +521,40 @@ namespace towerforge::core {
 
         hud_->SetGameState(game_state_);
 
-        // Add example notifications
+        // Add example notifications to showcase notification center
         hud_->AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
         hud_->AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
+    
+        // Add notifications directly to notification center with clickable callbacks
+        auto* nc = hud_->GetNotificationCenter();
+        if (nc) {
+            // Welcome notification
+            nc->AddNotification(
+                "Welcome to TowerForge",
+                "Start building your tower empire! Press N to toggle the notification center.",
+                NotificationType::Info,
+                NotificationPriority::Medium,
+                15.0f
+            );
+        
+            // Tutorial notification
+            nc->AddNotification(
+                "Getting Started",
+                "Use the build menu on the left to place facilities. Click the notification button (top right) or press N to view all notifications.",
+                NotificationType::Info,
+                NotificationPriority::Medium,
+                -1.0f  // Pin important tutorials
+            );
+        
+            // Feature showcase
+            nc->AddNotification(
+                "Notification Center Features",
+                "Pin important notifications, filter by type, and click to trigger actions!",
+                NotificationType::Event,
+                NotificationPriority::Low,
+                20.0f
+            );
+        }
 
         // Setup tower grid and facilities
         std::cout << std::endl << "Demonstrating Tower Grid System and Facility Manager..." << std::endl;
