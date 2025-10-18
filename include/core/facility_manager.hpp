@@ -2,6 +2,7 @@
 
 #include <flecs.h>
 #include <memory>
+#include <optional>
 #include "core/components.hpp"
 #include "core/tower_grid.hpp"
 
@@ -167,9 +168,42 @@ namespace TowerForge::Core {
      */
         bool SetAutoRepair(flecs::entity facility_entity, bool enabled) const;
 
+        /**
+     * @brief Update adjacency effects for a facility based on its neighbors
+     * 
+     * Calculates and applies adjacency bonuses/penalties based on neighboring facilities.
+     * Should be called when a facility is placed or when nearby facilities change.
+     * 
+     * @param facility_entity The facility entity to update
+     */
+        void UpdateAdjacencyEffects(flecs::entity facility_entity) const;
+
+        /**
+     * @brief Update adjacency effects for all facilities adjacent to a position
+     * 
+     * Called when a facility is placed or removed to update effects on nearby facilities.
+     * 
+     * @param floor Floor of the changed facility
+     * @param column Column of the changed facility
+     * @param width Width of the changed facility
+     */
+        void UpdateAdjacentFacilityEffects(int floor, int column, int width) const;
+
     private:
         flecs::world& world_;
         TowerGrid& grid_;
+
+        /**
+     * @brief Calculate adjacency effect between two facility types
+     * 
+     * @param facility_type The facility receiving the effect
+     * @param neighbor_type The neighboring facility causing the effect
+     * @return Optional adjacency effect if there is one, empty otherwise
+     */
+        static std::optional<AdjacencyEffect> CalculateAdjacencyEffect(
+            BuildingComponent::Type facility_type,
+            BuildingComponent::Type neighbor_type
+        );
     };
 
 }

@@ -824,6 +824,81 @@ namespace TowerForge::Core {
     };
 
     /**
+ * @brief Individual adjacency effect from a neighboring facility
+ */
+    struct AdjacencyEffect {
+        enum class Type {
+            Revenue,       // Affects revenue/income
+            Satisfaction,  // Affects tenant satisfaction
+            Traffic        // Affects visitor traffic
+        };
+
+        Type type;
+        float value;              // Positive for bonus, negative for penalty (percentage)
+        std::string source_type;  // Type of neighboring facility causing this effect
+        std::string description;  // Human-readable description
+
+        AdjacencyEffect(const Type t = Type::Satisfaction, 
+                       const float val = 0.0f,
+                       const std::string& src = "",
+                       const std::string& desc = "")
+            : type(t), value(val), source_type(src), description(desc) {}
+    };
+
+    /**
+ * @brief Component tracking all adjacency effects on a facility
+ * 
+ * Stores the list of active adjacency bonuses and penalties from
+ * neighboring facilities. Updated when facilities are placed or removed.
+ */
+    struct AdjacencyEffects {
+        std::vector<AdjacencyEffect> effects;  // All active adjacency effects
+
+        AdjacencyEffects() = default;
+
+        /**
+     * @brief Clear all effects
+     */
+        void Clear() {
+            effects.clear();
+        }
+
+        /**
+     * @brief Add an adjacency effect
+     */
+        void AddEffect(const AdjacencyEffect& effect) {
+            effects.push_back(effect);
+        }
+
+        /**
+     * @brief Get total bonus/penalty for a specific type
+     */
+        float GetTotalForType(const AdjacencyEffect::Type type) const {
+            float total = 0.0f;
+            for (const auto& effect : effects) {
+                if (effect.type == type) {
+                    total += effect.value;
+                }
+            }
+            return total;
+        }
+
+        /**
+     * @brief Check if there are any effects
+     */
+        bool HasEffects() const {
+            return !effects.empty();
+        }
+
+        /**
+     * @brief Get count of effects
+     */
+        size_t GetEffectCount() const {
+            return effects.size();
+        }
+    };
+
+    /**
  * @brief Global singleton component for tower-wide economy tracking
  * 
  * Tracks the overall financial status of the tower including
