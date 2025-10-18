@@ -144,6 +144,17 @@ namespace TowerForge::Core {
      */
         bool CleanFacility(flecs::entity facility_entity) const;
 
+        /**
+     * @brief Manually repair a facility
+     * 
+     * Immediately repairs the facility by resetting its MaintenanceStatus to Good.
+     * This can be used for manual repair actions triggered by the player.
+     * 
+     * @param facility_entity The facility entity to repair
+     * @return true if the facility was repaired, false if it doesn't have MaintenanceStatus
+     */
+        bool RepairFacility(flecs::entity facility_entity) const;
+
     private:
         flecs::world& world_;
         TowerGrid& grid_;

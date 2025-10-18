@@ -92,8 +92,9 @@ namespace TowerForge::Core {
         world_.component<FacilityStatus>();
         world_.component<StaffManager>();
         world_.component<CleanlinessStatus>();
+        world_.component<MaintenanceStatus>();
     
-        std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, VisitorNeeds, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest, StaffAssignment, FacilityStatus, StaffManager, CleanlinessStatus" << std::endl;
+        std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, VisitorNeeds, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest, StaffAssignment, FacilityStatus, StaffManager, CleanlinessStatus, MaintenanceStatus" << std::endl;
     }
 
     void ECSWorld::RegisterSystems() const {
@@ -1242,6 +1243,59 @@ namespace TowerForge::Core {
                     cleanliness.Update(delta_time, occupancy_factor);
                 });
     
+        // MaintenanceStatus degradation system
+        // Updates maintenance state based on time and facility usage
+        world_.system<MaintenanceStatus, const BuildingComponent>()
+                .kind(flecs::OnUpdate)
+                .interval(1.0f)  // Update every second
+                .each([](const flecs::entity e, MaintenanceStatus& maintenance, const BuildingComponent& facility) {
+                    const float delta_time = e.world().delta_time();
+                
+                    // Calculate usage factor (busier facilities break down faster)
+                    const float occupancy_rate = static_cast<float>(facility.current_occupancy) / 
+                                                 std::max(1, facility.capacity);
+                    const float usage_factor = 1.0f + (occupancy_rate * 1.5f);  // 1x to 2.5x multiplier
+                
+                    // Update maintenance state
+                    maintenance.Update(delta_time, usage_factor);
+                });
+    
+        // Maintenance breakdown notification system
+        // Sends notifications when facilities break down or need service
+        world_.system<const MaintenanceStatus, const BuildingComponent>()
+                .kind(flecs::OnUpdate)
+                .interval(5.0f)  // Check every 5 seconds
+                .each([](const flecs::entity e, const MaintenanceStatus& maintenance, const BuildingComponent& facility) {
+                    // Track which facilities have been notified to avoid spam
+                    static std::set<flecs::entity_t> notified_broken;
+                    static std::set<flecs::entity_t> notified_needs_service;
+                
+                    const auto entity_id = e.id();
+                
+                    if (maintenance.status == MaintenanceStatus::State::Broken) {
+                        if (notified_broken.find(entity_id) == notified_broken.end()) {
+                            notified_broken.insert(entity_id);
+                            notified_needs_service.erase(entity_id);
+                        
+                            const char* facility_type = FacilityManager::GetTypeName(facility.type);
+                            std::cout << "  [NOTIFICATION] " << facility_type << " on Floor " << facility.floor 
+                                    << " is broken! It needs repairs." << std::endl;
+                        }
+                    } else if (maintenance.status == MaintenanceStatus::State::NeedsService) {
+                        if (notified_needs_service.find(entity_id) == notified_needs_service.end()) {
+                            notified_needs_service.insert(entity_id);
+                        
+                            const char* facility_type = FacilityManager::GetTypeName(facility.type);
+                            std::cout << "  [NOTIFICATION] " << facility_type << " on Floor " << facility.floor 
+                                    << " needs maintenance service." << std::endl;
+                        }
+                    } else if (maintenance.status == MaintenanceStatus::State::Good) {
+                        // Clear notification flags when repaired
+                        notified_broken.erase(entity_id);
+                        notified_needs_service.erase(entity_id);
+                    }
+                });
+    
         // Cleanliness notification system
         // Sends notifications when facilities become dirty
         world_.system<const CleanlinessStatus, const BuildingComponent>()
@@ -1443,6 +1497,47 @@ namespace TowerForge::Core {
                         });
                 });
     
+        // Staff maintenance system for MaintenanceStatus
+        // Maintenance staff and repairers automatically repair facilities with MaintenanceStatus
+        world_.system<const StaffAssignment, const Person>()
+                .kind(flecs::OnUpdate)
+                .interval(8.0f)  // Check every 8 seconds (maintenance is slower)
+                .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
+                    // Only active staff who do maintenance work
+                    if (!assignment.is_active) return;
+                    if (!assignment.DoesMaintenanceWork()) return;
+                
+                    // Find facilities that need maintenance
+                    auto world = staff_entity.world();
+                    bool repaired_something = false;
+                
+                    world.each([&](flecs::entity facility_entity, MaintenanceStatus& maintenance, const BuildingComponent& facility) {
+                            if (repaired_something) return;  // Only repair one facility per cycle
+                        
+                            // Check if staff is assigned to this facility or floor
+                            bool is_assigned = false;
+                            if (assignment.assigned_facility_entity == static_cast<int>(facility_entity.id())) {
+                                is_assigned = true;
+                            } else if (assignment.assigned_floor == -1 || assignment.assigned_floor == facility.floor) {
+                                is_assigned = true;
+                            }
+                        
+                            if (!is_assigned) return;
+                        
+                            // Check if facility needs service or is broken
+                            if (maintenance.NeedsService()) {
+                                maintenance.Repair();
+                                repaired_something = true;
+                            
+                                const char* facility_type = FacilityManager::GetTypeName(facility.type);
+                            
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") repaired " 
+                                        << facility_type << " on Floor " << facility.floor 
+                                        << " (Status: " << maintenance.GetStateString() << ")" << std::endl;
+                            }
+                        });
+                });
+    
         // Staff firefighting system
         // Firefighters respond to fires
         world_.system<const StaffAssignment, const Person>()
@@ -1555,6 +1650,32 @@ namespace TowerForge::Core {
                     }
                 });
     
+        // Broken facility impact system
+        // Broken facilities stop generating revenue and reduce satisfaction for nearby tenants
+        world_.system<const MaintenanceStatus, BuildingComponent, Satisfaction>()
+                .kind(flecs::OnUpdate)
+                .interval(2.0f)  // Update every 2 seconds
+                .each([](const flecs::entity e, const MaintenanceStatus& maintenance, 
+                         BuildingComponent& facility, Satisfaction& satisfaction) {
+                    if (maintenance.IsBroken()) {
+                        // Broken facilities are non-operational
+                        // Mark facility as having issues by reducing current occupancy to 0
+                        // (This simulates people avoiding/leaving the broken facility)
+                        if (facility.current_occupancy > 0) {
+                            facility.current_occupancy = 0;
+                        }
+                    
+                        // Reduce satisfaction significantly (but not catastrophically)
+                        satisfaction.quality_bonus = std::max(0.0f, satisfaction.quality_bonus - 3.0f);
+                    } else if (maintenance.status == MaintenanceStatus::State::NeedsService) {
+                        // Facilities needing service have minor impact
+                        satisfaction.quality_bonus = std::max(0.0f, satisfaction.quality_bonus - 1.0f);
+                    } else if (maintenance.status == MaintenanceStatus::State::Good) {
+                        // Good maintenance provides small bonus
+                        satisfaction.quality_bonus = std::min(20.0f, satisfaction.quality_bonus + 0.2f);
+                    }
+                });
+    
         // Staff manager update system
         // Updates staff counts and wages
         world_.system<StaffManager>()
@@ -1629,7 +1750,7 @@ namespace TowerForge::Core {
                     std::cout << "  ====================" << std::endl;
                 });
     
-        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Needs Growth, Visitor Needs-Driven Behavior, Visitor Facility Interaction, Visitor Satisfaction Calculation, Visitor Behavior, Visitor Needs Display, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, CleanlinessStatus Degradation, Cleanliness Notification, Staff Shift Management, Staff Cleaning, Staff Maintenance, Staff Firefighting, Staff Security, Facility Status Impact, CleanlinessStatus Impact, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
+        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Needs Growth, Visitor Needs-Driven Behavior, Visitor Facility Interaction, Visitor Satisfaction Calculation, Visitor Behavior, Visitor Needs Display, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, CleanlinessStatus Degradation, MaintenanceStatus Degradation, Maintenance Breakdown Notification, Cleanliness Notification, Staff Shift Management, Staff Cleaning, Staff Maintenance (FacilityStatus), Staff Maintenance (MaintenanceStatus), Staff Firefighting, Staff Security, Facility Status Impact, CleanlinessStatus Impact, Broken Facility Impact, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
     }
 
 }

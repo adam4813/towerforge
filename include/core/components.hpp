@@ -1379,6 +1379,99 @@ namespace TowerForge::Core {
     };
 
     /**
+ * @brief Component for facility maintenance tracking
+ * 
+ * Each facility has a maintenance status that degrades over time or with use.
+ * Maintenance failures are gentle (not catastrophic), providing gentle nudges
+ * rather than harsh penalties. Players retain agency through repair options.
+ */
+    struct MaintenanceStatus {
+        enum class State { Good, NeedsService, Broken };
+        State status;
+        float time_since_last_service;  // Seconds since last serviced
+        float degrade_rate;              // How quickly facility degrades (tuned per facility type)
+        bool auto_repair_enabled;        // Whether to automatically repair when broken
+
+        MaintenanceStatus()
+            : status(State::Good),
+              time_since_last_service(0.0f),
+              degrade_rate(1.0f),
+              auto_repair_enabled(false) {}
+
+        /**
+     * @brief Get the state as a string for display
+     */
+        const char* GetStateString() const {
+            switch (status) {
+                case State::Good:          return "Good";
+                case State::NeedsService:  return "Needs Service";
+                case State::Broken:        return "Broken";
+                default:                   return "Unknown";
+            }
+        }
+
+        /**
+     * @brief Get maintenance as a percentage (for compatibility with existing systems)
+     */
+        float GetMaintenancePercent() const {
+            switch (status) {
+                case State::Good:          return 100.0f;
+                case State::NeedsService:  return 60.0f;
+                case State::Broken:        return 0.0f;
+                default:                   return 50.0f;
+            }
+        }
+
+        /**
+     * @brief Update maintenance state based on time elapsed and usage
+     * @param delta_time Time elapsed in seconds
+     * @param usage_factor Multiplier based on facility usage (higher = faster degradation)
+     */
+        void Update(const float delta_time, const float usage_factor = 1.0f) {
+            time_since_last_service += delta_time;
+
+            // Thresholds for state transitions (can be tuned)
+            const float needs_service_threshold = 7200.0f / degrade_rate;  // 2 hours base
+            const float broken_threshold = 14400.0f / degrade_rate;         // 4 hours base
+
+            // Apply usage factor to thresholds (busier facilities break faster)
+            const float adjusted_needs_service = needs_service_threshold / usage_factor;
+            const float adjusted_broken = broken_threshold / usage_factor;
+
+            // Update state based on time since last service
+            if (time_since_last_service >= adjusted_broken) {
+                status = State::Broken;
+            } else if (time_since_last_service >= adjusted_needs_service) {
+                status = State::NeedsService;
+            } else {
+                status = State::Good;
+            }
+        }
+
+        /**
+     * @brief Perform repair/service action
+     */
+        void Repair() {
+            status = State::Good;
+            time_since_last_service = 0.0f;
+        }
+
+        /**
+     * @brief Check if facility needs service
+     */
+        bool NeedsService() const {
+            return status == State::NeedsService || status == State::Broken;
+        }
+
+        /**
+     * @brief Check if facility is broken
+     */
+        bool IsBroken() const {
+            return status == State::Broken;
+        }
+    };
+
+    /**
  * @brief Facility maintenance and cleanliness status
  * 
  * Tracks the cleanliness and maintenance condition of a facility.

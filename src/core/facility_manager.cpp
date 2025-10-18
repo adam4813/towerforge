@@ -73,6 +73,33 @@ namespace TowerForge::Core {
         }
         facility.set<CleanlinessStatus>(cleanliness);
     
+        // Add MaintenanceStatus for tracking maintenance state
+        MaintenanceStatus maintenance;
+        // Set degrade_rate based on facility type (facilities with more moving parts degrade faster)
+        switch (type) {
+            case BuildingComponent::Type::Elevator:
+                maintenance.degrade_rate = 2.0f;  // Elevators need frequent maintenance
+                break;
+            case BuildingComponent::Type::Arcade:
+            case BuildingComponent::Type::Theater:
+                maintenance.degrade_rate = 1.5f;  // Entertainment venues with equipment
+                break;
+            case BuildingComponent::Type::Restaurant:
+            case BuildingComponent::Type::Hotel:
+            case BuildingComponent::Type::Gym:
+                maintenance.degrade_rate = 1.3f;  // Facilities with specialized equipment
+                break;
+            case BuildingComponent::Type::Office:
+            case BuildingComponent::Type::RetailShop:
+            case BuildingComponent::Type::FlagshipStore:
+                maintenance.degrade_rate = 1.0f;  // Normal maintenance rate
+                break;
+            default:
+                maintenance.degrade_rate = 0.8f;  // Slower degradation for simpler facilities
+                break;
+        }
+        facility.set<MaintenanceStatus>(maintenance);
+    
         // Place on the grid using the entity ID
         if (!grid_.PlaceFacility(floor, column, width, static_cast<int>(facility.id()))) {
             // If placement fails, destroy the entity and return null
@@ -298,6 +325,21 @@ namespace TowerForge::Core {
         if (facility_entity.has<CleanlinessStatus>()) {
             auto& cleanliness = facility_entity.ensure<CleanlinessStatus>();
             cleanliness.Clean();
+            return true;
+        }
+    
+        return false;
+    }
+
+    bool FacilityManager::RepairFacility(const flecs::entity facility_entity) const {
+        if (!facility_entity.is_alive()) {
+            return false;
+        }
+    
+        // Check if the facility has MaintenanceStatus
+        if (facility_entity.has<MaintenanceStatus>()) {
+            auto& maintenance = facility_entity.ensure<MaintenanceStatus>();
+            maintenance.Repair();
             return true;
         }
     

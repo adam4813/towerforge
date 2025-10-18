@@ -74,6 +74,19 @@ namespace towerforge::ui {
         DrawText(maintenance.c_str(), x, y, 14, maint_color);
         y += 20;
     
+        // MaintenanceStatus state (if available)
+        if (!info_.maintenance_state.empty()) {
+            const std::string maint_state = "Status: " + info_.maintenance_state;
+            Color state_color = GREEN;
+            if (info_.is_broken) {
+                state_color = RED;
+            } else if (info_.needs_repair) {
+                state_color = ORANGE;
+            }
+            DrawText(maint_state.c_str(), x, y, 14, state_color);
+            y += 20;
+        }
+    
         // Alerts
         if (info_.has_fire) {
             DrawText("! FIRE - Firefighter needed !", x, y, 14, RED);
@@ -95,11 +108,13 @@ namespace towerforge::ui {
     
         y += 30;
     
-        // "Clean now" button (only show if facility needs cleaning)
-        if (info_.needs_cleaning) {
-            const Color clean_btn_color = info_.cleanliness_state == "Dirty" ? RED : YELLOW;
-            DrawRectangle(x, y, 210, 25, clean_btn_color);
-            DrawText("[Clean Now]", x + 65, y + 5, 14, BLACK);
+        // "Repair now" button (only show if facility needs repair or is broken)
+        if (info_.needs_repair || info_.is_broken) {
+            const Color repair_btn_color = info_.is_broken ? RED : ORANGE;
+            DrawRectangle(x, y, 210, 25, repair_btn_color);
+            const char* button_text = info_.is_broken ? "[Emergency Repair]" : "[Repair Now]";
+            const int text_offset = info_.is_broken ? 45 : 60;
+            DrawText(button_text, x + text_offset, y + 5, 14, BLACK);
         }
     }
 
