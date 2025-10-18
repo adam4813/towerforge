@@ -296,8 +296,8 @@ namespace TowerForge::Core {
     
         // Check if the facility has CleanlinessStatus
         if (facility_entity.has<CleanlinessStatus>()) {
-            auto cleanliness = facility_entity.get_mut<CleanlinessStatus>();
-            cleanliness->Clean();
+            auto& cleanliness = facility_entity.ensure<CleanlinessStatus>();
+            cleanliness.Clean();
             return true;
         }
     
