@@ -1035,9 +1035,31 @@ namespace towerforge::core {
                                     info.destination_floor = person.destination_floor;
                                     info.wait_time = person.wait_time;
                                     info.needs = person.current_need;
+                                    info.is_staff = false;
+                                    info.staff_role = "";
+                                    info.on_duty = false;
+                                    info.shift_hours = "";
 
+                                    // Check if this is staff
+                                    if (e.has<StaffAssignment>()) {
+                                        const StaffAssignment& assignment = e.ensure<StaffAssignment>();
+                                        info.is_staff = true;
+                                        info.npc_type = "Staff";
+                                        info.staff_role = assignment.GetRoleName();
+                                        info.on_duty = assignment.is_active;
+                                        
+                                        // Format shift hours
+                                        char shift_buffer[32];
+                                        snprintf(shift_buffer, sizeof(shift_buffer), "%.0f:00 - %.0f:00",
+                                                assignment.shift_start_time, assignment.shift_end_time);
+                                        info.shift_hours = shift_buffer;
+                                        
+                                        info.status = info.on_duty ? 
+                                            (std::string("On duty: ") + info.staff_role) : 
+                                            (std::string("Off duty: ") + info.staff_role);
+                                    }
                                     // Get status based on NPC type
-                                    if (person.npc_type == NPCType::Employee && e.has<EmploymentInfo>()) {
+                                    else if (person.npc_type == NPCType::Employee && e.has<EmploymentInfo>()) {
                                         const EmploymentInfo &emp = e.ensure<EmploymentInfo>();
                                         info.status = emp.GetStatusString();
                                     } else if (person.npc_type == NPCType::Visitor && e.has<VisitorInfo>()) {
@@ -1062,15 +1084,75 @@ namespace towerforge::core {
 
                             // If no person was clicked, check for facility
                             if (!person_clicked && grid.IsOccupied(clicked_floor, clicked_column)) {
-                                FacilityInfo info;
-                                info.type = "FACILITY";
-                                info.floor = clicked_floor;
-                                info.occupancy = 0;
-                                info.max_occupancy = 10;
-                                info.revenue = 100.0f;
-                                info.satisfaction = 75.0f;
-                                info.tenant_count = 0;
-                                hud_->ShowFacilityInfo(info);
+                                // Get facility entity at this location
+                                const int facility_id = grid.GetFacilityAt(clicked_floor, clicked_column);
+                                if (facility_id >= 0) {
+                                    const flecs::entity facility_entity = ecs_world_->GetWorld().entity(
+                                        static_cast<flecs::entity_t>(facility_id));
+                                    
+                                    FacilityInfo info;
+                                    info.type = "FACILITY";
+                                    info.floor = clicked_floor;
+                                    info.occupancy = 0;
+                                    info.max_occupancy = 10;
+                                    info.revenue = 100.0f;
+                                    info.satisfaction = 75.0f;
+                                    info.tenant_count = 0;
+                                    
+                                    // Get actual facility data if available
+                                    if (facility_entity.is_alive() && facility_entity.has<BuildingComponent>()) {
+                                        const BuildingComponent& facility = facility_entity.ensure<BuildingComponent>();
+                                        info.occupancy = facility.current_occupancy;
+                                        info.max_occupancy = facility.capacity;
+                                        
+                                        // Get facility type name
+                                        switch (facility.type) {
+                                            case BuildingComponent::Type::Office:      info.type = "Office"; break;
+                                            case BuildingComponent::Type::Residential: info.type = "Residential"; break;
+                                            case BuildingComponent::Type::RetailShop:  info.type = "Retail Shop"; break;
+                                            case BuildingComponent::Type::Lobby:       info.type = "Lobby"; break;
+                                            case BuildingComponent::Type::Restaurant:  info.type = "Restaurant"; break;
+                                            case BuildingComponent::Type::Hotel:       info.type = "Hotel"; break;
+                                            case BuildingComponent::Type::Elevator:    info.type = "Elevator"; break;
+                                            case BuildingComponent::Type::Gym:         info.type = "Gym"; break;
+                                            case BuildingComponent::Type::Arcade:      info.type = "Arcade"; break;
+                                            default: info.type = "Facility"; break;
+                                        }
+                                    }
+                                    
+                                    // Get economics data
+                                    if (facility_entity.is_alive() && facility_entity.has<FacilityEconomics>()) {
+                                        const FacilityEconomics& econ = facility_entity.ensure<FacilityEconomics>();
+                                        info.revenue = econ.CalculateDailyRevenue();
+                                        info.tenant_count = econ.current_tenants;
+                                    }
+                                    
+                                    // Get satisfaction
+                                    if (facility_entity.is_alive() && facility_entity.has<Satisfaction>()) {
+                                        const Satisfaction& sat = facility_entity.ensure<Satisfaction>();
+                                        info.satisfaction = sat.satisfaction_score;
+                                    }
+                                    
+                                    // Get facility status (cleanliness and maintenance)
+                                    if (facility_entity.is_alive() && facility_entity.has<FacilityStatus>()) {
+                                        const FacilityStatus& status = facility_entity.ensure<FacilityStatus>();
+                                        info.cleanliness = status.cleanliness;
+                                        info.maintenance_level = status.maintenance_level;
+                                        info.cleanliness_rating = status.GetCleanlinessRating();
+                                        info.maintenance_rating = status.GetMaintenanceRating();
+                                        info.has_fire = status.has_fire;
+                                        info.has_security_issue = status.has_security_issue;
+                                    } else {
+                                        info.cleanliness = 100.0f;
+                                        info.maintenance_level = 100.0f;
+                                        info.cleanliness_rating = "Spotless";
+                                        info.maintenance_rating = "Excellent";
+                                        info.has_fire = false;
+                                        info.has_security_issue = false;
+                                    }
+                                    
+                                    hud_->ShowFacilityInfo(info);
+                                }
                             }
                         }
                     }
