@@ -717,7 +717,8 @@ namespace TowerForge::Core {
                         // If visitor has been at destination for 30-60 seconds (random), they're done visiting
                         const float min_visit_time = 30.0f;
                         const float max_visit_time = 60.0f;
-                        const float visit_threshold = min_visit_time + (rand() % static_cast<int>(max_visit_time - min_visit_time));
+                        const float range = max_visit_time - min_visit_time;
+                        const float visit_threshold = min_visit_time + (static_cast<float>(rand()) / RAND_MAX) * range;
                         
                         if (visitor.time_at_destination >= visit_threshold && 
                             visitor.activity != VisitorActivity::Leaving &&
@@ -885,8 +886,8 @@ namespace TowerForge::Core {
                         // Assign a destination for shopping/visiting visitors
                         if ((activity == VisitorActivity::Shopping || activity == VisitorActivity::Visiting) 
                             && !visitable_facilities.empty()) {
-                            // Pick a random facility to visit
-                            const int random_index = rand() % visitable_facilities.size();
+                            // Pick a random facility to visit (using modulo is acceptable for small arrays)
+                            const size_t random_index = static_cast<size_t>(rand()) % visitable_facilities.size();
                             const auto target_facility = visitable_facilities[random_index];
                             
                             if (target_facility.has<BuildingComponent>()) {
@@ -895,7 +896,7 @@ namespace TowerForge::Core {
                                 // Set destination to the center of the facility
                                 auto& person_ref = visitor.ensure<Person>();
                                 const int target_floor = building.floor;
-                                const float target_column = building.column + (building.width / 2.0f);
+                                const float target_column = static_cast<float>(building.column) + (static_cast<float>(building.width) / 2.0f);
                                 person_ref.SetDestination(target_floor, target_column, activity == VisitorActivity::Shopping ? "Shopping" : "Visiting");
                                 
                                 auto& visitor_info = visitor.ensure<VisitorInfo>();
@@ -976,7 +977,7 @@ namespace TowerForge::Core {
                         // Found a job! Save the details
                         target_facility = facility_entity;
                         target_floor = facility.floor;
-                        target_column = facility.column + (facility.width / 2);  // Center of facility
+                        target_column = facility.column + (facility.width / 2);  // Center of facility (integer division is fine here)
                         facility.job_openings--;  // Reduce opening count
                     });
             
