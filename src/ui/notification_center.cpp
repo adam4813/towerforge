@@ -34,6 +34,12 @@ namespace towerforge::ui {
 
     NotificationCenter::~NotificationCenter() = default;
 
+    void NotificationCenter::SetFilter(const NotificationFilter& filter) {
+        filter_ = filter;
+        // Save filter to UserPreferences
+        TowerForge::Core::UserPreferences::GetInstance().SetNotificationFilter(filter);
+    }
+
     void NotificationCenter::Update(const float delta_time) {
         // Update notifications - remove expired ones that aren't pinned
         for (auto it = notifications_.begin(); it != notifications_.end();) {
@@ -209,6 +215,8 @@ namespace towerforge::ui {
             for (auto& button : buttons) {
                 if (mouse_x >= x && mouse_x <= x + button_size && mouse_y >= filter_y && mouse_y <= filter_y + button_size) {
                     *button.flag = !*button.flag;
+                    // Save the updated filter
+                    SetFilter(filter_);
                     return true;
                 }
                 x += button_size + 3;
