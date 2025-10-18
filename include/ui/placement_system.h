@@ -167,6 +167,13 @@ namespace towerforge::ui {
         bool HasPendingConfirmation() const { 
             return demolish_confirmation_ && demolish_confirmation_->IsVisible(); 
         }
+        
+        /**
+         * @brief Get pending funds change from confirmed demolish
+         * @return Funds change (positive for refund) or 0
+         */
+        int GetPendingFundsChange();
+    
     private:
         /**
      * @brief Convert mouse position to grid coordinates

@@ -91,10 +91,10 @@ namespace towerforge::ui {
         int hovered_node_index_;  // Index of currently hovered node (-1 if none)
         NotificationCenter* notification_center_;
         
-        // Confirmation dialog for research unlocks
-        std::unique_ptr<ConfirmationDialog> unlock_confirmation_;
-        std::string pending_unlock_node_id_;
-        TowerForge::Core::ResearchTree* pending_unlock_tree_;
+        // Confirmation dialog for research unlocks (mutable because they change during const HandleMouse)
+        mutable std::unique_ptr<ConfirmationDialog> unlock_confirmation_;
+        mutable std::string pending_unlock_node_id_;
+        mutable TowerForge::Core::ResearchTree* pending_unlock_tree_;
     
         // Menu layout constants
         static constexpr int MENU_WIDTH = 800;
