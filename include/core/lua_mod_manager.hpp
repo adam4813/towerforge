@@ -76,6 +76,59 @@ namespace TowerForge::Core {
     };
 
     /**
+ * @brief Custom staff role definition from Lua
+ */
+    struct LuaStaffRole {
+        std::string id;                 // Unique identifier
+        std::string name;               // Display name
+        float work_efficiency;          // Work speed multiplier (default 1.0)
+        float default_wage;             // Daily wage (default $50)
+        float shift_start_hour;         // Default shift start (default 9.0)
+        float shift_end_hour;           // Default shift end (default 17.0)
+        std::string work_type;          // "cleaning", "maintenance", "emergency", or "custom"
+        
+        // Custom work behavior (Lua function name to call)
+        std::string work_function;      // Name of Lua function to call for work
+    
+        LuaStaffRole()
+            : work_efficiency(1.0f),
+              default_wage(50.0f),
+              shift_start_hour(9.0f),
+              shift_end_hour(17.0f),
+              work_type("custom") {}
+    };
+
+    /**
+ * @brief Custom event type definition from Lua
+ */
+    struct LuaEventType {
+        std::string id;                 // Unique identifier
+        std::string name;               // Display name
+        std::string description;        // Event description
+        float spawn_chance;             // Chance per hour per facility (0.0-1.0)
+        float duration;                 // How long event lasts (seconds, 0 = instant)
+        bool requires_staff_response;   // Whether staff need to respond
+        std::string required_staff_type;// Staff type that can resolve it
+        float resolution_time;          // Time for staff to resolve (seconds)
+        
+        // Effects
+        float satisfaction_penalty;     // Satisfaction reduction while active
+        float maintenance_damage;       // Maintenance damage when resolved
+        
+        // Lua callbacks (function names)
+        std::string on_spawn_function;  // Called when event spawns
+        std::string on_resolve_function;// Called when event is resolved
+    
+        LuaEventType()
+            : spawn_chance(0.001f),
+              duration(300.0f),
+              requires_staff_response(true),
+              resolution_time(10.0f),
+              satisfaction_penalty(5.0f),
+              maintenance_damage(10.0f) {}
+    };
+
+    /**
  * @brief Manages loading and execution of Lua mods
  * 
  * The LuaModManager handles:
@@ -176,6 +229,40 @@ namespace TowerForge::Core {
         }
     
         /**
+     * @brief Get a registered custom staff role
+     * 
+     * @param id The staff role ID
+     * @return Pointer to the staff role, or nullptr if not found
+     */
+        const LuaStaffRole* GetCustomStaffRole(const std::string& id) const;
+    
+        /**
+     * @brief Get all registered custom staff roles
+     * 
+     * @return Map of staff role IDs to staff role data
+     */
+        const std::unordered_map<std::string, LuaStaffRole>& GetCustomStaffRoles() const {
+            return custom_staff_roles_;
+        }
+    
+        /**
+     * @brief Get a registered custom event type
+     * 
+     * @param id The event type ID
+     * @return Pointer to the event type, or nullptr if not found
+     */
+        const LuaEventType* GetCustomEventType(const std::string& id) const;
+    
+        /**
+     * @brief Get all registered custom event types
+     * 
+     * @return Map of event type IDs to event type data
+     */
+        const std::unordered_map<std::string, LuaEventType>& GetCustomEventTypes() const {
+            return custom_event_types_;
+        }
+    
+        /**
      * @brief Shutdown the Lua environment
      */
         void Shutdown();
@@ -213,6 +300,20 @@ namespace TowerForge::Core {
         static int Lua_RegisterResearchNode(lua_State* L);
     
         /**
+     * @brief Register a custom staff role from Lua
+     * 
+     * Called by Lua scripts via the API
+     */
+        static int Lua_RegisterStaffRole(lua_State* L);
+    
+        /**
+     * @brief Register a custom event type from Lua
+     * 
+     * Called by Lua scripts via the API
+     */
+        static int Lua_RegisterEventType(lua_State* L);
+    
+        /**
      * @brief Log a message from Lua
      * 
      * Called by Lua scripts via the API
@@ -230,6 +331,8 @@ namespace TowerForge::Core {
         std::vector<ModInfo> loaded_mods_;
         std::unordered_map<std::string, LuaFacilityType> custom_facility_types_;
         std::unordered_map<std::string, LuaVisitorType> custom_visitor_types_;
+        std::unordered_map<std::string, LuaStaffRole> custom_staff_roles_;
+        std::unordered_map<std::string, LuaEventType> custom_event_types_;
     };
 
 }
