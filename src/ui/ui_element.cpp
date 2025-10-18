@@ -1,4 +1,5 @@
 #include "ui/ui_element.h"
+#include "ui/ui_theme.h"
 #include "core/accessibility_settings.hpp"
 #include <algorithm>
 
@@ -106,21 +107,85 @@ namespace towerforge::ui {
                  const Color background_color, const Color border_color)
         : UIElement(relative_x, relative_y, width, height)
           , background_color_(background_color)
-          , border_color_(border_color) {
+          , border_color_(border_color)
+          , is_visible_(true)
+          , is_animating_(false)
+          , animation_progress_(1.0f)
+          , animation_speed_(3.0f) {  // Default animation speed
+    }
+
+    void Panel::Update(const float delta_time) {
+        if (is_animating_) {
+            if (is_visible_) {
+                // Fading in
+                animation_progress_ += delta_time * animation_speed_;
+                if (animation_progress_ >= 1.0f) {
+                    animation_progress_ = 1.0f;
+                    is_animating_ = false;
+                }
+            } else {
+                // Fading out
+                animation_progress_ -= delta_time * animation_speed_;
+                if (animation_progress_ <= 0.0f) {
+                    animation_progress_ = 0.0f;
+                    is_animating_ = false;
+                }
+            }
+        }
+    }
+
+    void Panel::Show(const bool animate) {
+        is_visible_ = true;
+        if (animate) {
+            is_animating_ = true;
+            if (animation_progress_ == 1.0f) {
+                animation_progress_ = 0.0f;
+            }
+        } else {
+            animation_progress_ = 1.0f;
+            is_animating_ = false;
+        }
+    }
+
+    void Panel::Hide(const bool animate) {
+        is_visible_ = false;
+        if (animate) {
+            is_animating_ = true;
+            if (animation_progress_ == 0.0f) {
+                animation_progress_ = 1.0f;
+            }
+        } else {
+            animation_progress_ = 0.0f;
+            is_animating_ = false;
+        }
     }
 
     void Panel::Render() const {
+        // Skip rendering if completely hidden
+        if (animation_progress_ <= 0.0f) {
+            return;
+        }
+
         const Rectangle bounds = GetAbsoluteBounds();
         
-        // Draw background
-        DrawRectangleRec(bounds, background_color_);
+        // Apply alpha based on animation progress
+        Color bg_color = background_color_;
+        Color border_col = border_color_;
         
-        // Draw border if not transparent
-        if (border_color_.a > 0) {
-            DrawRectangleLinesEx(bounds, 2, border_color_);
+        if (animation_progress_ < 1.0f) {
+            bg_color = ColorAlpha(bg_color, (bg_color.a / 255.0f) * animation_progress_);
+            border_col = ColorAlpha(border_col, (border_col.a / 255.0f) * animation_progress_);
         }
         
-        // Render all children
+        // Draw background
+        DrawRectangleRec(bounds, bg_color);
+        
+        // Draw border if not transparent
+        if (border_col.a > 0) {
+            DrawRectangleLinesEx(bounds, 2, border_col);
+        }
+        
+        // Render all children (they will also be affected by parent alpha)
         for (const auto& child : children_) {
             child->Render();
         }
@@ -267,7 +332,7 @@ namespace towerforge::ui {
                                           const std::string& message,
                                           const std::string& confirm_text,
                                           const std::string& cancel_text)
-        : Panel(0, 0, DIALOG_WIDTH, DIALOG_HEIGHT, ColorAlpha(Color{30, 30, 40, 255}, 0.95f), GOLD)
+        : Panel(0, 0, DIALOG_WIDTH, DIALOG_HEIGHT, ColorAlpha(UITheme::BACKGROUND_MODAL, 0.95f), UITheme::PRIMARY)
           , title_(title)
           , message_(message)
           , confirm_button_(nullptr)
@@ -279,24 +344,24 @@ namespace towerforge::ui {
         
         // Create confirm button
         confirm_button_ = std::make_unique<Button>(
-            DIALOG_WIDTH / 2 - BUTTON_WIDTH - 10,
-            DIALOG_HEIGHT - BUTTON_HEIGHT - 20,
+            DIALOG_WIDTH / 2 - BUTTON_WIDTH - UITheme::PADDING_SMALL,
+            DIALOG_HEIGHT - BUTTON_HEIGHT - UITheme::PADDING_LARGE,
             BUTTON_WIDTH,
             BUTTON_HEIGHT,
             confirm_text,
-            ColorAlpha(GREEN, 0.5f),
-            LIME
+            ColorAlpha(UITheme::SUCCESS, 0.5f),
+            UITheme::SUCCESS
         );
         
         // Create cancel button
         cancel_button_ = std::make_unique<Button>(
-            DIALOG_WIDTH / 2 + 10,
-            DIALOG_HEIGHT - BUTTON_HEIGHT - 20,
+            DIALOG_WIDTH / 2 + UITheme::PADDING_SMALL,
+            DIALOG_HEIGHT - BUTTON_HEIGHT - UITheme::PADDING_LARGE,
             BUTTON_WIDTH,
             BUTTON_HEIGHT,
             cancel_text,
-            ColorAlpha(RED, 0.5f),
-            MAROON
+            ColorAlpha(UITheme::ERROR, 0.5f),
+            UITheme::ERROR
         );
         
         // Set button callbacks
@@ -376,7 +441,7 @@ namespace towerforge::ui {
         // Draw semi-transparent overlay
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
-        DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.5f));
+        DrawRectangle(0, 0, screen_width, screen_height, UITheme::OVERLAY_DARK);
         
         // Center the dialog on screen
         const int dialog_x = (screen_width - DIALOG_WIDTH) / 2;
@@ -387,25 +452,25 @@ namespace towerforge::ui {
         if (GetBorderColor().a > 0) {
             DrawRectangleLinesEx(Rectangle{static_cast<float>(dialog_x), static_cast<float>(dialog_y), 
                                           static_cast<float>(DIALOG_WIDTH), static_cast<float>(DIALOG_HEIGHT)}, 
-                                2, GetBorderColor());
+                                UITheme::BORDER_NORMAL, GetBorderColor());
         }
         
         // Draw title
-        const int title_width = MeasureText(title_.c_str(), 24);
+        const int title_width = MeasureText(title_.c_str(), UITheme::FONT_SIZE_LARGE);
         DrawText(title_.c_str(), 
                 dialog_x + (DIALOG_WIDTH - title_width) / 2,
-                dialog_y + 20,
-                24,
-                GOLD);
+                dialog_y + UITheme::PADDING_LARGE,
+                UITheme::FONT_SIZE_LARGE,
+                UITheme::PRIMARY);
         
         // Draw separator
-        DrawLine(dialog_x + 20, dialog_y + 55, 
-                dialog_x + DIALOG_WIDTH - 20, dialog_y + 55,
-                GRAY);
+        DrawLine(dialog_x + UITheme::PADDING_LARGE, dialog_y + 55, 
+                dialog_x + DIALOG_WIDTH - UITheme::PADDING_LARGE, dialog_y + 55,
+                UITheme::BORDER_SUBTLE);
         
         // Draw message (word-wrapped)
         constexpr int message_y = 75;
-        constexpr int max_line_width = DIALOG_WIDTH - 40;
+        const int max_line_width = DIALOG_WIDTH - (UITheme::PADDING_MEDIUM * 2);
         int current_y = dialog_y + message_y;
         
         // Simple word wrapping
@@ -416,7 +481,7 @@ namespace towerforge::ui {
             
             for (size_t i = 0; i < remaining.length(); ++i) {
                 std::string test_str = remaining.substr(0, i + 1);
-                if (MeasureText(test_str.c_str(), 16) > max_line_width) {
+                if (MeasureText(test_str.c_str(), UITheme::FONT_SIZE_NORMAL) > max_line_width) {
                     break;
                 }
                 chars_fit = i + 1;
@@ -431,9 +496,9 @@ namespace towerforge::ui {
             }
             
             std::string line = remaining.substr(0, chars_fit);
-            DrawText(line.c_str(), dialog_x + 20, current_y, 16, WHITE);
+            DrawText(line.c_str(), dialog_x + UITheme::PADDING_LARGE, current_y, UITheme::FONT_SIZE_NORMAL, UITheme::TEXT_PRIMARY);
             
-            current_y += 20;
+            current_y += UITheme::PADDING_LARGE;
             remaining = remaining.substr(chars_fit);
             
             // Trim leading spaces from next line
@@ -471,7 +536,7 @@ namespace towerforge::ui {
                 
                 DrawRectangleRec(btn_rect, bg_color);
                 if (border_color.a > 0) {
-                    DrawRectangleLinesEx(btn_rect, 2, border_color);
+                    DrawRectangleLinesEx(btn_rect, UITheme::BORDER_NORMAL, border_color);
                 }
                 
                 // Draw button text

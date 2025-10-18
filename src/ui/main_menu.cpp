@@ -1,5 +1,6 @@
 #include "ui/main_menu.h"
 #include "ui/ui_element.h"
+#include "ui/ui_theme.h"
 #include <cmath>
 
 namespace towerforge::ui {
@@ -25,17 +26,17 @@ namespace towerforge::ui {
         // Buttons are children of the main panel with relative positioning
         for (size_t i = 0; i < menu_items_.size(); ++i) {
             const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-            // x position will be updated during render for centering
+            // x position will be set during render
             auto button = std::make_unique<Button>(
                 0, // x will be set during render
                 static_cast<float>(item_y),
                 static_cast<float>(MENU_WIDTH),
                 static_cast<float>(MENU_ITEM_HEIGHT),
                 menu_items_[i].label,
-                ColorAlpha(DARKGRAY, 0.2f),
-                GRAY
+                UITheme::BUTTON_BACKGROUND,
+                UITheme::BUTTON_BORDER
             );
-            button->SetFontSize(22); // Default size, will be adjusted for selected item
+            button->SetFontSize(UITheme::FONT_SIZE_MEDIUM); // Default size, will be adjusted for selected item
             
             // Set click callback for this button
             const int option_index = static_cast<int>(i);
@@ -66,24 +67,22 @@ namespace towerforge::ui {
     }
 
     void MainMenu::RenderBackground() const {
-        // Clear with a gradient-like dark background
-        ClearBackground(Color{20, 20, 30, 255});
-
-        // Draw decorative elements - simplified tower silhouette
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        // Clear with theme background color
+        ClearBackground(UITheme::BACKGROUND_DARK);
 
         // Draw subtle grid pattern in background
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
         for (int i = 0; i < screen_height; i += 40) {
-            DrawLine(0, i, screen_width, i, ColorAlpha(DARKGRAY, 0.1f));
+            DrawLine(0, i, screen_width, i, UITheme::DECORATIVE_GRID);
         }
         for (int i = 0; i < screen_width; i += 40) {
-            DrawLine(i, 0, i, screen_height, ColorAlpha(DARKGRAY, 0.1f));
+            DrawLine(i, 0, i, screen_height, UITheme::DECORATIVE_GRID);
         }
 
         // Draw simple tower silhouettes on the sides
-        DrawRectangle(50, 300, 60, 300, ColorAlpha(DARKBLUE, 0.3f));
-        DrawRectangle(screen_width - 110, 250, 60, 350, ColorAlpha(DARKBLUE, 0.3f));
+        DrawRectangle(50, 300, 60, 300, ColorAlpha(UITheme::DECORATIVE_WINDOW, 0.3f));
+        DrawRectangle(screen_width - 110, 250, 60, 350, ColorAlpha(UITheme::DECORATIVE_WINDOW, 0.3f));
 
         // Add some "windows" to the silhouettes
         for (int y = 320; y < 580; y += 30) {
@@ -105,28 +104,28 @@ namespace towerforge::ui {
 
         // Draw main title
         const auto title = "TOWERFORGE";
-        constexpr int title_font_size = 60;
+        const int title_font_size = UITheme::FONT_SIZE_TITLE;
         const int title_width = MeasureText(title, title_font_size);
         const int title_x = (screen_width - title_width) / 2;
 
         // Draw title shadow for depth
         DrawText(title, title_x + 3, TITLE_Y + 3, title_font_size, ColorAlpha(BLACK, 0.5f));
 
-        // Draw title with gradient effect (simulated with multiple draws)
-        DrawText(title, title_x, TITLE_Y, title_font_size, GOLD);
+        // Draw title with primary color
+        DrawText(title, title_x, TITLE_Y, title_font_size, UITheme::PRIMARY);
 
         // Draw tagline
         const auto tagline = "\"Build, Survive, Thrive!\"";
-        constexpr int tagline_font_size = 20;
+        const int tagline_font_size = UITheme::FONT_SIZE_MEDIUM;
         const int tagline_width = MeasureText(tagline, tagline_font_size);
         const int tagline_x = (screen_width - tagline_width) / 2;
 
-        DrawText(tagline, tagline_x, TITLE_Y + 70, tagline_font_size, LIGHTGRAY);
+        DrawText(tagline, tagline_x, TITLE_Y + 70, tagline_font_size, UITheme::TEXT_SECONDARY);
 
         // Draw decorative line
         constexpr int line_width = 400;
         const int line_x = (screen_width - line_width) / 2;
-        DrawRectangle(line_x, TITLE_Y + 100, line_width, 2, GOLD);
+        DrawRectangle(line_x, TITLE_Y + 100, line_width, 2, UITheme::PRIMARY);
     }
 
     void MainMenu::RenderMenuOptions() const {
@@ -141,15 +140,15 @@ namespace towerforge::ui {
             // Update button position and appearance based on selection
             auto& button = menu_item_buttons_[i];
             button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
-            button->SetBackgroundColor(is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.2f));
-            button->SetBorderColor(is_selected ? GOLD : GRAY);
-            button->SetFontSize(is_selected ? 24 : 22);
+            button->SetBackgroundColor(is_selected ? ColorAlpha(UITheme::PRIMARY, 0.3f) : UITheme::BUTTON_BACKGROUND);
+            button->SetBorderColor(is_selected ? UITheme::PRIMARY : UITheme::BUTTON_BORDER);
+            button->SetFontSize(is_selected ? UITheme::FONT_SIZE_LARGE : UITheme::FONT_SIZE_MEDIUM);
             
             // Add subtle animation to selected item
-            Color text_color = is_selected ? WHITE : LIGHTGRAY;
+            Color text_color = is_selected ? UITheme::TEXT_PRIMARY : UITheme::TEXT_SECONDARY;
             if (is_selected) {
-                const float pulse = sin(animation_time_ * 3.0f) * 0.1f + 0.9f;
-                text_color = ColorAlpha(WHITE, pulse);
+                const float pulse = sin(animation_time_ * UITheme::ANIMATION_SPEED_NORMAL) * 0.1f + 0.9f;
+                text_color = ColorAlpha(UITheme::TEXT_PRIMARY, pulse);
             }
             button->SetTextColor(text_color);
             
@@ -160,7 +159,7 @@ namespace towerforge::ui {
             if (is_selected) {
                 const int indicator_x = item_x - 30;
                 const int indicator_y = item_y + MENU_ITEM_HEIGHT / 2;
-                DrawText(">", indicator_x, indicator_y - 12, 24, GOLD);
+                DrawText(">", indicator_x, indicator_y - 12, UITheme::FONT_SIZE_LARGE, UITheme::PRIMARY);
             }
         }
     }
@@ -170,11 +169,11 @@ namespace towerforge::ui {
         const int screen_height = GetScreenHeight();
 
         const std::string version_text = "Version: " + GetVersion();
-        constexpr int font_size = 16;
+        const int font_size = UITheme::FONT_SIZE_NORMAL;
         const int text_width = MeasureText(version_text.c_str(), font_size);
 
-        DrawText(version_text.c_str(), screen_width - text_width - 20,
-                 screen_height - 30, font_size, GRAY);
+        DrawText(version_text.c_str(), screen_width - text_width - UITheme::PADDING_LARGE,
+                 screen_height - UITheme::PADDING_LARGE - UITheme::PADDING_SMALL, font_size, UITheme::BORDER_DEFAULT);
     }
 
     int MainMenu::HandleKeyboard() {
