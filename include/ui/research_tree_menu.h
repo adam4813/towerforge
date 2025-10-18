@@ -3,9 +3,13 @@
 #include <raylib.h>
 #include <string>
 #include <vector>
+#include <memory>
 #include "core/components.hpp"
+#include "ui/ui_element.h"
 
 namespace towerforge::ui {
+    // Forward declaration
+    class NotificationCenter;
 
     /**
  * @brief Research/Upgrade Tree menu for unlocking new features and bonuses
@@ -57,6 +61,20 @@ namespace towerforge::ui {
      * @brief Toggle visibility
      */
         void Toggle() { visible_ = !visible_; }
+        
+        /**
+         * @brief Set notification center for unlock feedback
+         */
+        void SetNotificationCenter(NotificationCenter* notification_center) { 
+            notification_center_ = notification_center; 
+        }
+        
+        /**
+         * @brief Process mouse events for confirmation dialogs
+         * @param event Mouse event data
+         * @return true if event was consumed
+         */
+        bool ProcessMouseEvent(const ui::MouseEvent& event);
     
     private:
         static void RenderOverlay();
@@ -71,6 +89,12 @@ namespace towerforge::ui {
         bool visible_;
         float animation_time_;
         int hovered_node_index_;  // Index of currently hovered node (-1 if none)
+        NotificationCenter* notification_center_;
+        
+        // Confirmation dialog for research unlocks (mutable because they change during const HandleMouse)
+        mutable std::unique_ptr<ConfirmationDialog> unlock_confirmation_;
+        mutable std::string pending_unlock_node_id_;
+        mutable TowerForge::Core::ResearchTree* pending_unlock_tree_;
     
         // Menu layout constants
         static constexpr int MENU_WIDTH = 800;

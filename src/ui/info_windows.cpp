@@ -112,7 +112,7 @@ namespace towerforge::ui {
 
     // PersonWindow implementation
     PersonWindow::PersonWindow(const PersonInfo& info)
-        : UIWindow("Person Info", 250, 240)
+        : UIWindow("Person Info", 250, 360)
           , info_(info) {
     }
 
@@ -132,6 +132,13 @@ namespace towerforge::ui {
         const std::string type = "Type: " + info_.npc_type;
         DrawText(type.c_str(), x, y, 14, SKYBLUE);
         y += 20;
+    
+        // Visitor archetype (if applicable)
+        if (info_.has_needs && !info_.visitor_archetype.empty()) {
+            const std::string archetype = "Profile: " + info_.visitor_archetype;
+            DrawText(archetype.c_str(), x, y, 14, GOLD);
+            y += 20;
+        }
     
         // Staff-specific information
         if (info_.is_staff) {
@@ -179,7 +186,41 @@ namespace towerforge::ui {
             y += 20;
         }
     
-        // Satisfaction (less relevant for staff, but show if available)
+        // Visitor needs section (if applicable)
+        if (info_.has_needs) {
+            y += 5;
+            DrawText("--- Visitor Needs ---", x, y, 14, YELLOW);
+            y += 20;
+        
+            // Helper function to get need color
+            auto get_need_color = [](float need) {
+                if (need < 30.0f) return GREEN;
+                if (need < 60.0f) return YELLOW;
+                return RED;
+            };
+        
+            // Hunger
+            std::string hunger_text = "Hunger: " + std::to_string(static_cast<int>(info_.hunger_need)) + "%";
+            DrawText(hunger_text.c_str(), x, y, 13, get_need_color(info_.hunger_need));
+            y += 18;
+        
+            // Entertainment
+            std::string ent_text = "Entertainment: " + std::to_string(static_cast<int>(info_.entertainment_need)) + "%";
+            DrawText(ent_text.c_str(), x, y, 13, get_need_color(info_.entertainment_need));
+            y += 18;
+        
+            // Comfort
+            std::string comfort_text = "Comfort: " + std::to_string(static_cast<int>(info_.comfort_need)) + "%";
+            DrawText(comfort_text.c_str(), x, y, 13, get_need_color(info_.comfort_need));
+            y += 18;
+        
+            // Shopping
+            std::string shopping_text = "Shopping: " + std::to_string(static_cast<int>(info_.shopping_need)) + "%";
+            DrawText(shopping_text.c_str(), x, y, 13, get_need_color(info_.shopping_need));
+            y += 23;
+        }
+    
+        // Satisfaction (show for all non-staff)
         if (!info_.is_staff) {
             const std::string satisfaction = "Satisfaction: " + GetSatisfactionEmoji(info_.satisfaction) + 
                                        " " + std::to_string(static_cast<int>(info_.satisfaction)) + "%";

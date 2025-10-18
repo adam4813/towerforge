@@ -75,6 +75,7 @@ namespace TowerForge::Core {
         world_.component<Actor>();
         world_.component<Person>();
         world_.component<VisitorInfo>();
+        world_.component<VisitorNeeds>();
         world_.component<EmploymentInfo>();
         world_.component<BuildingComponent>();
         world_.component<TimeManager>();
@@ -92,7 +93,7 @@ namespace TowerForge::Core {
         world_.component<StaffManager>();
         world_.component<CleanlinessStatus>();
     
-        std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest, StaffAssignment, FacilityStatus, StaffManager, CleanlinessStatus" << std::endl;
+        std::cout << "  Registered components: Position, Velocity, Actor, Person, VisitorInfo, VisitorNeeds, EmploymentInfo, BuildingComponent, TimeManager, NPCSpawner, DailySchedule, GridPosition, Satisfaction, FacilityEconomics, TowerEconomy, ElevatorShaft, ElevatorCar, PersonElevatorRequest, StaffAssignment, FacilityStatus, StaffManager, CleanlinessStatus" << std::endl;
     }
 
     void ECSWorld::RegisterSystems() const {
@@ -707,6 +708,189 @@ namespace TowerForge::Core {
                     research.GenerateTowerPoints(delta_hours);
                 });
     
+        // Visitor needs growth system
+        // Increases visitor needs over time
+        world_.system<VisitorNeeds>()
+                .kind(flecs::OnUpdate)
+                .interval(1.0f)  // Update every second
+                .each([](const flecs::entity e, VisitorNeeds& needs) {
+                    const float delta_time = e.world().delta_time();
+                    needs.UpdateNeeds(delta_time);
+                });
+    
+        // Visitor needs-driven behavior system
+        // Makes visitors seek facilities based on their needs
+        world_.system<Person, VisitorInfo, VisitorNeeds>()
+                .kind(flecs::OnUpdate)
+                .interval(5.0f)  // Check every 5 seconds
+                .each([](const flecs::entity visitor_entity, Person& person, VisitorInfo& visitor, const VisitorNeeds& needs) {
+                    // Don't change destination if visitor is leaving or seeking a job
+                    if (visitor.activity == VisitorActivity::Leaving || 
+                        visitor.activity == VisitorActivity::JobSeeking) {
+                        return;
+                    }
+                    
+                    // Don't interrupt if already at a destination and interacting
+                    if (person.state == PersonState::AtDestination && visitor.is_interacting) {
+                        return;
+                    }
+                    
+                    // Check if any need is high (> 60) and find a matching facility
+                    const float high_need_threshold = 60.0f;
+                    const char* needed_facility_type = nullptr;
+                    
+                    if (needs.hunger > high_need_threshold) {
+                        needed_facility_type = "Restaurant";
+                    } else if (needs.entertainment > high_need_threshold) {
+                        // Prefer arcades and theaters
+                        needed_facility_type = (rand() % 2 == 0) ? "Arcade" : "Theater";
+                    } else if (needs.comfort > high_need_threshold) {
+                        needed_facility_type = "Hotel";
+                    } else if (needs.shopping > high_need_threshold) {
+                        needed_facility_type = (rand() % 2 == 0) ? "RetailShop" : "FlagshipStore";
+                    }
+                    
+                    if (needed_facility_type != nullptr) {
+                        // Find a facility of the needed type
+                        flecs::entity target_facility;
+                        int target_floor = -1;
+                        float target_column = -1.0f;
+                        
+                        visitor_entity.world().each([&](const flecs::entity facility_entity, const BuildingComponent& facility) {
+                            if (target_floor != -1) return;  // Already found one
+                            
+                            const char* facility_type_name = nullptr;
+                            switch (facility.type) {
+                                case BuildingComponent::Type::Restaurant: facility_type_name = "Restaurant"; break;
+                                case BuildingComponent::Type::Arcade: facility_type_name = "Arcade"; break;
+                                case BuildingComponent::Type::Theater: facility_type_name = "Theater"; break;
+                                case BuildingComponent::Type::Hotel: facility_type_name = "Hotel"; break;
+                                case BuildingComponent::Type::RetailShop: facility_type_name = "RetailShop"; break;
+                                case BuildingComponent::Type::FlagshipStore: facility_type_name = "FlagshipStore"; break;
+                                default: break;
+                            }
+                            
+                            if (facility_type_name && strcmp(facility_type_name, needed_facility_type) == 0) {
+                                target_facility = facility_entity;
+                                target_floor = facility.floor;
+                                target_column = static_cast<float>(facility.column) + (static_cast<float>(facility.width) / 2.0f);
+                            }
+                        });
+                        
+                        if (target_floor != -1) {
+                            // Set destination to the facility
+                            person.SetDestination(target_floor, target_column, 
+                                                  std::string("Seeking ") + needed_facility_type);
+                            visitor.target_facility_floor = target_floor;
+                            visitor.is_interacting = false;
+                            visitor.interaction_time = 0.0f;
+                            
+                            // Update activity based on facility type
+                            if (strcmp(needed_facility_type, "RetailShop") == 0 || 
+                                strcmp(needed_facility_type, "FlagshipStore") == 0) {
+                                visitor.activity = VisitorActivity::Shopping;
+                            } else {
+                                visitor.activity = VisitorActivity::Visiting;
+                            }
+                        }
+                    }
+                });
+    
+        // Visitor facility interaction system
+        // Handles visitors using facilities to reduce their needs
+        world_.system<Person, VisitorInfo, VisitorNeeds, Satisfaction>()
+                .kind(flecs::OnUpdate)
+                .each([](const flecs::entity e, Person& person, VisitorInfo& visitor, VisitorNeeds& needs, Satisfaction& satisfaction) {
+                    const float delta_time = e.world().delta_time();
+                    
+                    // Check if visitor is at a destination
+                    if (person.state == PersonState::AtDestination && 
+                        visitor.activity != VisitorActivity::Leaving &&
+                        visitor.activity != VisitorActivity::JobSeeking) {
+                        
+                        if (!visitor.is_interacting) {
+                            // Start interacting
+                            visitor.is_interacting = true;
+                            visitor.interaction_time = 0.0f;
+                            // Set random interaction time between 15-30 seconds
+                            visitor.required_interaction_time = 15.0f + (static_cast<float>(rand()) / RAND_MAX) * 15.0f;
+                        }
+                        
+                        visitor.interaction_time += delta_time;
+                        
+                        // Find the facility at current location
+                        e.world().each([&](const flecs::entity facility_entity, const BuildingComponent& facility) {
+                            if (facility.floor == person.current_floor &&
+                                person.current_column >= static_cast<float>(facility.column) &&
+                                person.current_column < static_cast<float>(facility.column + facility.width)) {
+                                
+                                // Reduce needs based on facility type
+                                const float reduction_per_second = 40.0f / visitor.required_interaction_time;  // Reduce by 40 over interaction time
+                                
+                                switch (facility.type) {
+                                    case BuildingComponent::Type::Restaurant:
+                                        needs.ReduceNeed("Hunger", reduction_per_second * delta_time);
+                                        break;
+                                    case BuildingComponent::Type::Arcade:
+                                    case BuildingComponent::Type::Theater:
+                                        needs.ReduceNeed("Entertainment", reduction_per_second * delta_time);
+                                        break;
+                                    case BuildingComponent::Type::Hotel:
+                                        needs.ReduceNeed("Comfort", reduction_per_second * delta_time);
+                                        break;
+                                    case BuildingComponent::Type::RetailShop:
+                                    case BuildingComponent::Type::FlagshipStore:
+                                        needs.ReduceNeed("Shopping", reduction_per_second * delta_time);
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        });
+                        
+                        // Check if interaction is complete
+                        if (visitor.interaction_time >= visitor.required_interaction_time) {
+                            visitor.is_interacting = false;
+                            visitor.interaction_time = 0.0f;
+                            visitor.time_at_destination = 0.0f;
+                            
+                            // Decide next action: continue visiting or leave
+                            // If all needs are low, consider leaving
+                            if (needs.GetHighestNeed() < 30.0f) {
+                                visitor.activity = VisitorActivity::Leaving;
+                                person.SetDestination(0, 5.0f, "Leaving tower");
+                            }
+                        }
+                    }
+                });
+    
+        // Visitor satisfaction system
+        // Calculates satisfaction based on how well needs are being met
+        world_.system<VisitorNeeds, Satisfaction>()
+                .kind(flecs::OnUpdate)
+                .interval(2.0f)  // Update every 2 seconds
+                .each([](const flecs::entity e, const VisitorNeeds& needs, Satisfaction& satisfaction) {
+                    // Calculate satisfaction based on unmet needs
+                    // Lower needs = higher satisfaction
+                    const float avg_need = (needs.hunger + needs.entertainment + needs.comfort + needs.shopping) / 4.0f;
+                    
+                    // Target satisfaction: 100% when all needs are at 0, decreasing as needs increase
+                    const float target_satisfaction = 100.0f - avg_need;
+                    
+                    // Smoothly adjust satisfaction toward target
+                    const float adjustment_rate = 0.1f;  // 10% per update
+                    const float diff = target_satisfaction - satisfaction.satisfaction_score;
+                    satisfaction.satisfaction_score += diff * adjustment_rate;
+                    
+                    // Clamp to valid range
+                    satisfaction.satisfaction_score = std::max(0.0f, std::min(100.0f, satisfaction.satisfaction_score));
+                    
+                    // Add penalty if needs are critically high
+                    if (needs.GetHighestNeed() > 80.0f) {
+                        satisfaction.wait_time_penalty = 5.0f;  // High unmet needs cause frustration
+                    }
+                });
+    
         // Visitor behavior system
         // Updates visitor activities and manages their lifecycle
         world_.system<Person, VisitorInfo>()
@@ -715,26 +899,9 @@ namespace TowerForge::Core {
                     const float delta_time = e.world().delta_time();
                     visitor.visit_duration += delta_time;
             
-                    // Track time at destination
-                    if (person.state == PersonState::AtDestination) {
+                    // Track time at destination (for non-needs-based visitors)
+                    if (person.state == PersonState::AtDestination && !visitor.is_interacting) {
                         visitor.time_at_destination += delta_time;
-                        
-                        // If visitor has been at destination for 30-60 seconds (random), they're done visiting
-                        const float min_visit_time = 30.0f;
-                        const float max_visit_time = 60.0f;
-                        const float range = max_visit_time - min_visit_time;
-                        const float visit_threshold = min_visit_time + (static_cast<float>(rand()) / RAND_MAX) * range;
-                        
-                        if (visitor.time_at_destination >= visit_threshold && 
-                            visitor.activity != VisitorActivity::Leaving &&
-                            visitor.activity != VisitorActivity::JobSeeking) {
-                            // Visitor is done, time to leave
-                            visitor.activity = VisitorActivity::Leaving;
-                            person.SetDestination(0, 5.0f, "Leaving tower");
-                        }
-                    } else {
-                        // Reset timer if not at destination
-                        visitor.time_at_destination = 0.0f;
                     }
             
                     // Check if visitor should leave based on max duration
@@ -746,6 +913,15 @@ namespace TowerForge::Core {
             
                     // Update current_need based on activity
                     person.current_need = visitor.GetActivityString();
+                });
+    
+        // Visitor needs display system
+        // Updates person status to show their highest need
+        world_.system<Person, VisitorInfo, const VisitorNeeds>()
+                .kind(flecs::OnUpdate)
+                .interval(1.0f)  // Update every second
+                .each([](const flecs::entity e, Person& person, VisitorInfo& visitor, const VisitorNeeds& needs) {
+                    person.current_need = std::string(visitor.GetActivityString()) + " - " + needs.GetHighestNeedType();
                 });
     
         // Employee shift management system
@@ -887,6 +1063,20 @@ namespace TowerForge::Core {
                         visitor.set<Person>({visitor_name, 0, 2.0f, 2.0f, NPCType::Visitor});
                         visitor.set<VisitorInfo>({activity});
                         visitor.set<Satisfaction>({75.0f});
+                        
+                        // Assign random visitor archetype and create needs
+                        VisitorArchetype archetype;
+                        const int archetype_roll = rand() % 100;
+                        if (archetype_roll < 25) {
+                            archetype = VisitorArchetype::BusinessPerson;
+                        } else if (archetype_roll < 50) {
+                            archetype = VisitorArchetype::Tourist;
+                        } else if (archetype_roll < 75) {
+                            archetype = VisitorArchetype::Shopper;
+                        } else {
+                            archetype = VisitorArchetype::Casual;
+                        }
+                        visitor.set<VisitorNeeds>({archetype});
                 
                         // Assign a destination for shopping/visiting visitors
                         if ((activity == VisitorActivity::Shopping || activity == VisitorActivity::Visiting) 
@@ -1439,7 +1629,7 @@ namespace TowerForge::Core {
                     std::cout << "  ====================" << std::endl;
                 });
     
-        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Behavior, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, CleanlinessStatus Degradation, Cleanliness Notification, Staff Shift Management, Staff Cleaning, Staff Maintenance, Staff Firefighting, Staff Security, Facility Status Impact, CleanlinessStatus Impact, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
+        std::cout << "  Registered systems: Time Simulation, Schedule Execution, Movement, Actor Logging, Building Occupancy Monitor, Satisfaction Update, Satisfaction Reporting, Facility Economics, Daily Economy Processing, Revenue Collection, Economic Status Reporting, Person Horizontal Movement, Person Waiting, Person Elevator Riding, Person State Logging, Elevator Car Movement, Elevator Call, Person Elevator Boarding, Elevator Logging, Research Points Award, Visitor Needs Growth, Visitor Needs-Driven Behavior, Visitor Facility Interaction, Visitor Satisfaction Calculation, Visitor Behavior, Visitor Needs Display, Employee Shift Management, Employee Off-Duty Visitor, Job Opening Tracking, Visitor Spawning, Job Assignment, Visitor Cleanup, Facility Status Degradation, CleanlinessStatus Degradation, Cleanliness Notification, Staff Shift Management, Staff Cleaning, Staff Maintenance, Staff Firefighting, Staff Security, Facility Status Impact, CleanlinessStatus Impact, Staff Manager Update, Staff Wages, Staff Status Reporting" << std::endl;
     }
 
 }

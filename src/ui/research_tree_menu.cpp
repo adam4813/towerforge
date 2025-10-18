@@ -1,4 +1,5 @@
 #include "ui/research_tree_menu.h"
+#include "ui/notification_center.h"
 #include <raylib.h>
 #include <string>
 
@@ -7,7 +8,17 @@ namespace towerforge::ui {
     ResearchTreeMenu::ResearchTreeMenu()
         : visible_(false)
           , animation_time_(0.0f)
-          , hovered_node_index_(-1) {
+          , hovered_node_index_(-1)
+          , notification_center_(nullptr)
+          , pending_unlock_tree_(nullptr) {
+        
+        // Create unlock confirmation dialog
+        unlock_confirmation_ = std::make_unique<ConfirmationDialog>(
+            "Confirm Research Unlock",
+            "Are you sure you want to unlock this research node?",
+            "Unlock",
+            "Cancel"
+        );
     }
 
     ResearchTreeMenu::~ResearchTreeMenu() = default;
@@ -16,6 +27,11 @@ namespace towerforge::ui {
         if (!visible_) return;
 
         animation_time_ += delta_time;
+        
+        // Update confirmation dialog
+        if (unlock_confirmation_) {
+            unlock_confirmation_->Update(delta_time);
+        }
     }
 
     void ResearchTreeMenu::Render(const TowerForge::Core::ResearchTree& research_tree) {
@@ -44,6 +60,11 @@ namespace towerforge::ui {
         if (hovered_node_index_ >= 0 &&
             hovered_node_index_ < static_cast<int>(research_tree.nodes.size())) {
             RenderNodeDetails(research_tree.nodes[hovered_node_index_]);
+        }
+        
+        // Render confirmation dialog if visible
+        if (unlock_confirmation_ && unlock_confirmation_->IsVisible()) {
+            unlock_confirmation_->Render();
         }
     }
 
@@ -374,15 +395,59 @@ namespace towerforge::ui {
             if (mouse_x >= node_x && mouse_x <= node_x + NODE_SIZE &&
                 mouse_y >= node_y && mouse_y <= node_y + NODE_SIZE) {
 
-                // Try to unlock this node
+                // Show confirmation for upgradable nodes
                 if (node.state == TowerForge::Core::ResearchNodeState::Upgradable) {
-                    return research_tree.UnlockNode(node.id);
+                    pending_unlock_node_id_ = node.id;
+                    pending_unlock_tree_ = &research_tree;
+                    
+                    // Update dialog message with node details
+                    std::string message = "Unlock '" + node.name + "' for " + std::to_string(node.cost) + " tower points?";
+                    
+                    // Create new dialog with updated message
+                    unlock_confirmation_ = std::make_unique<ConfirmationDialog>(
+                        "Confirm Research Unlock",
+                        message,
+                        "Unlock",
+                        "Cancel"
+                    );
+                    
+                    // Set callback to actually perform unlock
+                    unlock_confirmation_->SetConfirmCallback([this]() {
+                        if (pending_unlock_tree_ && !pending_unlock_node_id_.empty()) {
+                            const bool unlocked = pending_unlock_tree_->UnlockNode(pending_unlock_node_id_);
+                            
+                            if (unlocked && notification_center_) {
+                                // Add notification for successful unlock
+                                notification_center_->AddNotification(
+                                    "Research Unlocked",
+                                    "Successfully unlocked: " + pending_unlock_node_id_,
+                                    NotificationType::Success,
+                                    NotificationPriority::Medium,
+                                    5.0f
+                                );
+                            }
+                            
+                            pending_unlock_node_id_.clear();
+                            pending_unlock_tree_ = nullptr;
+                        }
+                    });
+                    
+                    unlock_confirmation_->Show();
+                    return false;  // Don't unlock yet, wait for confirmation
                 }
 
                 return false;
             }
         }
 
+        return false;
+    }
+    
+    bool ResearchTreeMenu::ProcessMouseEvent(const ui::MouseEvent& event) {
+        // If confirmation dialog is visible, route events to it first
+        if (unlock_confirmation_ && unlock_confirmation_->IsVisible()) {
+            return unlock_confirmation_->ProcessMouseEvent(event);
+        }
         return false;
     }
 

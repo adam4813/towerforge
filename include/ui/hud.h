@@ -84,6 +84,13 @@ namespace towerforge::ui {
         std::string staff_role;    // "Janitor", "Maintenance", etc.
         bool on_duty;
         std::string shift_hours;
+        // Visitor needs fields
+        bool has_needs;
+        std::string visitor_archetype;
+        float hunger_need;
+        float entertainment_need;
+        float comfort_need;
+        float shopping_need;
     };
 
     /**

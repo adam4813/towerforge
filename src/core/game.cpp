@@ -1,5 +1,6 @@
 #include "core/game.h"
 #include "core/components.hpp"
+#include "core/user_preferences.hpp"
 #include "ui/notification_center.h"
 #include <iostream>
 
@@ -147,12 +148,21 @@ namespace towerforge::core {
         std::cout << "Version: 0.1.0" << std::endl;
         std::cout << "Initializing Raylib renderer..." << std::endl;
 
+        // Load user preferences first (this happens in the singleton constructor)
+        auto& preferences = UserPreferences::GetInstance();
+        std::cout << "User preferences loaded" << std::endl;
+
         // Initialize renderer
         renderer_.Initialize(800, 600, "TowerForge");
 
         // Initialize audio system
         audio_manager_ = &audio::AudioManager::GetInstance();
         audio_manager_->Initialize();
+
+        // Apply audio preferences from loaded settings
+        audio_manager_->SetMasterVolume(preferences.GetMasterVolume());
+        audio_manager_->SetVolume(audio::AudioType::Music, preferences.GetMusicVolume());
+        audio_manager_->SetVolume(audio::AudioType::SFX, preferences.GetSFXVolume());
 
         // Create achievement manager for persistent achievements
         achievement_manager_ = new AchievementManager();
@@ -161,8 +171,10 @@ namespace towerforge::core {
         // Set achievement manager for achievements menu
         achievements_menu_.SetAchievementManager(achievement_manager_);
 
-        // Play main theme music
+        // Play main theme music (volume already set from preferences)
         audio_manager_->PlayMusic(audio::AudioCue::MainTheme, true, 1.0f);
+
+        std::cout << "User preferences applied to all systems" << std::endl;
 
         return true;
     }
@@ -538,6 +550,9 @@ namespace towerforge::core {
 
         // Connect tooltip manager from HUD to other UI components
         build_menu_->SetTooltipManager(hud_->GetTooltipManager());
+        
+        // Connect notification center to research menu
+        research_menu_->SetNotificationCenter(hud_->GetNotificationCenter());
 
         // Create and initialize camera
         camera_ = new rendering::Camera();
@@ -712,13 +727,29 @@ namespace towerforge::core {
         // Handle research menu
         if (research_menu_->IsVisible()) {
             research_menu_->Update(time_step_);
-
-            ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
-            const bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(),
-                                                              IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-                                                              research_tree_ref);
-            if (unlocked) {
-                hud_->AddNotification(Notification::Type::Success, "Research unlocked!", 2.0f);
+            
+            // Handle mouse events for confirmation dialogs first
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                const ui::MouseEvent mouse_event{
+                    static_cast<float>(GetMouseX()),
+                    static_cast<float>(GetMouseY()),
+                    false, // left_down
+                    false, // right_down
+                    true,  // left_pressed
+                    false  // right_pressed
+                };
+                
+                // Check research menu confirmation dialogs
+                if (research_menu_->ProcessMouseEvent(mouse_event)) {
+                    // Dialog consumed the event, don't process node clicks
+                } else {
+                    // Normal node click handling
+                    ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
+                    const bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(),
+                                                                      true,  // clicked
+                                                                      research_tree_ref);
+                    // Note: unlock notification is now handled in ResearchTreeMenu via notification center
+                }
             }
         }
 
@@ -873,6 +904,15 @@ namespace towerforge::core {
             placement_system_->Update(time_step_);
             placement_system_->HandleKeyboard();
             
+            // Check for pending demolish from confirmation dialog
+            const int pending_change = placement_system_->GetPendingFundsChange();
+            if (pending_change != 0) {
+                game_state_.funds += pending_change;
+                audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
+                hud_->AddNotification(Notification::Type::Info,
+                    TextFormat("Facility demolished! Refund: $%d", pending_change), 3.0f);
+            }
+            
             // Update history panel with current command history
             if (history_panel_ != nullptr && history_panel_->IsVisible()) {
                 history_panel_->UpdateFromHistory(placement_system_->GetCommandHistory());
@@ -906,6 +946,21 @@ namespace towerforge::core {
 
         // Handle mouse clicks (only if not paused)
         if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            // Create mouse event for UI system
+            const ui::MouseEvent mouse_event{
+                static_cast<float>(mouse_x),
+                static_cast<float>(mouse_y),
+                false, // left_down
+                false, // right_down
+                true,  // left_pressed
+                false  // right_pressed
+            };
+            
+            // Check placement system confirmation dialogs first
+            if (placement_system_->ProcessMouseEvent(mouse_event)) {
+                return;  // Dialog consumed the event
+            }
+            
             auto &grid = ecs_world_->GetTowerGrid();
 
             // Check history panel first (if visible)
@@ -1025,6 +1080,43 @@ namespace towerforge::core {
                                               TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
                     }
                 } else {
+                    // Check if placement was attempted but failed
+                    const int selected = build_menu_->GetSelectedFacility();
+                    if (selected >= 0 && !placement_system_->IsDemolishMode()) {
+                        // Placement was attempted but failed - provide feedback
+                        const auto &facility_types = build_menu_->GetFacilityTypes();
+                        if (selected < static_cast<int>(facility_types.size())) {
+                            const auto& facility_type = facility_types[selected];
+                            
+                            // Check specific reason for failure
+                            const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
+                            const int rel_y = static_cast<int>(world_y) - grid_offset_y_;
+                            
+                            if (rel_x >= 0 && rel_y >= 0) {
+                                const int clicked_floor = rel_y / cell_height_;
+                                const int clicked_column = rel_x / cell_width_;
+                                
+                                if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
+                                    clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
+                                    
+                                    const int floor_build_cost = ecs_world_->GetFacilityManager().CalculateFloorBuildCost(
+                                        clicked_floor, clicked_column, facility_type.width);
+                                    const int total_cost = facility_type.cost + floor_build_cost;
+                                    
+                                    if (game_state_.funds < total_cost) {
+                                        hud_->AddNotification(Notification::Type::Error,
+                                            TextFormat("Insufficient funds! Need $%d (have $%.0f)", 
+                                                total_cost, game_state_.funds), 3.0f);
+                                    } else if (!grid.IsSpaceAvailable(clicked_floor, clicked_column, facility_type.width)) {
+                                        hud_->AddNotification(Notification::Type::Warning,
+                                            "Cannot place facility here - space not available", 3.0f);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Original code for entity selection continues below...
                     const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
                     const int rel_y = static_cast<int>(world_y) - grid_offset_y_;
 

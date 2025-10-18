@@ -136,7 +136,20 @@ namespace towerforge::ui {
           , text_color_(WHITE)
           , font_size_(20)
           , enabled_(true)
+          , is_pressed_(false)
+          , press_animation_(0.0f)
           , click_callback_(nullptr) {
+    }
+
+    void Button::Update(const float delta_time) {
+        // Animate press feedback
+        if (press_animation_ > 0.0f) {
+            press_animation_ -= delta_time * 5.0f; // Fade out over ~0.2 seconds
+            if (press_animation_ <= 0.0f) {
+                press_animation_ = 0.0f;
+                is_pressed_ = false;  // Reset pressed state when animation completes
+            }
+        }
     }
 
     bool Button::OnHover(const MouseEvent& event) {
@@ -152,6 +165,10 @@ namespace towerforge::ui {
 
         // Only handle left clicks
         if (event.left_pressed) {
+            // Trigger press animation
+            is_pressed_ = true;
+            press_animation_ = 1.0f;
+            
             if (click_callback_) {
                 click_callback_();
             }
@@ -174,10 +191,21 @@ namespace towerforge::ui {
         Color border_col = border_color_;
         Color text_col = text_color_;
 
+        // Scale factor for press animation (button "pushes in" when clicked)
+        float scale = 1.0f;
+        float offset = 0.0f;
+
         if (!enabled_) {
             bg_color = ColorAlpha(bg_color, 0.5f);
             border_col = ColorAlpha(border_col, 0.5f);
             text_col = ColorAlpha(text_col, 0.5f);
+        } else if (press_animation_ > 0.0f) {
+            // Press animation - brighten and slightly shrink
+            const float intensity = press_animation_;
+            bg_color = ColorBrightness(bg_color, 0.3f * intensity);
+            border_col = ColorBrightness(border_col, 0.3f * intensity);
+            scale = 1.0f - (0.05f * intensity); // Shrink by 5% at peak
+            offset = 2.0f * intensity; // Offset down slightly
         } else if (is_hovered_ || is_focused_) {
             // Brighten colors when hovered or focused
             if (high_contrast) {
@@ -197,27 +225,264 @@ namespace towerforge::ui {
             border_col = ColorBrightness(border_col, 0.3f);
         }
         
+        // Apply scale and offset for press animation
+        Rectangle draw_bounds = bounds;
+        if (scale != 1.0f) {
+            const float width_diff = bounds.width * (1.0f - scale);
+            const float height_diff = bounds.height * (1.0f - scale);
+            draw_bounds.x += width_diff / 2.0f;
+            draw_bounds.y += height_diff / 2.0f + offset;
+            draw_bounds.width *= scale;
+            draw_bounds.height *= scale;
+        } else {
+            draw_bounds.y += offset;
+        }
+        
         // Draw background
-        DrawRectangleRec(bounds, bg_color);
+        DrawRectangleRec(draw_bounds, bg_color);
         
         // Draw border (thicker in high-contrast mode or when focused)
         const float border_thickness = (high_contrast || is_focused_) ? 3.0f : 2.0f;
         if (border_col.a > 0) {
-            DrawRectangleLinesEx(bounds, border_thickness, border_col);
+            DrawRectangleLinesEx(draw_bounds, border_thickness, border_col);
         }
         
         // Draw label text centered with font scaling
         if (!label_.empty()) {
             const int scaled_font_size = static_cast<int>(font_size_ * font_scale);
             const int text_width = MeasureText(label_.c_str(), scaled_font_size);
-            const int text_x = bounds.x + (bounds.width - text_width) / 2;
-            const int text_y = bounds.y + (bounds.height - scaled_font_size) / 2;
+            const int text_x = draw_bounds.x + (draw_bounds.width - text_width) / 2;
+            const int text_y = draw_bounds.y + (draw_bounds.height - scaled_font_size) / 2;
             DrawText(label_.c_str(), text_x, text_y, scaled_font_size, text_col);
         }
         
         // Render all children
         for (const auto& child : children_) {
             child->Render();
+        }
+    }
+
+    // ConfirmationDialog implementation
+    ConfirmationDialog::ConfirmationDialog(const std::string& title,
+                                          const std::string& message,
+                                          const std::string& confirm_text,
+                                          const std::string& cancel_text)
+        : Panel(0, 0, DIALOG_WIDTH, DIALOG_HEIGHT, ColorAlpha(Color{30, 30, 40, 255}, 0.95f), GOLD)
+          , title_(title)
+          , message_(message)
+          , confirm_button_(nullptr)
+          , cancel_button_(nullptr)
+          , confirm_callback_(nullptr)
+          , cancel_callback_(nullptr)
+          , is_visible_(false)
+          , animation_time_(0.0f) {
+        
+        // Create confirm button
+        confirm_button_ = std::make_unique<Button>(
+            DIALOG_WIDTH / 2 - BUTTON_WIDTH - 10,
+            DIALOG_HEIGHT - BUTTON_HEIGHT - 20,
+            BUTTON_WIDTH,
+            BUTTON_HEIGHT,
+            confirm_text,
+            ColorAlpha(GREEN, 0.5f),
+            LIME
+        );
+        
+        // Create cancel button
+        cancel_button_ = std::make_unique<Button>(
+            DIALOG_WIDTH / 2 + 10,
+            DIALOG_HEIGHT - BUTTON_HEIGHT - 20,
+            BUTTON_WIDTH,
+            BUTTON_HEIGHT,
+            cancel_text,
+            ColorAlpha(RED, 0.5f),
+            MAROON
+        );
+        
+        // Set button callbacks
+        confirm_button_->SetClickCallback([this]() {
+            if (confirm_callback_) {
+                confirm_callback_();
+            }
+            Hide();
+        });
+        
+        cancel_button_->SetClickCallback([this]() {
+            if (cancel_callback_) {
+                cancel_callback_();
+            }
+            Hide();
+        });
+        
+        // Add buttons as children
+        AddChild(std::move(confirm_button_));
+        AddChild(std::move(cancel_button_));
+    }
+
+    void ConfirmationDialog::Update(const float delta_time) {
+        if (!is_visible_) return;
+        
+        animation_time_ += delta_time;
+        
+        // Update buttons
+        for (const auto& child : GetChildren()) {
+            if (auto* btn = dynamic_cast<Button*>(child.get())) {
+                btn->Update(delta_time);
+            }
+        }
+    }
+
+    bool ConfirmationDialog::ProcessMouseEvent(const MouseEvent& event) {
+        if (!is_visible_) return false;
+        
+        // Calculate centered dialog position
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const int dialog_x = (screen_width - DIALOG_WIDTH) / 2;
+        const int dialog_y = (screen_height - DIALOG_HEIGHT) / 2;
+        
+        // Check if click is on any button and handle it directly
+        if (event.left_pressed) {
+            for (auto it = children_.rbegin(); it != children_.rend(); ++it) {
+                if (auto* btn = dynamic_cast<Button*>(it->get())) {
+                    const Rectangle child_bounds = btn->GetRelativeBounds();
+                    const int btn_x = dialog_x + static_cast<int>(child_bounds.x);
+                    const int btn_y = dialog_y + static_cast<int>(child_bounds.y);
+                    
+                    // Check if click is within button bounds
+                    if (event.x >= btn_x && event.x <= btn_x + child_bounds.width &&
+                        event.y >= btn_y && event.y <= btn_y + child_bounds.height) {
+                        
+                        if (btn->IsEnabled()) {
+                            // Trigger the button's OnClick handler
+                            MouseEvent btn_event = event;
+                            btn->OnClick(btn_event);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Consume all events if dialog is visible (modal behavior)
+        // Check if click is within dialog bounds
+        return (event.x >= dialog_x && event.x <= dialog_x + DIALOG_WIDTH &&
+                event.y >= dialog_y && event.y <= dialog_y + DIALOG_HEIGHT);
+    }
+
+    void ConfirmationDialog::Render() const {
+        if (!is_visible_) return;
+        
+        // Draw semi-transparent overlay
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.5f));
+        
+        // Center the dialog on screen
+        const int dialog_x = (screen_width - DIALOG_WIDTH) / 2;
+        const int dialog_y = (screen_height - DIALOG_HEIGHT) / 2;
+        
+        // Draw dialog background and border (at centered position)
+        DrawRectangle(dialog_x, dialog_y, DIALOG_WIDTH, DIALOG_HEIGHT, GetBackgroundColor());
+        if (GetBorderColor().a > 0) {
+            DrawRectangleLinesEx(Rectangle{static_cast<float>(dialog_x), static_cast<float>(dialog_y), 
+                                          static_cast<float>(DIALOG_WIDTH), static_cast<float>(DIALOG_HEIGHT)}, 
+                                2, GetBorderColor());
+        }
+        
+        // Draw title
+        const int title_width = MeasureText(title_.c_str(), 24);
+        DrawText(title_.c_str(), 
+                dialog_x + (DIALOG_WIDTH - title_width) / 2,
+                dialog_y + 20,
+                24,
+                GOLD);
+        
+        // Draw separator
+        DrawLine(dialog_x + 20, dialog_y + 55, 
+                dialog_x + DIALOG_WIDTH - 20, dialog_y + 55,
+                GRAY);
+        
+        // Draw message (word-wrapped)
+        constexpr int message_y = 75;
+        constexpr int max_line_width = DIALOG_WIDTH - 40;
+        int current_y = dialog_y + message_y;
+        
+        // Simple word wrapping
+        std::string remaining = message_;
+        while (!remaining.empty()) {
+            int chars_fit = 0;
+            int last_space = -1;
+            
+            for (size_t i = 0; i < remaining.length(); ++i) {
+                std::string test_str = remaining.substr(0, i + 1);
+                if (MeasureText(test_str.c_str(), 16) > max_line_width) {
+                    break;
+                }
+                chars_fit = i + 1;
+                if (remaining[i] == ' ') {
+                    last_space = i;
+                }
+            }
+            
+            // If we didn't fit the whole string, break at last space
+            if (chars_fit < static_cast<int>(remaining.length()) && last_space > 0) {
+                chars_fit = last_space;
+            }
+            
+            std::string line = remaining.substr(0, chars_fit);
+            DrawText(line.c_str(), dialog_x + 20, current_y, 16, WHITE);
+            
+            current_y += 20;
+            remaining = remaining.substr(chars_fit);
+            
+            // Trim leading spaces from next line
+            while (!remaining.empty() && remaining[0] == ' ') {
+                remaining = remaining.substr(1);
+            }
+        }
+        
+        // Render buttons by temporarily adjusting their parent's position in the rendering context
+        // Since buttons are children, we need to render them with the dialog's centered position
+        // We'll do this by directly drawing them at the correct absolute positions
+        for (const auto& child : GetChildren()) {
+            if (const auto* btn = dynamic_cast<const Button*>(child.get())) {
+                // Calculate absolute button position
+                const Rectangle child_bounds = child->GetRelativeBounds();
+                const int btn_x = dialog_x + static_cast<int>(child_bounds.x);
+                const int btn_y = dialog_y + static_cast<int>(child_bounds.y);
+                
+                // Draw button background
+                Color bg_color = btn->GetBackgroundColor();
+                Color border_color = btn->GetBorderColor();
+                Color text_color = btn->GetTextColor();
+                
+                if (!btn->IsEnabled()) {
+                    bg_color = ColorAlpha(bg_color, 0.5f);
+                    border_color = ColorAlpha(border_color, 0.5f);
+                    text_color = ColorAlpha(text_color, 0.5f);
+                } else if (btn->IsHovered()) {
+                    bg_color = ColorBrightness(bg_color, 0.2f);
+                    border_color = ColorBrightness(border_color, 0.2f);
+                }
+                
+                const Rectangle btn_rect{static_cast<float>(btn_x), static_cast<float>(btn_y), 
+                                        child_bounds.width, child_bounds.height};
+                
+                DrawRectangleRec(btn_rect, bg_color);
+                if (border_color.a > 0) {
+                    DrawRectangleLinesEx(btn_rect, 2, border_color);
+                }
+                
+                // Draw button text
+                const std::string& label = btn->GetLabel();
+                if (!label.empty()) {
+                    const int text_width = MeasureText(label.c_str(), btn->GetFontSize());
+                    const int text_x = btn_x + (static_cast<int>(child_bounds.width) - text_width) / 2;
+                    const int text_y = btn_y + (static_cast<int>(child_bounds.height) - btn->GetFontSize()) / 2;
+                    DrawText(label.c_str(), text_x, text_y, btn->GetFontSize(), text_color);
+                }
+            }
         }
     }
 
