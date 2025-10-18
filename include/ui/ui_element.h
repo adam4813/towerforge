@@ -94,6 +94,18 @@ namespace towerforge::ui {
         bool Contains(float x, float y) const override;
 
         /**
+         * @brief Set keyboard focus state
+         * @param focused Whether this element has keyboard focus
+         */
+        void SetFocused(bool focused) { is_focused_ = focused; }
+
+        /**
+         * @brief Check if element has keyboard focus
+         * @return True if element has keyboard focus
+         */
+        bool IsFocused() const { return is_focused_; }
+
+        /**
          * @brief Render the element (can be overridden by derived classes)
          */
         virtual void Render() const {}
@@ -130,6 +142,7 @@ namespace towerforge::ui {
         float relative_y_;      // Y position relative to parent
         float width_;           // Width of the element
         float height_;          // Height of the element
+        bool is_focused_;       // Whether element has keyboard focus
 
         UIElement* parent_;     // Parent element (nullptr for root elements)
         std::vector<std::unique_ptr<UIElement>> children_;  // Child elements
