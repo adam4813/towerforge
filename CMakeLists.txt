@@ -60,6 +60,10 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
 add_executable(screenshot_app src/screenshot_app.cpp ${SOURCE_FILES})
 target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
 
+# Notification center screenshot application
+add_executable(notification_screenshot src/notification_screenshot.cpp ${SOURCE_FILES})
+target_link_libraries(notification_screenshot PRIVATE raylib glfw towerforge_core)
+
 # Test mods application
 add_executable(test_mods src/test_mods.cpp)
 target_link_libraries(test_mods PRIVATE towerforge_core)

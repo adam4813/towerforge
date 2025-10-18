@@ -1,5 +1,6 @@
 #include "core/game.h"
 #include "core/components.hpp"
+#include "ui/notification_center.h"
 #include <iostream>
 
 using namespace TowerForge::Core;
@@ -722,12 +723,9 @@ namespace towerforge::core {
                                     NotificationPriority::High,
                                     -1.0f,  // Don't auto-dismiss achievements
                                     [this]() {
-                                        // When clicked, open achievements menu
-                                        if (achievements_menu_.IsOpen()) {
-                                            achievements_menu_.Close();
-                                        } else {
-                                            achievements_menu_.Open();
-                                        }
+                                        // When clicked, switch to achievements screen
+                                        previous_state_ = current_state_;
+                                        current_state_ = GameState::Achievements;
                                     }
                                 );
                             }
