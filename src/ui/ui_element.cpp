@@ -143,8 +143,9 @@ namespace towerforge::ui {
         // Animate press feedback
         if (press_animation_ > 0.0f) {
             press_animation_ -= delta_time * 5.0f; // Fade out over ~0.2 seconds
-            if (press_animation_ < 0.0f) {
+            if (press_animation_ <= 0.0f) {
                 press_animation_ = 0.0f;
+                is_pressed_ = false;  // Reset pressed state when animation completes
             }
         }
     }
