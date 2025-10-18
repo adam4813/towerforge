@@ -1582,6 +1582,32 @@ namespace towerforge::core {
         
             std::cout << "Initial staff hired" << std::endl;
             hud_->AddNotification(Notification::Type::Info, "Staff hired!", 3.0f);
+        
+            // Create staff from custom Lua roles (demo purposes - one of each type)
+            const auto& custom_roles = ecs_world_->GetModManager().GetCustomStaffRoles();
+            int custom_staff_count = 0;
+            for (const auto& [role_id, role_data] : custom_roles) {
+                // Create one staff member for each custom role
+                const std::string staff_name = role_data.name + " #" + std::to_string(custom_staff_count + 1);
+                const auto custom_staff = ecs_world_->CreateEntity(staff_name.c_str());
+                custom_staff.set<Person>({staff_name, 0, 3.0f, 2.0f, NPCType::Employee});
+            
+                // Create custom staff assignment
+                StaffAssignment assignment(StaffRole::Janitor, -1, role_data.shift_start_hour, role_data.shift_end_hour);
+                assignment.custom_role_id = role_id;
+                assignment.work_type = role_data.work_type;
+                assignment.work_efficiency = role_data.work_efficiency;
+                custom_staff.set<StaffAssignment>(assignment);
+            
+                std::cout << "  Hired custom staff: " << staff_name << " (" << role_data.name 
+                        << ", " << role_data.shift_start_hour << ":00 - " << role_data.shift_end_hour 
+                        << ":00, work type: " << role_data.work_type << ")" << std::endl;
+                custom_staff_count++;
+            }
+        
+            if (custom_staff_count > 0) {
+                std::cout << "Hired " << custom_staff_count << " custom staff from mods" << std::endl;
+            }
         } catch (const std::exception &e) {
             std::cerr << "Error creating starter tower: " << e.what() << std::endl;
         }

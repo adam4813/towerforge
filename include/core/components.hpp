@@ -1018,9 +1018,12 @@ namespace TowerForge::Core {
  * Tracks staff assignments to facilities or floors, schedules,
  * and current work status. Staff automatically perform their
  * assigned duties during their shift hours.
+ * Supports both built-in roles and custom roles from Lua mods.
  */
     struct StaffAssignment {
         StaffRole role;
+        std::string custom_role_id;      // Custom role ID from Lua (empty if built-in)
+        std::string work_type;           // "cleaning", "maintenance", "emergency", or "custom"
         int assigned_floor;              // Floor assigned to (-1 for tower-wide)
         int assigned_facility_entity;    // Specific facility entity ID (-1 for floor-wide)
         float shift_start_time;          // Hour when shift starts (0-24)
@@ -1034,18 +1037,46 @@ namespace TowerForge::Core {
                        const float start = 8.0f,
                        const float end = 17.0f)
             : role(r),
+              custom_role_id(""),
+              work_type(""),
               assigned_floor(floor),
               assigned_facility_entity(-1),
               shift_start_time(start),
               shift_end_time(end),
               is_active(false),
               auto_assigned(true),
-              work_efficiency(1.0f) {}
+              work_efficiency(1.0f) {
+            // Set default work type based on built-in role
+            switch (r) {
+                case StaffRole::Janitor:
+                case StaffRole::Cleaner:
+                    work_type = "cleaning";
+                    break;
+                case StaffRole::Maintenance:
+                case StaffRole::Repairer:
+                    work_type = "maintenance";
+                    break;
+                case StaffRole::Firefighter:
+                case StaffRole::Security:
+                    work_type = "emergency";
+                    break;
+            }
+        }
+    
+        /**
+     * @brief Check if this is a custom role from Lua
+     */
+        bool IsCustomRole() const {
+            return !custom_role_id.empty();
+        }
     
         /**
      * @brief Get role as a string
      */
         const char* GetRoleName() const {
+            if (IsCustomRole()) {
+                return custom_role_id.c_str();
+            }
             switch (role) {
                 case StaffRole::Firefighter:  return "Firefighter";
                 case StaffRole::Security:     return "Security";
@@ -1055,6 +1086,27 @@ namespace TowerForge::Core {
                 case StaffRole::Repairer:     return "Repairer";
                 default:                      return "Unknown";
             }
+        }
+    
+        /**
+     * @brief Check if this staff performs cleaning work
+     */
+        bool DoesCleaningWork() const {
+            return work_type == "cleaning";
+        }
+    
+        /**
+     * @brief Check if this staff performs maintenance work
+     */
+        bool DoesMaintenanceWork() const {
+            return work_type == "maintenance";
+        }
+    
+        /**
+     * @brief Check if this staff performs emergency work
+     */
+        bool DoesEmergencyWork() const {
+            return work_type == "emergency";
         }
     
         /**
@@ -1074,12 +1126,14 @@ namespace TowerForge::Core {
  * 
  * Tracks the cleanliness and maintenance condition of a facility.
  * Poor conditions can reduce satisfaction but don't cause hard penalties.
+ * Supports both built-in events and custom events from Lua mods.
  */
     struct FacilityStatus {
         float cleanliness;          // 0.0-100.0, degrades over time with use
         float maintenance_level;    // 0.0-100.0, degrades over time
         bool has_fire;              // Active fire that needs firefighter
         bool has_security_issue;    // Active security issue (shoplifter, etc.)
+        std::vector<std::string> active_custom_events;  // Custom event IDs from Lua
         float time_since_cleaning;  // Seconds since last cleaned
         float time_since_maintenance; // Seconds since last maintained
         float degradation_rate;     // How quickly cleanliness/maintenance degrades
@@ -1127,6 +1181,43 @@ namespace TowerForge::Core {
      */
         bool NeedsMaintenance() const {
             return maintenance_level < 70.0f;
+        }
+    
+        /**
+     * @brief Check if facility has any active events
+     */
+        bool HasActiveEvents() const {
+            return has_fire || has_security_issue || !active_custom_events.empty();
+        }
+    
+        /**
+     * @brief Add a custom event
+     */
+        void AddCustomEvent(const std::string& event_id) {
+            // Check if event already exists
+            for (const auto& evt : active_custom_events) {
+                if (evt == event_id) return;
+            }
+            active_custom_events.push_back(event_id);
+        }
+    
+        /**
+     * @brief Remove a custom event
+     */
+        void RemoveCustomEvent(const std::string& event_id) {
+            active_custom_events.erase(
+                std::remove(active_custom_events.begin(), active_custom_events.end(), event_id),
+                active_custom_events.end());
+        }
+    
+        /**
+     * @brief Check if a specific custom event is active
+     */
+        bool HasCustomEvent(const std::string& event_id) const {
+            for (const auto& evt : active_custom_events) {
+                if (evt == event_id) return true;
+            }
+            return false;
         }
     
         /**

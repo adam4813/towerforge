@@ -994,9 +994,9 @@ namespace TowerForge::Core {
                 .kind(flecs::OnUpdate)
                 .interval(5.0f)  // Check every 5 seconds
                 .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
-                    // Only active janitors and cleaners
+                    // Only active staff who do cleaning work
                     if (!assignment.is_active) return;
-                    if (assignment.role != StaffRole::Janitor && assignment.role != StaffRole::Cleaner) return;
+                    if (!assignment.DoesCleaningWork()) return;
                 
                     // Find facilities that need cleaning
                     auto& world = staff_entity.world();
@@ -1032,7 +1032,7 @@ namespace TowerForge::Core {
                                     default: break;
                                 }
                             
-                                std::cout << "  [Staff] " << person.name << " cleaned " 
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") cleaned " 
                                         << facility_type << " on Floor " << facility.floor 
                                         << " (Cleanliness: " << static_cast<int>(status.cleanliness) << "%)" << std::endl;
                             }
@@ -1045,9 +1045,9 @@ namespace TowerForge::Core {
                 .kind(flecs::OnUpdate)
                 .interval(8.0f)  // Check every 8 seconds (maintenance is slower)
                 .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
-                    // Only active maintenance staff and repairers
+                    // Only active staff who do maintenance work
                     if (!assignment.is_active) return;
-                    if (assignment.role != StaffRole::Maintenance && assignment.role != StaffRole::Repairer) return;
+                    if (!assignment.DoesMaintenanceWork()) return;
                 
                     // Find facilities that need maintenance
                     auto& world = staff_entity.world();
@@ -1083,7 +1083,7 @@ namespace TowerForge::Core {
                                     default: break;
                                 }
                             
-                                std::cout << "  [Staff] " << person.name << " performed maintenance on " 
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") performed maintenance on " 
                                         << facility_type << " on Floor " << facility.floor 
                                         << " (Maintenance: " << static_cast<int>(status.maintenance_level) << "%)" << std::endl;
                             }
@@ -1097,7 +1097,8 @@ namespace TowerForge::Core {
                 .interval(2.0f)  // Check frequently for fires
                 .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
                     if (!assignment.is_active) return;
-                    if (assignment.role != StaffRole::Firefighter) return;
+                    // Check if this is a firefighter (built-in or custom with emergency work type)
+                    if (assignment.role != StaffRole::Firefighter && !assignment.DoesEmergencyWork()) return;
                 
                     // Find facilities with fires
                     auto& world = staff_entity.world();
@@ -1119,7 +1120,7 @@ namespace TowerForge::Core {
                                     default: break;
                                 }
                             
-                                std::cout << "  [Staff] " << person.name << " extinguished fire at " 
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") extinguished fire at " 
                                         << facility_type << " on Floor " << facility.floor << std::endl;
                             }
                         });
@@ -1132,7 +1133,8 @@ namespace TowerForge::Core {
                 .interval(3.0f)  // Check every 3 seconds
                 .each([](const flecs::entity staff_entity, const StaffAssignment& assignment, const Person& person) {
                     if (!assignment.is_active) return;
-                    if (assignment.role != StaffRole::Security) return;
+                    // Check if this is security (built-in or custom with emergency work type)
+                    if (assignment.role != StaffRole::Security && !assignment.DoesEmergencyWork()) return;
                 
                     // Find facilities with security issues
                     auto& world = staff_entity.world();
@@ -1153,7 +1155,7 @@ namespace TowerForge::Core {
                                     default: facility_type = "Facility"; break;
                                 }
                             
-                                std::cout << "  [Staff] " << person.name << " resolved security issue at " 
+                                std::cout << "  [Staff] " << person.name << " (" << assignment.GetRoleName() << ") resolved security issue at " 
                                         << facility_type << " on Floor " << facility.floor << std::endl;
                             }
                         });
