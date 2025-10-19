@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace towerforge::ui {
 
@@ -11,6 +12,10 @@ namespace towerforge::ui {
     class UIWindowManager;
     class TooltipManager;
     class NotificationCenter;
+    struct IncomeBreakdown;
+    struct ElevatorAnalytics;
+    struct PopulationBreakdown;
+    class PopulationAnalyticsOverlay;
 
     /**
  * @brief Structure to hold tower rating information
@@ -213,12 +218,55 @@ namespace towerforge::ui {
      */
         void ToggleNotificationCenter();
     
+        /**
+     * @brief Show income analytics overlay
+     * @param data Income breakdown data to display
+     */
+        void ShowIncomeAnalytics(const IncomeBreakdown& data) const;
+    
+        /**
+     * @brief Show elevator analytics overlay
+     * @param data Elevator analytics data to display
+     */
+        void ShowElevatorAnalytics(const ElevatorAnalytics& data) const;
+    
+        /**
+     * @brief Show population analytics overlay
+     * @param data Population breakdown data to display
+     */
+        void ShowPopulationAnalytics(const PopulationBreakdown& data) const;
+    
+        /**
+     * @brief Set callback for collecting income analytics
+     * @param callback Function to call when income analytics are needed
+     */
+        void SetIncomeAnalyticsCallback(std::function<IncomeBreakdown()> callback);
+    
+        /**
+     * @brief Set callback for collecting population analytics
+     * @param callback Function to call when population analytics are needed
+     */
+        void SetPopulationAnalyticsCallback(std::function<PopulationBreakdown()> callback);
+    
+        /**
+     * @brief Request income analytics to be shown
+     */
+        void RequestIncomeAnalytics();
+    
+        /**
+     * @brief Request population analytics to be shown
+     */
+        void RequestPopulationAnalytics();
+    
     private:
         void RenderTopBar() const;
         void RenderStarRating() const;
         void RenderNotifications();
         void RenderSpeedControls() const;
         void RenderEndGameSummary() const;
+        
+        bool IsMouseOverIncomeArea(int mouse_x, int mouse_y) const;
+        bool IsMouseOverPopulationArea(int mouse_x, int mouse_y) const;
 
         static std::string FormatTime(float time);
     
@@ -235,6 +283,10 @@ namespace towerforge::ui {
     
         // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;
+        
+        // Analytics callbacks
+        std::function<IncomeBreakdown()> income_analytics_callback_;
+        std::function<PopulationBreakdown()> population_analytics_callback_;
     
         // UI layout constants
         static constexpr int TOP_BAR_HEIGHT = 40;
