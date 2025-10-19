@@ -72,6 +72,8 @@ namespace towerforge::ui {
         std::string maintenance_state;  // "Good", "Needs Service", or "Broken"
         bool needs_repair;              // True if facility needs repair
         bool is_broken;                 // True if facility is broken
+        // Adjacency effects
+        std::vector<std::string> adjacency_effects;  // List of adjacency effect descriptions
     };
 
     /**
