@@ -4,22 +4,23 @@
 #include "ui/main_menu.h"
 #include "ui/ui_element.h"
 #include "ui/ui_theme.h"
+#include "core/game.h"
 
 namespace towerforge::ui {
     MainMenu::MainMenu()
         : selected_option_(0)
           , animation_time_(0.0f)
-          , selected_menu_option_(-1)
           , last_screen_width_(0)
-          , last_screen_height_(0) {
-        // Initialize menu items
-        menu_items_.push_back({"New Game", MenuOption::NewGame});
-        menu_items_.push_back({"Tutorial", MenuOption::Tutorial});
-        menu_items_.push_back({"Load Game", MenuOption::LoadGame});
-        menu_items_.push_back({"Achievements", MenuOption::Achievements});
-        menu_items_.push_back({"Settings", MenuOption::Settings});
-        menu_items_.push_back({"Credits", MenuOption::Credits});
-        menu_items_.push_back({"Quit", MenuOption::Quit});
+          , last_screen_height_(0)
+          , state_change_callback_(nullptr) {
+        // Initialize menu items with their target states
+        menu_items_.push_back({"New Game", core::GameState::InGame});
+        menu_items_.push_back({"Tutorial", core::GameState::Tutorial});
+        menu_items_.push_back({"Load Game", core::GameState::InGame}); // TODO: Separate LoadGame state?
+        menu_items_.push_back({"Achievements", core::GameState::Achievements});
+        menu_items_.push_back({"Settings", core::GameState::Settings});
+        menu_items_.push_back({"Credits", core::GameState::Credits});
+        menu_items_.push_back({"Quit", core::GameState::Quit});
 
         // MainMenu is a Panel (container) - position and size don't matter much since it's full screen
         main_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
@@ -38,9 +39,9 @@ namespace towerforge::ui {
             button->SetTextColor(UITheme::TEXT_SECONDARY);
 
             // Set click callback for this button
-            const int option_index = static_cast<int>(i);
-            button->SetClickCallback([this, option_index]() {
-                selected_menu_option_ = option_index;
+            button->SetClickCallback([this, state = menu_items_[i].target_state]() {
+                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
+                state_change_callback_(state);
             });
 
             // Store raw pointer for later access
@@ -60,6 +61,10 @@ namespace towerforge::ui {
 
     MainMenu::~MainMenu() = default;
 
+    void MainMenu::SetStateChangeCallback(StateChangeCallback callback) {
+        state_change_callback_ = callback;
+    }
+
     void MainMenu::UpdateLayout() {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
@@ -77,7 +82,7 @@ namespace towerforge::ui {
             const int item_y = MENU_START_Y + i * (responsive_item_height + responsive_spacing);
             const int item_x = UITheme::CenterPosition(screen_width, responsive_menu_width);
 
-            Button* button = menu_item_buttons_[i];
+            Button *button = menu_item_buttons_[i];
             button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
             button->SetSize(static_cast<float>(responsive_menu_width), static_cast<float>(responsive_item_height));
         }
@@ -90,7 +95,7 @@ namespace towerforge::ui {
     void MainMenu::UpdateButtonSelection(int new_selection) {
         // Clear old selection
         if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
-            Button* old_button = menu_item_buttons_[selected_option_];
+            Button *old_button = menu_item_buttons_[selected_option_];
             old_button->SetFocused(false);
             old_button->SetBackgroundColor(UITheme::BUTTON_BACKGROUND);
             old_button->SetBorderColor(UITheme::BUTTON_BORDER);
@@ -100,7 +105,7 @@ namespace towerforge::ui {
 
         // Set new selection
         if (new_selection >= 0 && new_selection < static_cast<int>(menu_item_buttons_.size())) {
-            Button* new_button = menu_item_buttons_[new_selection];
+            Button *new_button = menu_item_buttons_[new_selection];
             new_button->SetFocused(true);
             new_button->SetBackgroundColor(ColorAlpha(UITheme::PRIMARY, 0.3f));
             new_button->SetBorderColor(UITheme::PRIMARY);
@@ -123,7 +128,7 @@ namespace towerforge::ui {
 
         // Update button animations (only for pulsing text on selected item)
         if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
-            Button* button = menu_item_buttons_[selected_option_];
+            Button *button = menu_item_buttons_[selected_option_];
             const float pulse = sin(animation_time_ * UITheme::ANIMATION_SPEED_NORMAL) * 0.1f + 0.9f;
             button->SetTextColor(ColorAlpha(UITheme::TEXT_PRIMARY, pulse));
             button->Update(delta_time);
@@ -214,7 +219,7 @@ namespace towerforge::ui {
 
         for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
             const bool is_selected = (static_cast<int>(i) == selected_option_);
-            Button* button = menu_item_buttons_[i];
+            Button *button = menu_item_buttons_[i];
 
             // Render the button (geometry and appearance already set)
             button->Render();
@@ -243,7 +248,7 @@ namespace towerforge::ui {
                                           UITheme::BORDER_DEFAULT);
     }
 
-    int MainMenu::HandleKeyboard() {
+    void MainMenu::HandleKeyboard() {
         int new_selection = selected_option_;
 
         // Navigate up
@@ -266,59 +271,47 @@ namespace towerforge::ui {
 
         // Select option
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            return selected_option_;
+            state_change_callback_(menu_items_[selected_option_].target_state);
         }
 
         // Quick access keys
         if (IsKeyPressed(KEY_N)) {
-            return static_cast<int>(MenuOption::NewGame);
+            state_change_callback_(core::GameState::InGame);
         }
         if (IsKeyPressed(KEY_T)) {
-            return static_cast<int>(MenuOption::Tutorial);
+            state_change_callback_(core::GameState::Tutorial);
         }
         if (IsKeyPressed(KEY_L)) {
-            return static_cast<int>(MenuOption::LoadGame);
+            state_change_callback_(core::GameState::InGame);
         }
         if (IsKeyPressed(KEY_C)) {
-            return static_cast<int>(MenuOption::Credits);
+            state_change_callback_(core::GameState::Credits);
         }
         if (IsKeyPressed(KEY_Q) || IsKeyPressed(KEY_ESCAPE)) {
-            return static_cast<int>(MenuOption::Quit);
+            state_change_callback_(core::GameState::Quit);
         }
-
-        return -1;
     }
 
-    int MainMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
+    void MainMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
         // Create mouse event
         MouseEvent event(
             static_cast<float>(mouse_x),
             static_cast<float>(mouse_y),
-            false, // left_down (not used currently)
-            false, // right_down (not used currently)
+            false, // left_down
+            false, // right_down
             clicked, // left_pressed
             false // right_pressed
         );
 
-        // Reset selected menu option
-        selected_menu_option_ = -1;
-
-        // Process mouse event through the panel (which will propagate to children)
+        // Process mouse event through the panel (buttons will handle clicks via callbacks)
         main_panel_->ProcessMouseEvent(event);
 
-        int hovered_option = -1;
-
-        // Update selected_option_ based on which button is hovered
+        // Update hover selection for visual feedback
         for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
             if (menu_item_buttons_[i]->IsHovered()) {
-                hovered_option = static_cast<int>(i);
+                UpdateButtonSelection(static_cast<int>(i));
                 break;
             }
         }
-
-        UpdateButtonSelection(hovered_option);
-
-        // Return the selected menu option if a button was clicked
-        return selected_menu_option_;
     }
 }

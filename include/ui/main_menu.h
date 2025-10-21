@@ -1,9 +1,13 @@
 #pragma once
 
-#include <raylib.h>
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
+
+namespace towerforge::core {
+    enum class GameState;
+}
 
 namespace towerforge::ui {
     // Forward declarations
@@ -11,76 +15,66 @@ namespace towerforge::ui {
     class Button;
 
     /**
- * @brief Menu options available in the main menu
- */
-    enum class MenuOption {
-        NewGame,
-        Tutorial,
-        LoadGame,
-        Achievements,
-        Settings,
-        Credits,
-        Quit
-    };
-
-    /**
- * @brief Main menu class for the title screen
- * 
- * Displays a professional title screen with navigation to various game options
- */
+     * @brief Main menu class for the title screen
+     * 
+     * Displays a professional title screen with navigation to various game options.
+     * Menu items trigger state changes via callback pattern.
+     */
     class MainMenu {
     public:
+        using StateChangeCallback = std::function<void(core::GameState)>;
+        
         MainMenu();
-
         ~MainMenu();
+        
+        /**
+         * @brief Set the callback for state changes
+         * @param callback Function to call when a menu option triggers a state change
+         */
+        void SetStateChangeCallback(StateChangeCallback callback);
 
         /**
-     * @brief Render the main menu
-     */
+         * @brief Render the main menu
+         */
         void Render() const;
 
         /**
-     * @brief Update menu state (called every frame)
-     * @param delta_time Time elapsed since last frame
-     */
+         * @brief Update menu state (called every frame)
+         * @param delta_time Time elapsed since last frame
+         */
         void Update(float delta_time);
 
         /**
-     * @brief Handle keyboard input for menu navigation
-     * @return Selected menu option, or -1 if none selected
-     */
-        int HandleKeyboard();
+         * @brief Handle keyboard input for menu navigation
+         */
+        void HandleKeyboard();
 
         /**
-     * @brief Handle mouse input for menu interaction
-     * @param mouse_x Mouse X position
-     * @param mouse_y Mouse Y position
-     * @param clicked Whether mouse was clicked
-     * @return Selected menu option, or -1 if none selected
-     */
-        int HandleMouse(int mouse_x, int mouse_y, bool clicked);
+         * @brief Handle mouse input for menu interaction
+         * @param mouse_x Mouse X position
+         * @param mouse_y Mouse Y position
+         * @param clicked Whether mouse was clicked
+         */
+        void HandleMouse(int mouse_x, int mouse_y, bool clicked);
 
         /**
-     * @brief Get the currently selected menu option
-     * @return Index of selected option
-     */
+         * @brief Get the currently selected menu option
+         * @return Index of selected option
+         */
         int GetSelectedOption() const { return selected_option_; }
 
         /**
-     * @brief Get the version string
-     * @return Version string
-     */
+         * @brief Get the version string
+         * @return Version string
+         */
         static std::string GetVersion() { return "v0.1.0"; }
 
     private:
         static void RenderTitle();
-
         void RenderMenuOptions() const;
-
         static void RenderVersion();
-
         void RenderBackground() const;
-
+        
         /**
          * @brief Update button appearance when selection changes
          * @param new_selection Index of newly selected button
@@ -107,14 +101,14 @@ namespace towerforge::ui {
         // Menu options
         struct MenuItem {
             std::string label;
-            MenuOption option;
+            core::GameState target_state;
         };
 
         std::vector<MenuItem> menu_items_;
+        StateChangeCallback state_change_callback_;
 
         // Main menu is a Panel container with Button children for menu items
         std::unique_ptr<Panel> main_panel_;
-        std::vector<Button *> menu_item_buttons_; // Raw pointers to buttons (owned by main_panel_)
-        int selected_menu_option_; // Stores the menu option selected via click callback
+        std::vector<Button*> menu_item_buttons_; // Raw pointers to buttons (owned by main_panel_)
     };
 }

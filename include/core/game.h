@@ -34,6 +34,7 @@ namespace towerforge::core {
         Tutorial,
         InGame,
         Settings,
+        LoadGame,
         Credits,
         Achievements,
         Quit

@@ -185,6 +185,11 @@ namespace towerforge::core {
         // Initialize batch renderer
         towerforge::ui::batch_renderer::BatchRenderer::Initialize();
         std::cout << "Batch renderer initialized" << std::endl;
+        
+        // Set up main menu callback
+        main_menu_.SetStateChangeCallback([this](const GameState new_state) {
+            current_state_ = new_state;
+        });
 
         // Initialize audio system
         audio_manager_ = &audio::AudioManager::GetInstance();
@@ -288,42 +293,9 @@ namespace towerforge::core {
     }
 
     void Game::HandleTitleScreenInput() {
-        const int keyboard_selection = main_menu_.HandleKeyboard();
-        const int mouse_selection = main_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                           IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-
-        int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
-
-        if (selected >= 0) {
-            audio_manager_->PlaySFX(audio::AudioCue::MenuConfirm);
-            const auto option = static_cast<MenuOption>(selected);
-            switch (option) {
-                case MenuOption::NewGame:
-                    current_state_ = GameState::InGame;
-                    std::cout << "Starting new game..." << std::endl;
-                    break;
-                case MenuOption::Tutorial:
-                    current_state_ = GameState::Tutorial;
-                    std::cout << "Starting tutorial..." << std::endl;
-                    break;
-                case MenuOption::LoadGame:
-                    std::cout << "Load game not yet implemented" << std::endl;
-                    current_state_ = GameState::InGame;
-                    break;
-                case MenuOption::Achievements:
-                    current_state_ = GameState::Achievements;
-                    break;
-                case MenuOption::Settings:
-                    current_state_ = GameState::Settings;
-                    break;
-                case MenuOption::Credits:
-                    current_state_ = GameState::Credits;
-                    break;
-                case MenuOption::Quit:
-                    current_state_ = GameState::Quit;
-                    break;
-            }
-        }
+        // Main menu now handles state changes directly via callbacks
+        main_menu_.HandleKeyboard();
+        main_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
     }
 
     void Game::UpdateAchievementsScreen(const float delta_time) {
