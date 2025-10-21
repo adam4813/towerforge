@@ -1,4 +1,5 @@
 #include "ui/ui_window.h"
+#include "ui/batch_renderer/batch_adapter.h"
 
 namespace towerforge::ui {
 
@@ -42,14 +43,14 @@ namespace towerforge::ui {
 
     void UIWindow::RenderFrame(const Color border_color) const {
         // Draw main window background
-        DrawRectangle(x_, y_, width_, height_, ColorAlpha(BLACK, 0.8f));
+        batch_renderer::adapter::DrawRectangle(x_, y_, width_, height_, ColorAlpha(BLACK, 0.8f));
     
         // Draw title bar
-        DrawRectangle(x_, y_, width_, TITLE_BAR_HEIGHT, ColorAlpha(BLACK, 0.9f));
-        DrawRectangle(x_, y_, width_, 2, border_color);
+        batch_renderer::adapter::DrawRectangle(x_, y_, width_, TITLE_BAR_HEIGHT, ColorAlpha(BLACK, 0.9f));
+        batch_renderer::adapter::DrawRectangle(x_, y_, width_, 2, border_color);
     
         // Draw title text
-        DrawText(title_.c_str(), x_ + PADDING, y_ + 5, 14, WHITE);
+        batch_renderer::adapter::DrawText(title_.c_str(), x_ + PADDING, y_ + 5, 14, WHITE);
     }
 
     void UIWindow::RenderCloseButton() const {
@@ -57,9 +58,9 @@ namespace towerforge::ui {
         const int button_y = y_ + 5;
     
         // Draw close button
-        DrawRectangle(button_x, button_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 
+        batch_renderer::adapter::DrawRectangle(button_x, button_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 
                       ColorAlpha(RED, 0.7f));
-        DrawText("X", button_x + 3, button_y + 1, 12, WHITE);
+        batch_renderer::adapter::DrawText("X", button_x + 3, button_y + 1, 12, WHITE);
     }
 
 }

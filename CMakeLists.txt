@@ -51,6 +51,7 @@ set(SOURCE_FILES
     src/ui/ui_element.cpp
     src/ui/mouse_event_manager.cpp
     src/ui/help_system.cpp
+    src/ui/batch_renderer/batch_renderer.cpp
     src/audio/audio_manager.cpp
 )
 
