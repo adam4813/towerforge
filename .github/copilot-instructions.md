@@ -361,6 +361,10 @@ The project is in its initial stages. Future development will add:
 7. When adding new features, create and add relevant screenshots to the `screenshots/` folder whenever possible.
 8. Documentation should be written or updated in the form of a user manual, focusing on usage and gameplay, not as an implementation summary.
 9. **Always build and test the project before completing work** to catch any compile errors or issues early.
+10. Do not create supplementary documentation files (for example: extra HOWTOs, design notes, implementation summaries, or additional docs) unless one of the following applies:
+    - The file directly improves the model's internal process for generating or validating code (i.e., it is used by automated tooling or the model to produce better results).
+    - The file documents a human workflow or process that users or maintainers explicitly need to follow.
+    - The user explicitly requests the creation of such a supplementary documentation file.
 
 ---
 
