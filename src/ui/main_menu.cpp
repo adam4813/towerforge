@@ -9,7 +9,9 @@ namespace towerforge::ui {
     MainMenu::MainMenu()
         : selected_option_(0)
           , animation_time_(0.0f)
-          , selected_menu_option_(-1) {
+          , selected_menu_option_(-1)
+          , last_screen_width_(0)
+          , last_screen_height_(0) {
         // Initialize menu items
         menu_items_.push_back({"New Game", MenuOption::NewGame});
         menu_items_.push_back({"Tutorial", MenuOption::Tutorial});
@@ -19,26 +21,15 @@ namespace towerforge::ui {
         menu_items_.push_back({"Credits", MenuOption::Credits});
         menu_items_.push_back({"Quit", MenuOption::Quit});
 
-        // Calculate responsive geometry ONCE
-        const int screen_width = 800; // Initial size, responsive layout handled differently
-        const int responsive_menu_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.25f), 250, 400);
-        const int responsive_item_height = UITheme::ClampSize(60 / 18, 40, 60);
-        const int responsive_spacing = UITheme::MARGIN_SMALL;
-
         // MainMenu is a Panel (container) - position and size don't matter much since it's full screen
         main_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
 
         // Create Button objects for each menu item and add them as children
-        // All geometry calculated once here
+        // Initial geometry will be calculated in UpdateLayout()
         for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (responsive_item_height + responsive_spacing);
-            const int item_x = UITheme::CenterPosition(screen_width, responsive_menu_width);
-            
             auto button = std::make_unique<Button>(
-                static_cast<float>(item_x),
-                static_cast<float>(item_y),
-                static_cast<float>(responsive_menu_width),
-                static_cast<float>(responsive_item_height),
+                0, 0, // Position set in UpdateLayout()
+                100, 50, // Size set in UpdateLayout()
                 menu_items_[i].label,
                 UITheme::BUTTON_BACKGROUND,
                 UITheme::BUTTON_BORDER
@@ -59,12 +50,42 @@ namespace towerforge::ui {
             // Add button as child to main panel
             main_panel_->AddChild(std::move(button));
         }
-        
+
+        // Calculate initial layout
+        UpdateLayout();
+
         // Set initial selection appearance
         UpdateButtonSelection(selected_option_);
     }
 
     MainMenu::~MainMenu() = default;
+
+    void MainMenu::UpdateLayout() {
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+
+        // Calculate responsive geometry based on current screen size
+        const int responsive_menu_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.25f), 250, 400);
+        const int responsive_item_height = UITheme::ClampSize(screen_height / 18, 40, 60);
+        const int responsive_spacing = UITheme::MARGIN_SMALL;
+
+        // Update panel size to match screen
+        main_panel_->SetSize(static_cast<float>(screen_width), static_cast<float>(screen_height));
+
+        // Recalculate button positions centered on screen
+        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
+            const int item_y = MENU_START_Y + i * (responsive_item_height + responsive_spacing);
+            const int item_x = UITheme::CenterPosition(screen_width, responsive_menu_width);
+
+            Button* button = menu_item_buttons_[i];
+            button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
+            button->SetSize(static_cast<float>(responsive_menu_width), static_cast<float>(responsive_item_height));
+        }
+
+        // Cache screen size to detect changes
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+    }
 
     void MainMenu::UpdateButtonSelection(int new_selection) {
         // Clear old selection
@@ -76,7 +97,7 @@ namespace towerforge::ui {
             old_button->SetFontSize(UITheme::FONT_SIZE_MEDIUM);
             old_button->SetTextColor(UITheme::TEXT_SECONDARY);
         }
-        
+
         // Set new selection
         if (new_selection >= 0 && new_selection < static_cast<int>(menu_item_buttons_.size())) {
             Button* new_button = menu_item_buttons_[new_selection];
@@ -86,13 +107,20 @@ namespace towerforge::ui {
             new_button->SetFontSize(UITheme::FONT_SIZE_LARGE);
             new_button->SetTextColor(UITheme::TEXT_PRIMARY);
         }
-        
+
         selected_option_ = new_selection;
     }
 
     void MainMenu::Update(const float delta_time) {
         animation_time_ += delta_time;
-        
+
+        // Check for window resize and update layout if needed
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+            UpdateLayout();
+        }
+
         // Update button animations (only for pulsing text on selected item)
         if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
             Button* button = menu_item_buttons_[selected_option_];
@@ -217,7 +245,7 @@ namespace towerforge::ui {
 
     int MainMenu::HandleKeyboard() {
         int new_selection = selected_option_;
-        
+
         // Navigate up
         if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
             new_selection--;

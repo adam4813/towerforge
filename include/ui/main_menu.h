@@ -86,9 +86,16 @@ namespace towerforge::ui {
          * @param new_selection Index of newly selected button
          */
         void UpdateButtonSelection(int new_selection);
+        
+        /**
+         * @brief Recalculate layout when window size changes
+         */
+        void UpdateLayout();
 
         int selected_option_; // Currently highlighted menu option
         float animation_time_; // For animations
+        int last_screen_width_;  // For detecting window resize
+        int last_screen_height_; // For detecting window resize
 
         // Menu layout constants
         static constexpr int MENU_ITEM_HEIGHT = 50;
