@@ -190,6 +190,42 @@ namespace towerforge::core {
         main_menu_.SetStateChangeCallback([this](const GameState new_state) {
             current_state_ = new_state;
         });
+        
+        // Set up general settings menu callback
+        general_settings_menu_.SetOptionCallback([this](ui::SettingsOption option) {
+            switch (option) {
+                case ui::SettingsOption::Audio:
+                    in_audio_settings_ = true;
+                    break;
+                case ui::SettingsOption::Accessibility:
+                    in_accessibility_settings_ = true;
+                    break;
+                case ui::SettingsOption::Back:
+                    current_state_ = GameState::TitleScreen;
+                    break;
+                default:
+                    // Other options not yet implemented
+                    break;
+            }
+        });
+        
+        // Set up pause general settings menu callback
+        pause_general_settings_menu_.SetOptionCallback([this](ui::SettingsOption option) {
+            switch (option) {
+                case ui::SettingsOption::Audio:
+                    in_audio_settings_from_pause_ = true;
+                    break;
+                case ui::SettingsOption::Accessibility:
+                    in_accessibility_settings_from_pause_ = true;
+                    break;
+                case ui::SettingsOption::Back:
+                    in_settings_from_pause_ = false;
+                    break;
+                default:
+                    // Other options not yet implemented
+                    break;
+            }
+        });
 
         // Initialize audio system
         audio_manager_ = &audio::AudioManager::GetInstance();
@@ -366,33 +402,9 @@ namespace towerforge::core {
                 in_audio_settings_ = false;
             }
         } else {
-            const int keyboard_selection = general_settings_menu_.HandleKeyboard();
-            const int mouse_selection = general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                                           IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-
-            int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
-
-            if (selected >= 0) {
-                const auto option = static_cast<SettingsOption>(selected);
-                switch (option) {
-                    case SettingsOption::Audio:
-                        in_audio_settings_ = true;
-                        break;
-                    case SettingsOption::Accessibility:
-                        in_accessibility_settings_ = true;
-                        break;
-                    case SettingsOption::Controls:
-                    case SettingsOption::Display:
-                    case SettingsOption::Gameplay:
-                        std::cout << "Settings option not yet implemented" << std::endl;
-                        break;
-                    case SettingsOption::Back:
-                        current_state_ = GameState::TitleScreen;
-                        in_audio_settings_ = false;
-                        in_accessibility_settings_ = false;
-                        break;
-                }
-            }
+            // General settings menu now handles state changes directly via callbacks
+            general_settings_menu_.HandleKeyboard();
+            general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
         }
     }
 
@@ -867,33 +879,10 @@ namespace towerforge::core {
                 }
             } else if (in_settings_from_pause_) {
                 pause_general_settings_menu_.Update(time_step_);
-
-                const int keyboard_selection = pause_general_settings_menu_.HandleKeyboard();
-                const int mouse_selection = pause_general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                    IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-
-                int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
-
-                if (selected >= 0) {
-                    const auto option = static_cast<SettingsOption>(selected);
-                    switch (option) {
-                        case SettingsOption::Audio:
-                            in_audio_settings_from_pause_ = true;
-                            break;
-                        case SettingsOption::Accessibility:
-                            in_accessibility_settings_from_pause_ = true;
-                            break;
-                        case SettingsOption::Controls:
-                        case SettingsOption::Display:
-                        case SettingsOption::Gameplay:
-                            hud_->AddNotification(Notification::Type::Info, "Settings option not yet implemented",
-                                                  3.0f);
-                            break;
-                        case SettingsOption::Back:
-                            in_settings_from_pause_ = false;
-                            break;
-                    }
-                }
+                
+                // General settings menu now handles state changes directly via callbacks
+                pause_general_settings_menu_.HandleKeyboard();
+                pause_general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
             } else {
                 pause_menu_->Update(time_step_);
 

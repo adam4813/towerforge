@@ -4,13 +4,14 @@
 #include <cmath>
 
 namespace towerforge::ui {
-
     GeneralSettingsMenu::GeneralSettingsMenu()
         : selected_option_(0)
           , animation_time_(0.0f)
-          , selected_menu_option_(-1) {
+          , last_screen_width_(0)
+          , last_screen_height_(0)
+          , option_callback_(nullptr) {
 
-        // Initialize menu items
+        // Initialize menu items with their options
         menu_items_.push_back({"Audio Settings  >", SettingsOption::Audio});
         menu_items_.push_back({"Controls Settings  >", SettingsOption::Controls});
         menu_items_.push_back({"Display Settings  >", SettingsOption::Display});
@@ -18,14 +19,15 @@ namespace towerforge::ui {
         menu_items_.push_back({"Gameplay Settings  >", SettingsOption::Gameplay});
         menu_items_.push_back({"Back", SettingsOption::Back});
 
-        // Create main panel
-        settings_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
+        // Create main panel centered on screen
+        settings_panel_ = std::make_unique<Panel>(0, 0, MENU_WIDTH, 600, BLANK, BLANK);
 
-        // Create Button objects for each menu item and add as children
+        // Create Button objects for each menu item
         for (size_t i = 0; i < menu_items_.size(); ++i) {
             const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
+            
             auto button = std::make_unique<Button>(
-                0, // x will be set during render
+                0, // X relative to panel
                 static_cast<float>(item_y),
                 static_cast<float>(MENU_WIDTH),
                 static_cast<float>(MENU_ITEM_HEIGHT),
@@ -34,26 +36,105 @@ namespace towerforge::ui {
                 DARKGRAY
             );
             button->SetFontSize(24);
+            button->SetTextColor(LIGHTGRAY);
 
-            // Set click callback
-            const int option_index = static_cast<int>(i);
-            button->SetClickCallback([this, option_index]() {
-                selected_menu_option_ = option_index;
+            // Set click callback - button triggers option directly
+            const SettingsOption option = menu_items_[i].option;
+            button->SetClickCallback([this, option]() {
+                if (option_callback_) {
+                    option_callback_(option);
+                }
             });
 
-            // Store raw pointer for later access
+            // Store raw pointer
             Button* button_ptr = button.get();
             menu_item_buttons_.push_back(button_ptr);
 
             // Add as child to panel
             settings_panel_->AddChild(std::move(button));
         }
+        
+        // Calculate initial layout
+        UpdateLayout();
+        
+        // Set initial selection appearance
+        UpdateButtonSelection(selected_option_);
     }
 
     GeneralSettingsMenu::~GeneralSettingsMenu() = default;
 
+    void GeneralSettingsMenu::SetOptionCallback(OptionCallback callback) {
+        option_callback_ = callback;
+    }
+
+    void GeneralSettingsMenu::UpdateLayout() {
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        
+        // Center the panel horizontally
+        const int panel_x = (screen_width - MENU_WIDTH) / 2;
+        settings_panel_->SetRelativePosition(static_cast<float>(panel_x), 0);
+        settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(screen_height));
+        
+        // Buttons automatically positioned via panel (no need to update)
+        
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+    }
+
+    void GeneralSettingsMenu::UpdateButtonSelection(int new_selection) {
+        const auto& accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const bool high_contrast = accessibility.IsHighContrastEnabled();
+        
+        // Clear old selection
+        if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
+            Button* old_button = menu_item_buttons_[selected_option_];
+            old_button->SetFocused(false);
+            
+            if (high_contrast) {
+                old_button->SetBackgroundColor(ColorAlpha(WHITE, 0.2f));
+                old_button->SetBorderColor(WHITE);
+                old_button->SetTextColor(WHITE);
+            } else {
+                old_button->SetBackgroundColor(ColorAlpha(DARKGRAY, 0.3f));
+                old_button->SetBorderColor(GRAY);
+                old_button->SetTextColor(LIGHTGRAY);
+            }
+        }
+        
+        // Set new selection
+        if (new_selection >= 0 && new_selection < static_cast<int>(menu_item_buttons_.size())) {
+            Button* new_button = menu_item_buttons_[new_selection];
+            new_button->SetFocused(true);
+            
+            if (high_contrast) {
+                new_button->SetBackgroundColor(ColorAlpha(YELLOW, 0.5f));
+                new_button->SetBorderColor(YELLOW);
+                new_button->SetTextColor(BLACK);
+            } else {
+                new_button->SetBackgroundColor(ColorAlpha(GOLD, 0.3f));
+                new_button->SetBorderColor(GOLD);
+                new_button->SetTextColor(GOLD);
+            }
+        }
+        
+        selected_option_ = new_selection;
+    }
+
     void GeneralSettingsMenu::Update(const float delta_time) {
         animation_time_ += delta_time;
+        
+        // Check for window resize
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+            UpdateLayout();
+        }
+        
+        // Update buttons
+        for (Button* button : menu_item_buttons_) {
+            button->Update(delta_time);
+        }
     }
 
     void GeneralSettingsMenu::Render() const {
@@ -99,48 +180,23 @@ namespace towerforge::ui {
     }
 
     void GeneralSettingsMenu::RenderMenuOptions() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        
-        // Apply accessibility settings
         const auto& accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
         const float font_scale = accessibility.GetFontScale();
         const bool high_contrast = accessibility.IsHighContrastEnabled();
 
-        for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-            const int item_x = (screen_width - MENU_WIDTH) / 2;
-
+        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
             const bool is_selected = (static_cast<int>(i) == selected_option_);
+            const Button* button = menu_item_buttons_[i];
 
-            // Update button position and appearance based on selection
-            auto& button = menu_item_buttons_[i];
-            button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
-            
-            // Apply high-contrast colors if enabled
-            Color bg_color, border_color, text_color;
-            if (high_contrast) {
-                bg_color = is_selected ? ColorAlpha(YELLOW, 0.5f) : ColorAlpha(WHITE, 0.2f);
-                border_color = is_selected ? YELLOW : WHITE;
-                text_color = is_selected ? BLACK : WHITE;
-            } else {
-                bg_color = is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f);
-                border_color = is_selected ? GOLD : GRAY;
-                text_color = is_selected ? GOLD : LIGHTGRAY;
-            }
-            
-            button->SetBackgroundColor(bg_color);
-            button->SetBorderColor(border_color);
-            button->SetTextColor(text_color);
-
-            // Render the button
+            // Render the button (geometry and appearance already set)
             button->Render();
 
             // Draw selection indicator
             if (is_selected) {
                 const float pulse = 0.5f + 0.5f * sinf(animation_time_ * 4.0f);
-                const int indicator_x = item_x - 30;
-                const int indicator_y = item_y + MENU_ITEM_HEIGHT / 2;
+                const Rectangle bounds = button->GetAbsoluteBounds();
+                const int indicator_x = bounds.x - 30;
+                const int indicator_y = bounds.y + bounds.height / 2;
                 const int indicator_font_size = static_cast<int>(24 * font_scale);
                 const Color indicator_color = high_contrast ? YELLOW : GOLD;
                 DrawText(">", indicator_x, indicator_y - indicator_font_size / 2, 
@@ -149,6 +205,8 @@ namespace towerforge::ui {
         }
 
         // Draw instruction at bottom
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
         const auto instruction = "UP/DOWN: Navigate | ENTER: Select | ESC: Back";
         const int instruction_font_size = static_cast<int>(16 * font_scale);
         const int instruction_width = MeasureText(instruction, instruction_font_size);
@@ -157,39 +215,48 @@ namespace towerforge::ui {
                  screen_height - 50, instruction_font_size, instruction_color);
     }
 
-    int GeneralSettingsMenu::HandleKeyboard() {
+    void GeneralSettingsMenu::HandleKeyboard() {
+        int new_selection = selected_option_;
+        
         // Navigate up
         if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            selected_option_--;
-            if (selected_option_ < 0) {
-                selected_option_ = static_cast<int>(menu_items_.size()) - 1;
+            new_selection--;
+            if (new_selection < 0) {
+                new_selection = static_cast<int>(menu_items_.size()) - 1;
             }
+            UpdateButtonSelection(new_selection);
         }
 
         // Navigate down
         if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            selected_option_++;
-            if (selected_option_ >= static_cast<int>(menu_items_.size())) {
-                selected_option_ = 0;
+            new_selection++;
+            if (new_selection >= static_cast<int>(menu_items_.size())) {
+                new_selection = 0;
+            }
+            UpdateButtonSelection(new_selection);
+        }
+
+        // Select option with Enter/Space
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+            if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_items_.size())) {
+                const SettingsOption option = menu_items_[selected_option_].option;
+                if (option_callback_) {
+                    option_callback_(option);
+                }
             }
         }
 
-        // Select option
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            return selected_option_;
-        }
-
-        // ESC to go back (same as Back button)
+        // ESC to go back
         if (IsKeyPressed(KEY_ESCAPE)) {
-            return static_cast<int>(SettingsOption::Back);
+            if (option_callback_) {
+                option_callback_(SettingsOption::Back);
+            }
         }
-
-        return -1;
     }
 
-    int GeneralSettingsMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
+    void GeneralSettingsMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
         // Create mouse event
-        MouseEvent event(
+        const MouseEvent event(
             static_cast<float>(mouse_x),
             static_cast<float>(mouse_y),
             false, // left_down
@@ -198,21 +265,15 @@ namespace towerforge::ui {
             false  // right_pressed
         );
 
-        // Reset selected menu option
-        selected_menu_option_ = -1;
-
-        // Process mouse event through the panel
+        // Process mouse event through the panel (buttons will handle clicks via callbacks)
         settings_panel_->ProcessMouseEvent(event);
 
-        // Update selected_option_ based on which button is hovered
+        // Update hover selection for visual feedback
         for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
             if (menu_item_buttons_[i]->IsHovered()) {
-                selected_option_ = static_cast<int>(i);
+                UpdateButtonSelection(static_cast<int>(i));
                 break;
             }
         }
-
-        return selected_menu_option_;
     }
-
 }
