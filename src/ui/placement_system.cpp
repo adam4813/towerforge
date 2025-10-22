@@ -131,8 +131,9 @@ namespace towerforge::ui {
                         const int width = end_col - start_col + 1;
 
                         // Draw red outline around facility to demolish
+                        const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
                         const int x = grid_offset_x + start_col * cell_width;
-                        const int y = grid_offset_y + hover_floor_ * cell_height;
+                        const int y = ground_floor_screen_y - (hover_floor_ * cell_height);
                         DrawRectangle(x, y, width * cell_width, cell_height, ColorAlpha(RED, 0.3f));
                         DrawRectangleLines(x, y, width * cell_width, cell_height, RED);
                     }
@@ -142,8 +143,9 @@ namespace towerforge::ui {
                 const auto& facility_type = types[selected];
 
                 // Draw ghost preview
+                const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
                 const int x = grid_offset_x + hover_column_ * cell_width;
-                const int y = grid_offset_y + hover_floor_ * cell_height;
+                const int y = ground_floor_screen_y - (hover_floor_ * cell_height);
 
                 const Color preview_color = hover_valid_ ? ColorAlpha(GREEN, 0.3f) : ColorAlpha(RED, 0.3f);
                 const Color outline_color = hover_valid_ ? GREEN : RED;
@@ -164,9 +166,10 @@ namespace towerforge::ui {
         }
 
         // Render construction progress
+        const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
         for (const auto& construction : constructions_in_progress_) {
             const int x = grid_offset_x + construction.column * cell_width;
-            const int y = grid_offset_y + construction.floor * cell_height;
+            const int y = ground_floor_screen_y - (construction.floor * cell_height);
 
             // Draw construction overlay
             DrawRectangle(x, y, construction.width * cell_width, cell_height,
@@ -307,14 +310,15 @@ namespace towerforge::ui {
             return;
         }
 
-        // Calculate grid position
+        // Calculate grid position with inverted Y coordinate system
+        const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
         const int grid_x = (mouse_x - grid_offset_x) / cell_width;
-        const int grid_y = (mouse_y - grid_offset_y) / cell_height;
+        const int grid_y = -(mouse_y - ground_floor_screen_y) / cell_height;
 
         // Check if hovering over grid
         if (grid_x >= 0 && grid_x < grid_.GetColumnCount() && grid_y >= 0 && grid_y < grid_.GetFloorCount()) {
             const int screen_x = grid_offset_x + grid_x * cell_width;
-            const int screen_y = grid_offset_y + grid_y * cell_height;
+            const int screen_y = ground_floor_screen_y - (grid_y * cell_height);
 
             std::stringstream tooltip_text;
 
@@ -389,16 +393,20 @@ namespace towerforge::ui {
                                       const int grid_offset_x, const int grid_offset_y,
                                       const int cell_width, const int cell_height,
                                       int& out_floor, int& out_column) const {
-        // Convert mouse position to grid coordinates
+        // Convert mouse position to grid coordinates with inverted Y axis
+        // Ground floor (0) is at center, floors build upward (decreasing Y)
+        const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
+        
         const int rel_x = mouse_x - grid_offset_x;
-        const int rel_y = mouse_y - grid_offset_y;
+        const int rel_y = mouse_y - ground_floor_screen_y;
 
-        if (rel_x < 0 || rel_y < 0) {
+        if (rel_x < 0) {
             return false;
         }
 
         out_column = rel_x / cell_width;
-        out_floor = rel_y / cell_height;
+        // Invert Y: negative rel_y means above ground (positive floors), positive rel_y means below ground (negative floors in future)
+        out_floor = -rel_y / cell_height;
 
         // Check bounds
         if (out_floor < 0 || out_floor >= grid_.GetFloorCount() ||

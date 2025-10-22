@@ -15,7 +15,7 @@ namespace towerforge::ui {
         // Create main panel centered on screen
         const Color background_color = ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f);
         settings_panel_ = std::make_unique<Panel>(0, 0, MENU_WIDTH, 650, background_color, UITheme::BORDER_ACCENT);
-        settings_panel_->SetPadding(UITheme::PADDING_MEDIUM);
+        // settings_panel_->SetPadding(UITheme::PADDING_MEDIUM);  // Panel doesn't have SetPadding method
         
         // Create header overlay
         header_overlay_ = std::make_unique<PanelHeaderOverlay>("Settings");

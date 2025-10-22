@@ -578,7 +578,11 @@ namespace towerforge::core {
 
         // Create and initialize camera
         camera_ = std::make_unique<rendering::Camera>();
+        // Calculate ground floor Y position for camera centering
+        const auto &temp_grid = ecs_world_->GetTowerGrid();
+        const int ground_floor_screen_y = grid_offset_y_ + (temp_grid.GetFloorCount() / 2) * cell_height_;
         camera_->Initialize(800, 600, 1200.0f, 800.0f);
+        // TODO: Center camera on ground floor Y position (ground_floor_screen_y)
 
         hud_->SetGameState(game_state_);
 
@@ -1129,11 +1133,12 @@ namespace towerforge::core {
                             const auto &facility_type = facility_types[selected];
 
                             // Check specific reason for failure
+                            const int ground_floor_screen_y_temp = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
                             const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
-                            const int rel_y = static_cast<int>(world_y) - grid_offset_y_;
+                            const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y_temp;
 
-                            if (rel_x >= 0 && rel_y >= 0) {
-                                const int clicked_floor = rel_y / cell_height_;
+                            if (rel_x >= 0) {
+                                const int clicked_floor = -rel_y / cell_height_;
                                 const int clicked_column = rel_x / cell_width_;
 
                                 if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
@@ -1158,11 +1163,12 @@ namespace towerforge::core {
                     }
 
                     // Original code for entity selection continues below...
+                    const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
                     const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
-                    const int rel_y = static_cast<int>(world_y) - grid_offset_y_;
+                    const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y;
 
-                    if (rel_x >= 0 && rel_y >= 0) {
-                        const int clicked_floor = rel_y / cell_height_;
+                    if (rel_x >= 0) {
+                        const int clicked_floor = -rel_y / cell_height_;
                         const int clicked_column = rel_x / cell_width_;
 
                         if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
@@ -1171,10 +1177,10 @@ namespace towerforge::core {
                             bool person_clicked = false;
                             const auto person_query = ecs_world_->GetWorld().query<const Person>();
                             person_query.each([&](const flecs::entity e, const Person &person) {
-                                // Calculate person position on screen
+                                // Calculate person position on screen with inverted Y
                                 const int person_x =
                                         grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
-                                const int person_y = grid_offset_y_ + person.current_floor * cell_height_;
+                                const int person_y = ground_floor_screen_y - (person.current_floor * cell_height_);
 
                                 // Check if click is within person's bounds (circle with radius 10)
                                 const int dx = static_cast<int>(world_x) - (person_x + cell_width_ / 2);
@@ -1376,11 +1382,25 @@ namespace towerforge::core {
         // Begin camera mode for all game world rendering
         camera_->BeginMode();
 
+        // Helper function to convert floor index to screen Y coordinate
+        // Ground floor (0) at fixed position, floors build upward (decreasing Y)
+        const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
+        auto FloorToScreenY = [ground_floor_screen_y, this](int floor) -> int {
+            return ground_floor_screen_y - (floor * cell_height_);
+        };
+
+        // Draw background (sky above ground, earth below)
+        const int ground_y = FloorToScreenY(0);
+        // Sky above ground floor
+        DrawRectangle(0, 0, 2000, ground_y, Color{135, 206, 235, 255});
+        // Earth below ground floor
+        DrawRectangle(0, ground_y + cell_height_, 2000, 2000, Color{101, 67, 33, 255});
+
         // Draw grid
         for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
             for (int col = 0; col < grid.GetColumnCount(); ++col) {
                 const int x = grid_offset_x_ + col * cell_width_;
-                const int y = grid_offset_y_ + floor * cell_height_;
+                const int y = FloorToScreenY(floor);
 
                 // Show built floors with solid outline, unbuilt with dashed/faded outline
                 if (grid.IsFloorBuilt(floor, col)) {
@@ -1403,7 +1423,7 @@ namespace towerforge::core {
 
         // Draw floor labels
         for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
-            const int y = grid_offset_y_ + floor * cell_height_;
+            const int y = FloorToScreenY(floor);
             DrawText(TextFormat("F%d", floor), grid_offset_x_ - 30, y + 15, 12, LIGHTGRAY);
         }
 
@@ -1412,7 +1432,7 @@ namespace towerforge::core {
         shaft_query.each([&](flecs::entity e, const ElevatorShaft &shaft) {
             for (int floor = shaft.bottom_floor; floor <= shaft.top_floor; ++floor) {
                 const int x = grid_offset_x_ + shaft.column * cell_width_;
-                const int y = grid_offset_y_ + floor * cell_height_;
+                const int y = FloorToScreenY(floor);
 
                 DrawRectangle(x + 4, y + 4, cell_width_ - 8, cell_height_ - 8, Color{60, 60, 70, 255});
                 DrawRectangleLines(x + 4, y + 4, cell_width_ - 8, cell_height_ - 8, Color{100, 100, 120, 255});
@@ -1427,7 +1447,7 @@ namespace towerforge::core {
                 const ElevatorShaft &shaft = shaft_entity.ensure<ElevatorShaft>();
 
                 const int x = grid_offset_x_ + shaft.column * cell_width_;
-                const int y = grid_offset_y_ + static_cast<int>(car.current_floor * cell_height_);
+                const int y = FloorToScreenY(static_cast<int>(car.current_floor));
 
                 Color car_color;
                 switch (car.state) {
@@ -1461,7 +1481,7 @@ namespace towerforge::core {
         const auto person_query = ecs_world_->GetWorld().query<const Person>();
         person_query.each([&](const flecs::entity e, const Person &person) {
             const int x = grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
-            const int y = grid_offset_y_ + person.current_floor * cell_height_;
+            const int y = FloorToScreenY(person.current_floor);
 
             // Draw person as a circle
             Color person_color;
