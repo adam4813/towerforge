@@ -227,6 +227,15 @@ namespace towerforge::core {
             }
         });
 
+        // Set up audio settings menu callbacks
+        audio_settings_menu_.SetBackCallback([this]() {
+            in_audio_settings_ = false;
+        });
+        
+        pause_audio_settings_menu_.SetBackCallback([this]() {
+            in_audio_settings_from_pause_ = false;
+        });
+
         // Initialize audio system
         audio_manager_ = &audio::AudioManager::GetInstance();
         audio_manager_->Initialize();
@@ -393,16 +402,11 @@ namespace towerforge::core {
                 in_accessibility_settings_ = false;
             }
         } else if (in_audio_settings_) {
-            if (audio_settings_menu_.HandleKeyboard()) {
-                in_audio_settings_ = false;
-            }
-            const bool back_clicked = audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                                       IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-            if (back_clicked) {
-                in_audio_settings_ = false;
-            }
+            // Audio settings menu handles state changes via callbacks
+            audio_settings_menu_.HandleKeyboard();
+            audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
         } else {
-            // General settings menu now handles state changes directly via callbacks
+            // General settings menu handles state changes via callbacks
             general_settings_menu_.HandleKeyboard();
             general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
         }
@@ -868,19 +872,14 @@ namespace towerforge::core {
                 save_load_menu_->HandleKeyboard();
             } else if (in_audio_settings_from_pause_) {
                 pause_audio_settings_menu_.Update(time_step_);
-
-                if (pause_audio_settings_menu_.HandleKeyboard()) {
-                    in_audio_settings_from_pause_ = false;
-                }
-                const bool back_clicked = pause_audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                    IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-                if (back_clicked) {
-                    in_audio_settings_from_pause_ = false;
-                }
+                
+                // Audio settings menu handles state changes via callbacks
+                pause_audio_settings_menu_.HandleKeyboard();
+                pause_audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
             } else if (in_settings_from_pause_) {
                 pause_general_settings_menu_.Update(time_step_);
                 
-                // General settings menu now handles state changes directly via callbacks
+                // General settings menu handles state changes via callbacks
                 pause_general_settings_menu_.HandleKeyboard();
                 pause_general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
             } else {

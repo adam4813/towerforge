@@ -1,16 +1,26 @@
 #include "ui/audio_settings_menu.h"
+#include "ui/ui_theme.h"
+#include "ui/batch_renderer/batch_adapter.h"
 #include "audio/audio_manager.h"
 #include "core/user_preferences.hpp"
 #include <cmath>
-#include <fstream>
-#include <iostream>
-#include <filesystem>
 
 namespace towerforge::ui {
 
     AudioSettingsMenu::AudioSettingsMenu()
-        : selected_option_(0)
+        : back_callback_(nullptr)
+          , master_slider_(nullptr)
+          , music_slider_(nullptr)
+          , sfx_slider_(nullptr)
+          , mute_all_checkbox_(nullptr)
+          , mute_music_checkbox_(nullptr)
+          , mute_sfx_checkbox_(nullptr)
+          , enable_ambient_checkbox_(nullptr)
+          , back_button_(nullptr)
+          , selected_index_(0)
           , animation_time_(0.0f)
+          , last_screen_height_(0)
+          , last_screen_width_(0)
           , master_volume_(0.7f)
           , music_volume_(0.5f)
           , sfx_volume_(0.6f)
@@ -18,16 +28,198 @@ namespace towerforge::ui {
           , mute_music_(false)
           , mute_sfx_(false)
           , enable_ambient_(true) {
+        
         LoadSettings();
+
+        // Create main panel (centered on screen)
+        settings_panel_ = std::make_unique<Panel>(
+            0, 0, MENU_WIDTH, MENU_HEIGHT,
+            ColorAlpha(Color{30, 30, 40, 255}, 0.95f),
+            UITheme::PRIMARY
+        );
+
+        // Create Master Volume Slider
+        auto master_slider = std::make_unique<Slider>(
+            50, SLIDER_START_Y, 
+            MENU_WIDTH - 150, SLIDER_HEIGHT,
+            0.0f, 1.0f, "Master Volume"
+        );
+        master_slider->SetValue(master_volume_);
+        master_slider->SetValueChangedCallback([this](float value) {
+            master_volume_ = value;
+            auto& audio_mgr = audio::AudioManager::GetInstance();
+            audio_mgr.SetMasterVolume(value);
+            SaveSettings();
+        });
+        master_slider_ = master_slider.get();
+        interactive_elements_.push_back(master_slider_);
+        settings_panel_->AddChild(std::move(master_slider));
+
+        // Create Music Volume Slider
+        auto music_slider = std::make_unique<Slider>(
+            50, SLIDER_START_Y + SLIDER_HEIGHT + SLIDER_SPACING,
+            MENU_WIDTH - 150, SLIDER_HEIGHT,
+            0.0f, 1.0f, "Music Volume"
+        );
+        music_slider->SetValue(music_volume_);
+        music_slider->SetValueChangedCallback([this](float value) {
+            music_volume_ = value;
+            auto& audio_mgr = audio::AudioManager::GetInstance();
+            audio_mgr.SetVolume(audio::AudioType::Music, value);
+            SaveSettings();
+        });
+        music_slider_ = music_slider.get();
+        interactive_elements_.push_back(music_slider_);
+        settings_panel_->AddChild(std::move(music_slider));
+
+        // Create SFX Volume Slider
+        auto sfx_slider = std::make_unique<Slider>(
+            50, SLIDER_START_Y + 2 * (SLIDER_HEIGHT + SLIDER_SPACING),
+            MENU_WIDTH - 150, SLIDER_HEIGHT,
+            0.0f, 1.0f, "Sound Effects"
+        );
+        sfx_slider->SetValue(sfx_volume_);
+        sfx_slider->SetValueChangedCallback([this](float value) {
+            sfx_volume_ = value;
+            auto& audio_mgr = audio::AudioManager::GetInstance();
+            audio_mgr.SetVolume(audio::AudioType::SFX, value);
+            audio_mgr.PlaySFX(audio::AudioCue::MenuConfirm);
+            SaveSettings();
+        });
+        sfx_slider_ = sfx_slider.get();
+        interactive_elements_.push_back(sfx_slider_);
+        settings_panel_->AddChild(std::move(sfx_slider));
+
+        // Create Mute All Checkbox
+        auto mute_all_checkbox = std::make_unique<Checkbox>(
+            50, CHECKBOX_START_Y, "Mute All Audio"
+        );
+        mute_all_checkbox->SetChecked(mute_all_);
+        mute_all_checkbox->SetToggleCallback([this](bool checked) {
+            mute_all_ = checked;
+            ApplyAudioSettings();
+            SaveSettings();
+        });
+        mute_all_checkbox_ = mute_all_checkbox.get();
+        interactive_elements_.push_back(mute_all_checkbox_);
+        settings_panel_->AddChild(std::move(mute_all_checkbox));
+
+        // Create Mute Music Checkbox
+        auto mute_music_checkbox = std::make_unique<Checkbox>(
+            50, CHECKBOX_START_Y + CHECKBOX_HEIGHT + CHECKBOX_SPACING,
+            "Mute Music"
+        );
+        mute_music_checkbox->SetChecked(mute_music_);
+        mute_music_checkbox->SetToggleCallback([this](bool checked) {
+            mute_music_ = checked;
+            ApplyAudioSettings();
+            SaveSettings();
+        });
+        mute_music_checkbox_ = mute_music_checkbox.get();
+        interactive_elements_.push_back(mute_music_checkbox_);
+        settings_panel_->AddChild(std::move(mute_music_checkbox));
+
+        // Create Mute SFX Checkbox
+        auto mute_sfx_checkbox = std::make_unique<Checkbox>(
+            50, CHECKBOX_START_Y + 2 * (CHECKBOX_HEIGHT + CHECKBOX_SPACING),
+            "Mute Sound Effects"
+        );
+        mute_sfx_checkbox->SetChecked(mute_sfx_);
+        mute_sfx_checkbox->SetToggleCallback([this](bool checked) {
+            mute_sfx_ = checked;
+            ApplyAudioSettings();
+            SaveSettings();
+        });
+        mute_sfx_checkbox_ = mute_sfx_checkbox.get();
+        interactive_elements_.push_back(mute_sfx_checkbox_);
+        settings_panel_->AddChild(std::move(mute_sfx_checkbox));
+
+        // Create Enable Ambient Checkbox
+        auto enable_ambient_checkbox = std::make_unique<Checkbox>(
+            50, CHECKBOX_START_Y + 3 * (CHECKBOX_HEIGHT + CHECKBOX_SPACING),
+            "Enable Ambient Sounds"
+        );
+        enable_ambient_checkbox->SetChecked(enable_ambient_);
+        enable_ambient_checkbox->SetToggleCallback([this](bool checked) {
+            enable_ambient_ = checked;
+            SaveSettings();
+        });
+        enable_ambient_checkbox_ = enable_ambient_checkbox.get();
+        interactive_elements_.push_back(enable_ambient_checkbox_);
+        settings_panel_->AddChild(std::move(enable_ambient_checkbox));
+
+        // Create Back Button
+        auto back_button = std::make_unique<Button>(
+            (MENU_WIDTH - 150) / 2, BACK_BUTTON_Y,
+            150, 50,
+            "Back",
+            ColorAlpha(UITheme::BUTTON_BACKGROUND, 0.5f),
+            UITheme::BUTTON_BORDER
+        );
+        back_button->SetFontSize(UITheme::FONT_SIZE_MEDIUM);
+        back_button->SetTextColor(UITheme::TEXT_SECONDARY);
+        back_button->SetClickCallback([this]() {
+            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
+            if (back_callback_) {
+                back_callback_();
+            }
+        });
+        back_button_ = back_button.get();
+        interactive_elements_.push_back(back_button_);
+        settings_panel_->AddChild(std::move(back_button));
+
+        UpdateLayout();
+        UpdateSelection(selected_index_);
         ApplyAudioSettings();
     }
 
-    AudioSettingsMenu::~AudioSettingsMenu() {
-        // Settings are saved automatically by UserPreferences
+    AudioSettingsMenu::~AudioSettingsMenu() = default;
+
+    void AudioSettingsMenu::UpdateLayout() {
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        
+        const int panel_x = (screen_width - MENU_WIDTH) / 2;
+        const int panel_y = (screen_height - MENU_HEIGHT) / 2;
+        
+        settings_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+        settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(MENU_HEIGHT));
+
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+    }
+
+    void AudioSettingsMenu::UpdateSelection(int new_selection) {
+        // Clear old selection
+        if (selected_index_ >= 0 && selected_index_ < static_cast<int>(interactive_elements_.size())) {
+            interactive_elements_[selected_index_]->SetFocused(false);
+        }
+        
+        // Set new selection
+        selected_index_ = new_selection;
+        if (selected_index_ >= 0 && selected_index_ < static_cast<int>(interactive_elements_.size())) {
+            interactive_elements_[selected_index_]->SetFocused(true);
+        }
     }
 
     void AudioSettingsMenu::Update(const float delta_time) {
         animation_time_ += delta_time;
+        
+        // Update panel
+        settings_panel_->Update(delta_time);
+
+        // Check for window resize
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+            UpdateLayout();
+        }
+        
+        // Update sliders (for dragging state)
+        if (master_slider_) master_slider_->Update(delta_time);
+        if (music_slider_) music_slider_->Update(delta_time);
+        if (sfx_slider_) sfx_slider_->Update(delta_time);
+        if (back_button_) back_button_->Update(delta_time);
     }
 
     void AudioSettingsMenu::SyncWithAudioManager() {
@@ -36,324 +228,107 @@ namespace towerforge::ui {
             master_volume_ = audio_mgr.GetMasterVolume();
             music_volume_ = audio_mgr.GetVolume(audio::AudioType::Music);
             sfx_volume_ = audio_mgr.GetVolume(audio::AudioType::SFX);
+            
+            // Update slider values without triggering callbacks
+            if (master_slider_) master_slider_->SetValue(master_volume_);
+            if (music_slider_) music_slider_->SetValue(music_volume_);
+            if (sfx_slider_) sfx_slider_->SetValue(sfx_volume_);
         }
     }
 
     void AudioSettingsMenu::Render() {
-        RenderBackground();
-        RenderHeader();
-        RenderVolumeControls();
-        RenderToggleControls();
-        RenderBackButton();
-    }
-
-    void AudioSettingsMenu::RenderBackground() {
+        // Draw semi-transparent background overlay
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
+        batch_renderer::adapter::DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.7f));
 
-        // Semi-transparent background overlay
-        DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.7f));
+        // Render the panel (which renders all children)
+        settings_panel_->Render();
 
-        // Main menu panel
-        const int menu_x = (screen_width - MENU_WIDTH) / 2;
-        const int menu_y = (screen_height - (MENU_HEIGHT + 100)) / 2 - 30;
-
-        DrawRectangle(menu_x, menu_y, MENU_WIDTH, MENU_HEIGHT + 100, ColorAlpha(Color{30, 30, 40, 255}, 0.95f));
-        DrawRectangleLines(menu_x, menu_y, MENU_WIDTH, MENU_HEIGHT + 100, GOLD);
-    }
-
-    void AudioSettingsMenu::RenderHeader() {
-        const int screen_width = GetScreenWidth();
-
-        const auto title = "AUDIO SETTINGS";
+        // Draw header (on top of panel)
+        const int panel_x = (screen_width - MENU_WIDTH) / 2;
+        const int panel_y = (screen_height - MENU_HEIGHT) / 2;
+        
+        const char* title = "AUDIO SETTINGS";
         const int title_width = MeasureText(title, 32);
-        DrawText(title, (screen_width - title_width) / 2, 100, 32, GOLD);
-
-        // Underline
+        batch_renderer::adapter::DrawText(title, panel_x + (MENU_WIDTH - title_width) / 2, panel_y + 30, 32, UITheme::PRIMARY);
+        
         const int line_width = title_width + 40;
-        const int line_x = (screen_width - line_width) / 2;
-        DrawRectangle(line_x, 140, line_width, 2, GOLD);
+        const int line_x = panel_x + (MENU_WIDTH - line_width) / 2;
+        batch_renderer::adapter::DrawRectangle(line_x, panel_y + 70, line_width, 2, UITheme::PRIMARY);
     }
 
-    void AudioSettingsMenu::RenderVolumeControls() const {
-        RenderVolumeSlider("Master Volume", master_volume_, SLIDER_START_Y, selected_option_ == 0);
-        RenderVolumeSlider("Music Volume", music_volume_, SLIDER_START_Y + SLIDER_HEIGHT + SLIDER_SPACING, selected_option_ == 1);
-        RenderVolumeSlider("Sound Effects", sfx_volume_, SLIDER_START_Y + 2 * (SLIDER_HEIGHT + SLIDER_SPACING), selected_option_ == 2);
-    }
-
-    void AudioSettingsMenu::RenderVolumeSlider(const char* label, const float value, const int y_pos, const bool is_selected) const {
-        const int screen_width = GetScreenWidth();
-        const int slider_x = (screen_width - 400) / 2;
-
-        // Label
-        const Color label_color = is_selected ? GOLD : LIGHTGRAY;
-        DrawText(label, slider_x, y_pos, 20, label_color);
-
-        // Slider background
-        const int slider_bar_y = y_pos + 30;
-        constexpr int slider_bar_width = 350;
-        const Color bg_color = is_selected ? ColorAlpha(GOLD, 0.2f) : ColorAlpha(DARKGRAY, 0.3f);
-        DrawRectangle(slider_x, slider_bar_y, slider_bar_width, 10, bg_color);
-
-        // Slider fill
-        const int fill_width = static_cast<int>(slider_bar_width * value);
-        const Color fill_color = is_selected ? GOLD : GRAY;
-        DrawRectangle(slider_x, slider_bar_y, fill_width, 10, fill_color);
-
-        // Slider thumb
-        const int thumb_x = slider_x + fill_width - 5;
-        DrawCircle(thumb_x + 5, slider_bar_y + 5, 8, is_selected ? GOLD : WHITE);
-
-        // Value percentage
-        char value_text[16];
-        snprintf(value_text, sizeof(value_text), "%d%%", static_cast<int>(value * 100));
-        int value_width = MeasureText(value_text, 18);
-        DrawText(value_text, slider_x + slider_bar_width + 20, y_pos + 25, 18, label_color);
-
-        // Selection indicator
-        if (is_selected) {
-            const float pulse = 0.5f + 0.5f * sinf(animation_time_ * 4.0f);
-            DrawText(">", slider_x - 30, y_pos, 24, ColorAlpha(GOLD, pulse));
-        }
-    }
-
-    void AudioSettingsMenu::RenderBackButton() const {
-        const int screen_width = GetScreenWidth();
-        const int button_x = (screen_width - BACK_BUTTON_WIDTH) / 2;
-
-        const bool is_selected = selected_option_ == 7;
-
-        // Button background
-        const Color bg_color = is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f);
-        DrawRectangle(button_x, BACK_BUTTON_Y, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, bg_color);
-
-        // Button border
-        const Color border_color = is_selected ? GOLD : GRAY;
-        int border_thickness = is_selected ? 3 : 2;
-        DrawRectangleLines(button_x, BACK_BUTTON_Y, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, border_color);
-
-        // Button text
-        const auto text = "Back";
-        const int text_width = MeasureText(text, 20);
-        const Color text_color = is_selected ? GOLD : LIGHTGRAY;
-        DrawText(text, button_x + (BACK_BUTTON_WIDTH - text_width) / 2,
-                 BACK_BUTTON_Y + (BACK_BUTTON_HEIGHT - 20) / 2, 20, text_color);
-
-        // Selection indicator
-        if (is_selected) {
-            const float pulse = 0.5f + 0.5f * sinf(animation_time_ * 4.0f);
-            DrawText(">", button_x - 30, BACK_BUTTON_Y + 12, 24, ColorAlpha(GOLD, pulse));
-        }
-
-        // Instructions
-        const int screen_height = GetScreenHeight();
-        const auto instruction = "Arrow Keys: Navigate | LEFT/RIGHT: Adjust | SPACE: Toggle | ESC/ENTER: Back";
-        const int instruction_width = MeasureText(instruction, 14);
-        DrawText(instruction, (screen_width - instruction_width) / 2,
-                 screen_height - 50, 14, LIGHTGRAY);
-    }
-
-    void AudioSettingsMenu::RenderToggleControls() const {
-        RenderCheckbox("[ ] Mute All", mute_all_, CHECKBOX_START_Y, selected_option_ == 3);
-        RenderCheckbox("[ ] Mute Music", mute_music_, CHECKBOX_START_Y + CHECKBOX_HEIGHT + CHECKBOX_SPACING, selected_option_ == 4);
-        RenderCheckbox("[ ] Mute SFX", mute_sfx_, CHECKBOX_START_Y + 2 * (CHECKBOX_HEIGHT + CHECKBOX_SPACING), selected_option_ == 5);
-        RenderCheckbox("[ ] Enable Ambient Sound", enable_ambient_, CHECKBOX_START_Y + 3 * (CHECKBOX_HEIGHT + CHECKBOX_SPACING), selected_option_ == 6);
-    }
-
-    void AudioSettingsMenu::RenderCheckbox(const char* label, const bool checked, const int y_pos, const bool is_selected) const {
-        const int screen_width = GetScreenWidth();
-        const int checkbox_x = (screen_width - 400) / 2;
-
-        // Checkbox box
-        constexpr int box_size = 20;
-        const Color box_color = is_selected ? GOLD : LIGHTGRAY;
-        DrawRectangleLines(checkbox_x, y_pos + 5, box_size, box_size, box_color);
-
-        // Checkbox fill if checked
-        if (checked) {
-            DrawRectangle(checkbox_x + 4, y_pos + 9, box_size - 8, box_size - 8, is_selected ? GOLD : GRAY);
-        }
-
-        // Label
-        const Color label_color = is_selected ? GOLD : LIGHTGRAY;
-        DrawText(label, checkbox_x + box_size + 10, y_pos + 5, 18, label_color);
-
-        // Selection indicator
-        if (is_selected) {
-            const float pulse = 0.5f + 0.5f * sinf(animation_time_ * 4.0f);
-            DrawText(">", checkbox_x - 30, y_pos, 24, ColorAlpha(GOLD, pulse));
-        }
-    }
-
-    bool AudioSettingsMenu::HandleKeyboard() {
-        // Navigate up
+    void AudioSettingsMenu::HandleKeyboard() {
+        // Navigate up/down through interactive elements
         if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            selected_option_--;
-            if (selected_option_ < 0) {
-                selected_option_ = 7;
+            int new_selection = selected_index_ - 1;
+            if (new_selection < 0) {
+                new_selection = static_cast<int>(interactive_elements_.size()) - 1;
             }
-            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClick);
+            UpdateSelection(new_selection);
         }
-
-        // Navigate down
+        
         if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            selected_option_++;
-            if (selected_option_ > 7) {
-                selected_option_ = 0;
+            int new_selection = selected_index_ + 1;
+            if (new_selection >= static_cast<int>(interactive_elements_.size())) {
+                new_selection = 0;
             }
-            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClick);
+            UpdateSelection(new_selection);
         }
 
-        // Adjust volume with left/right arrows
-        if (selected_option_ >= 0 && selected_option_ <= 2) {
-            float* volume_ptr = nullptr;
-            if (selected_option_ == 0) volume_ptr = &master_volume_;
-            else if (selected_option_ == 1) volume_ptr = &music_volume_;
-            else if (selected_option_ == 2) volume_ptr = &sfx_volume_;
-
-            if (volume_ptr) {
-                bool volume_changed = false;
-                if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
-                    *volume_ptr -= 0.1f;
-                    if (*volume_ptr < 0.0f) *volume_ptr = 0.0f;
-                    volume_changed = true;
-                    ApplyAudioSettings();
-                    SaveSettings();
-                }
-                if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
-                    *volume_ptr += 0.1f;
-                    if (*volume_ptr > 1.0f) *volume_ptr = 1.0f;
-                    volume_changed = true;
-                }
-
-                // Apply changes to AudioManager
-                if (volume_changed) {
-                    auto& audio_mgr = audio::AudioManager::GetInstance();
-                    if (selected_option_ == 0) {
-                        audio_mgr.SetMasterVolume(master_volume_);
-                    } else if (selected_option_ == 1) {
-                        audio_mgr.SetVolume(audio::AudioType::Music, music_volume_);
-                    } else if (selected_option_ == 2) {
-                        audio_mgr.SetVolume(audio::AudioType::SFX, sfx_volume_);
-                        // Play test sound
-                        audio_mgr.PlaySFX(audio::AudioCue::MenuConfirm);
-                    }
-                    ApplyAudioSettings();
-                    SaveSettings();
+        // Let focused element handle its own input
+        if (selected_index_ >= 0 && selected_index_ < static_cast<int>(interactive_elements_.size())) {
+            UIElement* focused = interactive_elements_[selected_index_];
+            
+            // Try as Slider first
+            if (auto* slider = dynamic_cast<Slider*>(focused)) {
+                slider->HandleKeyboard();
+            }
+            // Try as Checkbox
+            else if (auto* checkbox = dynamic_cast<Checkbox*>(focused)) {
+                checkbox->HandleKeyboard();
+            }
+            // Try as Button
+            else if (auto* button = dynamic_cast<Button*>(focused)) {
+                if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+                    MouseEvent fake_event(0, 0, false, false, true, false);
+                    button->OnClick(fake_event);
                 }
             }
         }
 
-        // Toggle checkboxes with space
-        if (selected_option_ >= 3 && selected_option_ <= 6) {
-            if (IsKeyPressed(KEY_SPACE)) {
-                if (selected_option_ == 3) mute_all_ = !mute_all_;
-                else if (selected_option_ == 4) mute_music_ = !mute_music_;
-                else if (selected_option_ == 5) mute_sfx_ = !mute_sfx_;
-                else if (selected_option_ == 6) enable_ambient_ = !enable_ambient_;
-                ApplyAudioSettings();
-                SaveSettings();
-            }
-        }
-
-        // Back with ESC or ENTER on back button
+        // ESC to go back
         if (IsKeyPressed(KEY_ESCAPE)) {
-            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClose);
-            return true;
-        }
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            if (selected_option_ == 7) {
-                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
-                return true;
+            if (back_callback_) {
+                back_callback_();
             }
         }
-
-        return false;
     }
 
-    bool AudioSettingsMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        const int screen_width = GetScreenWidth();
-        const int button_x = (screen_width - BACK_BUTTON_WIDTH) / 2;
+    void AudioSettingsMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
+        // Create mouse event
+        const MouseEvent event(
+            static_cast<float>(mouse_x),
+            static_cast<float>(mouse_y),
+            false,
+            false,
+            clicked,
+            false
+        );
 
-        // Check back button hover
-        if (mouse_x >= button_x && mouse_x <= button_x + BACK_BUTTON_WIDTH &&
-            mouse_y >= BACK_BUTTON_Y && mouse_y <= BACK_BUTTON_Y + BACK_BUTTON_HEIGHT) {
-            selected_option_ = 7;
-            if (clicked) {
-                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
-                return true;
+        // Process through panel (handles all children)
+        settings_panel_->ProcessMouseEvent(event);
+
+        // Update selection based on hover
+        for (size_t i = 0; i < interactive_elements_.size(); ++i) {
+            if (interactive_elements_[i]->IsHovered()) {
+                UpdateSelection(static_cast<int>(i));
+                break;
             }
         }
-
-        // Check volume sliders
-        const int slider_x = (screen_width - 400) / 2;
-        constexpr int slider_bar_width = 350;
-
-        for (int i = 0; i < 3; i++) {
-            const int slider_y = SLIDER_START_Y + i * (SLIDER_HEIGHT + SLIDER_SPACING);
-            const int slider_bar_y = slider_y + 30;
-
-            if (mouse_x >= slider_x && mouse_x <= slider_x + slider_bar_width &&
-                mouse_y >= slider_y && mouse_y <= slider_y + SLIDER_HEIGHT) {
-                selected_option_ = i;
-
-                // If clicked, adjust volume based on click position
-                if (clicked && mouse_y >= slider_bar_y && mouse_y <= slider_bar_y + 10) {
-                    float new_value = static_cast<float>(mouse_x - slider_x) / slider_bar_width;
-                    if (new_value < 0.0f) new_value = 0.0f;
-                    if (new_value > 1.0f) new_value = 1.0f;
-
-                    auto& audio_mgr = audio::AudioManager::GetInstance();
-
-                    if (i == 0) {
-                        master_volume_ = new_value;
-                        audio_mgr.SetMasterVolume(master_volume_);
-                    }
-                    else if (i == 1) {
-                        music_volume_ = new_value;
-                        audio_mgr.SetVolume(audio::AudioType::Music, music_volume_);
-                    }
-                    else if (i == 2) {
-                        sfx_volume_ = new_value;
-                        audio_mgr.SetVolume(audio::AudioType::SFX, sfx_volume_);
-                        // Play test sound
-                        audio_mgr.PlaySFX(audio::AudioCue::MenuConfirm);
-                    }
-
-                    ApplyAudioSettings();
-                    SaveSettings();
-                }
-            }
-        }
-
-        // Check checkboxes
-        const int checkbox_x = (screen_width - 400) / 2;
-        int box_size = 20;
-
-        for (int i = 0; i < 4; i++) {
-            const int checkbox_y = CHECKBOX_START_Y + i * (CHECKBOX_HEIGHT + CHECKBOX_SPACING);
-
-            if (mouse_x >= checkbox_x && mouse_x <= checkbox_x + 300 &&
-                mouse_y >= checkbox_y && mouse_y <= checkbox_y + CHECKBOX_HEIGHT) {
-                selected_option_ = i + 3;
-
-                if (clicked) {
-                    if (i == 0) mute_all_ = !mute_all_;
-                    else if (i == 1) mute_music_ = !mute_music_;
-                    else if (i == 2) mute_sfx_ = !mute_sfx_;
-                    else if (i == 3) enable_ambient_ = !enable_ambient_;
-
-                    ApplyAudioSettings();
-                    SaveSettings();
-                }
-            }
-        }
-
-        return false;
     }
 
     void AudioSettingsMenu::LoadSettings() {
-        // Load from unified UserPreferences
         auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
         master_volume_ = prefs.GetMasterVolume();
         music_volume_ = prefs.GetMusicVolume();
@@ -365,7 +340,6 @@ namespace towerforge::ui {
     }
 
     void AudioSettingsMenu::SaveSettings() const {
-        // Save to unified UserPreferences
         auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
         prefs.SetMasterVolume(master_volume_);
         prefs.SetMusicVolume(music_volume_);
@@ -377,16 +351,9 @@ namespace towerforge::ui {
     }
 
     void AudioSettingsMenu::ApplyAudioSettings() {
-        // Apply master volume (this affects all audio)
         const float effective_master = mute_all_ ? 0.0f : master_volume_;
         SetMasterVolume(effective_master);
         SyncWithAudioManager();
-
-        // Note: Raylib doesn't have separate SetMusicVolume/SetSoundVolume functions
-        // that persist globally. Instead, you need to set volume on individual
-        // Music/Sound instances. For now, we just control master volume.
-        // The mute_music_, mute_sfx_, and enable_ambient_ flags would be used
-        // when actually playing audio to determine if individual sounds should play.
     }
 
 }

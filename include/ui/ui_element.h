@@ -449,4 +449,169 @@ namespace towerforge::ui {
         static constexpr int BUTTON_HEIGHT = 40;
     };
 
+    /**
+     * @brief Slider class - interactive horizontal slider for value adjustment
+     * 
+     * Provides a draggable slider for adjusting numeric values within a range.
+     * Supports mouse drag and keyboard adjustment.
+     * Implements Observer pattern via value change callback.
+     */
+    class Slider : public UIElement {
+    public:
+        /**
+         * @brief Callback type for value changes
+         */
+        using ValueChangedCallback = std::function<void(float)>;
+
+        /**
+         * @brief Construct a slider
+         * @param relative_x X position relative to parent
+         * @param relative_y Y position relative to parent
+         * @param width Width of the slider
+         * @param height Height of the slider (label + bar)
+         * @param min_value Minimum value
+         * @param max_value Maximum value
+         * @param label Label text displayed above slider
+         */
+        Slider(float relative_x, float relative_y, float width, float height,
+               float min_value, float max_value, const std::string& label = "");
+
+        /**
+         * @brief Render the slider
+         */
+        void Render() const override;
+
+        /**
+         * @brief Update slider state
+         * @param delta_time Time elapsed since last frame
+         */
+        void Update(float delta_time);
+
+        /**
+         * @brief Handle hover event
+         */
+        bool OnHover(const MouseEvent& event) override;
+
+        /**
+         * @brief Handle click/drag event
+         */
+        bool OnClick(const MouseEvent& event) override;
+
+        /**
+         * @brief Set value change callback
+         */
+        void SetValueChangedCallback(ValueChangedCallback callback) { value_changed_callback_ = callback; }
+
+        /**
+         * @brief Set current value (normalized 0.0-1.0)
+         */
+        void SetValue(float value);
+
+        /**
+         * @brief Get current value (normalized 0.0-1.0)
+         */
+        float GetValue() const { return value_; }
+
+        /**
+         * @brief Set label text
+         */
+        void SetLabel(const std::string& label) { label_ = label; }
+
+        /**
+         * @brief Get label text
+         */
+        const std::string& GetLabel() const { return label_; }
+
+        /**
+         * @brief Handle keyboard input for value adjustment
+         * @return true if input was handled
+         */
+        bool HandleKeyboard();
+
+    private:
+        std::string label_;
+        float min_value_;
+        float max_value_;
+        float value_;               // Normalized value (0.0 - 1.0)
+        bool is_dragging_;
+        ValueChangedCallback value_changed_callback_;
+
+        static constexpr int LABEL_HEIGHT = 20;
+        static constexpr int BAR_HEIGHT = 10;
+        static constexpr int THUMB_RADIUS = 8;
+    };
+
+    /**
+     * @brief Checkbox class - interactive checkbox for boolean values
+     * 
+     * Provides a clickable checkbox with label for toggling boolean states.
+     * Supports keyboard toggle.
+     * Implements Observer pattern via toggle callback.
+     */
+    class Checkbox : public UIElement {
+    public:
+        /**
+         * @brief Callback type for toggle events
+         */
+        using ToggleCallback = std::function<void(bool)>;
+
+        /**
+         * @brief Construct a checkbox
+         * @param relative_x X position relative to parent
+         * @param relative_y Y position relative to parent
+         * @param label Label text displayed next to checkbox
+         */
+        Checkbox(float relative_x, float relative_y, const std::string& label = "");
+
+        /**
+         * @brief Render the checkbox
+         */
+        void Render() const override;
+
+        /**
+         * @brief Handle click event
+         */
+        bool OnClick(const MouseEvent& event) override;
+
+        /**
+         * @brief Set toggle callback
+         */
+        void SetToggleCallback(ToggleCallback callback) { toggle_callback_ = callback; }
+
+        /**
+         * @brief Set checked state
+         */
+        void SetChecked(bool checked);
+
+        /**
+         * @brief Get checked state
+         */
+        bool IsChecked() const { return checked_; }
+
+        /**
+         * @brief Set label text
+         */
+        void SetLabel(const std::string& label) { label_ = label; }
+
+        /**
+         * @brief Get label text
+         */
+        const std::string& GetLabel() const { return label_; }
+
+        /**
+         * @brief Handle keyboard input for toggle
+         * @return true if input was handled
+         */
+        bool HandleKeyboard();
+
+    private:
+        std::string label_;
+        bool checked_;
+        ToggleCallback toggle_callback_;
+
+        static constexpr int BOX_SIZE = 20;
+        static constexpr int LABEL_SPACING = 10;
+        static constexpr int HEIGHT = 30;
+    };
+
 }
