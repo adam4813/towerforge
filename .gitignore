@@ -54,3 +54,6 @@ user_preferences.json
 
 # Assets (audio, textures, etc. - add manually if needed)
 assets/
+
+# Temporary screenshot files (organized screenshots go in screenshots/)
+towerforge_screenshot.png
