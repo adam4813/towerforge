@@ -94,6 +94,9 @@ int main(int argc, char* argv[]) {
     auto& grid = ecs_world.GetTowerGrid();
     auto& facility_mgr = ecs_world.GetFacilityManager();
     
+    // Add more floors to accommodate our demo facilities
+    grid.AddFloors(4); // Now we have 5 floors total (0-4)
+    
     // Create facilities using the FacilityManager
     auto lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0);
     auto office = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2);
@@ -193,15 +196,29 @@ int main(int argc, char* argv[]) {
         constexpr int cell_width = 30;
         constexpr int cell_height = 40;
         
+        // Helper function to convert floor index to screen Y coordinate
+        const int ground_floor_screen_y = grid_offset_y + (grid.GetFloorCount() / 2) * cell_height;
+        auto FloorToScreenY = [ground_floor_screen_y, cell_height](int floor) -> int {
+            return ground_floor_screen_y - (floor * cell_height);
+        };
+        
+        // Draw background (sky above ground, earth below)
+        const int ground_y = FloorToScreenY(0);
+        DrawRectangle(0, 0, 800, ground_y, Color{135, 206, 235, 255}); // Sky
+        DrawRectangle(0, ground_y + cell_height, 800, 600, Color{101, 67, 33, 255}); // Earth
+        
         // Draw grid lines
         for (int floor = 0; floor < 6; floor++) {
-            int y = grid_offset_y + floor * cell_height;
+            int y = FloorToScreenY(floor);
             DrawLine(grid_offset_x, y, grid_offset_x + 600, y, GRAY);
         }
         
         for (int col = 0; col <= 20; col++) {
             int x = grid_offset_x + col * cell_width;
-            DrawLine(x, grid_offset_y, x, grid_offset_y + 5 * cell_height, GRAY);
+            // Draw vertical lines from lowest to highest floor
+            int y_start = FloorToScreenY(0) + cell_height;
+            int y_end = FloorToScreenY(4);
+            DrawLine(x, y_start, x, y_end, GRAY);
         }
         
         // Draw occupied cells (facilities)
@@ -209,7 +226,7 @@ int main(int argc, char* argv[]) {
             for (int col = 0; col < 20; col++) {
                 if (grid.IsOccupied(floor, col)) {
                     int x = grid_offset_x + col * cell_width + 2;
-                    int y = grid_offset_y + floor * cell_height + 2;
+                    int y = FloorToScreenY(floor) + 2;
                     
                     // Get facility type and color from facility manager
                     int facilityId = grid.GetFacilityAt(floor, col);
@@ -256,7 +273,7 @@ int main(int argc, char* argv[]) {
             // Draw shaft as vertical column
             for (int floor = shaft.bottom_floor; floor <= shaft.top_floor; ++floor) {
                 const int x = grid_offset_x + shaft.column * cell_width;
-                const int y = grid_offset_y + floor * cell_height;
+                const int y = FloorToScreenY(floor);
                 
                 // Draw shaft background
                 DrawRectangle(x + 4, y + 4, cell_width - 8, cell_height - 8, Color{60, 60, 70, 255});
@@ -273,7 +290,7 @@ int main(int argc, char* argv[]) {
                 const ElevatorShaft& shaft = shaft_entity.ensure<ElevatorShaft>();
 
                 const int x = grid_offset_x + shaft.column * cell_width;
-                const int y = grid_offset_y + static_cast<int>(car.current_floor * cell_height);
+                const int y = FloorToScreenY(static_cast<int>(car.current_floor));
                 
                 // Color based on state
                 Color car_color;
@@ -311,7 +328,7 @@ int main(int argc, char* argv[]) {
         person_query.each([&](flecs::entity e, const Person& person) {
             // Calculate screen position from floor and column
             const int person_x = grid_offset_x + static_cast<int>(person.current_column * cell_width);
-            const int person_y = grid_offset_y + person.current_floor * cell_height + cell_height / 2;
+            const int person_y = FloorToScreenY(person.current_floor) + cell_height / 2;
             
             // Draw person as a circle
             Color person_color;
@@ -342,7 +359,7 @@ int main(int argc, char* argv[]) {
             
             // Draw destination indicator
             const int dest_x = grid_offset_x + static_cast<int>(person.destination_column * cell_width);
-            const int dest_y = grid_offset_y + person.destination_floor * cell_height + cell_height / 2;
+            const int dest_y = FloorToScreenY(person.destination_floor) + cell_height / 2;
             DrawLine(person_x, person_y, dest_x, dest_y, Color{255, 255, 255, 100});
             DrawCircle(dest_x, dest_y, 4, Color{person_color.r, person_color.g, person_color.b, 150});
         });
