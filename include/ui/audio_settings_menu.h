@@ -63,9 +63,12 @@ namespace towerforge::ui {
         void LoadSettings();
         void SaveSettings() const;
         void ApplyAudioSettings();
+        void RenderHeader();
     
         BackCallback back_callback_;
         std::unique_ptr<Panel> settings_panel_;
+        std::unique_ptr<class PanelHeaderOverlay> header_overlay_;
+        std::unique_ptr<class DimOverlay> dim_overlay_;
         std::vector<UIElement*> interactive_elements_;  // Pointers to focusable elements
         
         Slider* master_slider_;
@@ -95,14 +98,14 @@ namespace towerforge::ui {
     
         // Menu layout constants
         static constexpr int MENU_WIDTH = 600;
-        static constexpr int MENU_HEIGHT = 600;
+        static constexpr int MENU_HEIGHT = 650;  // Increased to prevent overlap
         static constexpr int SLIDER_START_Y = 120;
         static constexpr int SLIDER_HEIGHT = 70;
         static constexpr int SLIDER_SPACING = 20;
         static constexpr int CHECKBOX_START_Y = 380;
         static constexpr int CHECKBOX_HEIGHT = 40;
         static constexpr int CHECKBOX_SPACING = 10;
-        static constexpr int BACK_BUTTON_Y = 560;
+        static constexpr int BACK_BUTTON_Y = 580;  // Moved down to avoid overlap with checkboxes
     };
 
 }

@@ -1,9 +1,9 @@
 #include "ui/audio_settings_menu.h"
 #include "ui/ui_theme.h"
-#include "ui/batch_renderer/batch_adapter.h"
+#include "ui/panel_header_overlay.h"
+#include "ui/dim_overlay.h"
 #include "audio/audio_manager.h"
 #include "core/user_preferences.hpp"
-#include <cmath>
 
 namespace towerforge::ui {
 
@@ -31,14 +31,21 @@ namespace towerforge::ui {
         
         LoadSettings();
 
-        // Create main panel (centered on screen)
+        // Create main panel with background and border
+        const Color background_color = ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f);
         settings_panel_ = std::make_unique<Panel>(
             0, 0, MENU_WIDTH, MENU_HEIGHT,
-            ColorAlpha(Color{30, 30, 40, 255}, 0.95f),
-            UITheme::PRIMARY
+            background_color,
+            UITheme::BORDER_ACCENT
         );
+        
+        // Create header overlay
+        header_overlay_ = std::make_unique<PanelHeaderOverlay>("AUDIO SETTINGS");
+        
+        // Create dim overlay
+        dim_overlay_ = std::make_unique<DimOverlay>();
 
-        // Create Master Volume Slider
+        // Create Master Volume Slider - positioned relative to panel (0,0)
         auto master_slider = std::make_unique<Slider>(
             50, SLIDER_START_Y, 
             MENU_WIDTH - 150, SLIDER_HEIGHT,
@@ -55,7 +62,7 @@ namespace towerforge::ui {
         interactive_elements_.push_back(master_slider_);
         settings_panel_->AddChild(std::move(master_slider));
 
-        // Create Music Volume Slider
+        // Create Music Volume Slider - positioned relative to panel (0,0)
         auto music_slider = std::make_unique<Slider>(
             50, SLIDER_START_Y + SLIDER_HEIGHT + SLIDER_SPACING,
             MENU_WIDTH - 150, SLIDER_HEIGHT,
@@ -72,7 +79,7 @@ namespace towerforge::ui {
         interactive_elements_.push_back(music_slider_);
         settings_panel_->AddChild(std::move(music_slider));
 
-        // Create SFX Volume Slider
+        // Create SFX Volume Slider - positioned relative to panel (0,0)
         auto sfx_slider = std::make_unique<Slider>(
             50, SLIDER_START_Y + 2 * (SLIDER_HEIGHT + SLIDER_SPACING),
             MENU_WIDTH - 150, SLIDER_HEIGHT,
@@ -90,7 +97,7 @@ namespace towerforge::ui {
         interactive_elements_.push_back(sfx_slider_);
         settings_panel_->AddChild(std::move(sfx_slider));
 
-        // Create Mute All Checkbox
+        // Create Mute All Checkbox - positioned relative to panel (0,0)
         auto mute_all_checkbox = std::make_unique<Checkbox>(
             50, CHECKBOX_START_Y, "Mute All Audio"
         );
@@ -104,7 +111,7 @@ namespace towerforge::ui {
         interactive_elements_.push_back(mute_all_checkbox_);
         settings_panel_->AddChild(std::move(mute_all_checkbox));
 
-        // Create Mute Music Checkbox
+        // Create Mute Music Checkbox - positioned relative to panel (0,0)
         auto mute_music_checkbox = std::make_unique<Checkbox>(
             50, CHECKBOX_START_Y + CHECKBOX_HEIGHT + CHECKBOX_SPACING,
             "Mute Music"
@@ -119,7 +126,7 @@ namespace towerforge::ui {
         interactive_elements_.push_back(mute_music_checkbox_);
         settings_panel_->AddChild(std::move(mute_music_checkbox));
 
-        // Create Mute SFX Checkbox
+        // Create Mute SFX Checkbox - positioned relative to panel (0,0)
         auto mute_sfx_checkbox = std::make_unique<Checkbox>(
             50, CHECKBOX_START_Y + 2 * (CHECKBOX_HEIGHT + CHECKBOX_SPACING),
             "Mute Sound Effects"
@@ -134,7 +141,7 @@ namespace towerforge::ui {
         interactive_elements_.push_back(mute_sfx_checkbox_);
         settings_panel_->AddChild(std::move(mute_sfx_checkbox));
 
-        // Create Enable Ambient Checkbox
+        // Create Enable Ambient Checkbox - positioned relative to panel (0,0)
         auto enable_ambient_checkbox = std::make_unique<Checkbox>(
             50, CHECKBOX_START_Y + 3 * (CHECKBOX_HEIGHT + CHECKBOX_SPACING),
             "Enable Ambient Sounds"
@@ -148,15 +155,15 @@ namespace towerforge::ui {
         interactive_elements_.push_back(enable_ambient_checkbox_);
         settings_panel_->AddChild(std::move(enable_ambient_checkbox));
 
-        // Create Back Button
+        // Create Back Button - positioned relative to panel (0,0)
         auto back_button = std::make_unique<Button>(
             (MENU_WIDTH - 150) / 2, BACK_BUTTON_Y,
-            150, 50,
+            150, UITheme::BUTTON_HEIGHT_LARGE,
             "Back",
-            ColorAlpha(UITheme::BUTTON_BACKGROUND, 0.5f),
-            UITheme::BUTTON_BORDER
+            UITheme::BUTTON_BACKGROUND,
+            UITheme::BUTTON_BORDER_ACCENT
         );
-        back_button->SetFontSize(UITheme::FONT_SIZE_MEDIUM);
+        back_button->SetFontSize(UITheme::FONT_SIZE_LARGE);
         back_button->SetTextColor(UITheme::TEXT_SECONDARY);
         back_button->SetClickCallback([this]() {
             audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
@@ -237,25 +244,29 @@ namespace towerforge::ui {
     }
 
     void AudioSettingsMenu::Render() {
-        // Draw semi-transparent background overlay
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        batch_renderer::adapter::DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.7f));
+        animation_time_ += GetFrameTime();
 
-        // Render the panel (which renders all children)
+        if (last_screen_width_ != GetScreenWidth() || last_screen_height_ != GetScreenHeight()) {
+            UpdateLayout();
+        }
+
+        // Render dim overlay
+        dim_overlay_->Render();
+
+        // Render the panel (which renders its own background, border, and all children)
         settings_panel_->Render();
 
-        // Draw header (on top of panel)
+        // Render header on top of panel
+        RenderHeader();
+    }
+
+    void AudioSettingsMenu::RenderHeader() {
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
         const int panel_x = (screen_width - MENU_WIDTH) / 2;
         const int panel_y = (screen_height - MENU_HEIGHT) / 2;
-        
-        const char* title = "AUDIO SETTINGS";
-        const int title_width = MeasureText(title, 32);
-        batch_renderer::adapter::DrawText(title, panel_x + (MENU_WIDTH - title_width) / 2, panel_y + 30, 32, UITheme::PRIMARY);
-        
-        const int line_width = title_width + 40;
-        const int line_x = panel_x + (MENU_WIDTH - line_width) / 2;
-        batch_renderer::adapter::DrawRectangle(line_x, panel_y + 70, line_width, 2, UITheme::PRIMARY);
+
+        header_overlay_->Render(panel_x, panel_y, MENU_WIDTH);
     }
 
     void AudioSettingsMenu::HandleKeyboard() {

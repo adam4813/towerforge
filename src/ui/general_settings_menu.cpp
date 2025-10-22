@@ -1,5 +1,8 @@
 #include "ui/general_settings_menu.h"
 #include "ui/ui_element.h"
+#include "ui/ui_theme.h"
+#include "ui/panel_header_overlay.h"
+#include "ui/dim_overlay.h"
 #include "core/accessibility_settings.hpp"
 
 namespace towerforge::ui {
@@ -10,8 +13,14 @@ namespace towerforge::ui {
           , last_screen_height_(0)
           , option_callback_(nullptr) {
         // Create main panel centered on screen
-        const Color background_color = ColorAlpha(Color{30, 30, 40, 255}, 0.95f);
-        settings_panel_ = std::make_unique<Panel>(0, 0, MENU_WIDTH, 600, background_color, GOLD);
+        const Color background_color = ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f);
+        settings_panel_ = std::make_unique<Panel>(0, 0, MENU_WIDTH, 650, background_color, UITheme::BORDER_ACCENT);
+        
+        // Create header overlay
+        header_overlay_ = std::make_unique<PanelHeaderOverlay>("Settings");
+        
+        // Create dim overlay
+        dim_overlay_ = std::make_unique<DimOverlay>();
 
         // Initialize menu items with their options
         menu_items_.push_back({"Audio Settings  >", SettingsOption::Audio});
@@ -32,11 +41,11 @@ namespace towerforge::ui {
                 static_cast<float>(MENU_WIDTH),
                 static_cast<float>(MENU_ITEM_HEIGHT),
                 menu_items_[i].label,
-                ColorAlpha(DARKGRAY, 0.2f),
-                DARKGRAY
+                UITheme::BUTTON_BACKGROUND,
+                UITheme::BUTTON_BORDER
             );
-            button->SetFontSize(24);
-            button->SetTextColor(LIGHTGRAY);
+            button->SetFontSize(UITheme::FONT_SIZE_LARGE);
+            button->SetTextColor(UITheme::TEXT_SECONDARY);
 
             // Set click callback - button triggers option directly
             button->SetClickCallback([this, option = menu_items_[i].option]() {
@@ -93,9 +102,9 @@ namespace towerforge::ui {
                 old_button->SetBorderColor(WHITE);
                 old_button->SetTextColor(WHITE);
             } else {
-                old_button->SetBackgroundColor(ColorAlpha(DARKGRAY, 0.3f));
-                old_button->SetBorderColor(GRAY);
-                old_button->SetTextColor(LIGHTGRAY);
+                old_button->SetBackgroundColor(UITheme::BUTTON_BACKGROUND);
+                old_button->SetBorderColor(UITheme::BUTTON_BORDER);
+                old_button->SetTextColor(UITheme::TEXT_SECONDARY);
             }
         }
 
@@ -133,32 +142,22 @@ namespace towerforge::ui {
     }
 
     void GeneralSettingsMenu::Render() const {
-        // Semi-transparent background overlay
-        DrawRectangle(0, 0, last_screen_width_, last_screen_height_, ColorAlpha(BLACK, 0.7f));
+        // Render dim overlay
+        dim_overlay_->Render();
 
         settings_panel_->Render();
         RenderHeader();
         RenderMenuOptions();
     }
 
-    void GeneralSettingsMenu::RenderHeader() {
+    void GeneralSettingsMenu::RenderHeader() const {
         const int screen_width = GetScreenWidth();
-
-        // Apply font scaling from accessibility settings
-        const auto &accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
-        const float font_scale = accessibility.GetFontScale();
-        const bool high_contrast = accessibility.IsHighContrastEnabled();
-
-        const auto title = "GENERAL SETTINGS MENU";
-        const int scaled_font_size = static_cast<int>(28 * font_scale);
-        const int title_width = MeasureText(title, scaled_font_size);
-        const Color title_color = high_contrast ? YELLOW : GOLD;
-        DrawText(title, (screen_width - title_width) / 2, HEADER_Y, scaled_font_size, title_color);
-
-        // Underline
-        const int line_width = title_width + 40;
-        const int line_x = (screen_width - line_width) / 2;
-        DrawRectangle(line_x, HEADER_Y + 35, line_width, 2, title_color);
+        
+        // Calculate panel position
+        const int panel_x = (screen_width - MENU_WIDTH) / 2;
+        constexpr int menu_y = HEADER_Y - 20;
+        
+        header_overlay_->Render(panel_x, menu_y, MENU_WIDTH);
     }
 
     void GeneralSettingsMenu::RenderMenuOptions() const {
@@ -171,8 +170,8 @@ namespace towerforge::ui {
             const Rectangle bounds = selected_button->GetAbsoluteBounds();
             const int indicator_x = bounds.x - 30;
             const int indicator_y = bounds.y + bounds.height / 2;
-            const int indicator_font_size = static_cast<int>(24 * font_scale);
-            const Color indicator_color = high_contrast ? YELLOW : GOLD;
+            const int indicator_font_size = static_cast<int>(UITheme::FONT_SIZE_LARGE * font_scale);
+            const Color indicator_color = high_contrast ? YELLOW : UITheme::PRIMARY;
             DrawText(">", indicator_x, indicator_y - indicator_font_size / 2,
                      indicator_font_size, ColorAlpha(indicator_color, pulse));
         }
@@ -181,9 +180,9 @@ namespace towerforge::ui {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
         const auto instruction = "UP/DOWN: Navigate | ENTER: Select | ESC: Back";
-        const int instruction_font_size = static_cast<int>(16 * font_scale);
+        const int instruction_font_size = static_cast<int>(UITheme::FONT_SIZE_SMALL * font_scale);
         const int instruction_width = MeasureText(instruction, instruction_font_size);
-        const Color instruction_color = high_contrast ? WHITE : LIGHTGRAY;
+        const Color instruction_color = high_contrast ? WHITE : UITheme::TEXT_SECONDARY;
         DrawText(instruction, (screen_width - instruction_width) / 2,
                  screen_height - 50, instruction_font_size, instruction_color);
     }

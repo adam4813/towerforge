@@ -10,6 +10,8 @@ namespace towerforge::ui {
     // Forward declarations
     class Panel;
     class Button;
+    class PanelHeaderOverlay;
+    class DimOverlay;
 
     /**
      * @brief Settings options available in the general settings menu
@@ -67,7 +69,7 @@ namespace towerforge::ui {
         void HandleMouse(int mouse_x, int mouse_y, bool clicked);
 
     private:
-        static void RenderHeader();
+        void RenderHeader() const;
         void RenderMenuOptions() const;
         void UpdateButtonSelection(int new_selection);
         void UpdateLayout();
@@ -95,6 +97,8 @@ namespace towerforge::ui {
         
         // Settings menu panel with Button children
         std::unique_ptr<Panel> settings_panel_;
+        std::unique_ptr<PanelHeaderOverlay> header_overlay_;
+        std::unique_ptr<DimOverlay> dim_overlay_;
         std::vector<Button*> menu_item_buttons_;  // Raw pointers to buttons (owned by settings_panel_)
     };
 }
