@@ -1133,11 +1133,12 @@ namespace towerforge::core {
                             const auto &facility_type = facility_types[selected];
 
                             // Check specific reason for failure
+                            const int ground_floor_screen_y_temp = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
                             const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
-                            const int rel_y = static_cast<int>(world_y) - grid_offset_y_;
+                            const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y_temp;
 
-                            if (rel_x >= 0 && rel_y >= 0) {
-                                const int clicked_floor = rel_y / cell_height_;
+                            if (rel_x >= 0) {
+                                const int clicked_floor = -rel_y / cell_height_;
                                 const int clicked_column = rel_x / cell_width_;
 
                                 if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
@@ -1162,11 +1163,12 @@ namespace towerforge::core {
                     }
 
                     // Original code for entity selection continues below...
+                    const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
                     const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
-                    const int rel_y = static_cast<int>(world_y) - grid_offset_y_;
+                    const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y;
 
-                    if (rel_x >= 0 && rel_y >= 0) {
-                        const int clicked_floor = rel_y / cell_height_;
+                    if (rel_x >= 0) {
+                        const int clicked_floor = -rel_y / cell_height_;
                         const int clicked_column = rel_x / cell_width_;
 
                         if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
@@ -1175,10 +1177,10 @@ namespace towerforge::core {
                             bool person_clicked = false;
                             const auto person_query = ecs_world_->GetWorld().query<const Person>();
                             person_query.each([&](const flecs::entity e, const Person &person) {
-                                // Calculate person position on screen
+                                // Calculate person position on screen with inverted Y
                                 const int person_x =
                                         grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
-                                const int person_y = grid_offset_y_ + person.current_floor * cell_height_;
+                                const int person_y = ground_floor_screen_y - (person.current_floor * cell_height_);
 
                                 // Check if click is within person's bounds (circle with radius 10)
                                 const int dx = static_cast<int>(world_x) - (person_x + cell_width_ / 2);
