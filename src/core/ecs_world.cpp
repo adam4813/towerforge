@@ -12,6 +12,36 @@ namespace TowerForge::Core {
         : tower_grid_(std::make_unique<TowerGrid>(1, 20, 0)) {  // Start with 1 floor (ground), 20 columns, ground at index 0
     }
 
+    ECSWorld::ECSWorld(const int screen_width, const int screen_height, const int cell_width, const int cell_height) {
+        // Calculate initial dimensions based on screen size
+        // Horizontal cells: approximately one screen width of cells
+        const int initial_columns = std::min(screen_width / cell_width, MAX_HORIZONTAL_CELLS);
+        
+        // Below ground floors: 1 screen height worth of floors
+        const int initial_below_ground = std::min(screen_height / cell_height, MAX_BELOW_GROUND_FLOORS);
+        
+        // Above ground floors: 3 screen heights worth of floors
+        const int initial_above_ground = std::min((screen_height * 3) / cell_height, MAX_ABOVE_GROUND_FLOORS);
+        
+        // Total initial floors = ground floor (1) + above ground + below ground
+        const int initial_floors = initial_above_ground + initial_below_ground;
+        
+        // Ground floor index is offset by basement floors
+        const int ground_floor_index = initial_below_ground;
+        
+        // Create tower grid with calculated dimensions
+        tower_grid_ = std::make_unique<TowerGrid>(initial_floors, initial_columns, ground_floor_index);
+        
+        // Set the initial upgrade limits
+        tower_grid_->SetMaxAboveGroundFloors(initial_above_ground);
+        tower_grid_->SetMaxBelowGroundFloors(initial_below_ground);
+        
+        // Build the initial basement floors
+        for (int i = 0; i < initial_below_ground; ++i) {
+            tower_grid_->AddBasementFloor();
+        }
+    }
+
     ECSWorld::~ECSWorld() {
     }
 

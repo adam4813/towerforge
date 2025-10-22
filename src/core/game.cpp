@@ -464,8 +464,11 @@ namespace towerforge::core {
         audio_manager_->StopMusic(1.0f);
         audio_manager_->PlayMusic(audio::AudioCue::GameplayLoop, true, 2.0f);
 
-        // Create and initialize the ECS world
-        ecs_world_ = std::make_unique<ECSWorld>();
+        // Create and initialize the ECS world with screen-based grid dimensions
+        // Get current screen dimensions (800x600 by default from Initialize)
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        ecs_world_ = std::make_unique<ECSWorld>(screen_width, screen_height, cell_width_, cell_height_);
         ecs_world_->Initialize();
 
         // Create and initialize save/load manager
