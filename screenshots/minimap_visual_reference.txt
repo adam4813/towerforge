@@ -1,0 +1,283 @@
+# Minimap Visual Reference
+
+This file provides a visual representation of the minimap feature in TowerForge.
+
+## Minimap Layout
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                        TowerForge Game View                    │
+│                                                                │
+│                                             ┌──────────────┐   │
+│                                             │  MINIMAP [M] │   │
+│   ┌────────────────┐                       ├──────────────┤   │
+│   │                │                       │              │   │
+│   │                │                       │  ┌────────┐  │   │
+│   │   Game World   │                       │  │ Tower  │  │   │
+│   │   (Facilities, │                       │  │ Bounds │  │   │
+│   │    Elevators,  │                       │  │        │  │   │
+│   │    People)     │                       │  │  ╔═══╗ │  │   │
+│   │                │                       │  │  ║   ║ │  │   │
+│   │                │                       │  │  ║ ◄─╫─┼──┼─┐ │
+│   │                │                       │  │  ╚═══╝ │  │ │ │
+│   └────────────────┘                       │  └────────┘  │ │ │
+│                                             │              │ │ │
+│                                             └──────────────┘ │ │
+│                                                              │ │
+│   ┌──────────────────────────┐                              │ │
+│   │   Camera Controls        │◄─────────────────────────────┘ │
+│   │   [Zoom: 1.0x]          │                                │
+│   │   [Pan: WASD/Arrows]    │                                │
+│   └──────────────────────────┘                                │
+│                                                                │
+└───────────────────────────────────────────────────────────────┘
+
+Legend:
+  ╔═══╗   Yellow viewport indicator (current camera view)
+  │ ◄─╫  Camera position (center of viewport)
+  ┌────┐  Tower bounds (all floors and columns)
+  [M]    Keyboard shortcut to toggle minimap
+```
+
+## Minimap Components
+
+### 1. Background & Border
+- Semi-transparent dark background (85% opacity)
+- Gray border (2px width)
+- Size: 200x150 pixels
+- Position: Top-right corner (10px padding)
+
+### 2. Tower Representation
+```
+┌──────────────┐
+│              │  ← Full tower outline
+│  All floors  │  ← Scaled to fit minimap
+│  All columns │  ← Fixed aspect ratio
+└──────────────┘
+```
+
+### 3. Viewport Indicator
+```
+    ╔═══════╗       Yellow outline (2px)
+    ║       ║       Semi-transparent fill (30%)
+    ║   ◄   ║       Shows camera center
+    ║       ║       Size: scales with zoom
+    ╚═══════╝       
+    
+    Larger = More zoomed out (seeing more of tower)
+    Smaller = More zoomed in (seeing less of tower)
+```
+
+## Interaction Examples
+
+### Example 1: Click to Jump
+```
+Before:                        After:
+┌──────────────┐              ┌──────────────┐
+│              │              │              │
+│  ╔═══╗       │              │       ╔═══╗  │
+│  ║ ◄ ║       │  Click here  │       ║ ◄ ║  │
+│  ╚═══╝    ×  │  ─────────>  │       ╚═══╝  │
+│              │              │              │
+└──────────────┘              └──────────────┘
+    Camera at left               Camera at right
+```
+
+### Example 2: Drag Viewport
+```
+Step 1: Click on viewport   Step 2: Drag          Step 3: Release
+┌──────────────┐            ┌──────────────┐      ┌──────────────┐
+│  ╔═══╗       │            │    ╔═══╗     │      │    ╔═══╗     │
+│  ║ ◄ ║       │            │    ║ ◄ ║     │      │    ║ ◄ ║     │
+│  ╚═══╝       │    ──>     │    ╚═══╝     │  ──> │    ╚═══╝     │
+│              │            │              │      │              │
+└──────────────┘            └──────────────┘      └──────────────┘
+  Click inside               Dragging...            Camera moved
+```
+
+### Example 3: Zoom Changes
+```
+Zoomed Out (0.5x)          Normal (1.0x)           Zoomed In (2.0x)
+┌──────────────┐          ┌──────────────┐         ┌──────────────┐
+│              │          │              │         │              │
+│ ╔══════════╗ │          │  ╔═══════╗  │         │    ╔════╗    │
+│ ║ Large    ║ │          │  ║Medium ║  │         │    ║Tiny║    │
+│ ║ Viewport ║ │          │  ║       ║  │         │    ╚════╝    │
+│ ╚══════════╝ │          │  ╚═══════╝  │         │              │
+└──────────────┘          └──────────────┘         └──────────────┘
+ See more of tower         Normal view             See small area
+```
+
+## Keyboard Shortcuts
+
+```
+Press [M]       →    Toggle minimap visibility
+                     
+┌──────────────┐     ┌──────────────┐
+│  MINIMAP [M] │  ←→ │  (Hidden)    │
+├──────────────┤     └──────────────┘
+│  ╔═══╗       │      Minimap hidden,
+│  ║ ◄ ║       │      more screen space
+│  ╚═══╝       │      for game view
+└──────────────┘     
+```
+
+## Use Cases
+
+### Navigation in Large Towers
+```
+Tower with 20+ floors:
+
+┌──────────────┐
+│ Floor 20  ┐  │  ← Top floors
+│ Floor 19  │  │
+│    ...    │  │
+│ Floor 10  │  │  ← Middle
+│    ...    │  │
+│ Floor 2   │  │
+│ Floor 1   │  │  ← Ground level
+│ Floor 0   ┘  │
+│ Basement -1  │  ← Basements
+└──────────────┘
+
+Yellow viewport shows
+which floors are visible
+on main screen
+```
+
+### Finding Specific Areas
+```
+Looking for a facility:
+
+1. Locate on minimap
+   ┌──────────────┐
+   │       ×      │  ← Target location
+   │              │
+   │  ╔═══╗       │  ← Current view
+   │  ║ ◄ ║       │
+   └──────────────┘
+
+2. Click target location
+   ┌──────────────┐
+   │       ╔═══╗  │  ← Camera jumps
+   │       ║ ◄ ║  │     instantly
+   │              │
+   └──────────────┘
+
+3. Now viewing target area
+```
+
+## Technical Details
+
+### Coordinate Conversion
+```
+World Space          Minimap Space
+(1200 x 800)   →    (160 x 110)
+                     ↑         ↑
+                  Scaled   Centered
+                  to fit   in 200x150
+
+Scale = min(160/1200, 110/800) = 0.1375
+
+World (100, 200) → Minimap (tower_x + 13.75, tower_y + 27.5)
+```
+
+### Viewport Calculation
+```
+Screen: 800x600
+Zoom: 1.0x
+
+Visible area in world:
+  width = 800 / 1.0 = 800
+  height = 600 / 1.0 = 600
+
+In minimap (scale 0.1375):
+  width = 800 * 0.1375 = 110
+  height = 600 * 0.1375 = 82.5
+```
+
+## Future Enhancements
+
+### Possible Additions
+```
+┌──────────────┐
+│  MINIMAP [M] │
+├──────────────┤
+│  ●  ●  ●     │  ← Facility dots
+│     ●        │    (colored by type)
+│  ●     ●     │
+│  │     │     │  ← Elevator shafts
+│  ╔═══╗ │     │    (vertical lines)
+│  ║ ◄ ║ │     │
+│  ╚═══╝ │     │
+│  1 2 3 4 5   │  ← Floor numbers
+└──────────────┘
+
+Legend:
+● Office (blue)
+● Residential (green)
+● Retail (orange)
+│ Elevator shaft
+```
+
+## Accessibility
+
+### High Contrast Mode
+```
+Normal:                   High Contrast:
+┌──────────────┐         ┌──────────────┐
+│  ╔═══╗       │         │  ╔═══╗       │
+│  ║   ║       │         │  ║░░░║       │  ← Brighter fill
+│  ╚═══╝       │         │  ╚═══╝       │  ← Thicker border
+└──────────────┘         └──────────────┘
+   Yellow fill              High contrast
+   (30% opacity)            (50% opacity)
+```
+
+### Keyboard-Only Navigation
+- [M] to toggle
+- No mouse required for basic on/off control
+- Future: Arrow keys to move viewport indicator
+
+### Screen Reader Support (Future)
+- Announce minimap state: "Minimap visible" / "Minimap hidden"
+- Announce viewport position: "Viewing floor 5, column 3"
+- Announce navigation: "Camera moved to floor 10, column 7"
+
+## Performance Notes
+
+The minimap is highly optimized:
+- Simple rectangle drawing (< 10 draw calls)
+- No textures or complex geometry
+- Minimal CPU overhead
+- Updates only when camera moves/zooms
+- No impact on game simulation
+
+## Integration Points
+
+```
+Game Loop:
+  Initialize()
+    └─→ hud.InitializeMinimap(screen, tower_dimensions)
+  
+  Update()
+    └─→ hud.Update(delta_time)
+  
+  HandleInput()
+    ├─→ minimap_handled = hud.HandleMinimapInput(camera)
+    └─→ camera.HandleInput(minimap_handled)
+  
+  Render()
+    ├─→ camera.BeginMode()
+    │   └─→ [Draw game world]
+    ├─→ camera.EndMode()
+    ├─→ hud.Render()
+    ├─→ camera.RenderControlsOverlay()
+    └─→ hud.RenderMinimap(camera)
+```
+
+---
+
+For implementation details, see `docs/MINIMAP.md`
+For camera system info, see `docs/CAMERA_SYSTEM.md`
+For HUD integration, see `docs/HUD.md`

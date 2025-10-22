@@ -34,6 +34,7 @@ Other docs left unchanged (examples / remaining subsystems):
 - `docs/GAME_CLASS_ARCHITECTURE.md`
 - `docs/GENERAL_SETTINGS_MENU_IMPLEMENTATION.md`
 - `docs/HELP_SYSTEM.md` - **NEW**: Contextual Help and Quick Reference System
+- `docs/MINIMAP.md` - **NEW**: Interactive Minimap with Camera Navigation
 - `docs/MODDING_API.md`
 - `docs/NOTIFICATION_CENTER.md` - Notification Center system (NEW)
 - `docs/PAUSE_MENU_IMPLEMENTATION.md`
