@@ -136,19 +136,10 @@ namespace towerforge::ui {
     }
 
     void MainMenu::Render() const {
-        batch_renderer::BatchRenderer::BeginFrame();
-
         RenderBackground();
         RenderTitle();
         RenderMenuOptions();
         RenderVersion();
-
-        const size_t draw_calls = batch_renderer::BatchRenderer::GetDrawCallCount();
-        batch_renderer::adapter::DrawText(TextFormat("Batch Draw Calls: %zu", draw_calls), 10, 10, 16,
-                                          ColorAlpha(GREEN, 0.7f));
-
-        batch_renderer::BatchRenderer::EndFrame();
-        batch_renderer::BatchRenderer::ResetDrawCallCount();
     }
 
     void MainMenu::RenderBackground() const {

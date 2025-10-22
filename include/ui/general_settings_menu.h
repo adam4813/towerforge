@@ -40,7 +40,7 @@ namespace towerforge::ui {
          * @brief Set the callback for option selection
          * @param callback Function to call when an option is selected
          */
-        void SetOptionCallback(OptionCallback callback);
+        void SetOptionCallback(const OptionCallback &callback);
 
         /**
          * @brief Render the general settings menu
@@ -67,7 +67,6 @@ namespace towerforge::ui {
         void HandleMouse(int mouse_x, int mouse_y, bool clicked);
 
     private:
-        void RenderBackground() const;
         static void RenderHeader();
         void RenderMenuOptions() const;
         void UpdateButtonSelection(int new_selection);

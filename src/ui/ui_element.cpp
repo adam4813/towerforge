@@ -15,7 +15,7 @@ namespace towerforge::ui {
     }
 
     Rectangle UIElement::GetAbsoluteBounds() const {
-        Rectangle bounds = {relative_x_, relative_y_, width_, height_};
+        Rectangle bounds = GetRelativeBounds();
 
         // Walk up the parent chain to calculate absolute position
         const UIElement *current_parent = parent_;
@@ -73,17 +73,18 @@ namespace towerforge::ui {
         const bool was_hovered = is_hovered_;
         is_hovered_ = Contains(event.x, event.y);
 
-        // If mouse is not over this element or any children, nothing to do
-        if (!is_hovered_) {
-            return false;
-        }
-
         // Bubble-down: Process children first (reverse order so top children get events first)
+        // Always process children even if parent isn't hovered, so they can clear their hover state
         for (auto it = children_.rbegin(); it != children_.rend(); ++it) {
             if ((*it)->ProcessMouseEvent(event)) {
                 // Event was consumed by a child
                 return true;
             }
+        }
+
+        // If mouse is not over this element, we're done (children already processed)
+        if (!is_hovered_) {
+            return false;
         }
 
         // Process hover event for this element

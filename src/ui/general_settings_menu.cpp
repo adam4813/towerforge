@@ -1,15 +1,18 @@
 #include "ui/general_settings_menu.h"
 #include "ui/ui_element.h"
 #include "core/accessibility_settings.hpp"
-#include <cmath>
 
 namespace towerforge::ui {
     GeneralSettingsMenu::GeneralSettingsMenu()
         : selected_option_(0)
           , animation_time_(0.0f)
-          , last_screen_height_(0)
           , last_screen_width_(0)
+          , last_screen_height_(0)
           , option_callback_(nullptr) {
+        // Create main panel centered on screen
+        const Color background_color = ColorAlpha(Color{30, 30, 40, 255}, 0.95f);
+        settings_panel_ = std::make_unique<Panel>(0, 0, MENU_WIDTH, 600, background_color, GOLD);
+
         // Initialize menu items with their options
         menu_items_.push_back({"Audio Settings  >", SettingsOption::Audio});
         menu_items_.push_back({"Controls Settings  >", SettingsOption::Controls});
@@ -18,12 +21,10 @@ namespace towerforge::ui {
         menu_items_.push_back({"Gameplay Settings  >", SettingsOption::Gameplay});
         menu_items_.push_back({"Back", SettingsOption::Back});
 
-        // Create main panel centered on screen
-        settings_panel_ = std::make_unique<Panel>(0, 0, MENU_WIDTH, 600, BLANK, BLANK);
 
         // Create Button objects for each menu item
         for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
+            const int item_y = HEADER_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
 
             auto button = std::make_unique<Button>(
                 0, // X relative to panel
@@ -38,8 +39,7 @@ namespace towerforge::ui {
             button->SetTextColor(LIGHTGRAY);
 
             // Set click callback - button triggers option directly
-            const SettingsOption option = menu_items_[i].option;
-            button->SetClickCallback([this, option]() {
+            button->SetClickCallback([this, option = menu_items_[i].option]() {
                 if (option_callback_) {
                     option_callback_(option);
                 }
@@ -62,26 +62,24 @@ namespace towerforge::ui {
 
     GeneralSettingsMenu::~GeneralSettingsMenu() = default;
 
-    void GeneralSettingsMenu::SetOptionCallback(OptionCallback callback) {
+    void GeneralSettingsMenu::SetOptionCallback(const OptionCallback &callback) {
         option_callback_ = callback;
     }
 
     void GeneralSettingsMenu::UpdateLayout() {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        last_screen_width_ = GetScreenWidth();
+        last_screen_height_ = GetScreenHeight();
 
         // Center the panel horizontally
-        const int panel_x = (screen_width - MENU_WIDTH) / 2;
-        settings_panel_->SetRelativePosition(static_cast<float>(panel_x), 0);
-        settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(screen_height));
+        const int panel_x = (last_screen_width_ - MENU_WIDTH) / 2;
+        constexpr int menu_y = HEADER_Y - 20;
+        settings_panel_->SetRelativePosition(static_cast<float>(panel_x), menu_y);
 
-        // Buttons automatically positioned via panel (no need to update)
-
-        last_screen_width_ = screen_width;
-        last_screen_height_ = screen_height;
+        const int menu_height = HEADER_Y + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
+        settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(menu_height));
     }
 
-    void GeneralSettingsMenu::UpdateButtonSelection(int new_selection) {
+    void GeneralSettingsMenu::UpdateButtonSelection(const int new_selection) {
         const auto &accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
         const bool high_contrast = accessibility.IsHighContrastEnabled();
 
@@ -122,43 +120,25 @@ namespace towerforge::ui {
 
     void GeneralSettingsMenu::Update(const float delta_time) {
         animation_time_ += delta_time;
-
         settings_panel_->Update(delta_time);
 
-        // Check for window resize
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+        if (const int screen_height = GetScreenHeight(), screen_width = GetScreenWidth();
+            screen_width != last_screen_width_ || screen_height != last_screen_height_) {
             UpdateLayout();
         }
 
-        // Update buttons
         for (Button *button: menu_item_buttons_) {
             button->Update(delta_time);
         }
     }
 
     void GeneralSettingsMenu::Render() const {
-        RenderBackground();
+        // Semi-transparent background overlay
+        DrawRectangle(0, 0, last_screen_width_, last_screen_height_, ColorAlpha(BLACK, 0.7f));
+
         settings_panel_->Render();
         RenderHeader();
         RenderMenuOptions();
-    }
-
-    void GeneralSettingsMenu::RenderBackground() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-
-        // Semi-transparent background overlay
-        DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.7f));
-
-        // Main menu panel
-        const int menu_height = MENU_START_Y + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) + 80;
-        const int menu_x = (screen_width - MENU_WIDTH) / 2;
-        constexpr int menu_y = HEADER_Y - 20;
-
-        DrawRectangle(menu_x, menu_y, MENU_WIDTH, menu_height, ColorAlpha(Color{30, 30, 40, 255}, 0.95f));
-        DrawRectangleLines(menu_x, menu_y, MENU_WIDTH, menu_height, GOLD);
     }
 
     void GeneralSettingsMenu::RenderHeader() {
