@@ -809,6 +809,8 @@ namespace towerforge::core {
                 // Check research menu confirmation dialogs
                 if (research_menu_->ProcessMouseEvent(mouse_event)) {
                     // Dialog consumed the event, don't process node clicks
+                    // Apply vertical expansion upgrades after any unlock
+                    ecs_world_->ApplyVerticalExpansionUpgrades();
                 } else {
                     // Normal node click handling
                     ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
@@ -816,6 +818,11 @@ namespace towerforge::core {
                                                                       true, // clicked
                                                                       research_tree_ref);
                     // Note: unlock notification is now handled in ResearchTreeMenu via notification center
+                    
+                    // Apply vertical expansion upgrades if anything was unlocked
+                    if (unlocked) {
+                        ecs_world_->ApplyVerticalExpansionUpgrades();
+                    }
                 }
             }
         }

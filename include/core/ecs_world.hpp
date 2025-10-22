@@ -76,6 +76,12 @@ namespace TowerForge::Core {
      */
         LuaModManager& GetModManager() const;
 
+        /**
+     * @brief Apply vertical expansion upgrades from research tree to tower grid
+     * Should be called after unlocking a VerticalExpansion research node
+     */
+        void ApplyVerticalExpansionUpgrades();
+
     private:
         void RegisterComponents() const;
         void RegisterSystems() const;

@@ -97,6 +97,33 @@ namespace TowerForge::Core {
         return *mod_manager_;
     }
 
+    void ECSWorld::ApplyVerticalExpansionUpgrades() {
+        // Get the research tree singleton
+        const ResearchTree& research_tree = world_.get<ResearchTree>();
+
+        // Track the maximum values from unlocked nodes
+        int max_above_ground = tower_grid_->GetMaxAboveGroundFloors();
+        int max_below_ground = tower_grid_->GetMaxBelowGroundFloors();
+
+        // Iterate through all unlocked vertical expansion nodes
+        for (const auto& node : research_tree.nodes) {
+            if (node.state == ResearchNodeState::Unlocked && 
+                node.type == ResearchNodeType::VerticalExpansion) {
+                
+                // Apply based on effect target
+                if (node.effect_target == "AboveGround") {
+                    max_above_ground = std::max(max_above_ground, static_cast<int>(node.effect_value));
+                } else if (node.effect_target == "BelowGround") {
+                    max_below_ground = std::max(max_below_ground, static_cast<int>(node.effect_value));
+                }
+            }
+        }
+
+        // Apply the new limits to the tower grid
+        tower_grid_->SetMaxAboveGroundFloors(max_above_ground);
+        tower_grid_->SetMaxBelowGroundFloors(max_below_ground);
+    }
+
     void ECSWorld::RegisterComponents() const {
         // Register components with the ECS
         // This allows flecs to track and manage component metadata

@@ -374,7 +374,11 @@ namespace TowerForge::Core {
         const TowerGrid& grid = ecs_world.GetTowerGrid();
         json["grid"] = {
             {"floors", grid.GetFloorCount()},
-            {"columns", grid.GetColumnCount()}
+            {"columns", grid.GetColumnCount()},
+            {"ground_floor_index", grid.GetGroundFloorIndex()},
+            {"basement_floors", grid.GetBelowGroundFloorCount()},
+            {"max_above_ground_floors", grid.GetMaxAboveGroundFloors()},
+            {"max_below_ground_floors", grid.GetMaxBelowGroundFloors()}
         };
     
         // Serialize entities and components
@@ -642,8 +646,15 @@ namespace TowerForge::Core {
                 auto& grid_json = json["grid"];
                 int floors = grid_json.value("floors", 10);
                 int columns = grid_json.value("columns", 20);
+                int max_above_ground = grid_json.value("max_above_ground_floors", floors);
+                int max_below_ground = grid_json.value("max_below_ground_floors", 1);
             
                 TowerGrid& grid = ecs_world.GetTowerGrid();
+                
+                // Restore dimension limits first
+                grid.SetMaxAboveGroundFloors(max_above_ground);
+                grid.SetMaxBelowGroundFloors(max_below_ground);
+                
                 // Resize grid to match saved state
                 while (grid.GetFloorCount() < floors) {
                     grid.AddFloor();
