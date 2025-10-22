@@ -83,6 +83,27 @@ namespace towerforge::rendering {
         float GetZoom() const { return target_zoom_; }
 
         /**
+     * @brief Get camera target position
+     * @param x Output X position in world space
+     * @param y Output Y position in world space
+     */
+        void GetPosition(float& x, float& y) const { x = target_position_.x; y = target_position_.y; }
+
+        /**
+     * @brief Set camera target position (for minimap navigation)
+     * @param x X position in world space
+     * @param y Y position in world space
+     */
+        void SetTargetPosition(float x, float y);
+
+        /**
+     * @brief Get screen dimensions
+     * @param width Output screen width
+     * @param height Output screen height
+     */
+        void GetScreenDimensions(int& width, int& height) const { width = screen_width_; height = screen_height_; }
+
+        /**
      * @brief Convert screen coordinates to world coordinates
      * @param screen_x Screen X position
      * @param screen_y Screen Y position

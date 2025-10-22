@@ -584,6 +584,9 @@ namespace towerforge::core {
         camera_->Initialize(800, 600, 1200.0f, 800.0f);
         // TODO: Center camera on ground floor Y position (ground_floor_screen_y)
 
+        // Initialize minimap
+        hud_->InitializeMinimap(800, 600, 1200.0f, 800.0f);
+
         hud_->SetGameState(game_state_);
 
         // Set up analytics callbacks
@@ -747,6 +750,11 @@ namespace towerforge::core {
         // Handle N key to toggle notification center
         if (IsKeyPressed(KEY_N)) {
             hud_->ToggleNotificationCenter();
+        }
+
+        // Handle M key to toggle minimap
+        if (IsKeyPressed(KEY_M)) {
+            hud_->ToggleMinimap();
         }
 
         // Handle H key to toggle history panel (only if not paused)
@@ -1368,8 +1376,14 @@ namespace towerforge::core {
             }
         }
 
+        // Handle minimap input (before camera to allow minimap to consume input)
+        bool minimap_handled_input = false;
+        if (!is_paused_) {
+            minimap_handled_input = hud_->HandleMinimapInput(*camera_);
+        }
+
         // Handle camera input
-        constexpr bool hud_handled_input = false;
+        const bool hud_handled_input = minimap_handled_input;
         camera_->HandleInput(hud_handled_input);
     }
 
@@ -1533,6 +1547,9 @@ namespace towerforge::core {
 
         camera_->RenderControlsOverlay();
         camera_->RenderFollowIndicator();
+
+        // Render minimap
+        hud_->RenderMinimap(*camera_);
 
         // Display tower economy status
         /*const auto& tower_economy = ecs_world_->GetWorld().get<TowerEconomy>();

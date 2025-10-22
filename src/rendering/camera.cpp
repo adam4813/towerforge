@@ -160,6 +160,11 @@ namespace towerforge::rendering {
         followed_entity_id_ = -1;
     }
 
+    void Camera::SetTargetPosition(const float x, const float y) {
+        target_position_ = {x, y};
+        following_ = false; // Stop following when manually setting position
+    }
+
     void Camera::ScreenToWorld(const int screen_x, const int screen_y, float& world_x, float& world_y) const {
         const Vector2 world_pos = GetScreenToWorld2D({static_cast<float>(screen_x), static_cast<float>(screen_y)}, camera_);
         world_x = world_pos.x;

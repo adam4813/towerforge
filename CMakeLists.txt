@@ -29,6 +29,7 @@ set(SOURCE_FILES
     src/rendering/renderer.cpp
     src/rendering/camera.cpp
     src/ui/hud.cpp
+    src/ui/minimap.cpp
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp
     src/ui/history_panel.cpp

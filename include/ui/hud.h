@@ -6,12 +6,17 @@
 #include <memory>
 #include <functional>
 
+namespace towerforge::rendering {
+    class Camera;
+}
+
 namespace towerforge::ui {
 
     // Forward declarations
     class UIWindowManager;
     class TooltipManager;
     class NotificationCenter;
+    class Minimap;
     struct IncomeBreakdown;
     struct ElevatorAnalytics;
     struct PopulationBreakdown;
@@ -151,10 +156,37 @@ namespace towerforge::ui {
         void Update(float delta_time);
     
         /**
-     * @brief Render the HUD
+     * @brief Render the HUD (without camera-dependent elements)
      */
         void Render();
-    
+
+        /**
+     * @brief Render minimap (requires camera reference)
+     * @param camera Camera reference for minimap rendering
+     */
+        void RenderMinimap(const rendering::Camera& camera);
+
+        /**
+     * @brief Initialize minimap
+     * @param screen_width Screen width in pixels
+     * @param screen_height Screen height in pixels
+     * @param tower_width Tower width in world units
+     * @param tower_height Tower height in world units
+     */
+        void InitializeMinimap(int screen_width, int screen_height, float tower_width, float tower_height);
+
+        /**
+     * @brief Handle minimap input
+     * @param camera Camera reference to update
+     * @return true if minimap consumed the input
+     */
+        bool HandleMinimapInput(rendering::Camera& camera);
+
+        /**
+     * @brief Toggle minimap visibility
+     */
+        void ToggleMinimap();
+
         /**
      * @brief Set the game state to display
      */
@@ -282,6 +314,9 @@ namespace towerforge::ui {
     
         // Notification center
         std::unique_ptr<NotificationCenter> notification_center_;
+
+        // Minimap
+        std::unique_ptr<Minimap> minimap_;
     
         // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;

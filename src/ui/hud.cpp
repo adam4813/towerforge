@@ -4,6 +4,8 @@
 #include "ui/tooltip.h"
 #include "ui/notification_center.h"
 #include "ui/analytics_overlay.h"
+#include "ui/minimap.h"
+#include "rendering/camera.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -14,6 +16,7 @@ namespace towerforge::ui {
         window_manager_ = std::make_unique<UIWindowManager>();
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
+        minimap_ = std::make_unique<Minimap>();
     }
 
     HUD::~HUD() = default;
@@ -31,6 +34,11 @@ namespace towerforge::ui {
     
         // Update notification center
         notification_center_->Update(delta_time);
+
+        // Update minimap
+        if (minimap_) {
+            minimap_->Update(delta_time);
+        }
     }
 
     void HUD::Render() {
@@ -672,6 +680,32 @@ namespace towerforge::ui {
         // Population is displayed at position x=310, y=10 in top bar
         // Approximately 180 pixels wide
         return mouse_y <= TOP_BAR_HEIGHT && mouse_x >= 310 && mouse_x <= 490;
+    }
+
+    void HUD::InitializeMinimap(const int screen_width, const int screen_height,
+                                 const float tower_width, const float tower_height) {
+        if (minimap_) {
+            minimap_->Initialize(screen_width, screen_height, tower_width, tower_height);
+        }
+    }
+
+    void HUD::RenderMinimap(const rendering::Camera& camera) {
+        if (minimap_) {
+            minimap_->Render(camera);
+        }
+    }
+
+    bool HUD::HandleMinimapInput(rendering::Camera& camera) {
+        if (minimap_) {
+            return minimap_->HandleInput(camera);
+        }
+        return false;
+    }
+
+    void HUD::ToggleMinimap() {
+        if (minimap_) {
+            minimap_->Toggle();
+        }
     }
 
 }
