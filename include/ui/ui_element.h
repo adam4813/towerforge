@@ -33,13 +33,13 @@ namespace towerforge::ui {
          * @brief Get the absolute bounding rectangle (accounting for parent position)
          * @return Absolute screen-space rectangle
          */
-        Rectangle GetAbsoluteBounds() const;
+        virtual Rectangle GetAbsoluteBounds() const;
 
         /**
          * @brief Get the relative bounding rectangle (relative to parent)
          * @return Relative rectangle
          */
-        Rectangle GetRelativeBounds() const;
+        virtual Rectangle GetRelativeBounds() const;
 
         /**
          * @brief Set the parent element
@@ -153,7 +153,7 @@ namespace towerforge::ui {
      * 
      * Represents a panel that can contain other UI elements and provides
      * basic rendering with background and optional border.
-     * Supports animated show/hide transitions.
+     * Supports animated show/hide transitions and padding for children.
      */
     class Panel : public UIElement {
     public:
@@ -180,6 +180,13 @@ namespace towerforge::ui {
          * @brief Render the panel
          */
         void Render() const override;
+        
+        /**
+         * @brief Get absolute bounds - overridden to account for padding on children
+         * When getting absolute bounds for positioning children, padding is added
+         * @return Absolute screen-space rectangle with padding applied
+         */
+        Rectangle GetAbsoluteBounds() const override;
 
         /**
          * @brief Set background color
@@ -200,6 +207,24 @@ namespace towerforge::ui {
          * @brief Get border color
          */
         Color GetBorderColor() const { return border_color_; }
+        
+        /**
+         * @brief Set padding for children
+         * @param padding Padding in pixels applied to all sides
+         */
+        void SetPadding(float padding) { padding_ = padding; }
+        
+        /**
+         * @brief Get padding
+         */
+        float GetPadding() const { return padding_; }
+        
+        /**
+         * @brief Get the panel's own bounds (without padding applied)
+         * Use this to render the panel background/border
+         * @return Panel's full rectangle
+         */
+        Rectangle GetPanelBounds() const;
 
         /**
          * @brief Show panel with animation
@@ -226,6 +251,7 @@ namespace towerforge::ui {
     private:
         Color background_color_;
         Color border_color_;
+        float padding_;
         bool is_visible_;
         bool is_animating_;
         float animation_progress_;  // 0.0 = fully hidden, 1.0 = fully visible

@@ -109,6 +109,7 @@ namespace towerforge::ui {
         : UIElement(relative_x, relative_y, width, height)
           , background_color_(background_color)
           , border_color_(border_color)
+          , padding_(0.0f)
           , is_visible_(true)
           , is_animating_(false)
           , animation_progress_(1.0f)
@@ -161,6 +162,45 @@ namespace towerforge::ui {
             is_animating_ = false;
         }
     }
+    
+    Rectangle Panel::GetAbsoluteBounds() const {
+        // For panels, GetAbsoluteBounds returns the content area (with padding applied)
+        // This ensures children are automatically positioned within the padded area
+        Rectangle bounds = GetRelativeBounds();
+        
+        // Apply padding to the bounds
+        bounds.x += padding_;
+        bounds.y += padding_;
+        bounds.width -= padding_ * 2;
+        bounds.height -= padding_ * 2;
+
+        // Walk up the parent chain to calculate absolute position
+        const UIElement *current_parent = parent_;
+        while (current_parent != nullptr) {
+            const Rectangle parent_bounds = current_parent->GetRelativeBounds();
+            bounds.x += parent_bounds.x;
+            bounds.y += parent_bounds.y;
+            current_parent = current_parent->GetParent();
+        }
+
+        return bounds;
+    }
+    
+    Rectangle Panel::GetPanelBounds() const {
+        // Get the panel's own bounds without padding (for rendering background/border)
+        Rectangle bounds = GetRelativeBounds();
+
+        // Walk up the parent chain to calculate absolute position
+        const UIElement *current_parent = parent_;
+        while (current_parent != nullptr) {
+            const Rectangle parent_bounds = current_parent->GetRelativeBounds();
+            bounds.x += parent_bounds.x;
+            bounds.y += parent_bounds.y;
+            current_parent = current_parent->GetParent();
+        }
+
+        return bounds;
+    }
 
     void Panel::Render() const {
         // Skip rendering if completely hidden
@@ -168,7 +208,8 @@ namespace towerforge::ui {
             return;
         }
 
-        const Rectangle bounds = GetAbsoluteBounds();
+        // Get panel's own bounds (not content bounds) for rendering background/border
+        const Rectangle bounds = GetPanelBounds();
 
         // Apply alpha based on animation progress
         Color bg_color = background_color_;
@@ -187,7 +228,7 @@ namespace towerforge::ui {
             batch_renderer::adapter::DrawRectangleLinesEx(bounds, 2, border_col);
         }
 
-        // Render all children (they will also be affected by parent alpha)
+        // Render all children (they use GetAbsoluteBounds which applies padding automatically)
         for (const auto &child: children_) {
             child->Render();
         }
