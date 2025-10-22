@@ -94,6 +94,9 @@ int main(int argc, char* argv[]) {
     auto& grid = ecs_world.GetTowerGrid();
     auto& facility_mgr = ecs_world.GetFacilityManager();
     
+    // Add more floors to accommodate our demo facilities
+    grid.AddFloors(4); // Now we have 5 floors total (0-4)
+    
     // Create facilities using the FacilityManager
     auto lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0);
     auto office = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2);
@@ -194,7 +197,7 @@ int main(int argc, char* argv[]) {
         constexpr int cell_height = 40;
         
         // Helper function to convert floor index to screen Y coordinate
-        const int ground_floor_screen_y = grid_offset_y + (5 / 2) * cell_height; // 5 floors total
+        const int ground_floor_screen_y = grid_offset_y + (grid.GetFloorCount() / 2) * cell_height;
         auto FloorToScreenY = [ground_floor_screen_y, cell_height](int floor) -> int {
             return ground_floor_screen_y - (floor * cell_height);
         };
