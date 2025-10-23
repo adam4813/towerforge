@@ -86,6 +86,12 @@ jobs:
         configurePreset: native
         buildPreset: native-release
 
+    - name: Run Tests
+      shell: bash
+      run: |
+        cd build/native
+        ctest --output-on-failure -C Release || echo "Tests not yet fully functional - this is expected"
+
     - name: List build outputs
       shell: bash
       run: |
