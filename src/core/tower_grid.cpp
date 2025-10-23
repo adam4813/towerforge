@@ -5,7 +5,18 @@ namespace TowerForge::Core {
 
     TowerGrid::TowerGrid(const int initial_floors, const int initial_columns, const int ground_floor_index)
         : floors_(initial_floors), columns_(initial_columns), 
-          ground_floor_index_(ground_floor_index), basement_floors_(0) {
+          ground_floor_index_(ground_floor_index), basement_floors_(0),
+          max_above_ground_floors_(initial_floors), // Start with initial as max
+          max_below_ground_floors_(1) {  // Start with 1 basement floor allowed
+        
+        // Clamp initial dimensions to absolute maximums
+        if (floors_ > MAX_ABOVE_GROUND_FLOORS) {
+            floors_ = MAX_ABOVE_GROUND_FLOORS;
+        }
+        if (columns_ > MAX_HORIZONTAL_CELLS) {
+            columns_ = MAX_HORIZONTAL_CELLS;
+        }
+        
         ResizeGrid();
     
         // Initialize ground floor as built by default
@@ -32,6 +43,11 @@ namespace TowerForge::Core {
     // Floor management
 
     int TowerGrid::AddFloor() {
+        // Check if we can add more floors
+        if (!CanAddFloors(1)) {
+            return -1;  // Cannot add floor
+        }
+        
         floors_++;
         ResizeGrid();
         return floors_ - 1;
@@ -39,6 +55,12 @@ namespace TowerForge::Core {
 
     int TowerGrid::AddFloors(const int count) {
         if (count <= 0) return floors_;
+        
+        // Check if we can add this many floors
+        if (!CanAddFloors(count)) {
+            return -1;  // Cannot add floors
+        }
+        
         const int first_new_floor = floors_;
         floors_ += count;
         ResizeGrid();
@@ -62,6 +84,11 @@ namespace TowerForge::Core {
     }
 
     int TowerGrid::AddBasementFloor() {
+        // Check if we can add more basement floors
+        if (!CanAddBasementFloors(1)) {
+            return -1;  // Cannot add basement floor
+        }
+        
         // Add a floor at the beginning (basement)
         basement_floors_++;
         floors_++;
@@ -75,6 +102,11 @@ namespace TowerForge::Core {
 
     int TowerGrid::AddBasementFloors(const int count) {
         if (count <= 0) return ground_floor_index_ - basement_floors_;
+
+        // Check if we can add this many basement floors
+        if (!CanAddBasementFloors(count)) {
+            return -1;  // Cannot add basement floors
+        }
 
         const int first_new_basement = ground_floor_index_ - basement_floors_ - count;
     
@@ -110,6 +142,11 @@ namespace TowerForge::Core {
     // Column management
 
     int TowerGrid::AddColumn() {
+        // Check if we can add more columns
+        if (!CanAddColumns(1)) {
+            return -1;  // Cannot add column
+        }
+        
         columns_++;
         ResizeGrid();
         return columns_ - 1;
@@ -117,6 +154,12 @@ namespace TowerForge::Core {
 
     int TowerGrid::AddColumns(const int count) {
         if (count <= 0) return columns_;
+        
+        // Check if we can add this many columns
+        if (!CanAddColumns(count)) {
+            return -1;  // Cannot add columns
+        }
+        
         const int first_new_column = columns_;
         columns_ += count;
         ResizeGrid();
@@ -218,6 +261,41 @@ namespace TowerForge::Core {
         }
     
         return true;
+    }
+
+    bool TowerGrid::GetBuiltFloorRange(int& min_floor, int& max_floor) const {
+        bool found_built = false;
+        min_floor = 0;
+        max_floor = 0;
+
+        // Scan all floors to find the range of built floors
+        for (int floor = -basement_floors_; floor < floors_ - basement_floors_; ++floor) {
+            const int grid_idx = FloorToGridIndex(floor);
+            
+            // Check if any cell on this floor is built
+            bool floor_has_built_cell = false;
+            for (int column = 0; column < columns_; ++column) {
+                if (grid_[grid_idx][column].floor_built) {
+                    floor_has_built_cell = true;
+                    break;
+                }
+            }
+
+            if (floor_has_built_cell) {
+                if (!found_built) {
+                    // First built floor found
+                    min_floor = floor;
+                    max_floor = floor;
+                    found_built = true;
+                } else {
+                    // Update range
+                    min_floor = std::min(min_floor, floor);
+                    max_floor = std::max(max_floor, floor);
+                }
+            }
+        }
+
+        return found_built;
     }
 
     bool TowerGrid::RemoveFacility(const int facility_id) {
@@ -345,6 +423,39 @@ namespace TowerForge::Core {
         }
     
         return true;
+    }
+
+    // Dimension limit methods
+
+    void TowerGrid::SetMaxAboveGroundFloors(const int max_floors) {
+        // Clamp to absolute maximum
+        max_above_ground_floors_ = std::min(max_floors, MAX_ABOVE_GROUND_FLOORS);
+        // Ensure at least current count
+        max_above_ground_floors_ = std::max(max_above_ground_floors_, GetAboveGroundFloorCount());
+    }
+
+    void TowerGrid::SetMaxBelowGroundFloors(const int max_floors) {
+        // Clamp to absolute maximum
+        max_below_ground_floors_ = std::min(max_floors, MAX_BELOW_GROUND_FLOORS);
+        // Ensure at least current count
+        max_below_ground_floors_ = std::max(max_below_ground_floors_, basement_floors_);
+    }
+
+    bool TowerGrid::CanAddFloors(const int count) const {
+        const int current_above_ground = GetAboveGroundFloorCount();
+        return (current_above_ground + count) <= max_above_ground_floors_;
+    }
+
+    bool TowerGrid::CanAddBasementFloors(const int count) const {
+        return (basement_floors_ + count) <= max_below_ground_floors_;
+    }
+
+    bool TowerGrid::CanAddColumns(const int count) const {
+        return (columns_ + count) <= MAX_HORIZONTAL_CELLS;
+    }
+
+    int TowerGrid::GetAboveGroundFloorCount() const {
+        return floors_ - basement_floors_;
     }
 
 }

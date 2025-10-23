@@ -9,6 +9,11 @@ namespace TowerForge::Core {
     // Forward declaration
     struct BuildingComponent;
 
+    // Grid dimension constants
+    constexpr int MAX_HORIZONTAL_CELLS = 1000;      // Maximum columns (sideways)
+    constexpr int MAX_BELOW_GROUND_FLOORS = 20;     // Maximum basement floors (upgradeable)
+    constexpr int MAX_ABOVE_GROUND_FLOORS = 200;    // Maximum above-ground floors (upgradeable)
+
     /**
  * @brief Represents a cell in the tower grid
  * 
@@ -168,6 +173,15 @@ namespace TowerForge::Core {
      * @return Cost in currency units to build one floor cell
      */
         static int GetFloorBuildCost() { return 50; }
+
+        /**
+     * @brief Get the range of floors that have at least one built cell
+     * 
+     * @param min_floor Output parameter for the lowest built floor
+     * @param max_floor Output parameter for the highest built floor
+     * @return true if any floors are built, false if no floors are built
+     */
+        bool GetBuiltFloorRange(int& min_floor, int& max_floor) const;
     
         // Spatial queries
     
@@ -245,11 +259,76 @@ namespace TowerForge::Core {
      * @return Count of occupied cells
      */
         int GetOccupiedCellCount() const;
-    
+
         /**
      * @brief Clear all facilities from the grid
      */
         void Clear();
+
+        // Dimension limits and upgrades
+
+        /**
+     * @brief Get current maximum allowed above-ground floors
+     * @return Maximum above-ground floors (can be upgraded)
+     */
+        int GetMaxAboveGroundFloors() const { return max_above_ground_floors_; }
+
+        /**
+     * @brief Get current maximum allowed below-ground floors
+     * @return Maximum below-ground floors (can be upgraded)
+     */
+        int GetMaxBelowGroundFloors() const { return max_below_ground_floors_; }
+
+        /**
+     * @brief Get the maximum horizontal cells (columns) allowed
+     * @return Maximum horizontal cells
+     */
+        int GetMaxHorizontalCells() const { return MAX_HORIZONTAL_CELLS; }
+
+        /**
+     * @brief Set the maximum allowed above-ground floors (via upgrade)
+     * @param max_floors New maximum, capped at MAX_ABOVE_GROUND_FLOORS
+     */
+        void SetMaxAboveGroundFloors(int max_floors);
+
+        /**
+     * @brief Set the maximum allowed below-ground floors (via upgrade)
+     * @param max_floors New maximum, capped at MAX_BELOW_GROUND_FLOORS
+     */
+        void SetMaxBelowGroundFloors(int max_floors);
+
+        /**
+     * @brief Check if adding floors would exceed current limits
+     * @param count Number of floors to add
+     * @return true if within limits, false otherwise
+     */
+        bool CanAddFloors(int count) const;
+
+        /**
+     * @brief Check if adding basement floors would exceed current limits
+     * @param count Number of basement floors to add
+     * @return true if within limits, false otherwise
+     */
+        bool CanAddBasementFloors(int count) const;
+
+        /**
+     * @brief Check if adding columns would exceed maximum
+     * @param count Number of columns to add
+     * @return true if within limits, false otherwise
+     */
+        bool CanAddColumns(int count) const;
+
+        /**
+     * @brief Get number of above-ground floors currently built
+     * @return Count of floors above ground
+     */
+        int GetAboveGroundFloorCount() const;
+
+        /**
+     * @brief Get number of basement floors currently built
+     * @return Count of basement floors
+     */
+        int GetBelowGroundFloorCount() const { return basement_floors_; }
 
     private:
         int floors_;
@@ -257,6 +336,10 @@ namespace TowerForge::Core {
         int ground_floor_index_;  // Index representing ground level (0 by default)
         int basement_floors_;      // Number of basement floors (negative indices)
         std::vector<std::vector<GridCell>> grid_;  // grid_[floor][column]
+
+        // Upgradeable dimension limits
+        int max_above_ground_floors_;  // Current max above-ground floors (upgradeable)
+        int max_below_ground_floors_;  // Current max below-ground floors (upgradeable)
     
         /**
      * @brief Resize the internal grid structure

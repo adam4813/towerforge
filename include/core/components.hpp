@@ -1164,7 +1164,8 @@ namespace TowerForge::Core {
         IncomeBonus,       // Increases income rate
         SatisfactionBonus, // Increases tenant satisfaction
         ConstructionSpeed, // Faster construction times
-        CostReduction      // Reduces facility costs
+        CostReduction,     // Reduces facility costs
+        VerticalExpansion  // Increases max floors (above or below ground)
     };
 
     /**
@@ -1919,6 +1920,38 @@ namespace TowerForge::Core {
             nodes.back().prerequisites.push_back("restaurant_unlock");
             nodes.back().min_star_rating = 3;
             nodes.back().min_population = 75;
+        
+            // Row 3: Vertical expansion upgrades
+            nodes.push_back(ResearchNode("basement_expansion_1", "Deep Foundation", 
+                                         ResearchNodeType::VerticalExpansion, 10, 3, 0));
+            nodes.back().description = "Increase basement depth limit to 5 floors";
+            nodes.back().icon = "⬇️";
+            nodes.back().effect_value = 5.0f;
+            nodes.back().effect_target = "BelowGround";
+        
+            nodes.push_back(ResearchNode("basement_expansion_2", "Underground Complex", 
+                                         ResearchNodeType::VerticalExpansion, 25, 3, 1));
+            nodes.back().description = "Increase basement depth limit to 10 floors";
+            nodes.back().icon = "⬇️";
+            nodes.back().effect_value = 10.0f;
+            nodes.back().effect_target = "BelowGround";
+            nodes.back().prerequisites.push_back("basement_expansion_1");
+        
+            nodes.push_back(ResearchNode("upward_expansion_1", "Sky Reach", 
+                                         ResearchNodeType::VerticalExpansion, 15, 3, 2));
+            nodes.back().description = "Increase building height limit by 50 floors";
+            nodes.back().icon = "⬆️";
+            nodes.back().effect_value = 50.0f;
+            nodes.back().effect_target = "AboveGround";
+        
+            nodes.push_back(ResearchNode("upward_expansion_2", "Skyscraper Engineering", 
+                                         ResearchNodeType::VerticalExpansion, 40, 3, 3));
+            nodes.back().description = "Increase building height limit by 100 floors";
+            nodes.back().icon = "⬆️";
+            nodes.back().effect_value = 100.0f;
+            nodes.back().effect_target = "AboveGround";
+            nodes.back().prerequisites.push_back("upward_expansion_1");
+            nodes.back().min_star_rating = 3;
         }
     
         /**
@@ -2065,6 +2098,10 @@ namespace TowerForge::Core {
                     break;
                 case ResearchNodeType::FacilityUnlock:
                     // Facility unlocks are handled separately
+                    break;
+                case ResearchNodeType::VerticalExpansion:
+                    // Vertical expansion is handled separately in the game logic
+                    // which has access to the TowerGrid
                     break;
             }
         
