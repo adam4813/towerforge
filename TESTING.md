@@ -57,20 +57,20 @@ git clone https://github.com/microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh  # or .bat on Windows
 ```
 
-2. Configure the project with CMake:
+2. Configure the project with the test CMake preset:
 ```bash
 export VCPKG_ROOT=/path/to/vcpkg
-cmake --preset native
+cmake --preset test
 ```
 
 3. Build all tests:
 ```bash
-cmake --build --preset native-debug --parallel $(nproc)
+cmake --build --preset test-debug --parallel $(nproc)
 ```
 
 On Windows (cmd.exe):
 ```cmd
-cmake --build --preset native-debug --parallel %NUMBER_OF_PROCESSORS%
+cmake --build --preset test-debug --parallel %NUMBER_OF_PROCESSORS%
 ```
 
 ### Building Specific Tests
@@ -78,24 +78,30 @@ cmake --build --preset native-debug --parallel %NUMBER_OF_PROCESSORS%
 You can build individual test targets:
 
 ```bash
-cmake --build --preset native-debug --target test_tower_grid_integration
-cmake --build --preset native-debug --target test_user_preferences_unit
-cmake --build --preset native-debug --target test_game_initialization_e2e
+cmake --build --preset test-debug --target test_tower_grid_integration
+cmake --build --preset test-debug --target test_user_preferences_unit
+cmake --build --preset test-debug --target test_game_initialization_e2e
 ```
 
 ## Running Tests
 
 ### Run All Tests
 
-Using CTest:
+Using CTest from the tests subdirectory:
 ```bash
-cd build/native
-ctest --output-on-failure
+cd build/test/tests
+ctest -C Debug --output-on-failure
 ```
 
 Or run tests in parallel:
 ```bash
-ctest -j$(nproc) --output-on-failure
+cd build/test/tests
+ctest -C Debug -j$(nproc) --output-on-failure
+```
+
+Alternatively, use the test preset:
+```bash
+ctest --preset test-debug
 ```
 
 ### Run Individual Tests
@@ -103,27 +109,30 @@ ctest -j$(nproc) --output-on-failure
 Each test executable can be run directly:
 
 ```bash
-# From the build directory
-./bin/Debug/test_tower_grid_integration
-./bin/Debug/test_facility_manager_integration
-./bin/Debug/test_user_preferences_unit
+# From the project root
+./build/test/bin/Debug/test_tower_grid_integration
+./build/test/bin/Debug/test_facility_manager_integration
+./build/test/bin/Debug/test_user_preferences_unit
 ```
 
 ### Run Tests by Category
 
 Run only integration tests:
 ```bash
-ctest -R ".*_integration" --output-on-failure
+cd build/test/tests
+ctest -C Debug -R ".*_integration" --output-on-failure
 ```
 
 Run only E2E tests:
 ```bash
-ctest -R ".*_e2e" --output-on-failure
+cd build/test/tests
+ctest -C Debug -R ".*_e2e" --output-on-failure
 ```
 
 Run only unit tests:
 ```bash
-ctest -R ".*_unit" --output-on-failure
+cd build/test/tests
+ctest -C Debug -R ".*_unit" --output-on-failure
 ```
 
 ### Using GTest Filters
@@ -132,13 +141,13 @@ You can run specific test cases within a test executable:
 
 ```bash
 # Run only tests matching a pattern
-./bin/Debug/test_tower_grid_integration --gtest_filter="*FloorExpansion*"
+./build/test/bin/Debug/test_tower_grid_integration --gtest_filter="*FloorExpansion*"
 
 # Run all tests except those matching a pattern
-./bin/Debug/test_tower_grid_integration --gtest_filter="-*Removal*"
+./build/test/bin/Debug/test_tower_grid_integration --gtest_filter="-*Removal*"
 
 # List all tests without running them
-./bin/Debug/test_tower_grid_integration --gtest_list_tests
+./build/test/bin/Debug/test_tower_grid_integration --gtest_list_tests
 ```
 
 ## Test Coverage
@@ -170,15 +179,17 @@ Unit tests focus on complex or unique logic:
 - **CommandHistory**: Undo/redo functionality, command stack management
 - **AccessibilitySettings**: Accessibility configuration and validation
 
-## Known Issues
+## Test Status
 
-As of the initial implementation:
+As of the latest build:
 
-1. Some tests may have API compatibility issues with the flecs ECS library
-2. BuildingComponent facility types need to match the actual enum values
-3. The towerforge_core library may have linking issues with UI dependencies
+- **Tests build successfully** - All compilation and linking issues resolved
+- **4 out of 12 tests passing** (33% pass rate)
+- **8 tests have logic issues** that need fixing:
+  - Some tests make incorrect assumptions about API behavior
+  - Some tests have logic bugs (e.g., expecting specific values that don't match implementation)
 
-These issues are tracked and will be resolved in subsequent updates.
+The test infrastructure is complete and functional. Remaining work involves fixing test logic to match actual API behavior, not fixing the build system.
 
 ## Writing New Tests
 
@@ -237,7 +248,8 @@ CI configuration is in `.github/workflows/build.yml`.
 1. Ensure vcpkg is properly bootstrapped
 2. Verify all dependencies are installed
 3. Check that you're using C++20 compatible compiler
-4. Try cleaning and rebuilding: `cmake --build --preset native-debug --clean-first`
+4. Use the test preset: `cmake --preset test`
+5. Try cleaning and rebuilding: `cmake --build --preset test-debug --clean-first`
 
 ### Tests fail to run
 

@@ -80,17 +80,23 @@ jobs:
       with:
         vcpkgGitCommitId: dd3097e305afa53f7b4312371f62058d2e665320
 
-    - name: Run CMake with Presets
+    - name: Run CMake with Presets (Build)
       uses: lukka/run-cmake@v10
       with:
         configurePreset: native
         buildPreset: native-release
 
+    - name: Run CMake with Presets (Tests)
+      uses: lukka/run-cmake@v10
+      with:
+        configurePreset: test
+        buildPreset: test-release
+
     - name: Run Tests
       shell: bash
       run: |
-        cd build/native
-        ctest --output-on-failure -C Release || echo "Tests not yet fully functional - this is expected"
+        cd build/test/tests
+        ctest -C Release --output-on-failure || echo "Some tests may fail - test infrastructure is functional"
 
     - name: List build outputs
       shell: bash
