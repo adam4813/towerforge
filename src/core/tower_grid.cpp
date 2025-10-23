@@ -41,8 +41,8 @@ namespace TowerForge::Core {
             return -1;  // Cannot add floor
         }
         
-        floors_++;
         const int new_floor = GetHighestFloorIndex() + 1;
+        floors_++;
         grid_[new_floor] = std::vector<GridCell>(columns_);
         return new_floor;
     }
@@ -57,9 +57,9 @@ namespace TowerForge::Core {
         
         const int first_new_floor = GetHighestFloorIndex() + 1;
         for (int i = 0; i < count; ++i) {
-            floors_++;
             const int new_floor = first_new_floor + i;
             grid_[new_floor] = std::vector<GridCell>(columns_);
+            floors_++;
         }
         return first_new_floor;
     }
