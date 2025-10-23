@@ -3,6 +3,7 @@
 #include "core/components.hpp"
 #include "core/user_preferences.hpp"
 #include "ui/notification_center.h"
+#include "ui/action_bar.h"
 #include "ui/batch_renderer/batch_renderer.h"
 
 using namespace TowerForge::Core;
@@ -602,6 +603,49 @@ namespace towerforge::core {
             return CollectPopulationAnalytics();
         });
 
+        // Set up action bar callback
+        hud_->SetActionBarCallback([this](int action) {
+            const auto actionEnum = static_cast<ActionBar::Action>(action);
+            switch (actionEnum) {
+                case ActionBar::Action::Build:
+                    // Toggle build menu visibility
+                    build_menu_->SetVisible(!build_menu_->IsVisible());
+                    if (build_menu_->IsVisible()) {
+                        audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+                    } else {
+                        audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
+                    }
+                    break;
+                case ActionBar::Action::FacilityInfo:
+                    // TODO: Show facility browser
+                    hud_->AddNotification(Notification::Type::Info, "Facility info - Coming soon!", 2.0f);
+                    break;
+                case ActionBar::Action::VisitorInfo:
+                    // TODO: Show visitor list
+                    hud_->AddNotification(Notification::Type::Info, "Visitor info - Coming soon!", 2.0f);
+                    break;
+                case ActionBar::Action::StaffManagement:
+                    // TODO: Show staff management
+                    hud_->AddNotification(Notification::Type::Info, "Staff management - Coming soon!", 2.0f);
+                    break;
+                case ActionBar::Action::Research:
+                    // Toggle research menu
+                    if (research_menu_->IsVisible()) {
+                        research_menu_->SetVisible(false);
+                        audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
+                    } else {
+                        research_menu_->SetVisible(true);
+                        audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+                    }
+                    break;
+                case ActionBar::Action::Settings:
+                    // Show pause menu / settings
+                    is_paused_ = true;
+                    audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+                    break;
+            }
+        });
+
         // Add example notifications to showcase notification center
         hud_->AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
         hud_->AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
@@ -995,13 +1039,33 @@ namespace towerforge::core {
         // Update build menu tooltips
         build_menu_->UpdateTooltips(mouse_x, mouse_y, game_state_.funds);
 
-        // Update placement tooltips (if not paused and not in research menu)
+        // Update tooltips for placement system (if not paused and not in research menu)
         if (!is_paused_ && !research_menu_->IsVisible()) {
             float world_x, world_y;
             camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
             placement_system_->UpdateTooltips(static_cast<int>(world_x), static_cast<int>(world_y),
                                               grid_offset_x_, grid_offset_y_,
                                               cell_width_, cell_height_, game_state_.funds);
+        }
+
+        // Handle hover events for HUD (action bar button highlighting, etc.)
+        if (!is_paused_) {
+            const MouseEvent hover_event{
+                static_cast<float>(mouse_x),
+                static_cast<float>(mouse_y),
+                IsMouseButtonDown(MOUSE_LEFT_BUTTON), // left_down
+                IsMouseButtonDown(MOUSE_RIGHT_BUTTON), // right_down
+                false, // left_pressed (hover only)
+                false // right_pressed (hover only)
+            };
+            
+            // Send hover events to HUD for button highlighting
+            hud_->ProcessMouseEvent(hover_event);
+            
+            // Send hover events to build menu if visible
+            if (build_menu_->IsVisible()) {
+                build_menu_->ProcessMouseEvent(hover_event);
+            }
         }
 
         // Handle mouse clicks (only if not paused)
@@ -1016,7 +1080,17 @@ namespace towerforge::core {
                 false // right_pressed
             };
 
-            // Check placement system confirmation dialogs first
+            // Check HUD first (action bar, etc.)
+            if (hud_->ProcessMouseEvent(mouse_event)) {
+                return; // HUD consumed the event
+            }
+
+            // Check build menu if visible
+            if (build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(mouse_event)) {
+                return; // Build menu consumed the event
+            }
+
+            // Check placement system confirmation dialogs
             if (placement_system_->ProcessMouseEvent(mouse_event)) {
                 return; // Dialog consumed the event
             }

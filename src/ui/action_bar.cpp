@@ -1,5 +1,6 @@
 #include "ui/action_bar.h"
 #include "ui/ui_theme.h"
+#include "ui/mouse_interface.h"
 
 namespace towerforge::ui {
 
@@ -12,17 +13,13 @@ namespace towerforge::ui {
         
         SetPadding(5);
 
-        // Create action buttons centered in the bar
-        const int total_buttons = 6;
-        const float total_button_width = total_buttons * BUTTON_WIDTH + (total_buttons - 1) * BUTTON_SPACING;
-        const float start_x = (width - total_button_width) / 2.0f;
-
-        CreateActionButton(Action::Build, "Build", start_x);
-        CreateActionButton(Action::FacilityInfo, "Facilities", start_x + (BUTTON_WIDTH + BUTTON_SPACING) * 1);
-        CreateActionButton(Action::VisitorInfo, "Visitors", start_x + (BUTTON_WIDTH + BUTTON_SPACING) * 2);
-        CreateActionButton(Action::StaffManagement, "Staff", start_x + (BUTTON_WIDTH + BUTTON_SPACING) * 3);
-        CreateActionButton(Action::Research, "Research", start_x + (BUTTON_WIDTH + BUTTON_SPACING) * 4);
-        CreateActionButton(Action::Settings, "Settings", start_x + (BUTTON_WIDTH + BUTTON_SPACING) * 5);
+        // Create action buttons - positions are relative to panel
+        CreateActionButton(Action::Build, "Build", 5);
+        CreateActionButton(Action::FacilityInfo, "Facilities", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 1);
+        CreateActionButton(Action::VisitorInfo, "Visitors", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 2);
+        CreateActionButton(Action::StaffManagement, "Staff", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 3);
+        CreateActionButton(Action::Research, "Research", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 4);
+        CreateActionButton(Action::Settings, "Settings", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 5);
     }
 
     void ActionBar::CreateActionButton(Action action, const std::string& label, float x) {
@@ -81,6 +78,16 @@ namespace towerforge::ui {
             button->SetBackgroundColor(UITheme::BUTTON_BACKGROUND);
             button->SetBorderColor(UITheme::BORDER_DEFAULT);
         }
+    }
+
+    bool ActionBar::ProcessMouseEvent(const MouseEvent& event) {
+        // Forward event to children (buttons)
+        for (const auto& child : children_) {
+            if (child->ProcessMouseEvent(event)) {
+                return true;  // Event consumed
+            }
+        }
+        return false;
     }
 
 }

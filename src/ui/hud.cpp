@@ -5,6 +5,7 @@
 #include "ui/notification_center.h"
 #include "ui/analytics_overlay.h"
 #include "ui/action_bar.h"
+#include "ui/mouse_interface.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -17,14 +18,16 @@ namespace towerforge::ui {
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
         
-        // Create action bar at bottom of screen
+        // Create action bar at bottom of screen - fixed width, centered
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
+        const int bar_width = ActionBar::CalculateBarWidth();
+        const int bar_x = (screen_width - bar_width) / 2;
         
         action_bar_ = std::make_unique<ActionBar>(
-            0,
+            bar_x,
             screen_height - ACTION_BAR_HEIGHT,
-            screen_width,
+            bar_width,
             ACTION_BAR_HEIGHT
         );
     }
@@ -49,11 +52,12 @@ namespace towerforge::ui {
         if (action_bar_) {
             action_bar_->Update(delta_time);
             
-            // Update position if screen resized
+            // Update position if screen resized - keep centered
             const int screen_width = GetScreenWidth();
             const int screen_height = GetScreenHeight();
-            action_bar_->SetRelativePosition(0, screen_height - ACTION_BAR_HEIGHT);
-            action_bar_->SetSize(screen_width, ACTION_BAR_HEIGHT);
+            const int bar_width = ActionBar::CalculateBarWidth();
+            const int bar_x = (screen_width - bar_width) / 2;
+            action_bar_->SetRelativePosition(bar_x, screen_height - ACTION_BAR_HEIGHT);
         }
     }
 
@@ -202,6 +206,18 @@ namespace towerforge::ui {
             return true;
         }
 
+        return false;
+    }
+
+    bool HUD::ProcessMouseEvent(const MouseEvent& event) {
+        // Forward to action bar first
+        if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
+            return true;
+        }
+        
+        // Forward to window manager if needed
+        // (UIWindowManager doesn't have ProcessMouseEvent yet)
+        
         return false;
     }
 

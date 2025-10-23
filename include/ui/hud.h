@@ -7,8 +7,9 @@
 #include <functional>
 
 namespace towerforge::ui {
+   struct MouseEvent;
 
-    // Forward declarations
+   // Forward declarations
     class UIWindowManager;
     class TooltipManager;
     class NotificationCenter;
@@ -203,6 +204,13 @@ namespace towerforge::ui {
      * @return true if click was on a HUD element
      */
         bool HandleClick(int mouse_x, int mouse_y) const;
+
+        /**
+         * @brief Process mouse events for interactive elements
+         * @param event Mouse event data
+         * @return true if event was consumed by HUD
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
     
         /**
      * @brief Update tooltips based on mouse position

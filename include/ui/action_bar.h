@@ -69,6 +69,13 @@ namespace towerforge::ui {
          */
         void ClearActiveAction();
 
+        /**
+         * @brief Process mouse events
+         * @param event Mouse event data
+         * @return true if event was consumed
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
+
     private:
         void CreateActionButton(Action action, const std::string& label, float x);
 
@@ -78,6 +85,12 @@ namespace towerforge::ui {
 
         static constexpr int BUTTON_WIDTH = 120;
         static constexpr int BUTTON_SPACING = 10;
+        
+    public:
+        // Calculate the total width needed for the action bar
+        static constexpr int CalculateBarWidth() {
+            return 6 * BUTTON_WIDTH + 5 * BUTTON_SPACING + 10; // 6 buttons + spacing + padding
+        }
     };
 
 }
