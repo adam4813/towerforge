@@ -218,7 +218,7 @@ namespace towerforge::ui {
         /**
      * @brief Toggle notification center visibility
      */
-        void ToggleNotificationCenter();
+        void ToggleNotificationCenter() const;
     
         /**
      * @brief Show income analytics overlay
@@ -253,12 +253,23 @@ namespace towerforge::ui {
         /**
      * @brief Request income analytics to be shown
      */
-        void RequestIncomeAnalytics();
+        void RequestIncomeAnalytics() const;
     
         /**
      * @brief Request population analytics to be shown
      */
-        void RequestPopulationAnalytics();
+        void RequestPopulationAnalytics() const;
+
+        /**
+         * @brief Set callback for action bar button clicks
+         * @param callback Function to call when action button is clicked
+         */
+        void SetActionBarCallback(ActionBarCallback callback);
+
+        /**
+         * @brief Get the action bar
+         */
+        ActionBar* GetActionBar() const { return action_bar_.get(); }
     
     private:
         void RenderTopBar() const;

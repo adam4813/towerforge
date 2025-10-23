@@ -198,7 +198,7 @@ int main(int argc, char* argv[]) {
         
         // Helper function to convert floor index to screen Y coordinate
         const int ground_floor_screen_y = grid_offset_y + (grid.GetFloorCount() / 2) * cell_height;
-        auto FloorToScreenY = [ground_floor_screen_y, cell_height](int floor) -> int {
+        auto FloorToScreenY = [ground_floor_screen_y, cell_height](const int floor) -> int {
             return ground_floor_screen_y - (floor * cell_height);
         };
         

@@ -89,7 +89,7 @@ namespace towerforge::ui {
          * @brief Set current context (for automatic context detection)
          * @param context The current game context
          */
-        void SetCurrentContext(HelpContext context) { current_context_ = context; }
+        void SetCurrentContext(const HelpContext context) { current_context_ = context; }
 
         /**
          * @brief Get current context
@@ -122,7 +122,7 @@ namespace towerforge::ui {
         static bool RenderHelpIcon(const Rectangle& bounds, int mouse_x, int mouse_y);
 
     private:
-        void RenderOverlay();
+        void RenderOverlay() const;
         void RenderHeader() const;
         void RenderContent();
         void RenderCloseButton() const;

@@ -38,57 +38,57 @@ namespace TowerForge::Core {
 
         // Audio settings
         float GetMasterVolume() const { return master_volume_; }
-        void SetMasterVolume(float volume) {
+        void SetMasterVolume(const float volume) {
             master_volume_ = std::clamp(volume, 0.0f, 1.0f);
             SaveSettings();
         }
 
         float GetMusicVolume() const { return music_volume_; }
-        void SetMusicVolume(float volume) {
+        void SetMusicVolume(const float volume) {
             music_volume_ = std::clamp(volume, 0.0f, 1.0f);
             SaveSettings();
         }
 
         float GetSFXVolume() const { return sfx_volume_; }
-        void SetSFXVolume(float volume) {
+        void SetSFXVolume(const float volume) {
             sfx_volume_ = std::clamp(volume, 0.0f, 1.0f);
             SaveSettings();
         }
 
         bool GetMuteAll() const { return mute_all_; }
-        void SetMuteAll(bool mute) {
+        void SetMuteAll(const bool mute) {
             mute_all_ = mute;
             SaveSettings();
         }
 
         bool GetMuteMusic() const { return mute_music_; }
-        void SetMuteMusic(bool mute) {
+        void SetMuteMusic(const bool mute) {
             mute_music_ = mute;
             SaveSettings();
         }
 
         bool GetMuteSFX() const { return mute_sfx_; }
-        void SetMuteSFX(bool mute) {
+        void SetMuteSFX(const bool mute) {
             mute_sfx_ = mute;
             SaveSettings();
         }
 
         bool GetEnableAmbient() const { return enable_ambient_; }
-        void SetEnableAmbient(bool enable) {
+        void SetEnableAmbient(const bool enable) {
             enable_ambient_ = enable;
             SaveSettings();
         }
 
         // UI Scaling (1.0 = 100%, 1.5 = 150%, etc.)
         float GetUIScale() const { return ui_scale_; }
-        void SetUIScale(float scale) {
+        void SetUIScale(const float scale) {
             ui_scale_ = std::clamp(scale, 0.5f, 2.0f);
             SaveSettings();
         }
 
         // Color mode
         ColorMode GetColorMode() const { return color_mode_; }
-        void SetColorMode(ColorMode mode) {
+        void SetColorMode(const ColorMode mode) {
             color_mode_ = mode;
             SaveSettings();
         }
@@ -103,19 +103,19 @@ namespace TowerForge::Core {
 
         // Accessibility settings
         bool IsHighContrastEnabled() const { return high_contrast_enabled_; }
-        void SetHighContrastEnabled(bool enabled) {
+        void SetHighContrastEnabled(const bool enabled) {
             high_contrast_enabled_ = enabled;
             SaveSettings();
         }
 
         float GetFontScale() const { return font_scale_; }
-        void SetFontScale(float scale) {
+        void SetFontScale(const float scale) {
             font_scale_ = std::clamp(scale, 0.5f, 3.0f);
             SaveSettings();
         }
 
         bool IsKeyboardNavigationEnabled() const { return keyboard_navigation_enabled_; }
-        void SetKeyboardNavigationEnabled(bool enabled) {
+        void SetKeyboardNavigationEnabled(const bool enabled) {
             keyboard_navigation_enabled_ = enabled;
             SaveSettings();
         }

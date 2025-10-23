@@ -153,7 +153,7 @@ namespace towerforge::ui {
         }
     }
 
-    int HistoryPanel::HandleClick(int mouse_x, int mouse_y) {
+    int HistoryPanel::HandleClick(const int mouse_x, const int mouse_y) const {
         if (!visible_ || entries_.empty()) {
             return 0;
         }
@@ -260,7 +260,7 @@ namespace towerforge::ui {
         }
     }
 
-    bool HistoryPanel::IsMouseOver(int mouse_x, int mouse_y) const {
+    bool HistoryPanel::IsMouseOver(const int mouse_x, const int mouse_y) const {
         return visible_ && 
                CheckCollisionPointRec(
                    Vector2{static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, 

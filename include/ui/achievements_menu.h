@@ -61,7 +61,7 @@ namespace towerforge::ui {
     private:
         static void RenderBackground();
         void RenderHeader() const;
-        void RenderAchievementList();
+        void RenderAchievementList() const;
         void RenderAchievementItem(const TowerForge::Core::Achievement& achievement, int y_pos, bool is_unlocked) const;
 
         static void RenderFooter();

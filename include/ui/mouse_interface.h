@@ -17,9 +17,9 @@ namespace towerforge::ui {
         bool left_pressed; // Left mouse button was just pressed this frame
         bool right_pressed;// Right mouse button was just pressed this frame
         
-        MouseEvent(float x = 0.0f, float y = 0.0f, 
-                   bool left_down = false, bool right_down = false,
-                   bool left_pressed = false, bool right_pressed = false)
+        MouseEvent(const float x = 0.0f, const float y = 0.0f,
+                   const bool left_down = false, const bool right_down = false,
+                   const bool left_pressed = false, const bool right_pressed = false)
             : x(x), y(y), left_down(left_down), right_down(right_down),
               left_pressed(left_pressed), right_pressed(right_pressed) {}
     };

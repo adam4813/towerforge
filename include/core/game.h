@@ -67,7 +67,7 @@ namespace towerforge::core {
     private:
         // State management
         void UpdateTitleScreen(float delta_time);
-        void RenderTitleScreen();
+        void RenderTitleScreen() const;
         void HandleTitleScreenInput();
 
         void UpdateAchievementsScreen(float delta_time);

@@ -1428,7 +1428,7 @@ namespace TowerForge::Core {
                     bool cleaned_something = false;
                 
                     // First try to clean facilities with CleanlinessStatus
-                    world.each([&](flecs::entity facility_entity, CleanlinessStatus& cleanliness, const BuildingComponent& facility) {
+                    world.each([&](const flecs::entity facility_entity, CleanlinessStatus& cleanliness, const BuildingComponent& facility) {
                             if (cleaned_something) return;  // Only clean one facility per cycle
                         
                             // Check if staff is assigned to this facility or floor
@@ -1467,7 +1467,7 @@ namespace TowerForge::Core {
                 
                     // Fallback to FacilityStatus for compatibility
                     if (!cleaned_something) {
-                        world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                        world.each([&](const flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
                                 if (cleaned_something) return;  // Only clean one facility per cycle
                             
                                 // Check if staff is assigned to this facility or floor
@@ -1518,7 +1518,7 @@ namespace TowerForge::Core {
                     auto world = staff_entity.world();
                     bool maintained_something = false;
                 
-                    world.each([&](flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
+                    world.each([&](const flecs::entity facility_entity, FacilityStatus& status, const BuildingComponent& facility) {
                             if (maintained_something) return;
                         
                             // Check if staff is assigned to this facility or floor
@@ -1568,7 +1568,7 @@ namespace TowerForge::Core {
                     auto world = staff_entity.world();
                     bool repaired_something = false;
                 
-                    world.each([&](flecs::entity facility_entity, MaintenanceStatus& maintenance, const BuildingComponent& facility) {
+                    world.each([&](const flecs::entity facility_entity, MaintenanceStatus& maintenance, const BuildingComponent& facility) {
                             if (repaired_something) return;  // Only repair one facility per cycle
                         
                             // Check if staff is assigned to this facility or floor

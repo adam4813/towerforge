@@ -34,10 +34,10 @@ namespace towerforge::ui {
         int priority;                // Higher priority regions receive events first
         void* user_data;             // Optional user data pointer
 
-        MouseEventRegion(Rectangle bounds, 
-                        MouseHoverCallback hover = nullptr,
-                        MouseClickCallback click = nullptr,
-                        int priority = 0,
+        MouseEventRegion(const Rectangle bounds,
+                        const MouseHoverCallback &hover = nullptr,
+                        const MouseClickCallback &click = nullptr,
+                        const int priority = 0,
                         void* user_data = nullptr)
             : bounds(bounds), on_hover(hover), on_click(click), 
               priority(priority), user_data(user_data) {}
@@ -115,7 +115,7 @@ namespace towerforge::ui {
             MouseEventRegion data;
             bool is_hovered;
 
-            Region(int h, const MouseEventRegion& d)
+            Region(const int h, const MouseEventRegion& d)
                 : handle(h), data(d), is_hovered(false) {}
         };
 

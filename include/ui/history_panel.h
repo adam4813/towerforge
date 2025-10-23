@@ -19,7 +19,7 @@ namespace towerforge::ui {
         int cost_change;
         bool is_redo;  // true if from redo stack, false if from undo stack
 
-        HistoryDisplayEntry(const std::string& desc, const std::string& time, int cost, bool redo)
+        HistoryDisplayEntry(const std::string& desc, const std::string& time, const int cost, const bool redo)
             : description(desc), time_str(time), cost_change(cost), is_redo(redo) {}
     };
 
@@ -45,7 +45,7 @@ namespace towerforge::ui {
          * @param mouse_y Mouse Y position
          * @return Number of steps to undo (positive) or redo (negative), or 0 for no action
          */
-        int HandleClick(int mouse_x, int mouse_y);
+        int HandleClick(int mouse_x, int mouse_y) const;
 
         /**
          * @brief Update the history display from the command history
@@ -56,7 +56,7 @@ namespace towerforge::ui {
         /**
          * @brief Set visibility of history panel
          */
-        void SetVisible(bool visible) { visible_ = visible; }
+        void SetVisible(const bool visible) { visible_ = visible; }
 
         /**
          * @brief Check if history panel is visible

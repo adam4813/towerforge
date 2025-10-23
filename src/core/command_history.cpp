@@ -2,7 +2,7 @@
 
 namespace TowerForge::Core {
 
-    CommandHistory::CommandHistory(size_t max_history_size)
+    CommandHistory::CommandHistory(const size_t max_history_size)
         : max_history_size_(max_history_size) {
     }
 

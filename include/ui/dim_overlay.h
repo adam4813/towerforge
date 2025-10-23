@@ -19,8 +19,8 @@ namespace towerforge::ui {
          */
         void Render() const;
         
-        void SetOpacity(float opacity) { opacity_ = opacity; }
-        void SetColor(Color color) { color_ = color; }
+        void SetOpacity(const float opacity) { opacity_ = opacity; }
+        void SetColor(const Color color) { color_ = color; }
         
     private:
         Color color_;

@@ -14,7 +14,7 @@ namespace towerforge::core {
     constexpr float HOURS_PER_DAY = 24.0f;
 
     // Helper function to convert facility type enum to string
-    static std::string GetFacilityTypeName(BuildingComponent::Type type) {
+    static std::string GetFacilityTypeName(const BuildingComponent::Type type) {
         switch (type) {
             case BuildingComponent::Type::Office: return "Office";
             case BuildingComponent::Type::Residential: return "Residential";
@@ -183,7 +183,7 @@ namespace towerforge::core {
         renderer_.Initialize(800, 600, "TowerForge");
 
         // Initialize batch renderer
-        towerforge::ui::batch_renderer::BatchRenderer::Initialize();
+        batch_renderer::BatchRenderer::Initialize();
         std::cout << "Batch renderer initialized" << std::endl;
         
         // Set up main menu callback
@@ -192,15 +192,15 @@ namespace towerforge::core {
         });
         
         // Set up general settings menu callback
-        general_settings_menu_.SetOptionCallback([this](ui::SettingsOption option) {
+        general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
             switch (option) {
-                case ui::SettingsOption::Audio:
+                case SettingsOption::Audio:
                     in_audio_settings_ = true;
                     break;
-                case ui::SettingsOption::Accessibility:
+                case SettingsOption::Accessibility:
                     in_accessibility_settings_ = true;
                     break;
-                case ui::SettingsOption::Back:
+                case SettingsOption::Back:
                     current_state_ = GameState::TitleScreen;
                     break;
                 default:
@@ -210,15 +210,15 @@ namespace towerforge::core {
         });
         
         // Set up pause general settings menu callback
-        pause_general_settings_menu_.SetOptionCallback([this](ui::SettingsOption option) {
+        pause_general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
             switch (option) {
-                case ui::SettingsOption::Audio:
+                case SettingsOption::Audio:
                     in_audio_settings_from_pause_ = true;
                     break;
-                case ui::SettingsOption::Accessibility:
+                case SettingsOption::Accessibility:
                     in_accessibility_settings_from_pause_ = true;
                     break;
-                case ui::SettingsOption::Back:
+                case SettingsOption::Back:
                     in_settings_from_pause_ = false;
                     break;
                 default:
@@ -320,7 +320,7 @@ namespace towerforge::core {
         CleanupGameSystems();
 
         // Shutdown batch renderer
-        towerforge::ui::batch_renderer::BatchRenderer::Shutdown();
+        batch_renderer::BatchRenderer::Shutdown();
 
         renderer_.Shutdown();
         std::cout << "Exiting TowerForge..." << std::endl;
@@ -331,7 +331,7 @@ namespace towerforge::core {
         HandleTitleScreenInput();
     }
 
-    void Game::RenderTitleScreen() {
+    void Game::RenderTitleScreen() const {
         renderer_.BeginFrame();
         main_menu_.Render();
         renderer_.EndFrame();
@@ -582,13 +582,13 @@ namespace towerforge::core {
         // Create and initialize camera with default bounds
         // The bounds will grow dynamically as the tower is built
         camera_ = std::make_unique<rendering::Camera>();
-        
+
         // Initialize with a reasonable default size (slightly larger than screen)
         const float default_width = 1200.0f;
         const float default_height = 800.0f;
-        
+
         camera_->Initialize(800, 600, default_width, default_height);
-        
+
         // Update camera bounds based on currently built floors
         UpdateCameraBounds();
 
@@ -647,7 +647,7 @@ namespace towerforge::core {
         placement_system_->SetTooltipManager(hud_->GetTooltipManager());
 
         // Create history panel
-        history_panel_ = std::make_unique<ui::HistoryPanel>();
+        history_panel_ = std::make_unique<HistoryPanel>();
         history_panel_->SetVisible(false); // Hidden by default
 
         std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x "
@@ -710,20 +710,20 @@ namespace towerforge::core {
         in_accessibility_settings_from_pause_ = false;
     }
 
-    void Game::UpdateInGame(float delta_time) {
+    void Game::UpdateInGame(const float delta_time) {
         // Handle F1 key to toggle help system
         if (help_system_ != nullptr && IsKeyPressed(KEY_F1)) {
             if (help_system_->IsVisible()) {
                 help_system_->Hide();
             } else {
                 // Determine current context based on active UI
-                ui::HelpContext context = ui::HelpContext::MainGame;
+                HelpContext context = HelpContext::MainGame;
                 if (is_paused_) {
-                    context = ui::HelpContext::PauseMenu;
+                    context = HelpContext::PauseMenu;
                 } else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
-                    context = ui::HelpContext::ResearchTree;
+                    context = HelpContext::ResearchTree;
                 } else if (mods_menu_ != nullptr && mods_menu_->IsVisible()) {
-                    context = ui::HelpContext::ModsMenu;
+                    context = HelpContext::ModsMenu;
                 }
                 help_system_->Show(context);
             }
@@ -787,7 +787,7 @@ namespace towerforge::core {
         }
 
         CalculateTowerRating();
-        
+
         // Update camera bounds based on built floors (checks periodically)
         UpdateCameraBounds();
 
@@ -805,7 +805,7 @@ namespace towerforge::core {
 
             // Handle mouse events for confirmation dialogs first
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                const ui::MouseEvent mouse_event{
+                const MouseEvent mouse_event{
                     static_cast<float>(GetMouseX()),
                     static_cast<float>(GetMouseY()),
                     false, // left_down
@@ -826,7 +826,7 @@ namespace towerforge::core {
                                                                       true, // clicked
                                                                       research_tree_ref);
                     // Note: unlock notification is now handled in ResearchTreeMenu via notification center
-                    
+
                     // Apply vertical expansion upgrades if anything was unlocked
                     if (unlocked) {
                         ecs_world_->ApplyVerticalExpansionUpgrades();
@@ -1007,7 +1007,7 @@ namespace towerforge::core {
         // Handle mouse clicks (only if not paused)
         if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             // Create mouse event for UI system
-            const ui::MouseEvent mouse_event{
+            const MouseEvent mouse_event{
                 static_cast<float>(mouse_x),
                 static_cast<float>(mouse_y),
                 false, // left_down
@@ -1403,7 +1403,7 @@ namespace towerforge::core {
         // Helper function to convert floor index to screen Y coordinate
         // Ground floor (0) at fixed position, floors build upward (decreasing Y)
         const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
-        auto FloorToScreenY = [ground_floor_screen_y, this](int floor) -> int {
+        auto FloorToScreenY = [ground_floor_screen_y, this](const int floor) -> int {
             return ground_floor_screen_y - (floor * cell_height_);
         };
 
@@ -1678,11 +1678,11 @@ namespace towerforge::core {
         }
 
         const auto& grid = ecs_world_->GetTowerGrid();
-        
+
         // Get the range of built floors
         int min_built_floor = 0;
         int max_built_floor = 0;
-        
+
         if (!grid.GetBuiltFloorRange(min_built_floor, max_built_floor)) {
             // No floors built yet, use a small default area around ground floor
             min_built_floor = -1;  // 1 floor below ground
@@ -1707,15 +1707,15 @@ namespace towerforge::core {
         camera_->SetTowerBounds(tower_width, tower_height);
     }
 
-    ui::IncomeBreakdown Game::CollectIncomeAnalytics() const {
-        ui::IncomeBreakdown breakdown;
+    IncomeBreakdown Game::CollectIncomeAnalytics() const {
+        IncomeBreakdown breakdown;
 
         if (!ecs_world_) {
             return breakdown;
         }
 
         // Map to aggregate revenue by facility type
-        std::map<std::string, ui::IncomeBreakdown::FacilityTypeRevenue> revenue_map;
+        std::map<std::string, IncomeBreakdown::FacilityTypeRevenue> revenue_map;
 
         // Query all facilities with economics
         ecs_world_->GetWorld().each([&](flecs::entity e,
@@ -1768,8 +1768,8 @@ namespace towerforge::core {
         return breakdown;
     }
 
-    ui::PopulationBreakdown Game::CollectPopulationAnalytics() const {
-        ui::PopulationBreakdown breakdown;
+    PopulationBreakdown Game::CollectPopulationAnalytics() const {
+        PopulationBreakdown breakdown;
 
         if (!ecs_world_) {
             return breakdown;

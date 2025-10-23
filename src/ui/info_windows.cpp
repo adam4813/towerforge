@@ -235,7 +235,7 @@ namespace towerforge::ui {
             y += 20;
         
             // Helper function to get need color
-            auto get_need_color = [](float need) {
+            auto get_need_color = [](const float need) {
                 if (need < 30.0f) return GREEN;
                 if (need < 60.0f) return YELLOW;
                 return RED;

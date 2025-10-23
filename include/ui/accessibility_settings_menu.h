@@ -20,7 +20,7 @@ namespace towerforge::ui {
         /**
          * @brief Render the accessibility settings menu
          */
-        void Render();
+        void Render() const;
     
         /**
          * @brief Update menu state (called every frame)
@@ -56,7 +56,7 @@ namespace towerforge::ui {
         void RenderCheckbox(const char* label, bool checked, int y_pos, bool is_selected) const;
         void RenderFontScaleSlider() const;
     
-        void ApplySettings();
+        void ApplySettings() const;
     
         int selected_option_;  // Currently highlighted menu option (0=high_contrast, 1=font_scale, 2=keyboard_nav, 3=back)
         float animation_time_; // For animations

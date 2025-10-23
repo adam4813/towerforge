@@ -621,7 +621,7 @@ namespace towerforge::ui {
         DrawText("(Continue playing to build more!)", x + 55, y, 12, GRAY);
     }
 
-    void HUD::ToggleNotificationCenter() {
+    void HUD::ToggleNotificationCenter() const {
         notification_center_->ToggleVisibility();
     }
 
@@ -648,14 +648,14 @@ namespace towerforge::ui {
         population_analytics_callback_ = std::move(callback);
     }
 
-    void HUD::RequestIncomeAnalytics() {
+    void HUD::RequestIncomeAnalytics() const {
         if (income_analytics_callback_) {
             const IncomeBreakdown data = income_analytics_callback_();
             ShowIncomeAnalytics(data);
         }
     }
 
-    void HUD::RequestPopulationAnalytics() {
+    void HUD::RequestPopulationAnalytics() const {
         if (population_analytics_callback_) {
             const PopulationBreakdown data = population_analytics_callback_();
             ShowPopulationAnalytics(data);

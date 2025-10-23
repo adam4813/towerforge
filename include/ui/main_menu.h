@@ -31,7 +31,7 @@ namespace towerforge::ui {
          * @brief Set the callback for state changes
          * @param callback Function to call when a menu option triggers a state change
          */
-        void SetStateChangeCallback(StateChangeCallback callback);
+        void SetStateChangeCallback(const StateChangeCallback &callback);
 
         /**
          * @brief Render the main menu

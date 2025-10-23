@@ -97,7 +97,7 @@ namespace towerforge::ui {
          * @brief Set keyboard focus state
          * @param focused Whether this element has keyboard focus
          */
-        void SetFocused(bool focused) { is_focused_ = focused; }
+        void SetFocused(const bool focused) { is_focused_ = focused; }
 
         /**
          * @brief Check if element has keyboard focus
@@ -174,7 +174,7 @@ namespace towerforge::ui {
          * @brief Update panel state for animations
          * @param delta_time Time elapsed since last frame
          */
-        void Update(float delta_time);
+        virtual void Update(float delta_time);
 
         /**
          * @brief Render the panel
@@ -191,12 +191,12 @@ namespace towerforge::ui {
         /**
          * @brief Set background color
          */
-        void SetBackgroundColor(Color color) { background_color_ = color; }
+        void SetBackgroundColor(const Color color) { background_color_ = color; }
 
         /**
          * @brief Set border color
          */
-        void SetBorderColor(Color color) { border_color_ = color; }
+        void SetBorderColor(const Color color) { border_color_ = color; }
 
         /**
          * @brief Get background color
@@ -212,7 +212,7 @@ namespace towerforge::ui {
          * @brief Set padding for children
          * @param padding Padding in pixels applied to all sides
          */
-        void SetPadding(float padding) { padding_ = padding; }
+        void SetPadding(const float padding) { padding_ = padding; }
         
         /**
          * @brief Get padding
@@ -311,7 +311,7 @@ namespace towerforge::ui {
          * @brief Set click callback
          * @param callback Function to call when button is clicked
          */
-        void SetClickCallback(ClickCallback callback) { click_callback_ = callback; }
+        void SetClickCallback(const ClickCallback &callback) { click_callback_ = callback; }
 
         /**
          * @brief Set the button label
@@ -326,17 +326,17 @@ namespace towerforge::ui {
         /**
          * @brief Set background color
          */
-        void SetBackgroundColor(Color color) { background_color_ = color; }
+        void SetBackgroundColor(const Color color) { background_color_ = color; }
 
         /**
          * @brief Set border color
          */
-        void SetBorderColor(Color color) { border_color_ = color; }
+        void SetBorderColor(const Color color) { border_color_ = color; }
 
         /**
          * @brief Set text color
          */
-        void SetTextColor(Color color) { text_color_ = color; }
+        void SetTextColor(const Color color) { text_color_ = color; }
 
         /**
          * @brief Get background color
@@ -356,7 +356,7 @@ namespace towerforge::ui {
         /**
          * @brief Set font size
          */
-        void SetFontSize(int size) { font_size_ = size; }
+        void SetFontSize(const int size) { font_size_ = size; }
 
         /**
          * @brief Get font size
@@ -366,7 +366,7 @@ namespace towerforge::ui {
         /**
          * @brief Set enabled state
          */
-        void SetEnabled(bool enabled) { enabled_ = enabled; }
+        void SetEnabled(const bool enabled) { enabled_ = enabled; }
 
         /**
          * @brief Get enabled state
@@ -425,7 +425,7 @@ namespace towerforge::ui {
          * @brief Update dialog state
          * @param delta_time Time elapsed since last frame
          */
-        void Update(float delta_time);
+        void Update(float delta_time) override;
 
         /**
          * @brief Handle mouse event
@@ -437,12 +437,12 @@ namespace towerforge::ui {
         /**
          * @brief Set confirm callback
          */
-        void SetConfirmCallback(ConfirmCallback callback) { confirm_callback_ = callback; }
+        void SetConfirmCallback(const ConfirmCallback &callback) { confirm_callback_ = callback; }
 
         /**
          * @brief Set cancel callback
          */
-        void SetCancelCallback(CancelCallback callback) { cancel_callback_ = callback; }
+        void SetCancelCallback(const CancelCallback &callback) { cancel_callback_ = callback; }
 
         /**
          * @brief Check if dialog is visible
@@ -526,7 +526,7 @@ namespace towerforge::ui {
         /**
          * @brief Set value change callback
          */
-        void SetValueChangedCallback(ValueChangedCallback callback) { value_changed_callback_ = callback; }
+        void SetValueChangedCallback(const ValueChangedCallback &callback) { value_changed_callback_ = callback; }
 
         /**
          * @brief Set current value (normalized 0.0-1.0)
@@ -602,7 +602,7 @@ namespace towerforge::ui {
         /**
          * @brief Set toggle callback
          */
-        void SetToggleCallback(ToggleCallback callback) { toggle_callback_ = callback; }
+        void SetToggleCallback(const ToggleCallback &callback) { toggle_callback_ = callback; }
 
         /**
          * @brief Set checked state

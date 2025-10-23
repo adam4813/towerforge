@@ -142,7 +142,7 @@ namespace towerforge::ui {
         return hovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
     }
 
-    void HelpSystem::RenderOverlay() {
+    void HelpSystem::RenderOverlay() const {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;

@@ -59,7 +59,7 @@ namespace TowerForge::Core {
 
         FacilityState() = default;
 
-        FacilityState(BuildingComponent::Type t, int f, int c, int w, int cap, int occ, float sat, int cost)
+        FacilityState(const BuildingComponent::Type t, const int f, const int c, const int w, const int cap, const int occ, const float sat, const int cost)
             : type(t), floor(f), column(c), width(w), capacity(cap), 
               current_occupancy(occ), satisfaction_score(sat), facility_cost(cost) {}
     };
