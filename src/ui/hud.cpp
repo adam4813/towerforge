@@ -48,6 +48,9 @@ namespace towerforge::ui {
         // Update notification center
         notification_center_->Update(delta_time);
         
+        // Update window manager (handles repositioning on resize)
+        window_manager_->Update(delta_time);
+        
         // Update action bar
         if (action_bar_) {
             action_bar_->Update(delta_time);
@@ -100,19 +103,19 @@ namespace towerforge::ui {
     void HUD::ShowFacilityInfo(const FacilityInfo& info) const {
         // Create a new facility window and add it to the window manager
         auto window = std::make_unique<FacilityWindow>(info);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddInfoWindow(std::move(window));
     }
 
     void HUD::ShowPersonInfo(const PersonInfo& info) const {
         // Create a new person window and add it to the window manager
         auto window = std::make_unique<PersonWindow>(info);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddInfoWindow(std::move(window));
     }
 
     void HUD::ShowElevatorInfo(const ElevatorInfo& info) const {
         // Create a new elevator window and add it to the window manager
         auto window = std::make_unique<ElevatorWindow>(info);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddInfoWindow(std::move(window));
     }
 
     void HUD::HideInfoPanels() const {

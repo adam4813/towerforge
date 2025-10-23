@@ -47,6 +47,10 @@ set(SOURCE_FILES
     src/ui/ui_window.cpp
     src/ui/ui_window_manager.cpp
     src/ui/info_windows.cpp
+    src/ui/stat_item.cpp
+    src/ui/alert_bar.cpp
+    src/ui/section_header.cpp
+    src/ui/icon_button.cpp
     src/ui/analytics_overlay.cpp
     src/ui/tab_bar.cpp
     src/ui/tooltip.cpp

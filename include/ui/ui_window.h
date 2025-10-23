@@ -20,6 +20,11 @@ namespace towerforge::ui {
         virtual void Render() = 0;
     
         /**
+     * @brief Update window (for animations, repositioning, etc.)
+     */
+        virtual void Update(float delta_time) {}
+    
+        /**
      * @brief Check if a point is inside the window
      */
         bool Contains(int x, int y) const;
