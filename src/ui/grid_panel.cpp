@@ -20,9 +20,15 @@ namespace towerforge::ui {
         SetPadding(spacing);
     }
 
-    Button* GridPanel::AddItem(const std::string& label, int data_index, const Color background_color) {
+    Button* GridPanel::AddItem(const std::string& label, int data_index, Color background_color) {
+        const int row = static_cast<int>(items_.size()) / columns_;
+        const int col = static_cast<int>(items_.size()) % columns_;
+        
+        const float x = col * (item_size_ + spacing_) + spacing_;
+        const float y = row * (item_size_ + spacing_) - scroll_offset_ + spacing_;
+        
         auto button = std::make_unique<Button>(
-            0, 0,  // Position calculated in RepositionItems
+            x, y,
             item_size_, item_size_,
             label,
             ColorAlpha(background_color, 0.3f),
@@ -38,9 +44,13 @@ namespace towerforge::ui {
         });
         
         Button* button_ptr = button.get();
-        items_.push_back({std::move(button), data_index});
         
-        RepositionItems();
+        // Add to children for rendering and event handling
+        AddChild(std::move(button));
+        
+        // Store reference in items (button now owned by children_)
+        items_.push_back({nullptr, data_index});
+        
         UpdateScrollBounds();
         
         return button_ptr;
@@ -48,42 +58,10 @@ namespace towerforge::ui {
 
     void GridPanel::ClearItems() {
         items_.clear();
+        children_.clear();  // Clear all child buttons
         scroll_offset_ = 0.0f;
         max_scroll_ = 0.0f;
         selected_item_index_ = -1;
-        
-        // Clear children from Panel
-        // Note: This is a simplified approach - in production we'd have better child management
-        children_.clear();
-    }
-
-    void GridPanel::RepositionItems() {
-        children_.clear();
-        
-        for (size_t i = 0; i < items_.size(); ++i) {
-            const int row = static_cast<int>(i) / columns_;
-            const int col = static_cast<int>(i) % columns_;
-            
-            const float x = col * (item_size_ + spacing_);
-            const float y = row * (item_size_ + spacing_) - scroll_offset_;
-            
-            items_[i].button->SetRelativePosition(x, y);
-            
-            // Only add to children if visible (optimization)
-            const float panel_height = height_ - GetPadding() * 2;
-            if (y + item_size_ >= -scroll_offset_ && y < panel_height) {
-                AddChild(std::move(items_[i].button));
-                // Re-wrap the button for next iteration
-                items_[i].button = std::unique_ptr<Button>(static_cast<Button*>(children_.back().release()));
-                children_.pop_back();
-            }
-        }
-        
-        // Re-add all items to children for rendering
-        for (auto& item : items_) {
-            // This is a bit awkward - we need a better child management system
-            // For now, we'll just leave them positioned
-        }
     }
 
     void GridPanel::UpdateScrollBounds() {
@@ -98,20 +76,13 @@ namespace towerforge::ui {
         // Render panel background and border
         Panel::Render();
         
-        // Render visible items
-        for (const auto& item : items_) {
-            const Rectangle bounds = item.button->GetAbsoluteBounds();
-            const Rectangle panel_bounds = GetAbsoluteBounds();
-            
-            // Clip to panel bounds
-            if (bounds.y + bounds.height >= panel_bounds.y && 
-                bounds.y <= panel_bounds.y + panel_bounds.height) {
-                item.button->Render();
-            }
+        // Render all children (buttons)
+        for (const auto& child : children_) {
+            child->Render();
         }
     }
 
-    void GridPanel::Update(const float delta_time) {
+    void GridPanel::Update(float delta_time) {
         Panel::Update(delta_time);
         
         // Handle mouse wheel scrolling
@@ -119,21 +90,37 @@ namespace towerforge::ui {
         if (wheel != 0.0f) {
             scroll_offset_ -= wheel * 30.0f;
             scroll_offset_ = std::clamp(scroll_offset_, 0.0f, max_scroll_);
-            RepositionItems();
+            
+            // Reposition all buttons based on new scroll offset
+            for (size_t i = 0; i < children_.size(); ++i) {
+                const int row = static_cast<int>(i) / columns_;
+                const int col = static_cast<int>(i) % columns_;
+                
+                const float x = col * (item_size_ + spacing_) + spacing_;
+                const float y = row * (item_size_ + spacing_) - scroll_offset_ + spacing_;
+                
+                children_[i]->SetRelativePosition(x, y);
+            }
         }
         
-        // Update visible items
-        for (auto& item : items_) {
-            item.button->Update(delta_time);
+        // Update all child buttons
+        for (auto& child : children_) {
+            if (auto* btn = dynamic_cast<Button*>(child.get())) {
+                btn->Update(delta_time);
+            }
         }
     }
 
-    void GridPanel::SetSelectedItem(const int data_index) {
+    void GridPanel::SetSelectedItem(int data_index) {
         selected_item_index_ = data_index;
         
         // Update button borders
-        for (auto& item : items_) {
-            item.button->SetBorderColor(item.data_index == data_index ? GOLD : GRAY);
+        for (size_t i = 0; i < items_.size(); ++i) {
+            if (i < children_.size()) {
+                if (auto* btn = dynamic_cast<Button*>(children_[i].get())) {
+                    btn->SetBorderColor(items_[i].data_index == data_index ? GOLD : GRAY);
+                }
+            }
         }
     }
 

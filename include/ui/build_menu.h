@@ -181,8 +181,8 @@ namespace towerforge::ui {
         
         // UI Components
         std::unique_ptr<Panel> root_panel_;           // Main container
-        std::unique_ptr<TabBar> tab_bar_;             // Category tabs
-        std::unique_ptr<GridPanel> facility_grid_;    // Scrollable facility grid
+        TabBar* tab_bar_;             // Category tabs
+        GridPanel* facility_grid_;    // Scrollable facility grid
         std::unique_ptr<Button> close_button_;
         
         // Layout constants

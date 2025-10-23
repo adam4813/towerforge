@@ -838,6 +838,11 @@ namespace towerforge::core {
         hud_->SetGameState(game_state_);
         hud_->Update(time_step_);
 
+        // Update build menu (for position updates)
+        if (build_menu_) {
+            build_menu_->Update(time_step_);
+        }
+
         // Update help system
         if (help_system_ != nullptr) {
             help_system_->Update(delta_time);
@@ -1049,7 +1054,7 @@ namespace towerforge::core {
         }
 
         // Handle hover events for HUD (action bar button highlighting, etc.)
-        if (!is_paused_) {
+        if (!is_paused_ && !research_menu_->IsVisible()) {
             const MouseEvent hover_event{
                 static_cast<float>(mouse_x),
                 static_cast<float>(mouse_y),
@@ -1068,8 +1073,8 @@ namespace towerforge::core {
             }
         }
 
-        // Handle mouse clicks (only if not paused)
-        if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        // Handle mouse clicks (only if not paused and research menu not visible)
+        if (!is_paused_ && !research_menu_->IsVisible() && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             // Create mouse event for UI system
             const MouseEvent mouse_event{
                 static_cast<float>(mouse_x),

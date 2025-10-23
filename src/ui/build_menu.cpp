@@ -58,25 +58,27 @@ namespace towerforge::ui {
 
         // Create category tab bar
         const std::vector<std::string> tab_labels = {"Core", "Commercial", "Residential", "Entertainment", "Professional"};
-        tab_bar_ = std::make_unique<TabBar>(0, 0, MENU_WIDTH, TAB_HEIGHT, tab_labels);
-        tab_bar_->SetTabSelectedCallback([this](int tab_index) {
+        auto bar = std::make_unique<TabBar>(0, 0, MENU_WIDTH, TAB_HEIGHT, tab_labels);
+        bar->SetTabSelectedCallback([this](int tab_index) {
             SwitchCategory(static_cast<FacilityCategory>(tab_index));
         });
-        root_panel_->AddChild(std::move(tab_bar_));
+        tab_bar_ = bar.get();
+        root_panel_->AddChild(std::move(bar));
 
         // Create facility grid panel (scrollable)
-        facility_grid_ = std::make_unique<GridPanel>(
+        auto grid = std::make_unique<GridPanel>(
             0, TAB_HEIGHT,
             MENU_WIDTH, MENU_HEIGHT - TAB_HEIGHT - CLOSE_BUTTON_SIZE - 10,
             FACILITIES_PER_ROW, FACILITY_BUTTON_SIZE, GRID_PADDING
         );
-        facility_grid_->SetItemSelectedCallback([this](const int data_index) {
+        grid->SetItemSelectedCallback([this](const int data_index) {
             selected_facility_ = data_index;
             if (facility_selected_callback_) {
                 facility_selected_callback_(data_index);
             }
         });
-        root_panel_->AddChild(std::move(facility_grid_));
+        facility_grid_ = grid.get();
+        root_panel_->AddChild(std::move(grid));
 
         // Create close button
         close_button_ = std::make_unique<Button>(
@@ -148,6 +150,13 @@ namespace towerforge::ui {
 
     void BuildMenu::Update(const float delta_time) const {
         if (!visible_ || !root_panel_) return;
+        
+        // Update position to stay above action bar (centered)
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const float x = (screen_width - MENU_WIDTH) / 2.0f;
+        const float y = screen_height - MENU_HEIGHT - 60.0f; // 60px from bottom (above action bar)
+        root_panel_->SetRelativePosition(x, y);
         
         root_panel_->Update(delta_time);
         

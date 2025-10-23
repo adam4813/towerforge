@@ -17,8 +17,8 @@ This implementation adds a unified user preferences system to TowerForge that pe
 - Singleton pattern for global access
 - JSON-based persistence using nlohmann-json library
 - Platform-specific config file locations:
-  - Windows: `%APPDATA%/TowerForge/user_preferences.json`
-  - Linux/macOS: `~/.towerforge/user_preferences.json`
+    - Windows: `%APPDATA%/TowerForge/user_preferences.json`
+    - Linux/macOS: `~/.towerforge/user_preferences.json`
 - Automatic directory creation if needed
 - Graceful error handling with console logging
 
@@ -73,10 +73,10 @@ This implementation adds a unified user preferences system to TowerForge that pe
    ```
 
 2. **Apply Settings**:
-   - Audio manager volumes are set from preferences
-   - UI systems use preferences for scaling and theme
-   - Accessibility settings are applied globally
-   - Notification filters are loaded into NotificationCenter
+    - Audio manager volumes are set from preferences
+    - UI systems use preferences for scaling and theme
+    - Accessibility settings are applied globally
+    - Notification filters are loaded into NotificationCenter
 
 ### Runtime Changes
 
