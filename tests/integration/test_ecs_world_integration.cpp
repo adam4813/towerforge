@@ -100,7 +100,7 @@ TEST_F(ECSWorldIntegrationTest, MultipleEntitiesWithComponents) {
     
     // Query entities with BuildingComponent
     int count = 0;
-    world.each<BuildingComponent>([&](flecs::entity e, BuildingComponent& building) {
+    world.each([&](flecs::entity e, BuildingComponent& building) {
         count++;
         EXPECT_GT(building.capacity, 0);
     });
@@ -164,14 +164,15 @@ TEST_F(ECSWorldIntegrationTest, ComponentQueryAfterUpdate) {
     // Run update
     ecs_world->Update(0.016f);
     
-    // Query components
+    // Query components - count entities with both BuildingComponent and GridPosition
     int facility_count = 0;
-    world.each<BuildingComponent, GridPosition>([&](flecs::entity e, 
-                                                     BuildingComponent& building,
-                                                     GridPosition& pos) {
-        facility_count++;
-        EXPECT_GE(pos.floor, 0);
-        EXPECT_GE(pos.column, 0);
+    world.each([&](flecs::entity e) {
+        if (e.has<BuildingComponent>() && e.has<GridPosition>()) {
+            facility_count++;
+            const auto& pos = e.get<GridPosition>();
+            EXPECT_GE(pos.floor, 0);
+            EXPECT_GE(pos.column, 0);
+        }
     });
     
     EXPECT_EQ(facility_count, 2);

@@ -36,10 +36,10 @@ TEST_F(FacilityManagerIntegrationTest, CreateBasicFacility) {
     EXPECT_TRUE(facility.has<BuildingComponent>());
     EXPECT_TRUE(facility.has<GridPosition>());
 
-    const auto* building = facility.get<BuildingComponent>();
+    const auto& building = facility.get<BuildingComponent>();
     EXPECT_EQ(building.type, BuildingComponent::Type::Office);
 
-    const auto* pos = facility.get<GridPosition>();
+    const auto& pos = facility.get<GridPosition>();
     EXPECT_EQ(pos.floor, 0);
     EXPECT_EQ(pos.column, 0);
 }
@@ -129,10 +129,9 @@ TEST_F(FacilityManagerIntegrationTest, FacilityWithComponents) {
     );
 
     // Check for additional components
-    const auto* building = facility.get<BuildingComponent>();
-    // Removed null check: EXPECT_NE(building, nullptr);
-    EXPECT_GT(building->capacity, 0);
-    EXPECT_GE(building->current_occupancy, 0);
+    const auto& building = facility.get<BuildingComponent>();
+    EXPECT_GT(building.capacity, 0);
+    EXPECT_GE(building.current_occupancy, 0);
 }
 
 TEST_F(FacilityManagerIntegrationTest, FloorBuildCostCalculation) {
@@ -218,14 +217,17 @@ TEST_F(FacilityManagerIntegrationTest, CleanFacilityOperation) {
     );
 
     // Add CleanlinessStatus component manually for testing
-    facility.set<CleanlinessStatus>({CleanlinessStatus::Status::Dirty, 0.0f});
+    CleanlinessStatus clean_status;
+    clean_status.status = CleanlinessStatus::State::Dirty;
+    clean_status.time_since_last_clean = 0.0f;
+    facility.set<CleanlinessStatus>(clean_status);
 
     // Clean the facility
     EXPECT_TRUE(facility_mgr->CleanFacility(facility));
 
     // Verify cleanliness status
-    const auto* status = facility.get<CleanlinessStatus>();
-    EXPECT_EQ(status->current_status, CleanlinessStatus::Status::Clean);
+    const auto& status = facility.get<CleanlinessStatus>();
+    EXPECT_EQ(status.status, CleanlinessStatus::State::Clean);
 }
 
 TEST_F(FacilityManagerIntegrationTest, RepairFacilityOperation) {
@@ -234,14 +236,18 @@ TEST_F(FacilityManagerIntegrationTest, RepairFacilityOperation) {
     );
 
     // Add MaintenanceStatus component manually for testing
-    facility.set<MaintenanceStatus>({MaintenanceStatus::Status::NeedsService, 0.0f, false});
+    MaintenanceStatus maint_status;
+    maint_status.status = MaintenanceStatus::State::NeedsService;
+    maint_status.time_since_last_service = 0.0f;
+    maint_status.auto_repair_enabled = false;
+    facility.set<MaintenanceStatus>(maint_status);
 
     // Repair the facility
     EXPECT_TRUE(facility_mgr->RepairFacility(facility));
 
     // Verify maintenance status
-    const auto* status = facility.get<MaintenanceStatus>();
-    EXPECT_EQ(status->current_status, MaintenanceStatus::Status::Good);
+    const auto& status = facility.get<MaintenanceStatus>();
+    EXPECT_EQ(status.status, MaintenanceStatus::State::Good);
 }
 
 TEST_F(FacilityManagerIntegrationTest, AutoRepairSetting) {
@@ -250,16 +256,20 @@ TEST_F(FacilityManagerIntegrationTest, AutoRepairSetting) {
     );
 
     // Add MaintenanceStatus component
-    facility.set<MaintenanceStatus>({MaintenanceStatus::Status::Good, 100.0f, false});
+    MaintenanceStatus maint_status;
+    maint_status.status = MaintenanceStatus::State::Good;
+    maint_status.time_since_last_service = 100.0f;
+    maint_status.auto_repair_enabled = false;
+    facility.set<MaintenanceStatus>(maint_status);
 
     // Enable auto-repair
     EXPECT_TRUE(facility_mgr->SetAutoRepair(facility, true));
 
-    const auto* status = facility.get<MaintenanceStatus>();
-    EXPECT_TRUE(status->auto_repair_enabled);
+    const auto& status = facility.get<MaintenanceStatus>();
+    EXPECT_TRUE(status.auto_repair_enabled);
 
     // Disable auto-repair
     EXPECT_TRUE(facility_mgr->SetAutoRepair(facility, false));
-    status = facility.get<MaintenanceStatus>();
-    EXPECT_FALSE(status->auto_repair_enabled);
+    const auto& status2 = facility.get<MaintenanceStatus>();
+    EXPECT_FALSE(status2.auto_repair_enabled);
 }

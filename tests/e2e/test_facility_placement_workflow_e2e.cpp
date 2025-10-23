@@ -87,7 +87,7 @@ TEST_F(FacilityPlacementWorkflowE2ETest, BuildCompleteFloorWithFacilities) {
     );
     
     auto shop = facility_mgr.CreateFacility(
-        BuildingComponent::Type::Shop, floor, 14, 3
+        BuildingComponent::Type::RetailShop, floor, 14, 3
     );
     
     // Step 3: Verify all placements
@@ -122,13 +122,13 @@ TEST_F(FacilityPlacementWorkflowE2ETest, ExpandTowerAndPlaceFacilities) {
     
     // Step 3: Place facilities on new floors
     auto apt1 = facility_mgr.CreateFacility(
-        BuildingComponent::Type::Apartment, initial_floors, 0, 2
+        BuildingComponent::Type::Residential, initial_floors, 0, 2
     );
     auto apt2 = facility_mgr.CreateFacility(
-        BuildingComponent::Type::Apartment, initial_floors, 5, 2
+        BuildingComponent::Type::Residential, initial_floors, 5, 2
     );
     auto apt3 = facility_mgr.CreateFacility(
-        BuildingComponent::Type::Apartment, initial_floors + 1, 0, 2
+        BuildingComponent::Type::Residential, initial_floors + 1, 0, 2
     );
     
     EXPECT_TRUE(apt1.is_valid());
@@ -215,7 +215,7 @@ TEST_F(FacilityPlacementWorkflowE2ETest, PreventInvalidPlacements) {
     
     // Try to place overlapping facility (should fail)
     auto shop = facility_mgr.CreateFacility(
-        BuildingComponent::Type::Shop, 0, 4, 3
+        BuildingComponent::Type::RetailShop, 0, 4, 3
     );
     EXPECT_FALSE(shop.is_valid());
     
@@ -248,7 +248,7 @@ TEST_F(FacilityPlacementWorkflowE2ETest, PlaceFacilitiesAcrossMultipleFloorsWith
     // Place apartments on floors 3-4
     for (int floor = 3; floor < 5; ++floor) {
         for (int col = 0; col < 12; col += 2) {
-            facility_mgr.CreateFacility(BuildingComponent::Type::Apartment, floor, col, 2);
+            facility_mgr.CreateFacility(BuildingComponent::Type::Residential, floor, col, 2);
         }
     }
     

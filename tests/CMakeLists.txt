@@ -10,13 +10,49 @@ find_package(GTest CONFIG REQUIRED)
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
+# Create a test-specific core library without game.cpp and UI dependencies
+add_library(towerforge_core_test
+    ${CMAKE_SOURCE_DIR}/src/core/ecs_world.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/tower_grid.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/facility_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/save_load_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/achievement_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/accessibility_settings.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/user_preferences.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/lua_mod_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/command.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/command_history.cpp
+    # Explicitly exclude game.cpp which has UI dependencies
+)
+
+# Find required packages for test core library
+find_package(flecs CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(Lua REQUIRED)
+
+# Link dependencies to test core library
+target_link_libraries(towerforge_core_test 
+    PUBLIC flecs::flecs_static
+    PUBLIC nlohmann_json::nlohmann_json
+    PUBLIC ${LUA_LIBRARIES}
+)
+
+# Include directories for test core library
+target_include_directories(towerforge_core_test
+    PUBLIC ${CMAKE_SOURCE_DIR}/include
+    PUBLIC ${LUA_INCLUDE_DIR}
+)
+
+# Set C++20 standard for test core library
+target_compile_features(towerforge_core_test PUBLIC cxx_std_20)
+
 # Helper function to add a test executable
 function(add_test_executable test_name)
     add_executable(${test_name} ${ARGN})
     target_link_libraries(${test_name} PRIVATE 
         GTest::gtest 
         GTest::gtest_main
-        towerforge_core
+        towerforge_core_test
     )
     target_compile_features(${test_name} PRIVATE cxx_std_20)
     add_test(NAME ${test_name} COMMAND ${test_name})

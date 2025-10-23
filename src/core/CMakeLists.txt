@@ -22,11 +22,19 @@ find_package(nlohmann_json CONFIG REQUIRED)
 # Find Lua package
 find_package(Lua REQUIRED)
 
-# Link flecs, nlohmann-json, and Lua to the core library
+# Find raylib package (needed for game.cpp which includes UI dependencies)
+find_package(raylib CONFIG REQUIRED)
+
+# Find glfw3 package (needed for rendering dependencies)
+find_package(glfw3 CONFIG REQUIRED)
+
+# Link flecs, nlohmann-json, Lua, raylib, and glfw to the core library
 target_link_libraries(towerforge_core 
     PUBLIC flecs::flecs_static
     PUBLIC nlohmann_json::nlohmann_json
     PUBLIC ${LUA_LIBRARIES}
+    PUBLIC raylib
+    PUBLIC glfw
 )
 
 # Add Lua include directories

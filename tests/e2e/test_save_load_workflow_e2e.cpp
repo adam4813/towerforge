@@ -139,7 +139,7 @@ TEST_F(SaveLoadWorkflowE2ETest, MultipleQuickSaves) {
     ASSERT_TRUE(result1.success);
     
     // Modify and save state 2 (overwrite)
-    facility_mgr.CreateFacility(BuildingComponent::Type::Shop, 0, 5, 2);
+    facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 0, 5, 2);
     auto result2 = save_mgr->SaveGame("e2e_quicksave", "v2", *ecs_world);
     ASSERT_TRUE(result2.success);
     
@@ -270,7 +270,7 @@ TEST_F(SaveLoadWorkflowE2ETest, ContinuePlayingAfterLoad) {
     auto& loaded_facility_mgr = new_world->GetFacilityManager();
     
     auto shop = loaded_facility_mgr.CreateFacility(
-        BuildingComponent::Type::Shop, 0, 5, 2
+        BuildingComponent::Type::RetailShop, 0, 5, 2
     );
     
     EXPECT_TRUE(shop.is_valid());

@@ -52,7 +52,7 @@ TEST_F(UserPreferencesUnitTest, DefaultValues) {
     EXPECT_FLOAT_EQ(prefs.GetFontScale(), 1.0f);
     EXPECT_FALSE(prefs.IsHighContrastEnabled());
     EXPECT_FALSE(prefs.GetMuteAll());
-    EXPECT_EQ(prefs.GetColorMode(), ColorMode::Default);
+    EXPECT_EQ(prefs.GetColorMode(), ColorMode::Light);  // Default is Light mode
 }
 
 TEST_F(UserPreferencesUnitTest, SetAndGetMasterVolume) {

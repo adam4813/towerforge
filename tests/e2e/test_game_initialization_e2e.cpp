@@ -178,7 +178,7 @@ TEST_F(GameInitializationE2ETest, InitializeAndRunSimulationLoop) {
         
         // Check achievements periodically
         if (frame % 10 == 0) {
-            achievement_mgr->CheckAndUnlock(AchievementType::Floors, 1);
+            achievement_mgr->CheckAchievements(0, 0.0f, 1, 0.0f);
         }
     }
     

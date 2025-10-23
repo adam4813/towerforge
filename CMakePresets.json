@@ -22,6 +22,12 @@
       "name": "native",
       "displayName": "Native",
       "inherits": "base"
+    },
+    {
+      "name": "test",
+      "displayName": "Test Configuration",
+      "inherits": "base",
+      "description": "Configuration for running tests"
     }
   ],
   "buildPresets": [
@@ -36,6 +42,38 @@
       "displayName": "Native Release",
       "configurePreset": "native",
       "configuration": "Release"
+    },
+    {
+      "name": "test-debug",
+      "displayName": "Test Debug",
+      "configurePreset": "test",
+      "configuration": "Debug"
+    },
+    {
+      "name": "test-release",
+      "displayName": "Test Release",
+      "configurePreset": "test",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "test-debug",
+      "displayName": "Test Debug",
+      "configurePreset": "test",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "test-release",
+      "displayName": "Test Release",
+      "configurePreset": "test",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
     }
   ]
 }
