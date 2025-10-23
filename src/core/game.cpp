@@ -579,13 +579,15 @@ namespace towerforge::core {
         // Connect notification center to research menu
         research_menu_->SetNotificationCenter(hud_->GetNotificationCenter());
 
-        // Create and initialize camera
+        // Create and initialize camera with bounds based on grid size
         camera_ = std::make_unique<rendering::Camera>();
-        // Calculate ground floor Y position for camera centering
         const auto &temp_grid = ecs_world_->GetTowerGrid();
-        const int ground_floor_screen_y = grid_offset_y_ + (temp_grid.GetFloorCount() / 2) * cell_height_;
-        camera_->Initialize(800, 600, 1200.0f, 800.0f);
-        // TODO: Center camera on ground floor Y position (ground_floor_screen_y)
+        
+        // Calculate tower dimensions based on grid
+        const float tower_width = (temp_grid.GetColumnCount() + 2) * cell_width_ + grid_offset_x_;
+        const float tower_height = (temp_grid.GetFloorCount() + 2) * cell_height_ + grid_offset_y_;
+        
+        camera_->Initialize(800, 600, tower_width, tower_height);
 
         hud_->SetGameState(game_state_);
 

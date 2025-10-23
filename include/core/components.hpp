@@ -1842,43 +1842,30 @@ namespace TowerForge::Core {
             nodes.back().effect_target = "ManagementOffice";
             nodes.back().min_population = 20;  // Requires 20 people before management is needed
         
-            nodes.push_back(ResearchNode("basement_expansion_1", "Deep Foundation", 
-                                         ResearchNodeType::VerticalExpansion, 10, 0, 4));
-            nodes.back().description = "Increase basement depth limit to 5 floors";
-            nodes.back().icon = "⬇️";
-            nodes.back().effect_value = 5.0f;
-            nodes.back().effect_target = "BelowGround";
-        
             // Row 1: Mid-tier upgrades
-            nodes.push_back(ResearchNode("upward_expansion_1", "Sky Reach", 
-                                         ResearchNodeType::VerticalExpansion, 15, 1, 0));
-            nodes.back().description = "Increase building height limit by 50 floors";
-            nodes.back().icon = "⬆️";
-            nodes.back().effect_value = 50.0f;
-            nodes.back().effect_target = "AboveGround";
             nodes.push_back(ResearchNode("express_shafts", "Express Elevators", 
-                                         ResearchNodeType::ElevatorSpeed, 20, 1, 1));
+                                         ResearchNodeType::ElevatorSpeed, 20, 1, 0));
             nodes.back().description = "High-speed elevator technology";
             nodes.back().icon = "⚡";
             nodes.back().effect_value = 1.0f;  // +100% speed
             nodes.back().prerequisites.push_back("basic_elevator");
         
             nodes.push_back(ResearchNode("large_elevators", "Large Elevators", 
-                                         ResearchNodeType::ElevatorCapacity, 15, 1, 2));
+                                         ResearchNodeType::ElevatorCapacity, 15, 1, 1));
             nodes.back().description = "Increases elevator capacity by 4";
             nodes.back().icon = "📦";
             nodes.back().effect_value = 4.0f;
             nodes.back().prerequisites.push_back("basic_elevator");
         
             nodes.push_back(ResearchNode("income_boost", "Revenue Optimization", 
-                                         ResearchNodeType::IncomeBonus, 15, 1, 3));
+                                         ResearchNodeType::IncomeBonus, 15, 1, 2));
             nodes.back().description = "Increases all income by 25%";
             nodes.back().icon = "💰";
             nodes.back().effect_value = 0.25f;
             nodes.back().prerequisites.push_back("office_unlock");
         
             nodes.push_back(ResearchNode("satellite_office_unlock", "Branch Management", 
-                                         ResearchNodeType::FacilityUnlock, 25, 1, 4));
+                                         ResearchNodeType::FacilityUnlock, 25, 1, 3));
             nodes.back().description = "Unlock satellite offices for distributed management";
             nodes.back().icon = "🏢";
             nodes.back().effect_target = "SatelliteOffice";
@@ -1886,7 +1873,7 @@ namespace TowerForge::Core {
             nodes.back().min_star_rating = 2;
         
             nodes.push_back(ResearchNode("restaurant_unlock", "Fine Dining", 
-                                         ResearchNodeType::FacilityUnlock, 30, 1, 5));
+                                         ResearchNodeType::FacilityUnlock, 30, 1, 4));
             nodes.back().description = "Unlock restaurant facilities";
             nodes.back().icon = "🍽️";
             nodes.back().effect_target = "Restaurant";
@@ -1895,37 +1882,29 @@ namespace TowerForge::Core {
             nodes.back().min_population = 50;
         
             // Row 2: Advanced upgrades
-            nodes.push_back(ResearchNode("basement_expansion_2", "Underground Complex", 
-                                         ResearchNodeType::VerticalExpansion, 25, 2, 0));
-            nodes.back().description = "Increase basement depth limit to 10 floors";
-            nodes.back().icon = "⬇️";
-            nodes.back().effect_value = 10.0f;
-            nodes.back().effect_target = "BelowGround";
-            nodes.back().prerequisites.push_back("basement_expansion_1");
-        
             nodes.push_back(ResearchNode("construction_speed", "Rapid Construction", 
-                                         ResearchNodeType::ConstructionSpeed, 25, 2, 1));
+                                         ResearchNodeType::ConstructionSpeed, 25, 2, 0));
             nodes.back().description = "Reduces construction time by 50%";
             nodes.back().icon = "🏗️";
             nodes.back().effect_value = 0.5f;
             nodes.back().min_star_rating = 3;
         
             nodes.push_back(ResearchNode("cost_reduction", "Efficient Building", 
-                                         ResearchNodeType::CostReduction, 30, 2, 2));
+                                         ResearchNodeType::CostReduction, 30, 2, 1));
             nodes.back().description = "Reduces all costs by 20%";
             nodes.back().icon = "📉";
             nodes.back().effect_value = 0.2f;
             nodes.back().required_facilities.push_back("ManagementOffice");
         
             nodes.push_back(ResearchNode("satisfaction_boost", "Quality Service", 
-                                         ResearchNodeType::SatisfactionBonus, 25, 2, 3));
+                                         ResearchNodeType::SatisfactionBonus, 25, 2, 2));
             nodes.back().description = "Increases satisfaction by 10 points";
             nodes.back().icon = "😊";
             nodes.back().effect_value = 10.0f;
             nodes.back().prerequisites.push_back("income_boost");
         
             nodes.push_back(ResearchNode("arcade_unlock", "Gaming Entertainment", 
-                                         ResearchNodeType::FacilityUnlock, 35, 2, 4));
+                                         ResearchNodeType::FacilityUnlock, 35, 2, 3));
             nodes.back().description = "Unlock arcade entertainment facilities";
             nodes.back().icon = "🎮";
             nodes.back().effect_target = "Arcade";
@@ -1934,7 +1913,7 @@ namespace TowerForge::Core {
             nodes.back().min_population = 100;
         
             nodes.push_back(ResearchNode("gym_unlock", "Wellness Center", 
-                                         ResearchNodeType::FacilityUnlock, 40, 2, 5));
+                                         ResearchNodeType::FacilityUnlock, 40, 2, 4));
             nodes.back().description = "Unlock gym and fitness facilities";
             nodes.back().icon = "💪";
             nodes.back().effect_target = "Gym";
@@ -1942,8 +1921,31 @@ namespace TowerForge::Core {
             nodes.back().min_star_rating = 3;
             nodes.back().min_population = 75;
         
+            // Row 3: Vertical expansion upgrades
+            nodes.push_back(ResearchNode("basement_expansion_1", "Deep Foundation", 
+                                         ResearchNodeType::VerticalExpansion, 10, 3, 0));
+            nodes.back().description = "Increase basement depth limit to 5 floors";
+            nodes.back().icon = "⬇️";
+            nodes.back().effect_value = 5.0f;
+            nodes.back().effect_target = "BelowGround";
+        
+            nodes.push_back(ResearchNode("basement_expansion_2", "Underground Complex", 
+                                         ResearchNodeType::VerticalExpansion, 25, 3, 1));
+            nodes.back().description = "Increase basement depth limit to 10 floors";
+            nodes.back().icon = "⬇️";
+            nodes.back().effect_value = 10.0f;
+            nodes.back().effect_target = "BelowGround";
+            nodes.back().prerequisites.push_back("basement_expansion_1");
+        
+            nodes.push_back(ResearchNode("upward_expansion_1", "Sky Reach", 
+                                         ResearchNodeType::VerticalExpansion, 15, 3, 2));
+            nodes.back().description = "Increase building height limit by 50 floors";
+            nodes.back().icon = "⬆️";
+            nodes.back().effect_value = 50.0f;
+            nodes.back().effect_target = "AboveGround";
+        
             nodes.push_back(ResearchNode("upward_expansion_2", "Skyscraper Engineering", 
-                                         ResearchNodeType::VerticalExpansion, 40, 2, 6));
+                                         ResearchNodeType::VerticalExpansion, 40, 3, 3));
             nodes.back().description = "Increase building height limit by 100 floors";
             nodes.back().icon = "⬆️";
             nodes.back().effect_value = 100.0f;
