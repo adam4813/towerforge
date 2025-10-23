@@ -263,6 +263,41 @@ namespace TowerForge::Core {
         return true;
     }
 
+    bool TowerGrid::GetBuiltFloorRange(int& min_floor, int& max_floor) const {
+        bool found_built = false;
+        min_floor = 0;
+        max_floor = 0;
+
+        // Scan all floors to find the range of built floors
+        for (int floor = -basement_floors_; floor < floors_ - basement_floors_; ++floor) {
+            const int grid_idx = FloorToGridIndex(floor);
+            
+            // Check if any cell on this floor is built
+            bool floor_has_built_cell = false;
+            for (int column = 0; column < columns_; ++column) {
+                if (grid_[grid_idx][column].floor_built) {
+                    floor_has_built_cell = true;
+                    break;
+                }
+            }
+
+            if (floor_has_built_cell) {
+                if (!found_built) {
+                    // First built floor found
+                    min_floor = floor;
+                    max_floor = floor;
+                    found_built = true;
+                } else {
+                    // Update range
+                    min_floor = std::min(min_floor, floor);
+                    max_floor = std::max(max_floor, floor);
+                }
+            }
+        }
+
+        return found_built;
+    }
+
     bool TowerGrid::RemoveFacility(const int facility_id) {
         bool found = false;
     

@@ -173,6 +173,15 @@ namespace TowerForge::Core {
      * @return Cost in currency units to build one floor cell
      */
         static int GetFloorBuildCost() { return 50; }
+
+        /**
+     * @brief Get the range of floors that have at least one built cell
+     * 
+     * @param min_floor Output parameter for the lowest built floor
+     * @param max_floor Output parameter for the highest built floor
+     * @return true if any floors are built, false if no floors are built
+     */
+        bool GetBuiltFloorRange(int& min_floor, int& max_floor) const;
     
         // Spatial queries
     

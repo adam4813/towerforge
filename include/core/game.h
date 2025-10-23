@@ -97,6 +97,7 @@ namespace towerforge::core {
 
         // Helper methods
         void CalculateTowerRating();
+        void UpdateCameraBounds();
         ui::IncomeBreakdown CollectIncomeAnalytics() const;
         ui::PopulationBreakdown CollectPopulationAnalytics() const;
 

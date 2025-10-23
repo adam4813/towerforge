@@ -579,15 +579,18 @@ namespace towerforge::core {
         // Connect notification center to research menu
         research_menu_->SetNotificationCenter(hud_->GetNotificationCenter());
 
-        // Create and initialize camera with bounds based on grid size
+        // Create and initialize camera with default bounds
+        // The bounds will grow dynamically as the tower is built
         camera_ = std::make_unique<rendering::Camera>();
-        const auto &temp_grid = ecs_world_->GetTowerGrid();
         
-        // Calculate tower dimensions based on grid
-        const float tower_width = (temp_grid.GetColumnCount() + 2) * cell_width_ + grid_offset_x_;
-        const float tower_height = (temp_grid.GetFloorCount() + 2) * cell_height_ + grid_offset_y_;
+        // Initialize with a reasonable default size (slightly larger than screen)
+        const float default_width = 1200.0f;
+        const float default_height = 800.0f;
         
-        camera_->Initialize(800, 600, tower_width, tower_height);
+        camera_->Initialize(800, 600, default_width, default_height);
+        
+        // Update camera bounds based on currently built floors
+        UpdateCameraBounds();
 
         hud_->SetGameState(game_state_);
 
@@ -784,6 +787,9 @@ namespace towerforge::core {
         }
 
         CalculateTowerRating();
+        
+        // Update camera bounds based on built floors (checks periodically)
+        UpdateCameraBounds();
 
         hud_->SetGameState(game_state_);
         hud_->Update(time_step_);
@@ -1664,6 +1670,41 @@ namespace towerforge::core {
         if (ecs_world_) {
             CalculateTowerRatingHelper(game_state_.rating, *ecs_world_, game_state_.income_rate);
         }
+    }
+
+    void Game::UpdateCameraBounds() {
+        if (!ecs_world_ || !camera_) {
+            return;
+        }
+
+        const auto& grid = ecs_world_->GetTowerGrid();
+        
+        // Get the range of built floors
+        int min_built_floor = 0;
+        int max_built_floor = 0;
+        
+        if (!grid.GetBuiltFloorRange(min_built_floor, max_built_floor)) {
+            // No floors built yet, use a small default area around ground floor
+            min_built_floor = -1;  // 1 floor below ground
+            max_built_floor = 2;   // 2 floors above ground
+        } else {
+            // Add 1 floor buffer above and below
+            min_built_floor -= 1;
+            max_built_floor += 1;
+        }
+
+        // Calculate screen Y positions for these floors
+        // Ground floor (0) is at: grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_
+        const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
+        const int min_y = ground_floor_screen_y - (max_built_floor * cell_height_);
+        const int max_y = ground_floor_screen_y - (min_built_floor * cell_height_) + cell_height_;
+
+        // Calculate width with 1 cell buffer on each side
+        const float tower_width = (grid.GetColumnCount() + 2) * cell_width_ + grid_offset_x_;
+        const float tower_height = std::max(static_cast<float>(max_y - min_y + grid_offset_y_), 600.0f);  // At least screen height
+
+        // Update camera bounds
+        camera_->SetTowerBounds(tower_width, tower_height);
     }
 
     ui::IncomeBreakdown Game::CollectIncomeAnalytics() const {
