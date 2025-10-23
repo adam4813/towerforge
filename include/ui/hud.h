@@ -12,6 +12,7 @@ namespace towerforge::ui {
     class UIWindowManager;
     class TooltipManager;
     class NotificationCenter;
+    class ActionBar;
     struct IncomeBreakdown;
     struct ElevatorAnalytics;
     struct PopulationBreakdown;
@@ -141,6 +142,11 @@ namespace towerforge::ui {
  */
     class HUD {
     public:
+        /**
+         * @brief Callback type for action bar actions
+         */
+        using ActionBarCallback = std::function<void(int action)>;
+
         HUD();
         ~HUD();
     
@@ -293,6 +299,10 @@ namespace towerforge::ui {
     
         // Notification center
         std::unique_ptr<NotificationCenter> notification_center_;
+
+        // Action bar at bottom of screen
+        std::unique_ptr<ActionBar> action_bar_;
+        ActionBarCallback action_bar_callback_;
     
         // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;
@@ -311,6 +321,7 @@ namespace towerforge::ui {
         static constexpr int SPEED_CONTROL_HEIGHT = 40;
         static constexpr int STAR_RATING_WIDTH = 230;
         static constexpr int STAR_RATING_HEIGHT = 180;
+        static constexpr int ACTION_BAR_HEIGHT = 50;
     };
 
 }

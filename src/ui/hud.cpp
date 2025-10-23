@@ -4,16 +4,29 @@
 #include "ui/tooltip.h"
 #include "ui/notification_center.h"
 #include "ui/analytics_overlay.h"
+#include "ui/action_bar.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 
 namespace towerforge::ui {
 
-    HUD::HUD() {
+    HUD::HUD()
+        : action_bar_callback_(nullptr) {
         window_manager_ = std::make_unique<UIWindowManager>();
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
+        
+        // Create action bar at bottom of screen
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        
+        action_bar_ = std::make_unique<ActionBar>(
+            0,
+            screen_height - ACTION_BAR_HEIGHT,
+            screen_width,
+            ACTION_BAR_HEIGHT
+        );
     }
 
     HUD::~HUD() = default;
@@ -31,6 +44,17 @@ namespace towerforge::ui {
     
         // Update notification center
         notification_center_->Update(delta_time);
+        
+        // Update action bar
+        if (action_bar_) {
+            action_bar_->Update(delta_time);
+            
+            // Update position if screen resized
+            const int screen_width = GetScreenWidth();
+            const int screen_height = GetScreenHeight();
+            action_bar_->SetRelativePosition(0, screen_height - ACTION_BAR_HEIGHT);
+            action_bar_->SetSize(screen_width, ACTION_BAR_HEIGHT);
+        }
     }
 
     void HUD::Render() {
@@ -53,6 +77,11 @@ namespace towerforge::ui {
 
         // Render tooltips on top
         tooltip_manager_->Render();
+
+        // Render action bar
+        if (action_bar_) {
+            action_bar_->Render();
+        }
 
         // Render end-game summary if max stars achieved
         if (game_state_.rating.stars >= 5) {
@@ -672,6 +701,18 @@ namespace towerforge::ui {
         // Population is displayed at position x=310, y=10 in top bar
         // Approximately 180 pixels wide
         return mouse_y <= TOP_BAR_HEIGHT && mouse_x >= 310 && mouse_x <= 490;
+    }
+
+    void HUD::SetActionBarCallback(ActionBarCallback callback) {
+        action_bar_callback_ = callback;
+        
+        if (action_bar_) {
+            action_bar_->SetActionCallback([this, callback](ActionBar::Action action) {
+                if (callback) {
+                    callback(static_cast<int>(action));
+                }
+            });
+        }
     }
 
 }

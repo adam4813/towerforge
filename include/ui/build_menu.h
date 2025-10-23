@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <raylib.h>
 #include <string>
 #include <vector>
@@ -9,6 +10,21 @@ namespace towerforge::ui {
     // Forward declarations
     class TooltipManager;
     class Panel;
+    class Button;
+    class TabBar;
+    class GridPanel;
+    struct MouseEvent;
+
+    /**
+     * @brief Facility categories for organized building menu
+     */
+    enum class FacilityCategory {
+        Core,           // Lobby, Elevator
+        Commercial,     // Shop, Restaurant
+        Residential,    // Hotel
+        Entertainment,  // Gym, Arcade, Theater
+        Professional    // Office, Conference, Flagship
+    };
 
     /**
  * @brief Structure representing a buildable facility type
@@ -19,17 +35,34 @@ namespace towerforge::ui {
         int cost;
         int width;
         Color color;
+        FacilityCategory category;
 
-        FacilityType(const std::string &n, const std::string &i, const int c, const int w, const Color col)
-            : name(n), icon(i), cost(c), width(w), color(col) {
+        FacilityType(const std::string &n, const std::string &i, const int c, const int w, const Color col, const FacilityCategory cat)
+            : name(n), icon(i), cost(c), width(w), color(col), category(cat) {
         }
     };
 
     /**
  * @brief Build menu for selecting and placing facilities
+ * 
+ * Refactored to use declarative, event-driven architecture with:
+ * - Category tabs for facility organization
+ * - Scrollable grid layout (6 per row, 2 rows visible)
+ * - Callback-based facility selection
+ * - Close button to clear placement
  */
     class BuildMenu {
     public:
+        /**
+         * @brief Callback type for facility selection
+         */
+        using FacilitySelectedCallback = std::function<void(int facility_index)>;
+        
+        /**
+         * @brief Callback type for menu close
+         */
+        using CloseCallback = std::function<void()>;
+
         BuildMenu();
 
         ~BuildMenu();
@@ -106,22 +139,60 @@ namespace towerforge::ui {
      */
         void SetTooltipManager(TooltipManager *tooltip_manager) { tooltip_manager_ = tooltip_manager; }
 
+        /**
+         * @brief Set facility selected callback
+         */
+        void SetFacilitySelectedCallback(const FacilitySelectedCallback &callback) { facility_selected_callback_ = callback; }
+
+        /**
+         * @brief Set close callback
+         */
+        void SetCloseCallback(const CloseCallback &callback) { close_callback_ = callback; }
+
+        /**
+         * @brief Update menu state
+         */
+        void Update(float delta_time) const;
+
+        /**
+         * @brief Handle mouse events
+         */
+        bool ProcessMouseEvent(const MouseEvent& event) const;
+
     private:
+        void BuildUI();
+        void SwitchCategory(FacilityCategory category);
+        std::vector<int> GetFacilitiesForCategory(FacilityCategory category) const;
+        void CreateFacilityButtons(const std::vector<int>& facility_indices);
+        std::string GetCategoryName(FacilityCategory category) const;
         std::vector<FacilityType> facility_types_;
         int selected_facility_;
         bool visible_;
         bool tutorial_mode_;
         std::string highlighted_facility_;
         TooltipManager *tooltip_manager_;
-
-        static constexpr int MENU_WIDTH = 200;
-        static constexpr int ITEM_HEIGHT = 35;
-        static constexpr int MENU_PADDING = 5;
-
-        Rectangle panel_bounds_{};
-        Rectangle content_bounds_{};
         
-        // Optional Panel object for unified UI system
-        std::unique_ptr<Panel> panel_;
+        // Callbacks
+        FacilitySelectedCallback facility_selected_callback_;
+        CloseCallback close_callback_;
+        
+        // Current state
+        FacilityCategory current_category_;
+        
+        // UI Components
+        std::unique_ptr<Panel> root_panel_;           // Main container
+        std::unique_ptr<TabBar> tab_bar_;             // Category tabs
+        std::unique_ptr<GridPanel> facility_grid_;    // Scrollable facility grid
+        std::unique_ptr<Button> close_button_;
+        
+        // Layout constants
+        static constexpr int MENU_WIDTH = 800;
+        static constexpr int MENU_HEIGHT = 300;
+        static constexpr int TAB_HEIGHT = 40;
+        static constexpr int FACILITY_BUTTON_SIZE = 120;
+        static constexpr int FACILITIES_PER_ROW = 6;
+        static constexpr int VISIBLE_ROWS = 2;
+        static constexpr int GRID_PADDING = 10;
+        static constexpr int CLOSE_BUTTON_SIZE = 30;
     };
 }
