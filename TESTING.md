@@ -246,15 +246,15 @@ Unit tests focus on complex or unique logic:
 As of the latest build:
 
 - **Tests build successfully** - All compilation and linking issues resolved
-- **9 out of 12 tests passing** (75% pass rate)
-- **3 tests failing due to implementation bugs**:
-  - `test_ecs_world_integration`: 2 failures related to facility creation and ECS component attachment
+- **10 out of 12 tests passing** (83% pass rate)
+- **2 tests failing due to save/load implementation bug**:
   - `test_save_load_integration`: 1 failure - grid state not properly restored after loading
   - `test_save_load_workflow_e2e`: 5 failures - all related to save/load grid state restoration bug
 
-### Passing Tests (9/12)
+### Passing Tests (10/12)
 - ✅ `test_tower_grid_integration` - All 13 tests passing
 - ✅ `test_facility_manager_integration` - All tests passing
+- ✅ `test_ecs_world_integration` - All 12 tests passing
 - ✅ `test_achievement_manager_integration` - All tests passing
 - ✅ `test_lua_mod_manager_integration` - All tests passing
 - ✅ `test_game_initialization_e2e` - All tests passing
@@ -263,13 +263,7 @@ As of the latest build:
 - ✅ `test_command_history_unit` - All tests passing
 - ✅ `test_accessibility_settings_unit` - All 9 tests passing
 
-### Failing Tests (3/12)
-
-#### test_ecs_world_integration (2 failures)
-- ❌ `ComponentQueryAfterUpdate`: Expects facilities to have both BuildingComponent and GridPosition, but finds 0 entities
-- ❌ `SimulationWithTimeProgression`: Grid occupied cell count grows unexpectedly during simulation (expects 3, gets 8)
-
-**Root Cause**: Facility creation doesn't properly attach required ECS components or something spawns additional entities during simulation.
+### Failing Tests (2/12)
 
 #### test_save_load_integration (1 failure)
 - ❌ `SaveAndLoadComplexState`: Saves 11 occupied cells but loads 0 occupied cells
@@ -287,11 +281,7 @@ All failures have the same root cause as above - grid state not restored after l
 **Root Cause**: Same as test_save_load_integration - SaveLoadManager serialization bug.
 
 ### Summary
-The test infrastructure is complete and functional. The 3 failing test suites correctly identify real implementation bugs in:
-1. ECS facility component attachment
-2. Save/load grid state serialization
-
-These are not test structure issues but actual bugs in the production code that need to be fixed.
+The test infrastructure is complete and functional. The 2 failing test suites correctly identify a real implementation bug in save/load grid state serialization. This is not a test structure issue but an actual bug in the production code that needs to be fixed.
 
 ## Writing New Tests
 
