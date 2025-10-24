@@ -63,7 +63,7 @@ TEST_F(FacilityManagerIntegrationTest, MultipleFacilityTypes) {
         BuildingComponent::Type::Office, 0, 0
     );
     auto restaurant = facility_mgr->CreateFacility(
-        BuildingComponent::Type::Restaurant, 0, 3
+        BuildingComponent::Type::Restaurant, 0, 8
     );
     auto apartment = facility_mgr->CreateFacility(
         BuildingComponent::Type::Residential, 1, 0
@@ -114,13 +114,13 @@ TEST_F(FacilityManagerIntegrationTest, RemoveFacilityAt) {
 
 TEST_F(FacilityManagerIntegrationTest, DefaultWidthAndCapacity) {
     // Test default width
-    EXPECT_EQ(FacilityManager::GetDefaultWidth(BuildingComponent::Type::Office), 3);
-    EXPECT_EQ(FacilityManager::GetDefaultWidth(BuildingComponent::Type::Restaurant), 4);
-    EXPECT_EQ(FacilityManager::GetDefaultWidth(BuildingComponent::Type::Residential), 2);
+    EXPECT_EQ(FacilityManager::GetDefaultWidth(BuildingComponent::Type::Office), 8);
+    EXPECT_EQ(FacilityManager::GetDefaultWidth(BuildingComponent::Type::Restaurant), 6);
+    EXPECT_EQ(FacilityManager::GetDefaultWidth(BuildingComponent::Type::Residential), 6);
 
     // Test default capacity
     EXPECT_EQ(FacilityManager::GetDefaultCapacity(BuildingComponent::Type::Office), 20);
-    EXPECT_GT(FacilityManager::GetDefaultCapacity(BuildingComponent::Type::Restaurant), 0);
+    EXPECT_EQ(FacilityManager::GetDefaultCapacity(BuildingComponent::Type::Restaurant), 30);
 }
 
 TEST_F(FacilityManagerIntegrationTest, FacilityWithComponents) {

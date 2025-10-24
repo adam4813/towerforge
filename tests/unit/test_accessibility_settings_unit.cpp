@@ -100,6 +100,6 @@ TEST_F(AccessibilitySettingsUnitTest, StateConsistency) {
     
     // Final values should be from last iteration
     EXPECT_FALSE(settings->IsHighContrastEnabled());  // 10 % 2 != 0
-    EXPECT_FLOAT_EQ(settings->GetFontScale(), 1.0f);  // (10 % 5) * 0.2 = 0.0
+    EXPECT_FLOAT_EQ(settings->GetFontScale(), 1.8f);  // (9 % 5) * 0.2 = 0.8
 }
 

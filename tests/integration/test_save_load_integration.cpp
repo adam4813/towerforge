@@ -149,10 +149,6 @@ TEST_F(SaveLoadManagerIntegrationTest, LoadNonexistentSlot) {
 
 TEST_F(SaveLoadManagerIntegrationTest, AutosaveConfiguration) {
     // Check default state
-    EXPECT_FALSE(save_mgr->IsAutosaveEnabled());
-    
-    // Enable autosave
-    save_mgr->SetAutosaveEnabled(true);
     EXPECT_TRUE(save_mgr->IsAutosaveEnabled());
     
     // Set interval

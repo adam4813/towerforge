@@ -110,6 +110,10 @@ TEST_F(ECSWorldIntegrationTest, MultipleEntitiesWithComponents) {
 
 TEST_F(ECSWorldIntegrationTest, VerticalExpansionUpgrade) {
     ecs_world->Initialize();
+    ResearchTree research_tree;
+    research_tree.InitializeDefaultTree();
+    research_tree.AwardPoints(50);
+    ecs_world->GetWorld().set<ResearchTree>(research_tree);
     
     auto& grid = ecs_world->GetTowerGrid();
     
@@ -159,7 +163,7 @@ TEST_F(ECSWorldIntegrationTest, ComponentQueryAfterUpdate) {
     
     // Create facilities
     facility_mgr.CreateFacility(BuildingComponent::Type::Office, 0, 0);
-    facility_mgr.CreateFacility(BuildingComponent::Type::Restaurant, 0, 5);
+    facility_mgr.CreateFacility(BuildingComponent::Type::Restaurant, 0, 8);
     
     // Run update
     ecs_world->Update(0.016f);

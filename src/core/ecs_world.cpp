@@ -33,8 +33,8 @@ namespace TowerForge::Core {
         tower_grid_ = std::make_unique<TowerGrid>(initial_floors, initial_columns, ground_floor_index);
         
         // Set the initial upgrade limits
-        tower_grid_->SetMaxAboveGroundFloors(initial_above_ground);
-        tower_grid_->SetMaxBelowGroundFloors(initial_below_ground);
+        tower_grid_->SetMaxAboveGroundFloors(MAX_ABOVE_GROUND_FLOORS);
+        tower_grid_->SetMaxBelowGroundFloors(MAX_BELOW_GROUND_FLOORS);
         
         // Build the initial basement floors
         for (int i = 0; i < initial_below_ground; ++i) {

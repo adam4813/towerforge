@@ -55,7 +55,12 @@ function(add_test_executable test_name)
         towerforge_core_test
     )
     target_compile_features(${test_name} PRIVATE cxx_std_20)
-    add_test(NAME ${test_name} COMMAND ${test_name})
+    # Use $<TARGET_FILE:${test_name}> to get the correct path for multi-config generators
+    add_test(NAME ${test_name} COMMAND $<TARGET_FILE:${test_name}>)
+    # Set working directory to the binary directory so tests can find any needed files
+    set_tests_properties(${test_name} PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
 endfunction()
 
 # Integration tests
