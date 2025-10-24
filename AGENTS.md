@@ -49,13 +49,22 @@ cmake --preset cli-native
 
 ## Core Directives
 
-### 1. Planning is Internal Only
+### 1. Required Reading Before Any Work
+
+**Read these pattern/API guides immediately when working in their domains**:
+- **UI work**: Read `UI_DEVELOPMENT_BIBLE.md` - declarative, reactive, event-driven patterns
+- **Testing work**: Read `TESTING.md` - test structure, priorities, and best practices
+- **Future**: API documentation describing engine usage patterns (not yet created)
+
+These are **reference documentation** that define correct implementation patterns. Don't improvise - follow the documented patterns.
+
+### 2. Planning is Internal Only
 - **Never create plan documentation files** unless explicitly requested
 - Plans, strategies, and implementation approaches are working memory only
 - Execute directly without documenting the plan
 - Exception: AGENTS.md (this file) is allowed as it improves AI process
 
-### 2. Documentation Policy
+### 3. Documentation Policy
 **NEVER create summary documents, reports, or reviews** of work completed. These are working memory only.
 
 **Do NOT create** unless explicitly requested:
@@ -72,7 +81,7 @@ cmake --preset cli-native
 
 **Rule of thumb**: If you're just going to tell the user about it anyway, don't create a file for it.
 
-### 3. No Standalone Applications
+### 4. No Standalone Applications
 - Main `towerforge` binary is the only demo/showcase
 - Do not create standalone test applications
 - Exception: `screenshot_app` (already exists for CI)
@@ -132,6 +141,14 @@ Build directory: `build-cli/cli-native/` (isolated from IDE's `build/native/`)
 ---
 
 ## File Organization
+
+### Pattern/API Documentation
+- `UI_DEVELOPMENT_BIBLE.md` - UI component patterns and Gang of Four design patterns
+- `TESTING.md` - Test structure, priorities, best practices
+- `HELP_SYSTEM_SUMMARY.md` - Help system implementation patterns
+- Future: Additional API guides for engine subsystems
+
+These define **how to use the engine**. Read the relevant guide before working in that domain.
 
 ### Build Outputs
 - `build/bin/towerforge` - Main executable

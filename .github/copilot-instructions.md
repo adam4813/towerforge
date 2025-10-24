@@ -1,74 +1,35 @@
 # Copilot Instructions for TowerForge
 
-**👉 READ THIS FIRST, THEN GO TO `AGENTS.md` FOR COMPLETE INSTRUCTIONS 👈**
+## 🚨 CRITICAL: Read AGENTS.md First 🚨
 
-## ⚠️ MANDATORY FIRST STEPS - DO THESE IMMEDIATELY ⚠️
-
-### Step 1: Install System Dependencies (Linux ONLY)
-
-**IF YOU ARE ON LINUX**, run this FIRST before vcpkg, CMake, or any build steps:
-
-```bash
-sudo apt-get update && sudo apt-get install -y build-essential cmake pkg-config \
-  libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
-  libgl1-mesa-dev libglu1-mesa-dev xvfb
-```
-
-**Why**: Raylib requires X11 libraries. Without these, vcpkg CANNOT build raylib and the project WILL FAIL.
-
-**On Windows/macOS**: Skip this step.
-
-### Step 2: Install and Bootstrap vcpkg
-
-```bash
-# Clone vcpkg if not present
-git clone https://github.com/microsoft/vcpkg.git
-
-# Bootstrap vcpkg
-./vcpkg/bootstrap-vcpkg.sh      # Linux/macOS
-vcpkg\bootstrap-vcpkg.bat       # Windows (cmd.exe)
-
-# Set environment variable
-export VCPKG_ROOT=/path/to/vcpkg    # Linux/macOS
-set VCPKG_ROOT=D:\path\to\vcpkg     # Windows (cmd.exe)
-```
-
-### Step 3: Configure CMake with CLI Preset
-
-```bash
-cmake --preset cli-native
-```
-
-**This uses `build-cli/cli-native/` directory (isolated from IDE builds in `build/native/`).**
-
----
-
-## Quick Project Summary
-
-**TowerForge** - SimTower-inspired skyscraper simulation game
-
-**Tech Stack**:
-- C++20 (strict requirement)
-- ECS: flecs
-- Rendering: Raylib
-- Build: CMake 3.20+ with vcpkg
-
-**Key Points**:
-- Use `cli-native` preset for CLI/Copilot builds (NOT `native` - that's for IDE)
-- Use `cli-test` preset for tests (NOT `test` - that's for IDE)
-- Always build and verify before completing work: `cmake --build --preset cli-native-debug`
-
----
-
-## 📖 For Complete Instructions
-
-**All detailed guidelines are in `AGENTS.md`** including:
+**Before doing ANY work, read `AGENTS.md` completely.** It contains:
+- Mandatory environment setup steps (Linux dependencies, vcpkg, CMake)
 - Execution protocol and workflow
-- Build verification checklist
-- Coding standards (C++20, RAII, smart pointers, small functions)
-- Modern C++ best practices with examples
-- File organization
-- Testing guidelines
-- Documentation policy
+- Documentation policy (what NOT to create)
+- Build verification requirements
+- Coding standards
+- All project constraints and guidelines
 
-**Go read `AGENTS.md` now** - it contains everything you need to work on this project.
+**AGENTS.md is the single source of truth for all project rules.**
+
+## 📚 Pattern/API Documentation - Read Before Working
+
+When working in specific domains, read the relevant pattern guide:
+- **UI work** → Read `UI_DEVELOPMENT_BIBLE.md` (declarative, reactive, event-driven patterns)
+- **Testing work** → Read `TESTING.md` (test structure, priorities, best practices)
+- **Future**: Additional API guides for engine subsystems will be added
+
+**Don't improvise patterns - follow the documented approach.**
+
+## Quick Reference (Full details in AGENTS.md)
+
+**Build Commands**:
+- Configure: `cmake --preset cli-native`
+- Build: `cmake --build --preset cli-native-debug`
+- Tests: `cmake --preset cli-test` then `ctest --preset cli-test-debug`
+
+**Presets**: Use `cli-*` presets (NOT `native` or `test` - those are for IDEs)
+
+**Tech Stack**: C++20, CMake 3.20+, vcpkg, flecs (ECS), Raylib
+
+**Rule of Thumb**: If you're unsure about anything, check AGENTS.md or the relevant pattern guide.
