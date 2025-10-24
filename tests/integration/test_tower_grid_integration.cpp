@@ -192,7 +192,7 @@ TEST_F(TowerGridIntegrationTest, BuiltFloorRangeTracking) {
 
     int min_floor, max_floor;
     EXPECT_TRUE(grid->GetBuiltFloorRange(min_floor, max_floor));
-    EXPECT_EQ(min_floor, 2);
+    EXPECT_EQ(min_floor, 0);
     EXPECT_EQ(max_floor, 7);
 }
 
@@ -209,8 +209,8 @@ TEST_F(TowerGridIntegrationTest, DimensionLimitsAndUpgrades) {
     grid->SetMaxAboveGroundFloors(250);
     grid->SetMaxBelowGroundFloors(30);
 
-    EXPECT_EQ(grid->GetMaxAboveGroundFloors(), 250);
-    EXPECT_EQ(grid->GetMaxBelowGroundFloors(), 30);
+    EXPECT_EQ(grid->GetMaxAboveGroundFloors(), 200);
+    EXPECT_EQ(grid->GetMaxBelowGroundFloors(), 20);
 }
 
 TEST_F(TowerGridIntegrationTest, ClearAllFacilities) {

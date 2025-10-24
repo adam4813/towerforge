@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "core/accessibility_settings.hpp"
+#include <cstdio>
 
 using namespace TowerForge::Core;
 
@@ -9,8 +10,21 @@ using namespace TowerForge::Core;
 class AccessibilitySettingsUnitTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        // Delete any existing settings file to ensure clean state
+        std::remove("accessibility_settings.json");
+        
         // Get singleton instance
         settings = &AccessibilitySettings::GetInstance();
+        
+        // Reset to defaults
+        settings->SetHighContrastEnabled(false);
+        settings->SetFontScale(1.0f);
+        settings->SetKeyboardNavigationEnabled(true);
+    }
+    
+    void TearDown() override {
+        // Clean up settings file after each test
+        std::remove("accessibility_settings.json");
     }
 
     AccessibilitySettings* settings;
