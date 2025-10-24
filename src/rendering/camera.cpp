@@ -37,7 +37,8 @@ namespace towerforge::rendering {
         // Set camera offset to center of screen
         camera_.offset = {screen_width / 2.0f, screen_height / 2.0f};
 
-        // Start centered on tower
+        // Start centered on floor 0 (ground floor) in the middle of the tower
+        // Floor 0 is at the middle of the tower height
         target_position_ = {tower_width / 2.0f, tower_height / 2.0f};
         camera_.target = target_position_;
     }
@@ -249,11 +250,15 @@ namespace towerforge::rendering {
         const float visible_width = screen_width_ / current_zoom_;
         const float visible_height = screen_height_ / current_zoom_;
 
-        // Calculate bounds
-        const float min_x = visible_width / 2.0f;
-        const float max_x = tower_width_ - visible_width / 2.0f;
-        const float min_y = visible_height / 2.0f;
-        const float max_y = tower_height_ - visible_height / 2.0f;
+        // Add buffer zone (20% of screen size on each side) for better UX
+        const float buffer_x = visible_width * 0.2f;
+        const float buffer_y = visible_height * 0.2f;
+
+        // Calculate bounds with buffer
+        const float min_x = visible_width / 2.0f - buffer_x;
+        const float max_x = tower_width_ - visible_width / 2.0f + buffer_x;
+        const float min_y = visible_height / 2.0f - buffer_y;
+        const float max_y = tower_height_ - visible_height / 2.0f + buffer_y;
 
         // If visible area is larger than tower, center on tower
         if (visible_width >= tower_width_) {
