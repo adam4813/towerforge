@@ -241,12 +241,39 @@ namespace towerforge::ui {
         const int tower_y = y_ + (height_ - tower_render_height) / 2;
 
         // Calculate viewport dimensions in minimap space
-        const float viewport_width = visible_width * scale;
-        const float viewport_height = visible_height * scale;
+        float viewport_width = visible_width * scale;
+        float viewport_height = visible_height * scale;
 
         // Calculate viewport position in minimap space
-        const float viewport_x = static_cast<float>(tower_x) + camera_top_left_x * scale;
-        const float viewport_y = static_cast<float>(tower_y) + camera_top_left_y * scale;
+        float viewport_x = static_cast<float>(tower_x) + camera_top_left_x * scale;
+        float viewport_y = static_cast<float>(tower_y) + camera_top_left_y * scale;
+
+        // Clamp viewport indicator to stay within minimap boundaries
+        // This prevents the indicator from extending beyond the minimap when zoomed out
+        const float minimap_left = static_cast<float>(tower_x);
+        const float minimap_top = static_cast<float>(tower_y);
+        const float minimap_right = static_cast<float>(tower_x + tower_render_width);
+        const float minimap_bottom = static_cast<float>(tower_y + tower_render_height);
+
+        // Clamp the viewport rectangle to minimap bounds
+        if (viewport_x < minimap_left) {
+            viewport_width -= (minimap_left - viewport_x);
+            viewport_x = minimap_left;
+        }
+        if (viewport_y < minimap_top) {
+            viewport_height -= (minimap_top - viewport_y);
+            viewport_y = minimap_top;
+        }
+        if (viewport_x + viewport_width > minimap_right) {
+            viewport_width = minimap_right - viewport_x;
+        }
+        if (viewport_y + viewport_height > minimap_bottom) {
+            viewport_height = minimap_bottom - viewport_y;
+        }
+
+        // Ensure dimensions are never negative
+        viewport_width = std::max(0.0f, viewport_width);
+        viewport_height = std::max(0.0f, viewport_height);
 
         return {viewport_x, viewport_y, viewport_width, viewport_height};
     }
