@@ -384,9 +384,9 @@ namespace TowerForge::Core {
         // Serialize entities and components
         nlohmann::json entities = nlohmann::json::array();
         int population = 0;
-    
+
         // Serialize all entities with their components
-        world.each([&](const flecs::entity e) {
+        world.query_builder().with(flecs::Any).build().each([&](const flecs::entity e) {
             nlohmann::json entity;
             entity["id"] = static_cast<uint64_t>(e.id());
             entity["name"] = e.name() ? e.name() : "";
@@ -651,6 +651,9 @@ namespace TowerForge::Core {
             
                 TowerGrid& grid = ecs_world.GetTowerGrid();
                 
+                // Clear grid before restoring
+                grid.Clear();
+                
                 // Restore dimension limits first
                 grid.SetMaxAboveGroundFloors(max_above_ground);
                 grid.SetMaxBelowGroundFloors(max_below_ground);
@@ -725,6 +728,13 @@ namespace TowerForge::Core {
                         building.capacity = building_json.value("capacity", 10);
                         building.current_occupancy = building_json.value("current_occupancy", 0);
                         e.set<BuildingComponent>(building);
+                        
+                        // Build floor if needed and place facility on grid
+                        TowerGrid& grid = ecs_world.GetTowerGrid();
+                        if (!grid.IsFloorBuilt(building.floor, building.column)) {
+                            grid.BuildFloor(building.floor, building.column, building.width);
+                        }
+                        grid.PlaceFacility(building.floor, building.column, building.width, static_cast<int>(e.id()));
                     }
                 
                     // GridPosition
