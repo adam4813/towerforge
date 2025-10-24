@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <vector>
 #include <optional>
 #include <memory>
@@ -335,30 +336,17 @@ namespace TowerForge::Core {
         int columns_;
         int ground_floor_index_;  // Index representing ground level (0 by default)
         int basement_floors_;      // Number of basement floors (negative indices)
-        std::vector<std::vector<GridCell>> grid_;  // grid_[floor][column]
+        std::map<int, std::vector<GridCell>> grid_;  // grid_[floor][column] - floor can be negative
 
         // Upgradeable dimension limits
         int max_above_ground_floors_;  // Current max above-ground floors (upgradeable)
         int max_below_ground_floors_;  // Current max below-ground floors (upgradeable)
     
         /**
-     * @brief Resize the internal grid structure
+     * @brief Ensure a floor exists in the grid map
+     * @param floor Floor index
      */
-        void ResizeGrid();
-    
-        /**
-     * @brief Convert a floor index to grid array index
-     * @param floor Floor index (can be negative for basements)
-     * @return Array index in grid_ (always positive)
-     */
-        int FloorToGridIndex(int floor) const;
-    
-        /**
-     * @brief Convert a grid array index to floor index
-     * @param grid_index Array index in grid_
-     * @return Floor index (can be negative for basements)
-     */
-        int GridIndexToFloor(int grid_index) const;
+        void EnsureFloorExists(int floor);
     
         /**
      * @brief Check if a column is completely empty
