@@ -64,7 +64,15 @@ These are **reference documentation** that define correct implementation pattern
 - Execute directly without documenting the plan
 - Exception: AGENTS.md (this file) is allowed as it improves AI process
 
-### 3. Documentation Policy
+### 3. Temporary Files Must Be Cleaned Up
+- **Never leave temporary test programs, scripts, or exploration code** in the repository
+- If you create temporary files for investigation (e.g., testing a hypothesis, exploring an API):
+  - Delete them immediately after use
+  - Use `.gitignore`d locations if they must persist briefly
+- Clean up at the end of your task before reporting completion
+- Examples of temporary files to avoid: test programs, debug scripts, scratch files
+
+### 4. Documentation Policy
 **NEVER create summary documents, reports, or reviews** of work completed. These are working memory only.
 
 **Do NOT create** unless explicitly requested:
@@ -81,7 +89,7 @@ These are **reference documentation** that define correct implementation pattern
 
 **Rule of thumb**: If you're just going to tell the user about it anyway, don't create a file for it.
 
-### 4. No Standalone Applications
+### 5. No Standalone Applications
 - Main `towerforge` binary is the only demo/showcase
 - Do not create standalone test applications
 - Exception: `screenshot_app` (already exists for CI)
@@ -274,6 +282,7 @@ When given a task:
 - [ ] Identify minimal changes
 - [ ] Execute changes directly
 - [ ] Build and verify
+- [ ] Clean up any temporary files created during investigation
 - [ ] No standalone tests/demos created
 - [ ] No unnecessary documentation created
 - [ ] Changes are surgical and minimal
