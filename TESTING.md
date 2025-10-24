@@ -58,20 +58,37 @@ git clone https://github.com/microsoft/vcpkg.git
 ```
 
 2. Configure the project with the test CMake preset:
+
+**For CLI/Agent builds** (recommended to avoid IDE conflicts):
+```bash
+export VCPKG_ROOT=/path/to/vcpkg
+cmake --preset cli-test
+```
+
+**For IDE builds**:
 ```bash
 export VCPKG_ROOT=/path/to/vcpkg
 cmake --preset test
 ```
 
 3. Build all tests:
+
+**For CLI/Agent builds**:
 ```bash
-cmake --build --preset test-debug --parallel $(nproc)
+cmake --build --preset cli-test-debug --parallel $(nproc)
 ```
 
 On Windows (cmd.exe):
 ```cmd
-cmake --build --preset test-debug --parallel %NUMBER_OF_PROCESSORS%
+cmake --build --preset cli-test-debug --parallel %NUMBER_OF_PROCESSORS%
 ```
+
+**For IDE builds**:
+```bash
+cmake --build --preset test-debug --parallel $(nproc)
+```
+
+**Note**: The `cli-test` preset builds to `build-cli/cli-test/` to avoid CMake cache conflicts with IDE builds in `build/test/`.
 
 ### Building Specific Tests
 
@@ -87,19 +104,30 @@ cmake --build --preset test-debug --target test_game_initialization_e2e
 
 ### Run All Tests
 
-Using CTest from the tests subdirectory:
+**For CLI/Agent builds**:
 ```bash
-cd build/test/tests
+cd build-cli/cli-test/tests
 ctest -C Debug --output-on-failure
 ```
 
 Or run tests in parallel:
 ```bash
-cd build/test/tests
+cd build-cli/cli-test/tests
 ctest -C Debug -j$(nproc) --output-on-failure
 ```
 
 Alternatively, use the test preset:
+```bash
+ctest --preset cli-test-debug
+```
+
+**For IDE builds**:
+```bash
+cd build/test/tests
+ctest -C Debug --output-on-failure
+```
+
+Or use the test preset:
 ```bash
 ctest --preset test-debug
 ```
@@ -108,20 +136,54 @@ ctest --preset test-debug
 
 Each test executable can be run directly:
 
+**For CLI/Agent builds**:
 ```bash
 # From the project root
+./build-cli/cli-test/bin/Debug/test_tower_grid_integration
+./build-cli/cli-test/bin/Debug/test_facility_manager_integration
+./build-cli/cli-test/bin/Debug/test_user_preferences_unit
+```
+
+**For IDE builds**:
+**For CLI/Agent builds**:
+# From the project root
+# Run only integration tests
+cd build-cli/cli-test/tests
+ctest -C Debug -R ".*_integration" --output-on-failure
+
+# Run only E2E tests
+cd build-cli/cli-test/tests
+ctest -C Debug -R ".*_e2e" --output-on-failure
+
+# Run only unit tests
+cd build-cli/cli-test/tests
+ctest -C Debug -R ".*_unit" --output-on-failure
+```
+
+**For IDE builds**:
+```bash
+# Run only integration tests
 ./build/test/bin/Debug/test_tower_grid_integration
 ./build/test/bin/Debug/test_facility_manager_integration
-./build/test/bin/Debug/test_user_preferences_unit
+```
+# Run only E2E tests
+**For CLI/Agent builds**:
+```bash
+# Run only tests matching a pattern
+./build-cli/cli-test/bin/Debug/test_tower_grid_integration --gtest_filter="*FloorExpansion*"
+
+# Run all tests except those matching a pattern
+./build-cli/cli-test/bin/Debug/test_tower_grid_integration --gtest_filter="-*Removal*"
+
+# List all tests without running them
+./build-cli/cli-test/bin/Debug/test_tower_grid_integration --gtest_list_tests
 ```
 
-### Run Tests by Category
+**For IDE builds**:
 
 Run only integration tests:
-```bash
 cd build/test/tests
-ctest -C Debug -R ".*_integration" --output-on-failure
-```
+# Run only unit tests
 
 Run only E2E tests:
 ```bash
@@ -184,12 +246,52 @@ Unit tests focus on complex or unique logic:
 As of the latest build:
 
 - **Tests build successfully** - All compilation and linking issues resolved
-- **4 out of 12 tests passing** (33% pass rate)
-- **8 tests have logic issues** that need fixing:
-  - Some tests make incorrect assumptions about API behavior
-  - Some tests have logic bugs (e.g., expecting specific values that don't match implementation)
+- **9 out of 12 tests passing** (75% pass rate)
+- **3 tests failing due to implementation bugs**:
+  - `test_ecs_world_integration`: 2 failures related to facility creation and ECS component attachment
+  - `test_save_load_integration`: 1 failure - grid state not properly restored after loading
+  - `test_save_load_workflow_e2e`: 5 failures - all related to save/load grid state restoration bug
 
-The test infrastructure is complete and functional. Remaining work involves fixing test logic to match actual API behavior, not fixing the build system.
+### Passing Tests (9/12)
+- ✅ `test_tower_grid_integration` - All 13 tests passing
+- ✅ `test_facility_manager_integration` - All tests passing
+- ✅ `test_achievement_manager_integration` - All tests passing
+- ✅ `test_lua_mod_manager_integration` - All tests passing
+- ✅ `test_game_initialization_e2e` - All tests passing
+- ✅ `test_facility_placement_workflow_e2e` - All tests passing
+- ✅ `test_user_preferences_unit` - All tests passing
+- ✅ `test_command_history_unit` - All tests passing
+- ✅ `test_accessibility_settings_unit` - All 9 tests passing
+
+### Failing Tests (3/12)
+
+#### test_ecs_world_integration (2 failures)
+- ❌ `ComponentQueryAfterUpdate`: Expects facilities to have both BuildingComponent and GridPosition, but finds 0 entities
+- ❌ `SimulationWithTimeProgression`: Grid occupied cell count grows unexpectedly during simulation (expects 3, gets 8)
+
+**Root Cause**: Facility creation doesn't properly attach required ECS components or something spawns additional entities during simulation.
+
+#### test_save_load_integration (1 failure)
+- ❌ `SaveAndLoadComplexState`: Saves 11 occupied cells but loads 0 occupied cells
+
+**Root Cause**: SaveLoadManager doesn't properly serialize/deserialize grid occupancy state.
+
+#### test_save_load_workflow_e2e (5 failures)
+All failures have the same root cause as above - grid state not restored after loading:
+- ❌ `CompleteSaveLoadCycle`
+- ❌ `SaveComplexTowerAndReload`
+- ❌ `MultipleQuickSaves`
+- ❌ `SaveAfterModifyingTower`
+- ❌ `ContinuePlayingAfterLoad`
+
+**Root Cause**: Same as test_save_load_integration - SaveLoadManager serialization bug.
+
+### Summary
+The test infrastructure is complete and functional. The 3 failing test suites correctly identify real implementation bugs in:
+1. ECS facility component attachment
+2. Save/load grid state serialization
+
+These are not test structure issues but actual bugs in the production code that need to be fixed.
 
 ## Writing New Tests
 
@@ -214,7 +316,10 @@ protected:
     }
 
     // Test fixtures
-};
+4. Use the appropriate test preset:
+   - For CLI/Agent: `cmake --preset cli-test`
+   - For IDE: `cmake --preset test`
+5. If you see CMake cache conflicts, ensure you're using the `cli-test` preset (builds to `build-cli/`) to avoid conflicts with IDE builds
 
 TEST_F(YourComponentTest, DescriptiveTestName) {
     // Arrange

@@ -6,6 +6,47 @@
 
 ---
 
+## ⚠️ MANDATORY FIRST STEPS - READ THIS BEFORE ANY ACTION ⚠️
+
+### Step 1: Install System Dependencies (Linux ONLY)
+
+**IF YOU ARE ON LINUX**, you MUST run this command FIRST before vcpkg, CMake, or any build steps:
+
+```bash
+sudo apt-get update && sudo apt-get install -y build-essential cmake pkg-config \
+  libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+  libgl1-mesa-dev libglu1-mesa-dev xvfb
+```
+
+**Critical**: Without these X11 libraries, vcpkg CANNOT build raylib and the project WILL FAIL.
+
+**On Windows/macOS**: Skip this step.
+
+### Step 2: Bootstrap vcpkg
+
+```bash
+# Clone vcpkg if not present
+git clone https://github.com/microsoft/vcpkg.git
+
+# Bootstrap
+./vcpkg/bootstrap-vcpkg.sh      # Linux/macOS
+vcpkg\bootstrap-vcpkg.bat       # Windows
+
+# Set environment
+export VCPKG_ROOT=/path/to/vcpkg    # Linux/macOS
+set VCPKG_ROOT=D:\path\to\vcpkg     # Windows
+```
+
+### Step 3: Configure CMake
+
+```bash
+cmake --preset cli-native
+```
+
+**These steps are NOT optional. Complete them before proceeding with any task.**
+
+---
+
 ## Core Directives
 
 ### 1. Planning is Internal Only
@@ -15,16 +56,21 @@
 - Exception: AGENTS.md (this file) is allowed as it improves AI process
 
 ### 2. Documentation Policy
+**NEVER create summary documents, reports, or reviews** of work completed. These are working memory only.
+
 **Do NOT create** unless explicitly requested:
 - HOWTOs, tutorials, guides
-- Implementation summaries
+- Implementation summaries, work summaries, review summaries
 - Design notes or architecture docs
 - Supplementary documentation of any kind
+- Status reports, completion reports, or any "summary" documents
 
 **Only create documentation if**:
-- User explicitly requests it
-- It documents human workflow/process users must follow
+- User explicitly requests it (e.g., "create a document explaining X")
+- It documents a human workflow/process users must follow (e.g., build instructions, setup steps)
 - It directly improves automated tooling or AI code generation
+
+**Rule of thumb**: If you're just going to tell the user about it anyway, don't create a file for it.
 
 ### 3. No Standalone Applications
 - Main `towerforge` binary is the only demo/showcase
@@ -50,10 +96,15 @@
 
 ### Build Verification (REQUIRED)
 Before completing any work:
-1. Build: `cmake --build --preset native-debug`
-2. Verify: No errors or warnings
-3. If errors: Fix and rebuild
-4. Do not mark complete until build succeeds
+1. Configure (first time): `cmake --preset cli-native`
+2. Build: `cmake --build --preset cli-native-debug --parallel $(nproc)`
+   - Windows: Use `%NUMBER_OF_PROCESSORS%` instead of `$(nproc)`
+3. Verify: No errors or warnings
+4. If errors: Fix and rebuild
+5. Do not mark complete until build succeeds
+
+**Note**: Use `cli-native` presets (not `native`) to avoid conflicts with IDE builds.
+Build directory: `build-cli/cli-native/` (isolated from IDE's `build/native/`)
 
 ---
 
@@ -117,7 +168,9 @@ Before completing any work:
 - Not implementation details
 
 ### Code Comments
-- Minimal, only for complex logic
+- Only for complex logic explanation or non-obvious design decisions
+- Don't comment on "what" changed - that's in version control
+- Don't explain obvious code
 - Self-documenting code preferred
 
 ### Screenshots

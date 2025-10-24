@@ -19,15 +19,39 @@
       }
     },
     {
+      "name": "cli-base",
+      "hidden": true,
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build-cli/${presetName}",
+      "description": "CLI/Copilot configuration using vcpkg toolchain (isolated from IDE)",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
       "name": "native",
       "displayName": "Native",
       "inherits": "base"
+    },
+    {
+      "name": "cli-native",
+      "displayName": "CLI Native",
+      "inherits": "cli-base",
+      "description": "Native build for CLI/Copilot (isolated from IDE builds)"
     },
     {
       "name": "test",
       "displayName": "Test Configuration",
       "inherits": "base",
       "description": "Configuration for running tests"
+    },
+    {
+      "name": "cli-test",
+      "displayName": "CLI Test Configuration",
+      "inherits": "cli-base",
+      "description": "Test configuration for CLI/Copilot (isolated from IDE builds)"
     }
   ],
   "buildPresets": [
@@ -44,6 +68,18 @@
       "configuration": "Release"
     },
     {
+      "name": "cli-native-debug",
+      "displayName": "CLI Native Debug",
+      "configurePreset": "cli-native",
+      "configuration": "Debug"
+    },
+    {
+      "name": "cli-native-release",
+      "displayName": "CLI Native Release",
+      "configurePreset": "cli-native",
+      "configuration": "Release"
+    },
+    {
       "name": "test-debug",
       "displayName": "Test Debug",
       "configurePreset": "test",
@@ -53,6 +89,18 @@
       "name": "test-release",
       "displayName": "Test Release",
       "configurePreset": "test",
+      "configuration": "Release"
+    },
+    {
+      "name": "cli-test-debug",
+      "displayName": "CLI Test Debug",
+      "configurePreset": "cli-test",
+      "configuration": "Debug"
+    },
+    {
+      "name": "cli-test-release",
+      "displayName": "CLI Test Release",
+      "configurePreset": "cli-test",
       "configuration": "Release"
     }
   ],
@@ -70,6 +118,24 @@
       "name": "test-release",
       "displayName": "Test Release",
       "configurePreset": "test",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "cli-test-debug",
+      "displayName": "CLI Test Debug",
+      "configurePreset": "cli-test",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "cli-test-release",
+      "displayName": "CLI Test Release",
+      "configurePreset": "cli-test",
       "configuration": "Release",
       "output": {
         "outputOnFailure": true
