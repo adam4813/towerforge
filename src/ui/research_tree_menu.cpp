@@ -453,7 +453,7 @@ namespace towerforge::ui {
         return false;
     }
     
-    bool ResearchTreeMenu::ProcessMouseEvent(const ui::MouseEvent& event) {
+    bool ResearchTreeMenu::ProcessMouseEvent(const MouseEvent& event) const {
         // If confirmation dialog is visible, route events to it first
         if (unlock_confirmation_ && unlock_confirmation_->IsVisible()) {
             return unlock_confirmation_->ProcessMouseEvent(event);

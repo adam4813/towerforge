@@ -28,11 +28,13 @@ add_subdirectory(src/core)
 set(SOURCE_FILES
     src/rendering/renderer.cpp
     src/rendering/camera.cpp
+    src/ui/action_bar.cpp
     src/ui/hud.cpp
     src/ui/minimap.cpp
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp
     src/ui/history_panel.cpp
+    src/ui/grid_panel.cpp
     src/ui/main_menu.cpp
     src/ui/pause_menu.cpp
     src/ui/save_load_menu.cpp
@@ -46,7 +48,12 @@ set(SOURCE_FILES
     src/ui/ui_window.cpp
     src/ui/ui_window_manager.cpp
     src/ui/info_windows.cpp
+    src/ui/stat_item.cpp
+    src/ui/alert_bar.cpp
+    src/ui/section_header.cpp
+    src/ui/icon_button.cpp
     src/ui/analytics_overlay.cpp
+    src/ui/tab_bar.cpp
     src/ui/tooltip.cpp
     src/ui/notification_center.cpp
     src/ui/ui_element.cpp

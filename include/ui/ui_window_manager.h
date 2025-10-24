@@ -16,10 +16,22 @@ namespace towerforge::ui {
         ~UIWindowManager() = default;
     
         /**
+     * @brief Update all windows (handles repositioning on resize)
+     */
+        void Update(float delta_time);
+    
+        /**
      * @brief Add a new window to the manager
      * @return Window ID
      */
         int AddWindow(std::unique_ptr<UIWindow> window);
+    
+        /**
+     * @brief Add an info window (single-window modal system)
+     * Replaces any existing info window instead of cascading
+     * @return Window ID
+     */
+        int AddInfoWindow(std::unique_ptr<UIWindow> window);
     
         /**
      * @brief Remove a window by ID
@@ -66,17 +78,26 @@ namespace towerforge::ui {
         void CalculateWindowPosition(UIWindow* window) const;
     
         /**
+     * @brief Calculate position for info window (centered at bottom)
+     */
+        void CalculateInfoWindowPosition(UIWindow* window) const;
+    
+        /**
      * @brief Update z-orders after changes
      */
         void UpdateZOrders();
     
         std::vector<std::unique_ptr<UIWindow>> windows_;
         int next_z_order_;
+        bool is_info_window_;  // Track if current window is an info window
+        int last_screen_width_;
+        int last_screen_height_;
     
         // Layout constants
         static constexpr int INITIAL_X_OFFSET = 10;
         static constexpr int INITIAL_Y_OFFSET = 60;
         static constexpr int WINDOW_SPACING = 20;
+        static constexpr int BOTTOM_MARGIN = 60;  // Space for action bar
     };
 
 }

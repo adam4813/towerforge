@@ -261,7 +261,7 @@ namespace towerforge::ui {
 
     private:
         void RenderNotificationPanel();
-        void RenderNotificationEntry(const NotificationEntry& entry, Rectangle bounds, bool hovered);
+        void RenderNotificationEntry(const NotificationEntry& entry, Rectangle bounds, bool hovered) const;
         void RenderFilterControls();
         Color GetTypeColor(NotificationType type) const;
         const char* GetTypeIcon(NotificationType type) const;

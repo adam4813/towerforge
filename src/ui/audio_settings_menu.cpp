@@ -52,7 +52,7 @@ namespace towerforge::ui {
             0.0f, 1.0f, "Master Volume"
         );
         master_slider->SetValue(master_volume_);
-        master_slider->SetValueChangedCallback([this](float value) {
+        master_slider->SetValueChangedCallback([this](const float value) {
             master_volume_ = value;
             auto& audio_mgr = audio::AudioManager::GetInstance();
             audio_mgr.SetMasterVolume(value);
@@ -69,7 +69,7 @@ namespace towerforge::ui {
             0.0f, 1.0f, "Music Volume"
         );
         music_slider->SetValue(music_volume_);
-        music_slider->SetValueChangedCallback([this](float value) {
+        music_slider->SetValueChangedCallback([this](const float value) {
             music_volume_ = value;
             auto& audio_mgr = audio::AudioManager::GetInstance();
             audio_mgr.SetVolume(audio::AudioType::Music, value);
@@ -86,7 +86,7 @@ namespace towerforge::ui {
             0.0f, 1.0f, "Sound Effects"
         );
         sfx_slider->SetValue(sfx_volume_);
-        sfx_slider->SetValueChangedCallback([this](float value) {
+        sfx_slider->SetValueChangedCallback([this](const float value) {
             sfx_volume_ = value;
             auto& audio_mgr = audio::AudioManager::GetInstance();
             audio_mgr.SetVolume(audio::AudioType::SFX, value);
@@ -102,7 +102,7 @@ namespace towerforge::ui {
             50, CHECKBOX_START_Y, "Mute All Audio"
         );
         mute_all_checkbox->SetChecked(mute_all_);
-        mute_all_checkbox->SetToggleCallback([this](bool checked) {
+        mute_all_checkbox->SetToggleCallback([this](const bool checked) {
             mute_all_ = checked;
             ApplyAudioSettings();
             SaveSettings();
@@ -117,7 +117,7 @@ namespace towerforge::ui {
             "Mute Music"
         );
         mute_music_checkbox->SetChecked(mute_music_);
-        mute_music_checkbox->SetToggleCallback([this](bool checked) {
+        mute_music_checkbox->SetToggleCallback([this](const bool checked) {
             mute_music_ = checked;
             ApplyAudioSettings();
             SaveSettings();
@@ -132,7 +132,7 @@ namespace towerforge::ui {
             "Mute Sound Effects"
         );
         mute_sfx_checkbox->SetChecked(mute_sfx_);
-        mute_sfx_checkbox->SetToggleCallback([this](bool checked) {
+        mute_sfx_checkbox->SetToggleCallback([this](const bool checked) {
             mute_sfx_ = checked;
             ApplyAudioSettings();
             SaveSettings();
@@ -147,7 +147,7 @@ namespace towerforge::ui {
             "Enable Ambient Sounds"
         );
         enable_ambient_checkbox->SetChecked(enable_ambient_);
-        enable_ambient_checkbox->SetToggleCallback([this](bool checked) {
+        enable_ambient_checkbox->SetToggleCallback([this](const bool checked) {
             enable_ambient_ = checked;
             SaveSettings();
         });
@@ -196,7 +196,7 @@ namespace towerforge::ui {
         last_screen_height_ = screen_height;
     }
 
-    void AudioSettingsMenu::UpdateSelection(int new_selection) {
+    void AudioSettingsMenu::UpdateSelection(const int new_selection) {
         // Clear old selection
         if (selected_index_ >= 0 && selected_index_ < static_cast<int>(interactive_elements_.size())) {
             interactive_elements_[selected_index_]->SetFocused(false);
@@ -260,7 +260,7 @@ namespace towerforge::ui {
         RenderHeader();
     }
 
-    void AudioSettingsMenu::RenderHeader() {
+    void AudioSettingsMenu::RenderHeader() const {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
         const int panel_x = (screen_width - MENU_WIDTH) / 2;

@@ -91,7 +91,7 @@ namespace towerforge::ui {
      * @param event Mouse event data
      * @return true if event was consumed
      */
-        bool ProcessMouseEvent(const ui::MouseEvent& event);
+        bool ProcessMouseEvent(const MouseEvent& event) const;
     
         /**
      * @brief Handle keyboard shortcuts
@@ -223,7 +223,7 @@ namespace towerforge::ui {
         TooltipManager* tooltip_manager_;
     
         // Confirmation dialog for destructive actions
-        std::unique_ptr<ui::ConfirmationDialog> demolish_confirmation_;
+        std::unique_ptr<ConfirmationDialog> demolish_confirmation_;
         int pending_demolish_floor_;
         int pending_demolish_column_;
         float pending_demolish_funds_;

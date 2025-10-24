@@ -6,17 +6,33 @@
 #include "ui/analytics_overlay.h"
 #include "ui/minimap.h"
 #include "rendering/camera.h"
+#include "ui/action_bar.h"
+#include "ui/mouse_interface.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 
 namespace towerforge::ui {
 
-    HUD::HUD() {
+    HUD::HUD()
+        : action_bar_callback_(nullptr) {
         window_manager_ = std::make_unique<UIWindowManager>();
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
         minimap_ = std::make_unique<Minimap>();
+        
+        // Create action bar at bottom of screen - fixed width, centered
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const int bar_width = ActionBar::CalculateBarWidth();
+        const int bar_x = (screen_width - bar_width) / 2;
+        
+        action_bar_ = std::make_unique<ActionBar>(
+            bar_x,
+            screen_height - ACTION_BAR_HEIGHT,
+            bar_width,
+            ACTION_BAR_HEIGHT
+        );
     }
 
     HUD::~HUD() = default;
@@ -38,6 +54,21 @@ namespace towerforge::ui {
         // Update minimap
         if (minimap_) {
             minimap_->Update(delta_time);
+        }
+        
+        // Update window manager (handles repositioning on resize)
+        window_manager_->Update(delta_time);
+        
+        // Update action bar
+        if (action_bar_) {
+            action_bar_->Update(delta_time);
+            
+            // Update position if screen resized - keep centered
+            const int screen_width = GetScreenWidth();
+            const int screen_height = GetScreenHeight();
+            const int bar_width = ActionBar::CalculateBarWidth();
+            const int bar_x = (screen_width - bar_width) / 2;
+            action_bar_->SetRelativePosition(bar_x, screen_height - ACTION_BAR_HEIGHT);
         }
     }
 
@@ -62,6 +93,11 @@ namespace towerforge::ui {
         // Render tooltips on top
         tooltip_manager_->Render();
 
+        // Render action bar
+        if (action_bar_) {
+            action_bar_->Render();
+        }
+
         // Render end-game summary if max stars achieved
         if (game_state_.rating.stars >= 5) {
             RenderEndGameSummary();
@@ -75,19 +111,19 @@ namespace towerforge::ui {
     void HUD::ShowFacilityInfo(const FacilityInfo& info) const {
         // Create a new facility window and add it to the window manager
         auto window = std::make_unique<FacilityWindow>(info);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddInfoWindow(std::move(window));
     }
 
     void HUD::ShowPersonInfo(const PersonInfo& info) const {
         // Create a new person window and add it to the window manager
         auto window = std::make_unique<PersonWindow>(info);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddInfoWindow(std::move(window));
     }
 
     void HUD::ShowElevatorInfo(const ElevatorInfo& info) const {
         // Create a new elevator window and add it to the window manager
         auto window = std::make_unique<ElevatorWindow>(info);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddInfoWindow(std::move(window));
     }
 
     void HUD::HideInfoPanels() const {
@@ -181,6 +217,18 @@ namespace towerforge::ui {
             return true;
         }
 
+        return false;
+    }
+
+    bool HUD::ProcessMouseEvent(const MouseEvent& event) {
+        // Forward to action bar first
+        if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
+            return true;
+        }
+        
+        // Forward to window manager if needed
+        // (UIWindowManager doesn't have ProcessMouseEvent yet)
+        
         return false;
     }
 
@@ -629,7 +677,7 @@ namespace towerforge::ui {
         DrawText("(Continue playing to build more!)", x + 55, y, 12, GRAY);
     }
 
-    void HUD::ToggleNotificationCenter() {
+    void HUD::ToggleNotificationCenter() const {
         notification_center_->ToggleVisibility();
     }
 
@@ -656,14 +704,14 @@ namespace towerforge::ui {
         population_analytics_callback_ = std::move(callback);
     }
 
-    void HUD::RequestIncomeAnalytics() {
+    void HUD::RequestIncomeAnalytics() const {
         if (income_analytics_callback_) {
             const IncomeBreakdown data = income_analytics_callback_();
             ShowIncomeAnalytics(data);
         }
     }
 
-    void HUD::RequestPopulationAnalytics() {
+    void HUD::RequestPopulationAnalytics() const {
         if (population_analytics_callback_) {
             const PopulationBreakdown data = population_analytics_callback_();
             ShowPopulationAnalytics(data);
@@ -707,5 +755,16 @@ namespace towerforge::ui {
             minimap_->Toggle();
         }
     }
-
+  
+    void HUD::SetActionBarCallback(ActionBarCallback callback) {
+        action_bar_callback_ = callback;
+        
+        if (action_bar_) {
+            action_bar_->SetActionCallback([this, callback](ActionBar::Action action) {
+                if (callback) {
+                    callback(static_cast<int>(action));
+                }
+            });
+        }
+    }
 }

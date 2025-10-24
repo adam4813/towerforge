@@ -4,7 +4,33 @@
 namespace towerforge::ui {
 
     UIWindowManager::UIWindowManager()
-        : next_z_order_(0) {
+        : next_z_order_(0)
+        , is_info_window_(false)
+        , last_screen_width_(0)
+        , last_screen_height_(0) {
+    }
+
+    void UIWindowManager::Update(const float delta_time) {
+        const int current_width = GetScreenWidth();
+        const int current_height = GetScreenHeight();
+        
+        // Check if screen was resized
+        if (current_width != last_screen_width_ || current_height != last_screen_height_) {
+            last_screen_width_ = current_width;
+            last_screen_height_ = current_height;
+            
+            // Reposition info windows
+            if (is_info_window_ && !windows_.empty()) {
+                for (const auto& window : windows_) {
+                    CalculateInfoWindowPosition(window.get());
+                }
+            }
+        }
+        
+        // Update all windows
+        for (const auto& window : windows_) {
+            window->Update(delta_time);
+        }
     }
 
     int UIWindowManager::AddWindow(std::unique_ptr<UIWindow> window) {
@@ -12,6 +38,26 @@ namespace towerforge::ui {
 
         // Calculate position for the new window
         CalculateWindowPosition(window.get());
+
+        // Set z-order
+        window->SetZOrder(next_z_order_++);
+
+        // Add window to the list
+        windows_.push_back(std::move(window));
+
+        return window_id;
+    }
+
+    int UIWindowManager::AddInfoWindow(std::unique_ptr<UIWindow> window) {
+        // Single-window modal system: close any existing windows first
+        Clear();
+        
+        is_info_window_ = true;
+        
+        const int window_id = window->GetId();
+
+        // Calculate centered position at bottom
+        CalculateInfoWindowPosition(window.get());
 
         // Set z-order
         window->SetZOrder(next_z_order_++);
@@ -35,6 +81,7 @@ namespace towerforge::ui {
     void UIWindowManager::Clear() {
         windows_.clear();
         next_z_order_ = 0;
+        is_info_window_ = false;
     }
 
     void UIWindowManager::Render() const {
@@ -146,6 +193,19 @@ namespace towerforge::ui {
         }
 
         window->SetPosition(default_x, default_y);
+    }
+
+    void UIWindowManager::CalculateInfoWindowPosition(UIWindow* window) const {
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+
+        // Center horizontally
+        const int x = (screen_width - static_cast<int>(window->GetBounds().width)) / 2;
+        
+        // Position at bottom with margin for action bar
+        const int y = screen_height - static_cast<int>(window->GetBounds().height) - BOTTOM_MARGIN;
+
+        window->SetPosition(x, y);
     }
 
     void UIWindowManager::UpdateZOrders() {

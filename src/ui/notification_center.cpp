@@ -436,7 +436,7 @@ namespace towerforge::ui {
 
     void NotificationCenter::RenderNotificationEntry(const NotificationEntry& entry, 
                                                       const Rectangle bounds, 
-                                                      const bool hovered) {
+                                                      const bool hovered) const {
         // Background
         Color bg_color = entry.read ? ColorAlpha(DARKGRAY, 0.3f) : ColorAlpha(DARKBLUE, 0.4f);
         if (hovered) {

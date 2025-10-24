@@ -3,6 +3,7 @@
 #include "core/components.hpp"
 #include "core/user_preferences.hpp"
 #include "ui/notification_center.h"
+#include "ui/action_bar.h"
 #include "ui/batch_renderer/batch_renderer.h"
 
 using namespace TowerForge::Core;
@@ -14,7 +15,7 @@ namespace towerforge::core {
     constexpr float HOURS_PER_DAY = 24.0f;
 
     // Helper function to convert facility type enum to string
-    static std::string GetFacilityTypeName(BuildingComponent::Type type) {
+    static std::string GetFacilityTypeName(const BuildingComponent::Type type) {
         switch (type) {
             case BuildingComponent::Type::Office: return "Office";
             case BuildingComponent::Type::Residential: return "Residential";
@@ -183,7 +184,7 @@ namespace towerforge::core {
         renderer_.Initialize(800, 600, "TowerForge");
 
         // Initialize batch renderer
-        towerforge::ui::batch_renderer::BatchRenderer::Initialize();
+        batch_renderer::BatchRenderer::Initialize();
         std::cout << "Batch renderer initialized" << std::endl;
         
         // Set up main menu callback
@@ -192,15 +193,15 @@ namespace towerforge::core {
         });
         
         // Set up general settings menu callback
-        general_settings_menu_.SetOptionCallback([this](ui::SettingsOption option) {
+        general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
             switch (option) {
-                case ui::SettingsOption::Audio:
+                case SettingsOption::Audio:
                     in_audio_settings_ = true;
                     break;
-                case ui::SettingsOption::Accessibility:
+                case SettingsOption::Accessibility:
                     in_accessibility_settings_ = true;
                     break;
-                case ui::SettingsOption::Back:
+                case SettingsOption::Back:
                     current_state_ = GameState::TitleScreen;
                     break;
                 default:
@@ -210,15 +211,15 @@ namespace towerforge::core {
         });
         
         // Set up pause general settings menu callback
-        pause_general_settings_menu_.SetOptionCallback([this](ui::SettingsOption option) {
+        pause_general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
             switch (option) {
-                case ui::SettingsOption::Audio:
+                case SettingsOption::Audio:
                     in_audio_settings_from_pause_ = true;
                     break;
-                case ui::SettingsOption::Accessibility:
+                case SettingsOption::Accessibility:
                     in_accessibility_settings_from_pause_ = true;
                     break;
-                case ui::SettingsOption::Back:
+                case SettingsOption::Back:
                     in_settings_from_pause_ = false;
                     break;
                 default:
@@ -320,7 +321,7 @@ namespace towerforge::core {
         CleanupGameSystems();
 
         // Shutdown batch renderer
-        towerforge::ui::batch_renderer::BatchRenderer::Shutdown();
+        batch_renderer::BatchRenderer::Shutdown();
 
         renderer_.Shutdown();
         std::cout << "Exiting TowerForge..." << std::endl;
@@ -331,7 +332,7 @@ namespace towerforge::core {
         HandleTitleScreenInput();
     }
 
-    void Game::RenderTitleScreen() {
+    void Game::RenderTitleScreen() const {
         renderer_.BeginFrame();
         main_menu_.Render();
         renderer_.EndFrame();
@@ -464,8 +465,11 @@ namespace towerforge::core {
         audio_manager_->StopMusic(1.0f);
         audio_manager_->PlayMusic(audio::AudioCue::GameplayLoop, true, 2.0f);
 
-        // Create and initialize the ECS world
-        ecs_world_ = std::make_unique<ECSWorld>();
+        // Create and initialize the ECS world with screen-based grid dimensions
+        // Get current screen dimensions (800x600 by default from Initialize)
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        ecs_world_ = std::make_unique<ECSWorld>(screen_width, screen_height, cell_width_, cell_height_);
         ecs_world_->Initialize();
 
         // Create and initialize save/load manager
@@ -576,13 +580,18 @@ namespace towerforge::core {
         // Connect notification center to research menu
         research_menu_->SetNotificationCenter(hud_->GetNotificationCenter());
 
-        // Create and initialize camera
+        // Create and initialize camera with default bounds
+        // The bounds will grow dynamically as the tower is built
         camera_ = std::make_unique<rendering::Camera>();
-        // Calculate ground floor Y position for camera centering
-        const auto &temp_grid = ecs_world_->GetTowerGrid();
-        const int ground_floor_screen_y = grid_offset_y_ + (temp_grid.GetFloorCount() / 2) * cell_height_;
-        camera_->Initialize(800, 600, 1200.0f, 800.0f);
-        // TODO: Center camera on ground floor Y position (ground_floor_screen_y)
+
+        // Initialize with a reasonable default size (slightly larger than screen)
+        const float default_width = 1200.0f;
+        const float default_height = 800.0f;
+
+        camera_->Initialize(800, 600, default_width, default_height);
+
+        // Update camera bounds based on currently built floors
+        UpdateCameraBounds();
 
         // Initialize minimap
         hud_->InitializeMinimap(800, 600, 1200.0f, 800.0f);
@@ -595,6 +604,49 @@ namespace towerforge::core {
         });
         hud_->SetPopulationAnalyticsCallback([this]() {
             return CollectPopulationAnalytics();
+        });
+
+        // Set up action bar callback
+        hud_->SetActionBarCallback([this](int action) {
+            const auto actionEnum = static_cast<ActionBar::Action>(action);
+            switch (actionEnum) {
+                case ActionBar::Action::Build:
+                    // Toggle build menu visibility
+                    build_menu_->SetVisible(!build_menu_->IsVisible());
+                    if (build_menu_->IsVisible()) {
+                        audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+                    } else {
+                        audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
+                    }
+                    break;
+                case ActionBar::Action::FacilityInfo:
+                    // TODO: Show facility browser
+                    hud_->AddNotification(Notification::Type::Info, "Facility info - Coming soon!", 2.0f);
+                    break;
+                case ActionBar::Action::VisitorInfo:
+                    // TODO: Show visitor list
+                    hud_->AddNotification(Notification::Type::Info, "Visitor info - Coming soon!", 2.0f);
+                    break;
+                case ActionBar::Action::StaffManagement:
+                    // TODO: Show staff management
+                    hud_->AddNotification(Notification::Type::Info, "Staff management - Coming soon!", 2.0f);
+                    break;
+                case ActionBar::Action::Research:
+                    // Toggle research menu
+                    if (research_menu_->IsVisible()) {
+                        research_menu_->SetVisible(false);
+                        audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
+                    } else {
+                        research_menu_->SetVisible(true);
+                        audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+                    }
+                    break;
+                case ActionBar::Action::Settings:
+                    // Show pause menu / settings
+                    is_paused_ = true;
+                    audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+                    break;
+            }
         });
 
         // Add example notifications to showcase notification center
@@ -642,7 +694,7 @@ namespace towerforge::core {
         placement_system_->SetTooltipManager(hud_->GetTooltipManager());
 
         // Create history panel
-        history_panel_ = std::make_unique<ui::HistoryPanel>();
+        history_panel_ = std::make_unique<HistoryPanel>();
         history_panel_->SetVisible(false); // Hidden by default
 
         std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x "
@@ -705,20 +757,20 @@ namespace towerforge::core {
         in_accessibility_settings_from_pause_ = false;
     }
 
-    void Game::UpdateInGame(float delta_time) {
+    void Game::UpdateInGame(const float delta_time) {
         // Handle F1 key to toggle help system
         if (help_system_ != nullptr && IsKeyPressed(KEY_F1)) {
             if (help_system_->IsVisible()) {
                 help_system_->Hide();
             } else {
                 // Determine current context based on active UI
-                ui::HelpContext context = ui::HelpContext::MainGame;
+                HelpContext context = HelpContext::MainGame;
                 if (is_paused_) {
-                    context = ui::HelpContext::PauseMenu;
+                    context = HelpContext::PauseMenu;
                 } else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
-                    context = ui::HelpContext::ResearchTree;
+                    context = HelpContext::ResearchTree;
                 } else if (mods_menu_ != nullptr && mods_menu_->IsVisible()) {
-                    context = ui::HelpContext::ModsMenu;
+                    context = HelpContext::ModsMenu;
                 }
                 help_system_->Show(context);
             }
@@ -788,8 +840,16 @@ namespace towerforge::core {
 
         CalculateTowerRating();
 
+        // Update camera bounds based on built floors (checks periodically)
+        UpdateCameraBounds();
+
         hud_->SetGameState(game_state_);
         hud_->Update(time_step_);
+
+        // Update build menu (for position updates)
+        if (build_menu_) {
+            build_menu_->Update(time_step_);
+        }
 
         // Update help system
         if (help_system_ != nullptr) {
@@ -802,7 +862,7 @@ namespace towerforge::core {
 
             // Handle mouse events for confirmation dialogs first
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                const ui::MouseEvent mouse_event{
+                const MouseEvent mouse_event{
                     static_cast<float>(GetMouseX()),
                     static_cast<float>(GetMouseY()),
                     false, // left_down
@@ -814,6 +874,8 @@ namespace towerforge::core {
                 // Check research menu confirmation dialogs
                 if (research_menu_->ProcessMouseEvent(mouse_event)) {
                     // Dialog consumed the event, don't process node clicks
+                    // Apply vertical expansion upgrades after any unlock
+                    ecs_world_->ApplyVerticalExpansionUpgrades();
                 } else {
                     // Normal node click handling
                     ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
@@ -821,6 +883,11 @@ namespace towerforge::core {
                                                                       true, // clicked
                                                                       research_tree_ref);
                     // Note: unlock notification is now handled in ResearchTreeMenu via notification center
+
+                    // Apply vertical expansion upgrades if anything was unlocked
+                    if (unlocked) {
+                        ecs_world_->ApplyVerticalExpansionUpgrades();
+                    }
                 }
             }
         }
@@ -985,7 +1052,7 @@ namespace towerforge::core {
         // Update build menu tooltips
         build_menu_->UpdateTooltips(mouse_x, mouse_y, game_state_.funds);
 
-        // Update placement tooltips (if not paused and not in research menu)
+        // Update tooltips for placement system (if not paused and not in research menu)
         if (!is_paused_ && !research_menu_->IsVisible()) {
             float world_x, world_y;
             camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
@@ -994,10 +1061,30 @@ namespace towerforge::core {
                                               cell_width_, cell_height_, game_state_.funds);
         }
 
-        // Handle mouse clicks (only if not paused)
-        if (!is_paused_ && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        // Handle hover events for HUD (action bar button highlighting, etc.)
+        if (!is_paused_ && !research_menu_->IsVisible()) {
+            const MouseEvent hover_event{
+                static_cast<float>(mouse_x),
+                static_cast<float>(mouse_y),
+                IsMouseButtonDown(MOUSE_LEFT_BUTTON), // left_down
+                IsMouseButtonDown(MOUSE_RIGHT_BUTTON), // right_down
+                false, // left_pressed (hover only)
+                false // right_pressed (hover only)
+            };
+            
+            // Send hover events to HUD for button highlighting
+            hud_->ProcessMouseEvent(hover_event);
+            
+            // Send hover events to build menu if visible
+            if (build_menu_->IsVisible()) {
+                build_menu_->ProcessMouseEvent(hover_event);
+            }
+        }
+
+        // Handle mouse clicks (only if not paused and research menu not visible)
+        if (!is_paused_ && !research_menu_->IsVisible() && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             // Create mouse event for UI system
-            const ui::MouseEvent mouse_event{
+            const MouseEvent mouse_event{
                 static_cast<float>(mouse_x),
                 static_cast<float>(mouse_y),
                 false, // left_down
@@ -1006,7 +1093,17 @@ namespace towerforge::core {
                 false // right_pressed
             };
 
-            // Check placement system confirmation dialogs first
+            // Check HUD first (action bar, etc.)
+            if (hud_->ProcessMouseEvent(mouse_event)) {
+                return; // HUD consumed the event
+            }
+
+            // Check build menu if visible
+            if (build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(mouse_event)) {
+                return; // Build menu consumed the event
+            }
+
+            // Check placement system confirmation dialogs
             if (placement_system_->ProcessMouseEvent(mouse_event)) {
                 return; // Dialog consumed the event
             }
@@ -1399,7 +1496,7 @@ namespace towerforge::core {
         // Helper function to convert floor index to screen Y coordinate
         // Ground floor (0) at fixed position, floors build upward (decreasing Y)
         const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
-        auto FloorToScreenY = [ground_floor_screen_y, this](int floor) -> int {
+        auto FloorToScreenY = [ground_floor_screen_y, this](const int floor) -> int {
             return ground_floor_screen_y - (floor * cell_height_);
         };
 
@@ -1671,15 +1768,50 @@ namespace towerforge::core {
         }
     }
 
-    ui::IncomeBreakdown Game::CollectIncomeAnalytics() const {
-        ui::IncomeBreakdown breakdown;
+    void Game::UpdateCameraBounds() {
+        if (!ecs_world_ || !camera_) {
+            return;
+        }
+
+        const auto& grid = ecs_world_->GetTowerGrid();
+
+        // Get the range of built floors
+        int min_built_floor = 0;
+        int max_built_floor = 0;
+
+        if (!grid.GetBuiltFloorRange(min_built_floor, max_built_floor)) {
+            // No floors built yet, use a small default area around ground floor
+            min_built_floor = -1;  // 1 floor below ground
+            max_built_floor = 2;   // 2 floors above ground
+        } else {
+            // Add 1 floor buffer above and below
+            min_built_floor -= 1;
+            max_built_floor += 1;
+        }
+
+        // Calculate screen Y positions for these floors
+        // Ground floor (0) is at: grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_
+        const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
+        const int min_y = ground_floor_screen_y - (max_built_floor * cell_height_);
+        const int max_y = ground_floor_screen_y - (min_built_floor * cell_height_) + cell_height_;
+
+        // Calculate width with 1 cell buffer on each side
+        const float tower_width = (grid.GetColumnCount() + 2) * cell_width_ + grid_offset_x_;
+        const float tower_height = std::max(static_cast<float>(max_y - min_y + grid_offset_y_), 600.0f);  // At least screen height
+
+        // Update camera bounds
+        camera_->SetTowerBounds(tower_width, tower_height);
+    }
+
+    IncomeBreakdown Game::CollectIncomeAnalytics() const {
+        IncomeBreakdown breakdown;
 
         if (!ecs_world_) {
             return breakdown;
         }
 
         // Map to aggregate revenue by facility type
-        std::map<std::string, ui::IncomeBreakdown::FacilityTypeRevenue> revenue_map;
+        std::map<std::string, IncomeBreakdown::FacilityTypeRevenue> revenue_map;
 
         // Query all facilities with economics
         ecs_world_->GetWorld().each([&](flecs::entity e,
@@ -1732,8 +1864,8 @@ namespace towerforge::core {
         return breakdown;
     }
 
-    ui::PopulationBreakdown Game::CollectPopulationAnalytics() const {
-        ui::PopulationBreakdown breakdown;
+    PopulationBreakdown Game::CollectPopulationAnalytics() const {
+        PopulationBreakdown breakdown;
 
         if (!ecs_world_) {
             return breakdown;

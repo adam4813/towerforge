@@ -15,7 +15,7 @@ namespace towerforge::ui {
         // Create main panel centered on screen
         const Color background_color = ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f);
         settings_panel_ = std::make_unique<Panel>(0, 0, MENU_WIDTH, 650, background_color, UITheme::BORDER_ACCENT);
-        // settings_panel_->SetPadding(UITheme::PADDING_MEDIUM);  // Panel doesn't have SetPadding method
+        settings_panel_->SetPadding(UITheme::PADDING_MEDIUM);
         
         // Create header overlay
         header_overlay_ = std::make_unique<PanelHeaderOverlay>("Settings");
@@ -37,9 +37,9 @@ namespace towerforge::ui {
             const int item_y = HEADER_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
 
             auto button = std::make_unique<Button>(
-                UITheme::PADDING_MEDIUM, // X relative to panel with padding
+                UITheme::PADDING_MEDIUM,
                 static_cast<float>(item_y),
-                static_cast<float>(MENU_WIDTH - UITheme::PADDING_MEDIUM * 2), // Account for padding on both sides
+                static_cast<float>(MENU_WIDTH - UITheme::PADDING_MEDIUM * 2),
                 static_cast<float>(MENU_ITEM_HEIGHT),
                 menu_items_[i].label,
                 UITheme::BUTTON_BACKGROUND,

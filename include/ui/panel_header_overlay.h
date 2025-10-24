@@ -24,9 +24,9 @@ namespace towerforge::ui {
         void Render(int panel_x, int panel_y, int panel_width) const;
         
         void SetTitle(const std::string& title) { title_ = title; }
-        void SetFontSize(int font_size) { font_size_ = font_size; }
-        void SetTitleColor(Color color) { title_color_ = color; }
-        void SetYOffset(int offset) { y_offset_ = offset; }
+        void SetFontSize(const int font_size) { font_size_ = font_size; }
+        void SetTitleColor(const Color color) { title_color_ = color; }
+        void SetYOffset(const int offset) { y_offset_ = offset; }
         
     private:
         std::string title_;

@@ -35,7 +35,7 @@ namespace towerforge::ui::batch_renderer {
         /**
          * @brief Batched version of DrawRectangle
          */
-        inline void DrawRectangle(int x, int y, int width, int height, Color color) {
+        inline void DrawRectangle(const int x, const int y, const int width, const int height, const Color color) {
             BatchRenderer::SubmitQuad(
                 Rectangle{static_cast<float>(x), static_cast<float>(y), 
                          static_cast<float>(width), static_cast<float>(height)},
@@ -46,7 +46,7 @@ namespace towerforge::ui::batch_renderer {
         /**
          * @brief Batched version of DrawRectangleRec
          */
-        inline void DrawRectangleRec(Rectangle rect, Color color) {
+        inline void DrawRectangleRec(const Rectangle rect, const Color color) {
             BatchRenderer::SubmitQuad(rect, color);
         }
         
@@ -56,7 +56,7 @@ namespace towerforge::ui::batch_renderer {
          * Note: Draws 4 lines to form rectangle outline.
          * Thickness is fixed at 1 pixel.
          */
-        inline void DrawRectangleLines(int x, int y, int width, int height, Color color) {
+        inline void DrawRectangleLines(const int x, const int y, const int width, const int height, const Color color) {
             const float fx = static_cast<float>(x);
             const float fy = static_cast<float>(y);
             const float fw = static_cast<float>(width);
@@ -75,7 +75,7 @@ namespace towerforge::ui::batch_renderer {
         /**
          * @brief Batched version of DrawRectangleLinesEx
          */
-        inline void DrawRectangleLinesEx(Rectangle rect, float thickness, Color color) {
+        inline void DrawRectangleLinesEx(const Rectangle rect, const float thickness, const Color color) {
             // Top
             BatchRenderer::SubmitLine(rect.x, rect.y, 
                                      rect.x + rect.width, rect.y, 
@@ -97,7 +97,7 @@ namespace towerforge::ui::batch_renderer {
         /**
          * @brief Batched version of DrawCircle
          */
-        inline void DrawCircle(int center_x, int center_y, float radius, Color color) {
+        inline void DrawCircle(const int center_x, const int center_y, const float radius, const Color color) {
             BatchRenderer::SubmitCircle(
                 static_cast<float>(center_x),
                 static_cast<float>(center_y),
@@ -109,14 +109,14 @@ namespace towerforge::ui::batch_renderer {
         /**
          * @brief Batched version of DrawCircleV
          */
-        inline void DrawCircleV(Vector2 center, float radius, Color color) {
+        inline void DrawCircleV(const Vector2 center, const float radius, const Color color) {
             BatchRenderer::SubmitCircle(center.x, center.y, radius, color);
         }
         
         /**
          * @brief Batched version of DrawText
          */
-        inline void DrawText(const char* text, int x, int y, int font_size, Color color) {
+        inline void DrawText(const char* text, const int x, const int y, const int font_size, const Color color) {
             BatchRenderer::SubmitText(
                 std::string(text),
                 static_cast<float>(x),
@@ -129,7 +129,7 @@ namespace towerforge::ui::batch_renderer {
         /**
          * @brief Batched version of DrawLine
          */
-        inline void DrawLine(int start_x, int start_y, int end_x, int end_y, Color color) {
+        inline void DrawLine(const int start_x, const int start_y, const int end_x, const int end_y, const Color color) {
             BatchRenderer::SubmitLine(
                 static_cast<float>(start_x),
                 static_cast<float>(start_y),
@@ -143,15 +143,15 @@ namespace towerforge::ui::batch_renderer {
         /**
          * @brief Batched version of DrawLineEx
          */
-        inline void DrawLineEx(Vector2 start, Vector2 end, float thickness, Color color) {
+        inline void DrawLineEx(const Vector2 start, const Vector2 end, const float thickness, const Color color) {
             BatchRenderer::SubmitLine(start.x, start.y, end.x, end.y, thickness, color);
         }
         
         /**
          * @brief Batched version of DrawRectangleRounded
          */
-        inline void DrawRectangleRounded(Rectangle rect, float roundness, 
-                                        int segments, Color color) {
+        inline void DrawRectangleRounded(const Rectangle rect, const float roundness,
+                                        const int segments, const Color color) {
             const float corner_radius = (rect.width < rect.height ? rect.width : rect.height) 
                                        * roundness * 0.5f;
             BatchRenderer::SubmitRoundedRect(rect, corner_radius, color, segments);

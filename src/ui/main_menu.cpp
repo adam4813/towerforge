@@ -61,7 +61,7 @@ namespace towerforge::ui {
 
     MainMenu::~MainMenu() = default;
 
-    void MainMenu::SetStateChangeCallback(StateChangeCallback callback) {
+    void MainMenu::SetStateChangeCallback(const StateChangeCallback &callback) {
         state_change_callback_ = callback;
     }
 
@@ -92,7 +92,7 @@ namespace towerforge::ui {
         last_screen_height_ = screen_height;
     }
 
-    void MainMenu::UpdateButtonSelection(int new_selection) {
+    void MainMenu::UpdateButtonSelection(const int new_selection) {
         // Clear old selection
         if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
             Button *old_button = menu_item_buttons_[selected_option_];

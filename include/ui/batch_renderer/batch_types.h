@@ -20,7 +20,7 @@ namespace towerforge::ui::batch_renderer {
         float tex_index;         // Texture slot index (0-7)
         
         Vertex() = default;
-        Vertex(float x, float y, float u, float v, uint32_t color, float tex_index = 0.0f)
+        Vertex(const float x, const float y, const float u, const float v, const uint32_t color, const float tex_index = 0.0f)
             : x(x), y(y), u(u), v(v), color(color), tex_index(tex_index) {}
     };
 
@@ -33,7 +33,7 @@ namespace towerforge::ui::batch_renderer {
         float x, y, width, height;
         
         ScissorRect() : x(0), y(0), width(0), height(0) {}
-        ScissorRect(float x, float y, float w, float h) : x(x), y(y), width(w), height(h) {}
+        ScissorRect(const float x, const float y, const float w, const float h) : x(x), y(y), width(w), height(h) {}
         
         /**
          * @brief Intersect this scissor with another
@@ -89,7 +89,7 @@ namespace towerforge::ui::batch_renderer {
     /**
      * @brief Convert packed RGBA to Raylib Color
      */
-    inline Color RGBAToColor(uint32_t rgba) {
+    inline Color RGBAToColor(const uint32_t rgba) {
         return Color{
             static_cast<unsigned char>((rgba >> 24) & 0xFF),
             static_cast<unsigned char>((rgba >> 16) & 0xFF),

@@ -233,7 +233,7 @@ namespace towerforge::ui {
         return 0;
     }
     
-    bool PlacementSystem::ProcessMouseEvent(const ui::MouseEvent& event) {
+    bool PlacementSystem::ProcessMouseEvent(const MouseEvent& event) const {
         // If confirmation dialog is visible, route events to it first
         if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
             return demolish_confirmation_->ProcessMouseEvent(event);

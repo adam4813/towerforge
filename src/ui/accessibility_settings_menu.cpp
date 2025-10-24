@@ -35,7 +35,7 @@ namespace towerforge::ui {
         settings.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
     }
 
-    void AccessibilitySettingsMenu::ApplySettings() {
+    void AccessibilitySettingsMenu::ApplySettings() const {
         // Save to unified UserPreferences
         auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
         prefs.SetHighContrastEnabled(high_contrast_enabled_);
@@ -49,7 +49,7 @@ namespace towerforge::ui {
         settings.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
     }
 
-    void AccessibilitySettingsMenu::Render() {
+    void AccessibilitySettingsMenu::Render() const {
         RenderBackground();
         RenderHeader();
         RenderControls();

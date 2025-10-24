@@ -55,7 +55,7 @@ namespace towerforge::ui {
         /**
          * @brief Set callback for back button
          */
-        void SetBackCallback(BackCallback callback) { back_callback_ = callback; }
+        void SetBackCallback(const BackCallback &callback) { back_callback_ = callback; }
     
     private:
         void UpdateLayout();
@@ -63,7 +63,7 @@ namespace towerforge::ui {
         void LoadSettings();
         void SaveSettings() const;
         void ApplyAudioSettings();
-        void RenderHeader();
+        void RenderHeader() const;
     
         BackCallback back_callback_;
         std::unique_ptr<Panel> settings_panel_;

@@ -67,7 +67,7 @@ namespace towerforge::core {
     private:
         // State management
         void UpdateTitleScreen(float delta_time);
-        void RenderTitleScreen();
+        void RenderTitleScreen() const;
         void HandleTitleScreenInput();
 
         void UpdateAchievementsScreen(float delta_time);
@@ -97,6 +97,7 @@ namespace towerforge::core {
 
         // Helper methods
         void CalculateTowerRating();
+        void UpdateCameraBounds();
         ui::IncomeBreakdown CollectIncomeAnalytics() const;
         ui::PopulationBreakdown CollectPopulationAnalytics() const;
 

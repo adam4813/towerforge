@@ -11,12 +11,14 @@ namespace towerforge::rendering {
 }
 
 namespace towerforge::ui {
+   struct MouseEvent;
 
-    // Forward declarations
+   // Forward declarations
     class UIWindowManager;
     class TooltipManager;
     class NotificationCenter;
     class Minimap;
+    class ActionBar;
     struct IncomeBreakdown;
     struct ElevatorAnalytics;
     struct PopulationBreakdown;
@@ -146,6 +148,11 @@ namespace towerforge::ui {
  */
     class HUD {
     public:
+        /**
+         * @brief Callback type for action bar actions
+         */
+        using ActionBarCallback = std::function<void(int action)>;
+
         HUD();
         ~HUD();
     
@@ -229,6 +236,13 @@ namespace towerforge::ui {
      * @return true if click was on a HUD element
      */
         bool HandleClick(int mouse_x, int mouse_y) const;
+
+        /**
+         * @brief Process mouse events for interactive elements
+         * @param event Mouse event data
+         * @return true if event was consumed by HUD
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
     
         /**
      * @brief Update tooltips based on mouse position
@@ -250,7 +264,7 @@ namespace towerforge::ui {
         /**
      * @brief Toggle notification center visibility
      */
-        void ToggleNotificationCenter();
+        void ToggleNotificationCenter() const;
     
         /**
      * @brief Show income analytics overlay
@@ -285,12 +299,23 @@ namespace towerforge::ui {
         /**
      * @brief Request income analytics to be shown
      */
-        void RequestIncomeAnalytics();
+        void RequestIncomeAnalytics() const;
     
         /**
      * @brief Request population analytics to be shown
      */
-        void RequestPopulationAnalytics();
+        void RequestPopulationAnalytics() const;
+
+        /**
+         * @brief Set callback for action bar button clicks
+         * @param callback Function to call when action button is clicked
+         */
+        void SetActionBarCallback(ActionBarCallback callback);
+
+        /**
+         * @brief Get the action bar
+         */
+        ActionBar* GetActionBar() const { return action_bar_.get(); }
     
     private:
         void RenderTopBar() const;
@@ -317,6 +342,9 @@ namespace towerforge::ui {
 
         // Minimap
         std::unique_ptr<Minimap> minimap_;
+        // Action bar at bottom of screen
+        std::unique_ptr<ActionBar> action_bar_;
+        ActionBarCallback action_bar_callback_;
     
         // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;
@@ -335,6 +363,7 @@ namespace towerforge::ui {
         static constexpr int SPEED_CONTROL_HEIGHT = 40;
         static constexpr int STAR_RATING_WIDTH = 230;
         static constexpr int STAR_RATING_HEIGHT = 180;
+        static constexpr int ACTION_BAR_HEIGHT = 50;
     };
 
 }

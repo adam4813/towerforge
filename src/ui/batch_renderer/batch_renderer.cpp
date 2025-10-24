@@ -171,9 +171,9 @@ namespace towerforge::ui::batch_renderer {
     }
 
     void BatchRenderer::SubmitLine(
-        float x0, float y0,
-        float x1, float y1,
-        float thickness,
+        const float x0, const float y0,
+        const float x1, const float y1,
+        const float thickness,
         const Color& color,
         uint32_t texture_id
     ) {
@@ -228,9 +228,9 @@ namespace towerforge::ui::batch_renderer {
     void BatchRenderer::SubmitCircle(
         float center_x,
         float center_y,
-        float radius,
+        const float radius,
         const Color& color,
-        int segments
+        const int segments
     ) {
         if (!state_ || segments < 3) return;
         
@@ -269,7 +269,7 @@ namespace towerforge::ui::batch_renderer {
         const Rectangle& rect,
         float corner_radius,
         const Color& color,
-        int corner_segments
+        const int corner_segments
     ) {
         if (!state_ || corner_segments < 1) return;
         
@@ -344,9 +344,9 @@ namespace towerforge::ui::batch_renderer {
 
     void BatchRenderer::SubmitText(
         const std::string& text,
-        float x,
-        float y,
-        int font_size,
+        const float x,
+        const float y,
+        const int font_size,
         const Color& color
     ) {
         if (!state_ || text.empty()) return;
@@ -366,7 +366,7 @@ namespace towerforge::ui::batch_renderer {
     void BatchRenderer::SubmitTextRect(
         const Rectangle& rect,
         const std::string& text,
-        int font_size,
+        const int font_size,
         const Color& color
     ) {
         if (!state_ || text.empty()) return;
@@ -430,7 +430,7 @@ namespace towerforge::ui::batch_renderer {
         state_->vertices.emplace_back(x3, y3, u3, v3, color, tex_index);
     }
 
-    void BatchRenderer::PushQuadIndices(uint32_t base_vertex) {
+    void BatchRenderer::PushQuadIndices(const uint32_t base_vertex) {
         // Two triangles: 0-1-2, 2-3-0
         state_->indices.push_back(base_vertex + 0);
         state_->indices.push_back(base_vertex + 1);
@@ -441,7 +441,7 @@ namespace towerforge::ui::batch_renderer {
         state_->indices.push_back(base_vertex + 0);
     }
 
-    bool BatchRenderer::ShouldFlush(uint32_t texture_id) {
+    bool BatchRenderer::ShouldFlush(const uint32_t texture_id) {
         if (!state_) return false;
         
         // Check if adding this texture would exceed limit
@@ -454,7 +454,7 @@ namespace towerforge::ui::batch_renderer {
         return false;
     }
 
-    int BatchRenderer::GetOrAddTextureSlot(uint32_t texture_id) {
+    int BatchRenderer::GetOrAddTextureSlot(const uint32_t texture_id) {
         auto it = state_->texture_slots.find(texture_id);
         if (it != state_->texture_slots.end()) {
             return it->second;

@@ -13,7 +13,7 @@ namespace example {
 // Example facility class that needs mouse interaction
 class GameFacility {
 public:
-    GameFacility(int id, Rectangle bounds, const std::string& name)
+    GameFacility(const int id, const Rectangle bounds, const std::string& name)
         : id_(id), bounds_(bounds), name_(name), event_handle_(-1) {}
 
     void RegisterWithEventManager(towerforge::ui::MouseEventManager& manager) {
@@ -55,7 +55,7 @@ public:
         }
     }
 
-    void UpdatePosition(Rectangle new_bounds, towerforge::ui::MouseEventManager& manager) {
+    void UpdatePosition(const Rectangle new_bounds, towerforge::ui::MouseEventManager& manager) {
         bounds_ = new_bounds;
         if (event_handle_ != -1) {
             manager.UpdateRegionBounds(event_handle_, bounds_);

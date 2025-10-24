@@ -22,6 +22,16 @@ namespace TowerForge::Core {
     class ECSWorld {
     public:
         ECSWorld();
+        
+        /**
+     * @brief Construct ECS world with screen-based grid dimensions
+     * @param screen_width Width of the screen in pixels
+     * @param screen_height Height of the screen in pixels
+     * @param cell_width Width of one grid cell in pixels
+     * @param cell_height Height of one grid cell in pixels
+     */
+        ECSWorld(int screen_width, int screen_height, int cell_width, int cell_height);
+        
         ~ECSWorld();
 
         /**
@@ -65,6 +75,12 @@ namespace TowerForge::Core {
      * @return Reference to the Lua mod manager
      */
         LuaModManager& GetModManager() const;
+
+        /**
+     * @brief Apply vertical expansion upgrades from research tree to tower grid
+     * Should be called after unlocking a VerticalExpansion research node
+     */
+        void ApplyVerticalExpansionUpgrades();
 
     private:
         void RegisterComponents() const;

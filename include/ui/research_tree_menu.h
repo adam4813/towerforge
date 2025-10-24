@@ -74,7 +74,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const ui::MouseEvent& event);
+        bool ProcessMouseEvent(const MouseEvent& event) const;
     
     private:
         static void RenderOverlay();

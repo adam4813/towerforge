@@ -6,15 +6,175 @@ namespace towerforge::ui {
     FacilityWindow::FacilityWindow(const FacilityInfo& info)
         : UIWindow("Facility Info", 250, 300 + static_cast<int>(info.adjacency_effects.size() * 18))
           , info_(info) {
+        BuildComponents();
+        UpdateComponentValues();
+    }
+
+    void FacilityWindow::BuildComponents() {
+        int y = 0;
+        
+        // Stats section
+        occupancy_stat_ = std::make_unique<StatItem>("Occupancy:", y);
+        y += 20;
+        
+        revenue_stat_ = std::make_unique<StatItem>("Revenue:", y);
+        y += 20;
+        
+        satisfaction_stat_ = std::make_unique<StatItem>("Satisfaction:", y);
+        y += 20;
+        
+        tenants_stat_ = std::make_unique<StatItem>("Tenants:", y);
+        y += 25;
+        
+        // Status section
+        status_header_ = std::make_unique<SectionHeader>("--- Facility Status ---", YELLOW, y);
+        y += 20;
+        
+        cleanliness_state_stat_ = std::make_unique<StatItem>("Status:", y);
+        y += 20;
+        
+        cleanliness_stat_ = std::make_unique<StatItem>("Cleanliness:", y);
+        y += 20;
+        
+        maintenance_stat_ = std::make_unique<StatItem>("Maintenance:", y);
+        y += 20;
+        
+        maintenance_state_stat_ = std::make_unique<StatItem>("Status:", y);
+        y += 20;
+        
+        // Alerts
+        fire_alert_ = std::make_unique<AlertBar>("! FIRE - Firefighter needed !", RED, y);
+        fire_alert_->SetVisible(false);
+        y += 20;
+        
+        security_alert_ = std::make_unique<AlertBar>("! Security Issue - Guard needed !", ORANGE, y);
+        security_alert_->SetVisible(false);
+        y += 20;
+        
+        // Adjacency section
+        adjacency_header_ = std::make_unique<SectionHeader>("--- Adjacency Effects ---", GOLD, y);
+        
+        // Buttons
+        demolish_button_ = std::make_unique<IconButton>("[Demolish]", 100, 25, DARKGRAY, RED, 0, 0);
+        demolish_button_->SetClickCallback([]() {
+            // TODO: Wire to game logic
+        });
+        
+        upgrade_button_ = std::make_unique<IconButton>("[Upgrade]", 100, 25, DARKGRAY, YELLOW, 110, 0);
+        upgrade_button_->SetClickCallback([]() {
+            // TODO: Wire to game logic
+        });
+        
+        repair_button_ = std::make_unique<IconButton>("[Repair Now]", 210, 25, ORANGE, BLACK, 0, 0);
+        repair_button_->SetClickCallback([]() {
+            // TODO: Wire to game logic
+        });
+        repair_button_->SetVisible(false);
     }
 
     void FacilityWindow::Update(const FacilityInfo& info) {
         info_ = info;
         title_ = info.type + " - Floor " + std::to_string(info.floor);
-        // Adjust height based on adjacency effects
-        height_ = 300 + static_cast<int>(info.adjacency_effects.size() * 18);
+        
+        // Recalculate height based on content
+        int height = 300;
         if (!info.adjacency_effects.empty()) {
-            height_ += 30;  // Extra space for section header
+            height += 30 + static_cast<int>(info.adjacency_effects.size() * 18);
+        }
+        height_ = height;
+        
+        UpdateComponentValues();
+    }
+
+    void FacilityWindow::UpdateComponentValues() {
+        // Update occupancy
+        occupancy_stat_->SetValue(
+            std::to_string(info_.occupancy) + "/" + std::to_string(info_.max_occupancy),
+            LIGHTGRAY
+        );
+        
+        // Update revenue
+        std::stringstream revenue_ss;
+        revenue_ss << "$" << std::fixed << std::setprecision(0) << info_.revenue << "/hr";
+        revenue_stat_->SetValue(revenue_ss.str(), GREEN);
+        
+        // Update satisfaction
+        const std::string sat_emoji = GetSatisfactionEmoji(info_.satisfaction);
+        satisfaction_stat_->SetValue(
+            sat_emoji + " " + std::to_string(static_cast<int>(info_.satisfaction)) + "%",
+            LIGHTGRAY
+        );
+        
+        // Update tenants
+        tenants_stat_->SetValue(std::to_string(info_.tenant_count) + " workers", LIGHTGRAY);
+        
+        // Update cleanliness state
+        if (!info_.cleanliness_state.empty()) {
+            Color state_color = GREEN;
+            if (info_.cleanliness_state == "Dirty") {
+                state_color = RED;
+            } else if (info_.cleanliness_state == "Needs Cleaning") {
+                state_color = YELLOW;
+            }
+            cleanliness_state_stat_->SetValue(info_.cleanliness_state, state_color);
+        }
+        
+        // Update cleanliness
+        const std::string clean_text = info_.cleanliness_rating + " (" + 
+                                      std::to_string(static_cast<int>(info_.cleanliness)) + "%)";
+        const Color clean_color = info_.cleanliness >= 70.0f ? GREEN : 
+                                 (info_.cleanliness >= 50.0f ? YELLOW : RED);
+        cleanliness_stat_->SetValue(clean_text, clean_color);
+        
+        // Update maintenance
+        const std::string maint_text = info_.maintenance_rating + " (" + 
+                                      std::to_string(static_cast<int>(info_.maintenance_level)) + "%)";
+        const Color maint_color = info_.maintenance_level >= 70.0f ? GREEN : 
+                                 (info_.maintenance_level >= 50.0f ? YELLOW : RED);
+        maintenance_stat_->SetValue(maint_text, maint_color);
+        
+        // Update maintenance state
+        if (!info_.maintenance_state.empty()) {
+            Color state_color = GREEN;
+            if (info_.is_broken) {
+                state_color = RED;
+            } else if (info_.needs_repair) {
+                state_color = ORANGE;
+            }
+            maintenance_state_stat_->SetValue(info_.maintenance_state, state_color);
+        }
+        
+        // Update alerts
+        fire_alert_->SetVisible(info_.has_fire);
+        security_alert_->SetVisible(info_.has_security_issue);
+        
+        // Update adjacency effects
+        adjacency_items_.clear();
+        int adj_y = 0;
+        for (const auto& effect : info_.adjacency_effects) {
+            auto item = std::make_unique<StatItem>("", adj_y);
+            
+            Color effect_color = LIGHTGRAY;
+            if (effect.find("+") != std::string::npos) {
+                effect_color = GREEN;
+            } else if (effect.find("-") != std::string::npos) {
+                effect_color = ORANGE;
+            }
+            
+            item->SetValue(effect, effect_color);
+            adjacency_items_.push_back(std::move(item));
+            adj_y += 18;
+        }
+        
+        // Update repair button
+        if (info_.needs_repair || info_.is_broken) {
+            repair_button_->SetVisible(true);
+            const Color repair_color = info_.is_broken ? RED : ORANGE;
+            const std::string button_text = info_.is_broken ? "[Emergency Repair]" : "[Repair Now]";
+            repair_button_->SetColors(repair_color, BLACK);
+            repair_button_->SetLabel(button_text);
+        } else {
+            repair_button_->SetVisible(false);
         }
     }
 
@@ -23,125 +183,55 @@ namespace towerforge::ui {
         RenderCloseButton();
 
         const int x = x_ + PADDING;
-        int y = y_ + TITLE_BAR_HEIGHT + PADDING;
+        const int y_base = y_ + TITLE_BAR_HEIGHT + PADDING;
     
-        // Occupancy
-        const std::string occupancy = "Occupancy: " + std::to_string(info_.occupancy) + 
-                                "/" + std::to_string(info_.max_occupancy);
-        DrawText(occupancy.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Revenue
-        std::stringstream revenue_ss;
-        revenue_ss << "Revenue: $" << std::fixed << std::setprecision(0) << info_.revenue << "/hr";
-        DrawText(revenue_ss.str().c_str(), x, y, 14, GREEN);
-        y += 20;
-    
-        // Satisfaction
-        const std::string satisfaction = "Satisfaction: " + GetSatisfactionEmoji(info_.satisfaction) + 
-                                   " " + std::to_string(static_cast<int>(info_.satisfaction)) + "%";
-        DrawText(satisfaction.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Tenants
-        const std::string tenants = "Tenants: " + std::to_string(info_.tenant_count) + " workers";
-        DrawText(tenants.c_str(), x, y, 14, LIGHTGRAY);
-        y += 25;
-    
-        // Status section header
-        DrawText("--- Facility Status ---", x, y, 14, YELLOW);
-        y += 20;
-    
-        // CleanlinessStatus state (if available)
+        // Render all stat components
+        occupancy_stat_->Render(x, y_base);
+        revenue_stat_->Render(x, y_base);
+        satisfaction_stat_->Render(x, y_base);
+        tenants_stat_->Render(x, y_base);
+        
+        // Render status section
+        status_header_->Render(x, y_base);
         if (!info_.cleanliness_state.empty()) {
-            const std::string clean_state = "Status: " + info_.cleanliness_state;
-            Color state_color = GREEN;
-            if (info_.cleanliness_state == "Dirty") {
-                state_color = RED;
-            } else if (info_.cleanliness_state == "Needs Cleaning") {
-                state_color = YELLOW;
-            }
-            DrawText(clean_state.c_str(), x, y, 14, state_color);
-            y += 20;
+            cleanliness_state_stat_->Render(x, y_base);
         }
-    
-        // Cleanliness
-        const std::string cleanliness = "Cleanliness: " + info_.cleanliness_rating + 
-                                  " (" + std::to_string(static_cast<int>(info_.cleanliness)) + "%)";
-        const Color clean_color = info_.cleanliness >= 70.0f ? GREEN : (info_.cleanliness >= 50.0f ? YELLOW : RED);
-        DrawText(cleanliness.c_str(), x, y, 14, clean_color);
-        y += 20;
-    
-        // Maintenance
-        const std::string maintenance = "Maintenance: " + info_.maintenance_rating + 
-                                  " (" + std::to_string(static_cast<int>(info_.maintenance_level)) + "%)";
-        const Color maint_color = info_.maintenance_level >= 70.0f ? GREEN : (info_.maintenance_level >= 50.0f ? YELLOW : RED);
-        DrawText(maintenance.c_str(), x, y, 14, maint_color);
-        y += 20;
-    
-        // MaintenanceStatus state (if available)
+        cleanliness_stat_->Render(x, y_base);
+        maintenance_stat_->Render(x, y_base);
         if (!info_.maintenance_state.empty()) {
-            const std::string maint_state = "Status: " + info_.maintenance_state;
-            Color state_color = GREEN;
-            if (info_.is_broken) {
-                state_color = RED;
-            } else if (info_.needs_repair) {
-                state_color = ORANGE;
-            }
-            DrawText(maint_state.c_str(), x, y, 14, state_color);
-            y += 20;
+            maintenance_state_stat_->Render(x, y_base);
         }
-    
-        // Alerts
-        if (info_.has_fire) {
-            DrawText("! FIRE - Firefighter needed !", x, y, 14, RED);
-            y += 20;
-        }
-        if (info_.has_security_issue) {
-            DrawText("! Security Issue - Guard needed !", x, y, 14, ORANGE);
-            y += 20;
-        }
-    
-        // Adjacency effects section
+        
+        // Render alerts
+        fire_alert_->Render(x, y_base);
+        security_alert_->Render(x, y_base);
+        
+        // Render adjacency section
         if (!info_.adjacency_effects.empty()) {
-            y += 5;
-            DrawText("--- Adjacency Effects ---", x, y, 14, GOLD);
-            y += 20;
-        
-            for (const auto& effect : info_.adjacency_effects) {
-                // Determine color based on effect type (bonus vs penalty)
-                Color effect_color = LIGHTGRAY;
-                if (effect.find("+") != std::string::npos) {
-                    effect_color = GREEN;  // Bonuses in green
-                } else if (effect.find("-") != std::string::npos) {
-                    effect_color = ORANGE;  // Penalties in orange
-                }
+            int adj_y_offset = fire_alert_->IsVisible() ? 20 : 0;
+            adj_y_offset += security_alert_->IsVisible() ? 20 : 0;
+            adjacency_header_->SetPosition(200 + adj_y_offset);
+            adjacency_header_->Render(x, y_base);
             
-                DrawText(effect.c_str(), x, y, 13, effect_color);
-                y += 18;
+            for (const auto& item : adjacency_items_) {
+                item->Render(x, y_base);
             }
-        
-            y += 7;
         }
-    
-        y += 10;
-    
-        // Buttons row 1
-        DrawRectangle(x, y, 100, 25, DARKGRAY);
-        DrawText("[Demolish]", x + 5, y + 5, 14, RED);
-    
-        DrawRectangle(x + 110, y, 100, 25, DARKGRAY);
-        DrawText("[Upgrade]", x + 115, y + 5, 14, YELLOW);
-    
-        y += 30;
-    
-        // "Repair now" button (only show if facility needs repair or is broken)
-        if (info_.needs_repair || info_.is_broken) {
-            const Color repair_btn_color = info_.is_broken ? RED : ORANGE;
-            DrawRectangle(x, y, 210, 25, repair_btn_color);
-            const char* button_text = info_.is_broken ? "[Emergency Repair]" : "[Repair Now]";
-            const int text_offset = info_.is_broken ? 45 : 60;
-            DrawText(button_text, x + text_offset, y + 5, 14, BLACK);
+        
+        // Render buttons
+        int button_y_offset = 240;
+        if (!info_.adjacency_effects.empty()) {
+            button_y_offset += 30 + static_cast<int>(info_.adjacency_effects.size() * 18);
+        }
+        
+        demolish_button_->SetPosition(0, button_y_offset);
+        demolish_button_->Render(x, y_base);
+        upgrade_button_->SetPosition(110, button_y_offset);
+        upgrade_button_->Render(x, y_base);
+        
+        if (repair_button_->IsVisible()) {
+            repair_button_->SetPosition(0, button_y_offset + 30);
+            repair_button_->Render(x, y_base);
         }
     }
 
@@ -156,11 +246,128 @@ namespace towerforge::ui {
     PersonWindow::PersonWindow(const PersonInfo& info)
         : UIWindow("Person Info", 250, 360)
           , info_(info) {
+        BuildComponents();
+        UpdateComponentValues();
+    }
+
+    void PersonWindow::BuildComponents() {
+        int y = 0;
+        
+        // Basic info
+        type_stat_ = std::make_unique<StatItem>("Type:", y);
+        y += 20;
+        
+        archetype_stat_ = std::make_unique<StatItem>("Profile:", y);
+        y += 20;
+        
+        // Staff section
+        staff_header_ = std::make_unique<SectionHeader>("--- Staff Info ---", GOLD, y);
+        y += 20;
+        
+        role_stat_ = std::make_unique<StatItem>("Role:", y);
+        y += 20;
+        
+        duty_stat_ = std::make_unique<StatItem>("Status:", y);
+        y += 20;
+        
+        shift_stat_ = std::make_unique<StatItem>("Shift:", y);
+        y += 25;
+        
+        // Status info
+        status_stat_ = std::make_unique<StatItem>("Status:", y);
+        y += 20;
+        
+        state_stat_ = std::make_unique<StatItem>("State:", y);
+        y += 20;
+        
+        current_floor_stat_ = std::make_unique<StatItem>("Current:", y);
+        y += 20;
+        
+        dest_floor_stat_ = std::make_unique<StatItem>("Destination:", y);
+        y += 20;
+        
+        wait_time_stat_ = std::make_unique<StatItem>("Wait Time:", y);
+        y += 20;
+        
+        // Needs section
+        needs_header_ = std::make_unique<SectionHeader>("--- Visitor Needs ---", YELLOW, y);
+        y += 20;
+        
+        hunger_stat_ = std::make_unique<StatItem>("Hunger:", y);
+        y += 18;
+        
+        entertainment_stat_ = std::make_unique<StatItem>("Entertainment:", y);
+        y += 18;
+        
+        comfort_stat_ = std::make_unique<StatItem>("Comfort:", y);
+        y += 18;
+        
+        shopping_stat_ = std::make_unique<StatItem>("Shopping:", y);
+        y += 23;
+        
+        // Satisfaction
+        satisfaction_stat_ = std::make_unique<StatItem>("Satisfaction:", y);
+    }
+
+    void PersonWindow::UpdateComponentValues() {
+        // Update type
+        type_stat_->SetValue(info_.npc_type, SKYBLUE);
+        
+        // Update archetype (if applicable)
+        if (info_.has_needs && !info_.visitor_archetype.empty()) {
+            archetype_stat_->SetValue(info_.visitor_archetype, GOLD);
+        }
+        
+        // Update staff info
+        if (info_.is_staff) {
+            role_stat_->SetValue(info_.staff_role, LIGHTGRAY);
+            duty_stat_->SetValue(info_.on_duty ? "On Duty" : "Off Duty", info_.on_duty ? GREEN : GRAY);
+            shift_stat_->SetValue(info_.shift_hours, LIGHTGRAY);
+        }
+        
+        // Update status
+        status_stat_->SetValue(info_.status, GOLD);
+        state_stat_->SetValue(info_.state, LIGHTGRAY);
+        current_floor_stat_->SetValue("Floor " + std::to_string(info_.current_floor), LIGHTGRAY);
+        dest_floor_stat_->SetValue("Floor " + std::to_string(info_.destination_floor), LIGHTGRAY);
+        
+        // Update wait time
+        if (!info_.is_staff || info_.wait_time > 0) {
+            std::stringstream wait_ss;
+            wait_ss << std::fixed << std::setprecision(0) << info_.wait_time << "s";
+            wait_time_stat_->SetValue(wait_ss.str(), info_.wait_time > 30 ? RED : LIGHTGRAY);
+        }
+        
+        // Update needs
+        if (info_.has_needs) {
+            auto get_need_color = [](const float need) {
+                if (need < 30.0f) return GREEN;
+                if (need < 60.0f) return YELLOW;
+                return RED;
+            };
+            
+            hunger_stat_->SetValue(std::to_string(static_cast<int>(info_.hunger_need)) + "%", 
+                                  get_need_color(info_.hunger_need));
+            entertainment_stat_->SetValue(std::to_string(static_cast<int>(info_.entertainment_need)) + "%", 
+                                         get_need_color(info_.entertainment_need));
+            comfort_stat_->SetValue(std::to_string(static_cast<int>(info_.comfort_need)) + "%", 
+                                   get_need_color(info_.comfort_need));
+            shopping_stat_->SetValue(std::to_string(static_cast<int>(info_.shopping_need)) + "%", 
+                                    get_need_color(info_.shopping_need));
+        }
+        
+        // Update satisfaction
+        if (!info_.is_staff) {
+            const std::string sat_emoji = GetSatisfactionEmoji(info_.satisfaction);
+            satisfaction_stat_->SetValue(sat_emoji + " " + std::to_string(static_cast<int>(info_.satisfaction)) + "%", 
+                                        LIGHTGRAY);
+        }
     }
 
     void PersonWindow::Update(const PersonInfo& info) {
         info_ = info;
         title_ = info.name;
+        UpdateComponentValues();
     }
 
     void PersonWindow::Render() {
@@ -168,105 +375,45 @@ namespace towerforge::ui {
         RenderCloseButton();
 
         const int x = x_ + PADDING;
-        int y = y_ + TITLE_BAR_HEIGHT + PADDING;
+        const int y_base = y_ + TITLE_BAR_HEIGHT + PADDING;
     
-        // NPC Type
-        const std::string type = "Type: " + info_.npc_type;
-        DrawText(type.c_str(), x, y, 14, SKYBLUE);
-        y += 20;
-    
-        // Visitor archetype (if applicable)
+        // Render basic info
+        type_stat_->Render(x, y_base);
+        
         if (info_.has_needs && !info_.visitor_archetype.empty()) {
-            const std::string archetype = "Profile: " + info_.visitor_archetype;
-            DrawText(archetype.c_str(), x, y, 14, GOLD);
-            y += 20;
+            archetype_stat_->Render(x, y_base);
         }
-    
-        // Staff-specific information
+        
+        // Render staff section
         if (info_.is_staff) {
-            DrawText("--- Staff Info ---", x, y, 14, GOLD);
-            y += 20;
-        
-            const std::string role = "Role: " + info_.staff_role;
-            DrawText(role.c_str(), x, y, 14, LIGHTGRAY);
-            y += 20;
-        
-            const std::string duty = std::string("Status: ") + (info_.on_duty ? "On Duty" : "Off Duty");
-            DrawText(duty.c_str(), x, y, 14, info_.on_duty ? GREEN : GRAY);
-            y += 20;
-        
-            const std::string shift = "Shift: " + info_.shift_hours;
-            DrawText(shift.c_str(), x, y, 14, LIGHTGRAY);
-            y += 25;
+            staff_header_->Render(x, y_base);
+            role_stat_->Render(x, y_base);
+            duty_stat_->Render(x, y_base);
+            shift_stat_->Render(x, y_base);
         }
-    
-        // Status (current activity)
-        const std::string status = "Status: " + info_.status;
-        DrawText(status.c_str(), x, y, 14, GOLD);
-        y += 20;
-    
-        // State
-        const std::string state = "State: " + info_.state;
-        DrawText(state.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Current floor
-        const std::string current = "Current: Floor " + std::to_string(info_.current_floor);
-        DrawText(current.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Destination
-        const std::string dest = "Destination: Floor " + std::to_string(info_.destination_floor);
-        DrawText(dest.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Wait time (only show for non-staff or if waiting)
+        
+        // Render status info
+        status_stat_->Render(x, y_base);
+        state_stat_->Render(x, y_base);
+        current_floor_stat_->Render(x, y_base);
+        dest_floor_stat_->Render(x, y_base);
+        
         if (!info_.is_staff || info_.wait_time > 0) {
-            std::stringstream wait_ss;
-            wait_ss << "Wait Time: " << std::fixed << std::setprecision(0) << info_.wait_time << "s";
-            DrawText(wait_ss.str().c_str(), x, y, 14, info_.wait_time > 30 ? RED : LIGHTGRAY);
-            y += 20;
+            wait_time_stat_->Render(x, y_base);
         }
-    
-        // Visitor needs section (if applicable)
+        
+        // Render needs section
         if (info_.has_needs) {
-            y += 5;
-            DrawText("--- Visitor Needs ---", x, y, 14, YELLOW);
-            y += 20;
-        
-            // Helper function to get need color
-            auto get_need_color = [](float need) {
-                if (need < 30.0f) return GREEN;
-                if (need < 60.0f) return YELLOW;
-                return RED;
-            };
-        
-            // Hunger
-            std::string hunger_text = "Hunger: " + std::to_string(static_cast<int>(info_.hunger_need)) + "%";
-            DrawText(hunger_text.c_str(), x, y, 13, get_need_color(info_.hunger_need));
-            y += 18;
-        
-            // Entertainment
-            std::string ent_text = "Entertainment: " + std::to_string(static_cast<int>(info_.entertainment_need)) + "%";
-            DrawText(ent_text.c_str(), x, y, 13, get_need_color(info_.entertainment_need));
-            y += 18;
-        
-            // Comfort
-            std::string comfort_text = "Comfort: " + std::to_string(static_cast<int>(info_.comfort_need)) + "%";
-            DrawText(comfort_text.c_str(), x, y, 13, get_need_color(info_.comfort_need));
-            y += 18;
-        
-            // Shopping
-            std::string shopping_text = "Shopping: " + std::to_string(static_cast<int>(info_.shopping_need)) + "%";
-            DrawText(shopping_text.c_str(), x, y, 13, get_need_color(info_.shopping_need));
-            y += 23;
+            needs_header_->Render(x, y_base);
+            hunger_stat_->Render(x, y_base);
+            entertainment_stat_->Render(x, y_base);
+            comfort_stat_->Render(x, y_base);
+            shopping_stat_->Render(x, y_base);
         }
-    
-        // Satisfaction (show for all non-staff)
+        
+        // Render satisfaction
         if (!info_.is_staff) {
-            const std::string satisfaction = "Satisfaction: " + GetSatisfactionEmoji(info_.satisfaction) + 
-                                       " " + std::to_string(static_cast<int>(info_.satisfaction)) + "%";
-            DrawText(satisfaction.c_str(), x, y, 14, LIGHTGRAY);
+            satisfaction_stat_->Render(x, y_base);
         }
     }
 
@@ -281,12 +428,59 @@ namespace towerforge::ui {
     ElevatorWindow::ElevatorWindow(const ElevatorInfo& info)
         : UIWindow("Elevator Info", 250, 150 + (info.queue.size() * 20))
           , info_(info) {
+        BuildComponents();
+        UpdateComponentValues();
+    }
+
+    void ElevatorWindow::BuildComponents() {
+        int y = 0;
+        
+        current_floor_stat_ = std::make_unique<StatItem>("Current Floor:", y);
+        y += 20;
+        
+        occupancy_stat_ = std::make_unique<StatItem>("Occupancy:", y);
+        y += 20;
+        
+        next_stop_stat_ = std::make_unique<StatItem>("Next Stop:", y);
+        y += 20;
+        
+        queue_length_stat_ = std::make_unique<StatItem>("Queue Length:", y);
+        y += 20;
+    }
+
+    void ElevatorWindow::UpdateComponentValues() {
+        // Update current floor and direction
+        const std::string current = std::to_string(info_.current_floor) + " " + info_.direction;
+        current_floor_stat_->SetValue(current, LIGHTGRAY);
+        
+        // Update occupancy
+        const std::string occupancy = std::to_string(info_.occupancy) + "/" + std::to_string(info_.max_occupancy);
+        occupancy_stat_->SetValue(occupancy, LIGHTGRAY);
+        
+        // Update next stop
+        const std::string next_stop = "Floor " + std::to_string(info_.next_stop);
+        next_stop_stat_->SetValue(next_stop, LIGHTGRAY);
+        
+        // Update queue length
+        queue_length_stat_->SetValue(std::to_string(info_.queue.size()), LIGHTGRAY);
+        
+        // Build queue items
+        queue_items_.clear();
+        int queue_y = 80;
+        for (const auto& [floor, waiting] : info_.queue) {
+            auto item = std::make_unique<StatItem>("", queue_y);
+            const std::string queue_text = "- Floor " + std::to_string(floor) + ": " + std::to_string(waiting) + " waiting";
+            item->SetValue(queue_text, GRAY);
+            queue_items_.push_back(std::move(item));
+            queue_y += 20;
+        }
     }
 
     void ElevatorWindow::Update(const ElevatorInfo& info) {
         info_ = info;
         title_ = "ELEVATOR #" + std::to_string(info.id);
         height_ = 150 + (static_cast<int>(info.queue.size()) * 20);
+        UpdateComponentValues();
     }
 
     void ElevatorWindow::Render() {
@@ -294,36 +488,17 @@ namespace towerforge::ui {
         RenderCloseButton();
 
         const int x = x_ + PADDING;
-        int y = y_ + TITLE_BAR_HEIGHT + PADDING;
+        const int y_base = y_ + TITLE_BAR_HEIGHT + PADDING;
     
-        // Current floor and direction
-        const std::string current = "Current Floor: " + std::to_string(info_.current_floor) + 
-                              " " + info_.direction;
-        DrawText(current.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Occupancy
-        const std::string occupancy = "Occupancy: " + std::to_string(info_.occupancy) + 
-                                "/" + std::to_string(info_.max_occupancy);
-        DrawText(occupancy.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Next stop
-        const std::string next = "Next Stop: Floor " + std::to_string(info_.next_stop);
-        DrawText(next.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Queue length
-        const std::string queue = "Queue Length: " + std::to_string(info_.queue.size());
-        DrawText(queue.c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-    
-        // Queue details
-        for (const auto& [floor, waiting] : info_.queue) {
-            std::string queue_item = "- Floor " + std::to_string(floor) + ": " + 
-                                     std::to_string(waiting) + " waiting";
-            DrawText(queue_item.c_str(), x + 10, y, 12, GRAY);
-            y += 20;
+        // Render stats
+        current_floor_stat_->Render(x, y_base);
+        occupancy_stat_->Render(x, y_base);
+        next_stop_stat_->Render(x, y_base);
+        queue_length_stat_->Render(x, y_base);
+        
+        // Render queue items
+        for (const auto& item : queue_items_) {
+            item->Render(x + 10, y_base);
         }
     }
 

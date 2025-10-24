@@ -10,11 +10,11 @@ namespace TowerForge::Core {
     PlaceFacilityCommand::PlaceFacilityCommand(
         FacilityManager& facility_mgr,
         TowerGrid& grid,
-        BuildingComponent::Type type,
-        int floor,
-        int column,
-        int width,
-        int cost
+        const BuildingComponent::Type type,
+        const int floor,
+        const int column,
+        const int width,
+        const int cost
     )
         : facility_mgr_(facility_mgr)
         , grid_(grid)
@@ -58,9 +58,9 @@ namespace TowerForge::Core {
     DemolishFacilityCommand::DemolishFacilityCommand(
         FacilityManager& facility_mgr,
         TowerGrid& grid,
-        int floor,
-        int column,
-        float recovery_percentage
+        const int floor,
+        const int column,
+        const float recovery_percentage
     )
         : facility_mgr_(facility_mgr)
         , grid_(grid)

@@ -108,7 +108,7 @@ namespace towerforge::ui {
         }
     }
 
-    void AchievementsMenu::RenderAchievementList() {
+    void AchievementsMenu::RenderAchievementList() const {
         if (!achievement_manager_) {
             return;
         }

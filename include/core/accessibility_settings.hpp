@@ -27,21 +27,21 @@ namespace TowerForge::Core {
 
         // High-contrast mode
         bool IsHighContrastEnabled() const { return high_contrast_enabled_; }
-        void SetHighContrastEnabled(bool enabled) { 
+        void SetHighContrastEnabled(const bool enabled) { 
             high_contrast_enabled_ = enabled;
             SaveSettings();
         }
 
         // Font scaling (1.0 = normal, 1.5 = 150%, 2.0 = 200%)
         float GetFontScale() const { return font_scale_; }
-        void SetFontScale(float scale) { 
+        void SetFontScale(const float scale) { 
             font_scale_ = std::clamp(scale, 0.5f, 3.0f);
             SaveSettings();
         }
 
         // Keyboard navigation enabled (always enabled for accessibility)
         bool IsKeyboardNavigationEnabled() const { return keyboard_navigation_enabled_; }
-        void SetKeyboardNavigationEnabled(bool enabled) { 
+        void SetKeyboardNavigationEnabled(const bool enabled) { 
             keyboard_navigation_enabled_ = enabled;
             SaveSettings();
         }

@@ -123,7 +123,7 @@ namespace towerforge::ui {
          * @param element_size Size of the element to center
          * @return Position to center the element
          */
-        static int CenterPosition(int container_size, int element_size) {
+        static int CenterPosition(const int container_size, const int element_size) {
             return (container_size - element_size) / 2;
         }
         
@@ -132,7 +132,7 @@ namespace towerforge::ui {
          * @param percentage Percentage of screen width (0.0 - 1.0)
          * @return Width in pixels
          */
-        static int ResponsiveWidth(float percentage) {
+        static int ResponsiveWidth(const float percentage) {
             return static_cast<int>(GetScreenWidth() * percentage);
         }
         
@@ -141,7 +141,7 @@ namespace towerforge::ui {
          * @param percentage Percentage of screen height (0.0 - 1.0)
          * @return Height in pixels
          */
-        static int ResponsiveHeight(float percentage) {
+        static int ResponsiveHeight(const float percentage) {
             return static_cast<int>(GetScreenHeight() * percentage);
         }
         
@@ -152,7 +152,7 @@ namespace towerforge::ui {
          * @param max_value Maximum value
          * @return Clamped value
          */
-        static int ClampSize(int value, int min_value, int max_value) {
+        static int ClampSize(const int value, const int min_value, const int max_value) {
             if (value < min_value) return min_value;
             if (value > max_value) return max_value;
             return value;
@@ -163,7 +163,7 @@ namespace towerforge::ui {
          * @param base_size Base font size
          * @return Scaled font size
          */
-        static int ResponsiveFontSize(int base_size) {
+        static int ResponsiveFontSize(const int base_size) {
             // Scale font size based on screen width, with limits
             const int screen_width = GetScreenWidth();
             const float scale = screen_width / 1280.0f; // Base resolution: 1280px
