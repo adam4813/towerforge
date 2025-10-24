@@ -132,11 +132,82 @@ Build directory: `build-cli/cli-native/` (isolated from IDE's `build/native/`)
 - macOS: Xcode 12+ / Clang 10+
 
 ### Code Standards
-- RAII for resource management
-- Smart pointers over raw pointers
-- Small, focused functions
-- Standard library algorithms preferred
-- Comment only complex logic
+
+#### Modern C++20 Requirements
+- **C++20 features**: Use ranges, concepts, modules (when stable), coroutines (when appropriate)
+- **RAII**: All resource management (files, memory, locks) via RAII types
+- **Smart pointers**: 
+  - `std::unique_ptr` for exclusive ownership
+  - `std::shared_ptr` only when truly shared ownership needed
+  - Raw pointers for non-owning references
+  - Never use `new`/`delete` directly
+- **Containers**: Prefer standard library containers over manual memory management
+- **Algorithms**: Use `<algorithm>` and `<ranges>` over raw loops when clearer
+
+#### Modern C++ Patterns
+```cpp
+// CORRECT: Use ranges instead of raw loops
+auto filtered = data 
+    | std::views::filter([](const auto& item) { return item.active; })
+    | std::views::transform([](const auto& item) { return item.value; });
+
+// CORRECT: Smart pointers for ownership
+auto component = std::make_unique<Component>();
+panel->AddChild(std::move(component));  // Transfer ownership
+
+// CORRECT: RAII for resources
+class ResourceManager {
+    std::unique_ptr<Resource> resource_;  // Automatically cleaned up
+};
+
+// CORRECT: Small, focused functions
+auto FindEntity(int id) const -> std::optional<Entity> {
+    auto it = std::ranges::find_if(entities_, 
+        [id](const auto& e) { return e.id == id; });
+    return it != entities_.end() ? std::optional{*it} : std::nullopt;
+}
+```
+
+#### Composition Over Inheritance
+- **Prefer composition** for building functionality
+- **Use inheritance** only for polymorphism (Gang of Four patterns like Strategy, Observer, Composite)
+- Keep inheritance hierarchies shallow (max 2-3 levels)
+
+```cpp
+// CORRECT: Composition for building features
+class BuildingManager {
+    TowerGrid grid_;                    // Has-a
+    FacilityManager facility_mgr_;      // Has-a
+    EconomySystem economy_;             // Has-a
+};
+
+// CORRECT: Inheritance for polymorphism (Composite pattern)
+class UIElement {
+public:
+    virtual void Render() const = 0;
+    virtual bool ProcessEvent(const Event& e) = 0;
+};
+
+class Button : public UIElement { /* ... */ };
+class Panel : public UIElement { /* ... */ };
+
+// WRONG: Inheritance for code reuse
+class StorageFacility : public Facility {  // Avoid - use composition instead
+};
+```
+
+#### Gang of Four Patterns (Use When Appropriate)
+- **Composite**: UI element trees (see `UI_DEVELOPMENT_BIBLE.md`)
+- **Observer**: Event callbacks, reactive updates
+- **Strategy**: Interchangeable algorithms
+- **Factory**: Entity/component creation
+- **Singleton**: Use sparingly, only for true single instances (settings, managers)
+
+#### Code Organization
+- **Small functions**: Max 20-30 lines, single responsibility
+- **Comments**: Only for complex logic or non-obvious design decisions
+- **Const correctness**: Use `const` everywhere possible
+- **Type safety**: Prefer `enum class` over plain `enum` or integers
 
 ---
 
