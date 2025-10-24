@@ -24,13 +24,10 @@ namespace TowerForge::Core {
         const int initial_above_ground = std::min((screen_height * 3) / cell_height, MAX_ABOVE_GROUND_FLOORS);
         
         // Total initial floors = ground floor (1) + above ground + below ground
-        const int initial_floors = initial_above_ground + initial_below_ground;
-        
-        // Ground floor index is offset by basement floors
-        const int ground_floor_index = initial_below_ground;
+        const int initial_floors = 1 + initial_above_ground + initial_below_ground;
         
         // Create tower grid with calculated dimensions
-        tower_grid_ = std::make_unique<TowerGrid>(initial_floors, initial_columns, ground_floor_index);
+        tower_grid_ = std::make_unique<TowerGrid>(initial_floors, initial_columns, 0);
         
         // Set the initial upgrade limits
         tower_grid_->SetMaxAboveGroundFloors(MAX_ABOVE_GROUND_FLOORS);
