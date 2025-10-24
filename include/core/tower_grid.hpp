@@ -253,7 +253,7 @@ namespace TowerForge::Core {
      * @brief Get the highest floor index
      * @return The highest floor index
      */
-        int GetHighestFloorIndex() const { return ground_floor_index_ + floors_ - basement_floors_ - 1; }
+        int GetHighestFloorIndex() const { return ground_floor_index_ + floors_ - 1; }
     
         /**
      * @brief Get the total number of occupied cells

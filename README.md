@@ -781,6 +781,35 @@ For detailed documentation on accessibility features, see [docs/ACCESSIBILITY.md
 
 See [Issues](https://github.com/adam4813/towerforge/issues) for the development roadmap.
 
+## Testing
+
+TowerForge includes a comprehensive test suite using Google Test (gtest). Tests are organized into three categories:
+
+1. **Integration Tests** - Test interactions between major components (TowerGrid, FacilityManager, ECSWorld, etc.)
+2. **End-to-End Tests** - Test complete workflows (game initialization, facility placement, save/load)
+3. **Unit Tests** - Test complex or unique logic (UserPreferences, CommandHistory, AccessibilitySettings)
+
+### Running Tests
+
+```bash
+# Configure with test preset
+cmake --preset test
+
+# Build all tests
+cmake --build --preset test-debug --parallel $(nproc)
+
+# Run all tests
+cd build/test/tests
+ctest -C Debug --output-on-failure
+
+# Run specific test categories
+ctest -C Debug -R ".*_integration" --output-on-failure  # Integration tests only
+ctest -C Debug -R ".*_e2e" --output-on-failure           # E2E tests only
+ctest -C Debug -R ".*_unit" --output-on-failure          # Unit tests only
+```
+
+For detailed testing documentation, see [TESTING.md](TESTING.md).
+
 ## License
 
 TBD

@@ -6,8 +6,8 @@ namespace TowerForge::Core {
     TowerGrid::TowerGrid(const int initial_floors, const int initial_columns, const int ground_floor_index)
         : floors_(initial_floors), columns_(initial_columns), 
           ground_floor_index_(ground_floor_index), basement_floors_(0),
-          max_above_ground_floors_(initial_floors), // Start with initial as max
-          max_below_ground_floors_(1) {  // Start with 1 basement floor allowed
+          max_above_ground_floors_(MAX_ABOVE_GROUND_FLOORS),
+          max_below_ground_floors_(MAX_BELOW_GROUND_FLOORS) {
         
         // Clamp initial dimensions to absolute maximums
         if (floors_ > MAX_ABOVE_GROUND_FLOORS) {
