@@ -194,7 +194,26 @@ Players experience:
 
 ---
 
-## 4. Game Systems
+## 4. Game Systems (Interconnected Cozy Gameplay)
+
+**Design Philosophy**: TowerForge's systems work together to create **organic, emergent cozy gameplay**. Each system is meaningful on its own but creates magic when combined. All systems support the cozy principles of:
+- **Optional engagement**: Automate or manage personally
+- **Gentle consequences**: Feedback, not punishment
+- **Emergent stories**: Systems create narratives naturally
+- **Player expression**: Multiple valid approaches
+- **Abundance mindset**: Resources support creativity
+
+**How Systems Interconnect**:
+```
+Community Happiness ←→ Facility Quality ←→ Maintenance & Staff
+         ↕                      ↕                      ↕
+   Tower Growth  ←→  Economic Prosperity  ←→  Research Unlocks
+         ↕                      ↕                      ↕
+  Resident Lives ←→  Daily Rhythms  ←→  Seasonal Events
+```
+
+**Example Emergent Story**:
+> "Your restaurant on floor 5 attracted more visitors. The janitor kept it spotless, earning high satisfaction. Happy diners visited the theater next door. Revenue increased, unlocking research for a gym. You hired a maintenance worker. The gym brought even more community members. Small choices created a thriving entertainment district."
 
 ### 4.1 Tower Grid System
 
@@ -241,35 +260,63 @@ Players experience:
 | **Conference Hall** | 9 | 60 seats | 2 | 09:00-17:00 | $13,000 | 20s | Event bookings |
 | **Flagship Store** | 12 | 40 customers | 4 | 09:00-21:00 | $18,000 | 28s | High-margin retail |
 
-#### 4.2.2 Facility Mechanics
+#### 4.2.2 Facility Mechanics (Cozy Management Depth)
 
-**Staffing**:
-- Facilities with staff requirements show job openings in UI
-- Understaffed facilities operate at reduced efficiency or shut down
-- Staff are automatically hired from available worker pool (simplified in current version)
+**Philosophy**: Facility management adds **meaningful depth** to caring for your tower, not tedious micromanagement. All systems are **optional and automatable** while rewarding thoughtful care.
 
-**Operating Hours**:
-- Facilities outside operating hours do not generate revenue or serve customers
-- Hotels operate 24/7; offices typically 09:00-17:00
-- Players cannot override hours (design decision: operational realism)
+**Staffing** (Caring for Your Community):
+- Facilities need staff to operate (part of community building)
+- **Gentle nudges**: Understaffed facilities show job openings but don't fail catastrophically
+- **Automation option**: Can auto-hire staff or manage manually (player choice)
+- **Emergent stories**: Staff become part of your tower's character
 
-**Economics**:
-- **Revenue**: Based on rent, occupancy, or foot traffic
-- **Expenses**: Daily operating costs (staff, utilities, maintenance)
-- **Quality Multiplier**: Satisfaction affects revenue (0.5x to 2.0x)
+**Operating Hours** (Natural Rhythms):
+- Each facility has natural operating hours reflecting real-world rhythms
+- Hotels operate 24/7; offices 09:00-17:00; entertainment extends evenings
+- Creates organic daily patterns to observe and enjoy
+- No pressure to override; embraces natural flow
 
-**Satisfaction Factors**:
-- **Crowding**: >90% occupancy decreases satisfaction; <30% also problematic (feels empty)
-- **Noise**: Restaurants, shops, arcades generate noise affecting adjacent facilities
-- **Facility Quality**: Inherent quality ratings (e.g., hotels provide +10 satisfaction to neighbors)
-- **Wait Times**: Long elevator waits reduce satisfaction
+**Maintenance & Cleanliness** (Nurturing Care):
+- **Optional depth**: Facilities naturally accumulate wear and need care
+- **Gentle consequences**: Neglected facilities see reduced satisfaction (not revenue collapse)
+- **Hiring janitors/maintenance**: Add staff who care for your tower
+- **Visual feedback**: See your tower sparkle when well-maintained
+- **Cozy framing**: You're nurturing spaces people love
 
-**Placement Rules**:
-- **Lobby**: Must be on ground floor (floor 0); typically one per tower
-- **Offices**: Not on ground floor (accessibility); require elevator access for floors >1
-- **Residentials**: Not on ground floor; benefit from proximity to amenities
-- **Retail/Restaurants**: Best on lower floors for foot traffic
-- **Hotels**: Can be anywhere; premium floors yield higher rates
+**Economics** (Abundance-Based):
+- **Revenue**: Flows steadily from occupied, happy facilities
+- **Expenses**: Manageable operating costs (never punitive)
+- **Quality Multiplier**: Happiness increases prosperity (0.5x to 2.0x)
+- **No bankruptcy**: Income accumulates; you can always afford your next project
+- **Growth mindset**: Economy supports expansion, not survival
+
+**Satisfaction Factors** (Thoughtful Placement):
+- **Adjacency bonuses**: Thoughtful placement rewarded (restaurant + theater thrive together)
+- **Community balance**: Happy residents attract more residents
+- **Elevator access**: Smooth transportation improves satisfaction
+- **Gentle nudges**: Low satisfaction is feedback, not punishment
+- **Player expression**: Many valid approaches to happiness
+
+**Community Safety** (Municipal Services):
+- **Fire & Security**: Optional hiring of firefighters, security officers
+- **Gentle incidents**: Small fires, minor shoplifting (manageable, not catastrophic)
+- **Cozy framing**: Services reinforce tower as protected, cared-for community
+- **Emergent stories**: "Security stopped a shoplifter!" "Fire department contained a kitchen fire!"
+- **No cascading disasters**: Events are isolated and recoverable
+
+**Placement Guidelines** (Creative Expression):
+- **Lobby**: Ground floor, welcoming entrance to your community
+- **Offices**: Upper floors for professional atmosphere
+- **Residentials**: Anywhere with elevator access; create neighborhoods
+- **Retail/Restaurants**: Lower floors for foot traffic, or anywhere you envision
+- **Creative freedom**: Guidelines, not rules; express your vision
+
+**Cozy Alignment**:
+- ✅ **Optional depth**: Engage as much or little as you want
+- ✅ **Automatable**: Can delegate to systems or manage personally
+- ✅ **Gentle feedback**: Issues are nudges, not crises
+- ✅ **Emergent stories**: Staff and events create narrative
+- ✅ **Rewarding thoughtfulness**: Care pays off in happiness and beauty
 
 **Reference**: `include/core/components.hpp` (`BuildingComponent`), `docs/FACILITIES.md`
 
@@ -430,18 +477,38 @@ Net Profit = Total Revenue - Total Expenses
 Balance = Starting Funds + Cumulative Net Profit
 ```
 
-#### 4.5.2 Economic Feedback Loops
+#### 4.5.2 Abundance-Based Economic Design (Cozy Economics)
 
-**Positive Feedback**:
-- More facilities → More revenue → Faster expansion → More revenue
+**Core Philosophy**: TowerForge uses an **abundance-based economy** where resources flow freely and players never face bankruptcy or economic collapse. Money is a **gentle pacing mechanism**, not a source of stress.
 
-**Negative Feedback**:
-- Expansion → Higher operating costs → Lower profit margins
-- Poor satisfaction → Tenants leave → Less revenue → Difficulty expanding
+**Abundance Principles**:
+- ✅ **Income flows steadily**: Revenue accumulates even during low activity
+- ✅ **No bankruptcy**: Negative balance impossible; just slower growth
+- ✅ **Generous starting funds**: $25,000-$50,000 ensures comfortable beginning
+- ✅ **Recoverable mistakes**: Every decision leads to learning, never permanent setbacks
+- ✅ **Growth mindset**: Economy supports expansion and experimentation
 
-**Bankruptcy Protection**:
-- Players cannot build if funds insufficient
-- No "game over" — can wait for daily revenue to recover balance
+**Positive Growth Loop**:
+- More facilities → More revenue → More creative possibilities
+- Happy residents → Attract more residents → Thriving community
+- Thoughtful placement → Higher satisfaction → Better quality of life
+
+**Gentle Feedback (Not Punishment)**:
+- Lower satisfaction → Reduced quality multiplier (0.5x) → Gentle nudge to improve
+- Higher expenses → Slower growth → Time to consolidate and care for existing tower
+- Both lead to different playstyles, not failure
+
+**No Failure States**:
+- Can't go bankrupt (income always accumulates)
+- Can pause and wait for resources to accumulate
+- No "game over" or forced restarts
+- Every tower can eventually prosper
+
+**Economic Design Goals**:
+- Money supports creativity and expression
+- Scarcity is temporary pacing, never permanent obstacle
+- Players focus on building beautiful towers, not spreadsheets
+- Economy enables abundance and generosity mindset
 
 **Reference**: `include/core/components.hpp` (`TowerEconomy`, `FacilityEconomics`), `docs/IMPLEMENTATION.md`
 
@@ -529,37 +596,51 @@ Balance = Starting Funds + Cumulative Net Profit
 
 ---
 
-### 4.8 Research & Progression System
+### 4.8 Research & Discovery System
 
-**Purpose**: Provide long-term goals and unlock new content over time.
+**Purpose**: Meaningful progression that unlocks new creative possibilities and enhances your tower's capabilities.
+
+**Cozy Philosophy**: Research in TowerForge is about **discovery and growth**, not grind or gates. It provides:
+- **Meaningful choices**: Each unlock expands creative possibilities
+- **Natural progression**: Research points flow from natural play, never tedious grinding
+- **Player agency**: Choose what to unlock based on your playstyle
+- **Abundance mindset**: Points accumulate steadily; you'll unlock everything eventually
 
 #### 4.8.1 Research Tree Structure
 
 **Tiers**:
-1. **Tier 1** (Early Game): Basic upgrades, 500 RP each
-2. **Tier 2** (Mid Game): Advanced upgrades, 1,000 RP each, requires Tier 1
-3. **Tier 3** (Late Game): Elite upgrades, 2,000 RP each, requires Tier 2
+1. **Tier 1** (Early Discovery): Basic enhancements, 500 RP each
+2. **Tier 2** (Expanding Options): Advanced facilities, 1,000 RP each, requires Tier 1
+3. **Tier 3** (Full Expression): Premium options, 2,000 RP each, requires Tier 2
 
-**Research Points (RP) Acquisition**:
-- Milestone-based awards (e.g., reach 50 tenants → +500 RP)
-- Daily income milestones (e.g., $5,000/day → +300 RP)
-- Achievement unlocks (varies by achievement)
+**Research Points (RP) Acquisition** (flows naturally):
+- **Community Growth**: Reach population milestones → +500 RP
+- **Prosperity**: Daily income milestones → +300 RP
+- **Time & Care**: Playing and nurturing your tower → steady accumulation
+- **Exploration**: Discovering new possibilities → occasional bonuses
 
-#### 4.8.2 Research Nodes
+**Design Philosophy**: Research points are **abundant and flow naturally**. You're never blocked; just discovering new possibilities at a comfortable pace.
 
-| Node Name | Tier | Cost (RP) | Effect |
-|-----------|------|----------|--------|
-| **Efficient Elevators** | 1 | 500 | +25% elevator speed |
-| **High-Capacity Cars** | 1 | 500 | +50% elevator capacity (8→12) |
-| **Quick Construction** | 1 | 500 | -25% construction time |
-| **Advanced HVAC** | 1 | 500 | +10% satisfaction to all facilities |
-| **Retail Expansion** | 2 | 1,000 | Unlocks Arcade, Gym |
-| **Hospitality Suite** | 2 | 1,000 | Unlocks Hotel, Conference Hall |
-| **Income Boost I** | 2 | 1,000 | +15% revenue from all facilities |
-| **Express Elevators** | 3 | 2,000 | Unlocks express elevator type (skip floors) |
-| **Flagship Retail** | 3 | 2,000 | Unlocks Flagship Store (high revenue) |
+#### 4.8.2 Research Nodes (Meaningful Unlocks)
 
-**Design Philosophy**: Research provides meaningful choices, not just "more of everything."
+| Node Name | Tier | Cost (RP) | What It Enables |
+|-----------|------|----------|-----------------|
+| **Efficient Elevators** | 1 | 500 | Smoother resident movement (+25% speed) |
+| **High-Capacity Cars** | 1 | 500 | More residents per trip (8→12 capacity) |
+| **Quick Construction** | 1 | 500 | Build facilities faster (-25% time) |
+| **Advanced HVAC** | 1 | 500 | Improved comfort (+10% satisfaction) |
+| **Retail Expansion** | 2 | 1,000 | Unlocks Arcade & Gym (fun community spaces) |
+| **Hospitality Suite** | 2 | 1,000 | Unlocks Hotel & Conference Hall (guests & events) |
+| **Income Boost I** | 2 | 1,000 | Better prosperity (+15% revenue for growth) |
+| **Express Elevators** | 3 | 2,000 | Premium fast elevators (skip floors) |
+| **Flagship Retail** | 3 | 2,000 | Prestigious flagship stores (high-end) |
+
+**Cozy Alignment**:
+- ✅ **Meaningful, not tedious**: Each unlock genuinely expands gameplay
+- ✅ **Natural accumulation**: Points flow from playing, not grinding
+- ✅ **Player choice**: Pick what interests you most
+- ✅ **Eventual abundance**: You'll unlock everything given time
+- ✅ **No pressure**: Research at your own pace; no optimal path
 
 **Reference**: `docs/RESEARCH_TREE_SYSTEM.md`
 
@@ -914,9 +995,21 @@ Balance = Starting Funds + Cumulative Net Profit
 - **SimTower** (Maxis, 1994): Original tower simulation
 - **Yoot Tower** (OPeNBooK, 1998): Expanded creative freedom
 - **Cozy Games Manifesto** (Lost Garden, 2018): Core design philosophy
+- **TowerForge Design Philosophy Wiki**: https://github.com/adam4813/towerforge/wiki/Design-Philosophy:-Cozy-Games
 
-**Cozy Game Principles Applied**:
-- **No Failure States**: You can't lose, only create
+**Cozy Game Principles Applied** (from Project Horseshoe 2017):
+- **Safety & Comfort**: No failure states, no time pressure, every decision leads to growth
+- **Abundance & Generosity**: Resources flow freely, no zero-sum economics
+- **Softness & Gentleness**: Warm aesthetics, slow pacing, intimate scale
+- **Agency & Autonomy**: Players control what, when, and how - no forced objectives
+- **Connection & Belonging**: NPCs are neighbors and friends, not resources
+
+**Meaningful Progression** (Cozy Alignment):
+- Research points unlock creative possibilities (not grind gates)
+- Facility management adds optional depth (automatable, not tedious)
+- Maintenance and cleanliness reward care (gentle nudges, not punishment)
+- Municipal services (fire, security) protect community (not catastrophes)
+- All systems support nurturing and expression
 - **Gentle Pacing**: Play at your own speed, pause anytime
 - **Personal Expression**: Your tower is unique to you
 - **Nurturing Care**: Watch your community thrive
