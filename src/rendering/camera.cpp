@@ -67,14 +67,14 @@ namespace towerforge::rendering {
         }
 
         // Pan with mouse drag
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if (IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON)) {
             is_panning_ = true;
             pan_start_mouse_ = GetMousePosition();
             pan_start_camera_ = target_position_;
             following_ = false;  // Stop following when panning
         }
 
-        if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+        if (IsMouseButtonReleased(MOUSE_MIDDLE_BUTTON)) {
             is_panning_ = false;
         }
 
@@ -174,9 +174,9 @@ namespace towerforge::rendering {
 
     void Camera::RenderControlsOverlay() const {
         const int x = screen_width_ - 230;
-        const int y = screen_height_ - 130;
+        const int y = screen_height_ - 180;
         constexpr int width = 220;
-        constexpr int height = 120;
+        constexpr int height = 170;
 
         // Background
         DrawRectangle(x, y, width, height, Fade(BLACK, 0.7f));
@@ -186,16 +186,36 @@ namespace towerforge::rendering {
         DrawText("CAMERA CONTROLS", x + 10, y + 5, 14, YELLOW);
 
         // Instructions
-        DrawText("Pan: Click+Drag or", x + 10, y + 25, 12, LIGHTGRAY);
-        DrawText("     Arrow Keys", x + 10, y + 40, 12, LIGHTGRAY);
+        DrawText("Pan: Mid-Click+Drag", x + 10, y + 25, 12, LIGHTGRAY);
+        DrawText("     or Arrow Keys", x + 10, y + 40, 12, LIGHTGRAY);
         DrawText("Zoom: Mouse Wheel", x + 10, y + 55, 12, LIGHTGRAY);
         DrawText("      or +/- keys", x + 10, y + 70, 12, LIGHTGRAY);
         DrawText("Reset: Home", x + 10, y + 85, 12, LIGHTGRAY);
         DrawText("Follow: F", x + 10, y + 100, 12, LIGHTGRAY);
 
-        // Current zoom indicator
-        const char* zoom_text = TextFormat("Zoom: %.0f%%", target_zoom_ * 100);
-        DrawText(zoom_text, x + 130, y + 100, 12, GREEN);
+        // Zoom slider
+        const int slider_x = x + 10;
+        const int slider_y = y + 120;
+        constexpr int slider_width = 200;
+        constexpr int slider_height = 20;
+        
+        DrawText("Zoom:", slider_x, slider_y - 15, 12, LIGHTGRAY);
+        
+        // Slider track
+        DrawRectangle(slider_x, slider_y, slider_width, slider_height, DARKGRAY);
+        DrawRectangleLines(slider_x, slider_y, slider_width, slider_height, LIGHTGRAY);
+        
+        // Slider handle position
+        const float zoom_normalized = (target_zoom_ - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM);
+        const int handle_x = slider_x + static_cast<int>(zoom_normalized * (slider_width - 10));
+        
+        // Slider handle
+        DrawRectangle(handle_x, slider_y - 2, 10, slider_height + 4, GREEN);
+        DrawRectangleLines(handle_x, slider_y - 2, 10, slider_height + 4, LIGHTGRAY);
+        
+        // Zoom percentage
+        const char* zoom_text = TextFormat("%.0f%%", target_zoom_ * 100);
+        DrawText(zoom_text, slider_x + slider_width + 10, slider_y + 3, 12, GREEN);
     }
 
     void Camera::RenderFollowIndicator() const {
@@ -240,28 +260,19 @@ namespace towerforge::rendering {
     }
 
     void Camera::ApplyBounds() {
-        // Calculate visible area
-        const float visible_width = screen_width_ / current_zoom_;
-        const float visible_height = screen_height_ / current_zoom_;
-
-        // Calculate bounds
-        const float min_x = visible_width / 2.0f;
-        const float max_x = tower_width_ - visible_width / 2.0f;
-        const float min_y = visible_height / 2.0f;
-        const float max_y = tower_height_ - visible_height / 2.0f;
-
-        // If visible area is larger than tower, center on tower
-        if (visible_width >= tower_width_) {
-            target_position_.x = tower_width_ / 2.0f;
-        } else {
-            target_position_.x = std::clamp(target_position_.x, min_x, max_x);
-        }
-
-        if (visible_height >= tower_height_) {
-            target_position_.y = tower_height_ / 2.0f;
-        } else {
-            target_position_.y = std::clamp(target_position_.y, min_y, max_y);
-        }
+        // Allow camera to pan freely across the entire tower
+        // Bounds are fixed to tower size, not dependent on zoom level
+        
+        // Simple bounds - allow some margin beyond tower edges
+        constexpr float margin = 200.0f;  // Fixed margin in world units
+        
+        const float min_x = -margin;
+        const float max_x = tower_width_ + margin;
+        const float min_y = -margin;
+        const float max_y = tower_height_ + margin;
+        
+        target_position_.x = std::clamp(target_position_.x, min_x, max_x);
+        target_position_.y = std::clamp(target_position_.y, min_y, max_y);
     }
 
     void Camera::SmoothMove(const float delta_time) {

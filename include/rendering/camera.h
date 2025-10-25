@@ -148,10 +148,12 @@ namespace towerforge::rendering {
         int followed_entity_id_;
         Vector2 followed_position_;
 
-        // Zoom levels
-        static constexpr float MIN_ZOOM = 0.25f;
+        // Zoom levels (public constants for easy adjustment)
+    public:
+        static constexpr float MIN_ZOOM = .5f;
         static constexpr float MAX_ZOOM = 2.0f;
-        static constexpr float ZOOM_INCREMENT = 0.1f;
+        static constexpr float ZOOM_INCREMENT = 0.25f;
+    private:
 
         // Movement smoothing
         static constexpr float PAN_SMOOTHING = 8.0f;

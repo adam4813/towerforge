@@ -1758,29 +1758,13 @@ namespace towerforge::core {
 
         const auto& grid = ecs_world_->GetTowerGrid();
 
-        // Get the range of built floors
-        int min_built_floor = 0;
-        int max_built_floor = 0;
-
-        if (!grid.GetBuiltFloorRange(min_built_floor, max_built_floor)) {
-            // No floors built yet, use a small default area around ground floor
-            min_built_floor = -1;  // 1 floor below ground
-            max_built_floor = 2;   // 2 floors above ground
-        } else {
-            // Add 1 floor buffer above and below
-            min_built_floor -= 1;
-            max_built_floor += 1;
-        }
-
-        // Calculate screen Y positions for these floors
-        // Ground floor (0) is at: grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_
-        const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
-        const int min_y = ground_floor_screen_y - (max_built_floor * cell_height_);
-        const int max_y = ground_floor_screen_y - (min_built_floor * cell_height_) + cell_height_;
-
-        // Calculate width with 1 cell buffer on each side
+        // Allow camera to pan across the entire grid, not just built floors
+        const int total_floors = grid.GetFloorCount();
+        
+        // Calculate the full height of the entire grid
+        // The grid includes floors from -floor_count/2 to +floor_count/2
         const float tower_width = (grid.GetColumnCount() + 2) * cell_width_ + grid_offset_x_;
-        const float tower_height = std::max(static_cast<float>(max_y - min_y + grid_offset_y_), 600.0f);  // At least screen height
+        const float tower_height = total_floors * cell_height_ + grid_offset_y_ * 2;
 
         // Update camera bounds
         camera_->SetTowerBounds(tower_width, tower_height);
