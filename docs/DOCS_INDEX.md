@@ -1,64 +1,74 @@
-﻿# Documentation Index (auto-merged)
+# TowerForge Documentation Index
 
-This index lists consolidated documentation created and the original files marked as deprecated.
+**Complete guide to TowerForge documentation.**
 
-Consolidated (new canonical docs):
+---
 
-- `docs/HUD.md` - HUD: merged HUD_SYSTEM, HUD_IMPLEMENTATION_SUMMARY, HUD_README, HUD_VISUAL_LAYOUT, HUD_SCREENSHOT_REFERENCE
-- `docs/AUDIO.md` - Audio: merged AUDIO_SYSTEM, AUDIO_IMPLEMENTATION_SUMMARY, AUDIO_QUICK_REFERENCE
-- `docs/ELEVATOR.md` - Elevator: merged ELEVATOR_SYSTEM, ELEVATOR_IMPLEMENTATION_SUMMARY
-- `docs/FACILITIES.md` - Facilities: merged FACILITIES and ADVANCED_FACILITIES
-- `docs/PERSONS.md` - Persons & Movement: merged PERSON_MOVEMENT_SYSTEM and PERSON_IMPLEMENTATION_SUMMARY
-- `docs/SAVE_LOAD.md` - Save/Load: merged SAVE_LOAD_SYSTEM, SAVE_LOAD_INTEGRATION, README_SAVE_LOAD
-- `docs/IMPLEMENTATION.md` - Implementation overview and changelog: merged IMPLEMENTATION_SUMMARY and IMPLEMENTATION_NOTES
+## 📖 Master Documents
 
-Original files marked DEPRECATED (left in place with deprecation header):
+### Game Design
+- **[GAME_DESIGN_DOCUMENT.md](../GAME_DESIGN_DOCUMENT.md)** ⭐ - **Comprehensive GDD** (31K words)
+  - Game concept, core gameplay, all systems
+  - Content design, player experience, progression
+  - Authoritative source for gameplay design
 
-- HUD_SYSTEM.md, HUD_IMPLEMENTATION_SUMMARY.md, HUD_README.md, HUD_VISUAL_LAYOUT.md, HUD_SCREENSHOT_REFERENCE.md
-- AUDIO_SYSTEM.md, AUDIO_IMPLEMENTATION_SUMMARY.md, AUDIO_QUICK_REFERENCE.md
-- ELEVATOR_SYSTEM.md, ELEVATOR_IMPLEMENTATION_SUMMARY.md
-- FACILITIES.md, ADVANCED_FACILITIES.md
-- PERSON_MOVEMENT_SYSTEM.md, PERSON_IMPLEMENTATION_SUMMARY.md
-- SAVE_LOAD_SYSTEM.md, SAVE_LOAD_INTEGRATION.md, README_SAVE_LOAD.md
-- IMPLEMENTATION_SUMMARY.md, IMPLEMENTATION_NOTES.md
+### Technical Design
+- **[TECHNICAL_DESIGN_DOCUMENT.md](../TECHNICAL_DESIGN_DOCUMENT.md)** ⭐ - **Complete TDD** (48K words)
+  - Architecture overview, ECS implementation
+  - Core systems with code examples
+  - Build system, testing, deployment
 
-Other docs left unchanged (examples / remaining subsystems):
+### Executive Summary
+- **[PITCH.md](../PITCH.md)** ⭐ - **Pitch Deck** (7K words)
+  - Vision, market position, roadmap
+  - USPs, technical excellence, success metrics
+  - Publication-ready for stakeholders
 
-- `docs/BUILD_INSTRUCTIONS.md`
-- `docs/CI_WORKFLOW.md`
-- `docs/CAMERA_SYSTEM.md`
-- `docs/CLEANLINESS_SYSTEM.md` - **NEW**: Facility Cleanliness System
-- `docs/COMMAND_PATTERN_HISTORY.md` - **NEW**: Command Pattern and History System
-- `docs/DYNAMIC_FLOOR_SYSTEM.md`
-- `docs/FIXES_QUICKREF.md`
-- `docs/GAME_CLASS_ARCHITECTURE.md`
-- `docs/GENERAL_SETTINGS_MENU_IMPLEMENTATION.md`
-- `docs/HELP_SYSTEM.md` - **NEW**: Contextual Help and Quick Reference System
-- `docs/MODDING_API.md`
-- `docs/NOTIFICATION_CENTER.md` - Notification Center system (NEW)
-- `docs/PAUSE_MENU_IMPLEMENTATION.md`
-- `docs/PLACEMENT_SYSTEM.md` - **UPDATED**: Enhanced with Command Pattern documentation
-- `docs/README_ACHIEVEMENTS.md`
-- `docs/RESEARCH_TREE_SYSTEM.md`
-- `docs/STAFF_MANAGEMENT.md` - **NEW**: Staff Management System (Janitors, Maintenance, Fire, Security)
-- `docs/STAR_RATING_IMPLEMENTATION.md`
-- `docs/TITLE_SCREEN_IMPLEMENTATION.md`
-- `docs/TUTORIAL_IMPLEMENTATION.md`
-- `docs/UI_REFACTORING_SUMMARY.md`
-- `docs/WINDOW_FIXES_SUMMARY.md`
+---
 
-Notes on validation performed:
-- After creating consolidated files, I ran the project's documentation checker for errors.
-- Found invalid JSON placeholder tokens in `SAVE_LOAD_SYSTEM.md` and `README_SAVE_LOAD.md` (the `{"...": { ... }}` placeholders were not valid JSON). I replaced those with small valid JSON examples. The docs now pass the checker for those files.
+## 🚀 Getting Started
 
-Recommended next steps (optional):
-- Replace references in code/comments to point to the merged docs (e.g., update README.md links if present).
-- Consider consolidating additional subsystem docs (Research, Achievements, Tutorial) if you want fewer files.
-- Run a spellcheck or manual pass to ensure the merged docs read smoothly with one another.
+### Essential Reading
+1. **[README.md](../README.md)** - Project overview, build instructions, quick start
+2. **[AGENTS.md](../AGENTS.md)** - AI agent development guidelines (internal)
+3. **[TESTING.md](../TESTING.md)** - Testing guide (integration, E2E, unit tests)
+4. **[UI_DEVELOPMENT_BIBLE.md](../UI_DEVELOPMENT_BIBLE.md)** - UI patterns and best practices (internal)
 
-If you'd like, I can:
-- Update `README.md` to point to the new consolidated docs
-- Merge other subsystem docs into single-topic files (Research, Achievements, Tutorial)
-- Generate a single `docs/TOC.md` and add navigation anchors
+---
 
-Tell me which of those you'd like me to do next, or I can proceed to update `README.md` automatically to reference the new canonical docs.
+## 🎮 Gameplay Systems
+
+- **[FACILITIES.md](FACILITIES.md)** - Facility types, staffing, operating hours
+- **[ELEVATOR.md](ELEVATOR.md)** - Elevator system with state machines
+- **[PERSONS.md](PERSONS.md)** - Person AI with 5-state machine
+- **[RESEARCH_TREE_SYSTEM.md](RESEARCH_TREE_SYSTEM.md)** - Technology tree
+- **[ACHIEVEMENTS.md](ACHIEVEMENTS.md)** - Achievement system
+- **[PLACEMENT_SYSTEM.md](PLACEMENT_SYSTEM.md)** - Building system
+- **[SAVE_LOAD.md](SAVE_LOAD.md)** - Save/load system
+
+---
+
+## 🎨 User Interface
+
+- **[UI_DEVELOPMENT_BIBLE.md](../UI_DEVELOPMENT_BIBLE.md)** ⭐ - UI patterns guide
+- **[HUD.md](HUD.md)** - Heads-up display
+- **[NOTIFICATION_CENTER.md](NOTIFICATION_CENTER.md)** - Notifications
+- **[TOOLTIP_SYSTEM.md](TOOLTIP_SYSTEM.md)** - Tooltips
+
+---
+
+## ♿ Accessibility
+
+- **[ACCESSIBILITY.md](ACCESSIBILITY.md)** - Features overview
+- **[ACCESSIBILITY_TESTING.md](ACCESSIBILITY_TESTING.md)** - Testing guide
+
+---
+
+## 🔧 Technical
+
+- **[TECHNICAL_DESIGN_DOCUMENT.md](../TECHNICAL_DESIGN_DOCUMENT.md)** ⭐ - Technical reference
+- **[MODDING_API.md](MODDING_API.md)** - Lua modding system
+
+---
+
+**Last Updated: 2025-10-25**
