@@ -103,7 +103,7 @@ These are **reference documentation** that define correct implementation pattern
 1. Read request carefully
 2. Identify files to modify (surgical changes only)
 3. Execute changes directly without creating plan documents
-4. Build and test
+4. Build and test to verify changes
 
 ### Making Changes
 - **Minimal modifications only**: Change as few lines as possible
@@ -122,6 +122,53 @@ Before completing any work:
 
 **Note**: Use `cli-native` presets (not `native`) to avoid conflicts with IDE builds.
 Build directory: `build-cli/cli-native/` (isolated from IDE's `build/native/`)
+
+### Test Verification (REQUIRED)
+After successful build, run tests before completing work:
+
+1. **Configure tests (first time)**:
+   ```bash
+   cmake --preset cli-test
+   ```
+
+2. **Build tests**:
+   ```bash
+   cmake --build --preset cli-test-debug --parallel $(nproc)
+   ```
+   - Windows: Use `%NUMBER_OF_PROCESSORS%` instead of `$(nproc)`
+
+3. **Run all tests**:
+   ```bash
+   cd build-cli/cli-test/tests
+   ctest -C Debug --output-on-failure
+   ```
+   
+   Or use the preset:
+   ```bash
+   ctest --preset cli-test-debug
+   ```
+
+4. **Verify**: All tests pass (100% success rate)
+5. **If tests fail**: 
+   - Only fix failures related to your changes
+   - Ignore pre-existing test failures unrelated to your work
+   - Document any known issues
+6. **Do not mark complete until tests pass**
+
+**Quick test commands**:
+```bash
+# Run only integration tests (highest priority)
+cd build-cli/cli-test/tests
+ctest -C Debug -R ".*_integration" --output-on-failure
+
+# Run only E2E tests
+ctest -C Debug -R ".*_e2e" --output-on-failure
+
+# Run only unit tests
+ctest -C Debug -R ".*_unit" --output-on-failure
+```
+
+**Note**: See `TESTING.md` for detailed test documentation and advanced usage.
 
 ---
 
