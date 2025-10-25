@@ -149,9 +149,9 @@ TEST_F(FacilityPlacementWorkflowE2ETest, PlaceBasementFacilities) {
     int basement1 = grid.AddBasementFloor();
     int basement2 = grid.AddBasementFloor();
 
-    // Initial basement is 16 floors
-    EXPECT_EQ(basement1, -17);
-    EXPECT_EQ(basement2, -18);
+    // Initial basement is 8 floors
+    EXPECT_EQ(basement1, -9);
+    EXPECT_EQ(basement2, -10);
     
     // Step 2: Build basement floors
     grid.BuildFloor(basement1, 0, 10);
