@@ -32,12 +32,14 @@ namespace towerforge::ui {
             ACTION_BAR_HEIGHT
         );
 
-        // Create speed control panel in lower-left corner (Sims-style)
+        // Create speed control panel in lower-left corner (Sims-style) with responsive sizing
+        const int speed_width = SpeedControlPanel::CalculateWidth();
+        const int speed_height = SpeedControlPanel::CalculateHeight();
         speed_control_panel_ = std::make_unique<SpeedControlPanel>(
             10,
-            screen_height - SPEED_CONTROL_HEIGHT - 10,
-            SPEED_CONTROL_WIDTH,
-            SPEED_CONTROL_HEIGHT
+            screen_height - speed_height - 10,
+            speed_width,
+            speed_height
         );
     }
 
@@ -64,18 +66,22 @@ namespace towerforge::ui {
         if (action_bar_) {
             action_bar_->Update(delta_time);
             
-            // Update position if screen resized - keep centered
+            // Update position and size if screen resized - keep centered
             const int screen_width = GetScreenWidth();
             const int screen_height = GetScreenHeight();
             const int bar_width = ActionBar::CalculateBarWidth();
             const int bar_x = (screen_width - bar_width) / 2;
             action_bar_->SetRelativePosition(bar_x, screen_height - ACTION_BAR_HEIGHT);
+            action_bar_->SetSize(bar_width, ACTION_BAR_HEIGHT);
         }
 
-        // Update speed control panel position on resize
+        // Update speed control panel position and size on resize
         if (speed_control_panel_) {
             const int screen_height = GetScreenHeight();
-            speed_control_panel_->SetRelativePosition(10, screen_height - SPEED_CONTROL_HEIGHT - 10);
+            const int speed_width = SpeedControlPanel::CalculateWidth();
+            const int speed_height = SpeedControlPanel::CalculateHeight();
+            speed_control_panel_->SetRelativePosition(10, screen_height - speed_height - 10);
+            speed_control_panel_->SetSize(speed_width, speed_height);
             speed_control_panel_->SetSpeedState(game_state_.speed_multiplier, game_state_.paused);
         }
     }

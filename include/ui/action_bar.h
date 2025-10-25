@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <algorithm>
 
 namespace towerforge::ui {
 
@@ -83,13 +84,42 @@ namespace towerforge::ui {
         ActionCallback action_callback_;
         int active_action_index_;
 
-        static constexpr int BUTTON_WIDTH = 120;
+        // Button sizing constants
+        static constexpr int MIN_BUTTON_WIDTH = 60;   // Minimum button width before text truncates
+        static constexpr int MAX_BUTTON_WIDTH = 140;  // Maximum button width
         static constexpr int BUTTON_SPACING = 10;
+        static constexpr float MAX_BAR_WIDTH_PERCENT = 0.5f;  // 50% of screen width
         
     public:
-        // Calculate the total width needed for the action bar
-        static constexpr int CalculateBarWidth() {
-            return 6 * BUTTON_WIDTH + 5 * BUTTON_SPACING + 10; // 6 buttons + spacing + padding
+        // Calculate the total width needed for the action bar based on screen width
+        static int CalculateBarWidth() {
+            const int screen_width = GetScreenWidth();
+            const int max_bar_width = static_cast<int>(screen_width * MAX_BAR_WIDTH_PERCENT);
+            
+            // Calculate button width that fits within max bar width
+            // Formula: bar_width = num_buttons * button_width + (num_buttons - 1) * spacing + padding
+            constexpr int num_buttons = 6;
+            constexpr int padding = 10;
+            const int available_width = max_bar_width - (num_buttons - 1) * BUTTON_SPACING - padding;
+            const int button_width = available_width / num_buttons;
+            
+            // Clamp button width between min and max
+            const int clamped_button_width = std::clamp(button_width, MIN_BUTTON_WIDTH, MAX_BUTTON_WIDTH);
+            
+            return num_buttons * clamped_button_width + (num_buttons - 1) * BUTTON_SPACING + padding;
+        }
+        
+        // Calculate individual button width based on screen width
+        static int CalculateButtonWidth() {
+            const int screen_width = GetScreenWidth();
+            const int max_bar_width = static_cast<int>(screen_width * MAX_BAR_WIDTH_PERCENT);
+            
+            constexpr int num_buttons = 6;
+            constexpr int padding = 10;
+            const int available_width = max_bar_width - (num_buttons - 1) * BUTTON_SPACING - padding;
+            const int button_width = available_width / num_buttons;
+            
+            return std::clamp(button_width, MIN_BUTTON_WIDTH, MAX_BUTTON_WIDTH);
         }
     };
 

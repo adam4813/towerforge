@@ -6,6 +6,7 @@
 #include "ui/tab_bar.h"
 #include "ui/grid_panel.h"
 #include "ui/help_system.h"
+#include "ui/action_bar.h"
 #include <sstream>
 #include <algorithm>
 
@@ -42,15 +43,16 @@ namespace towerforge::ui {
     BuildMenu::~BuildMenu() = default;
 
     void BuildMenu::BuildUI() {
-        // Calculate position - centered above action bar
+        // Calculate position - centered above action bar, same width as action bar
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
-        const float x = (screen_width - MENU_WIDTH) / 2.0f;
+        const int menu_width = ActionBar::CalculateBarWidth(); // Match action bar width
+        const float x = (screen_width - menu_width) / 2.0f;
         const float y = screen_height - MENU_HEIGHT - 60.0f; // 60px from bottom (above action bar)
 
         // Create root panel
         root_panel_ = std::make_unique<Panel>(
-            x, y, MENU_WIDTH, MENU_HEIGHT,
+            x, y, menu_width, MENU_HEIGHT,
             ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f),
             UITheme::BORDER_ACCENT
         );
@@ -58,7 +60,7 @@ namespace towerforge::ui {
 
         // Create category tab bar
         const std::vector<std::string> tab_labels = {"Core", "Commercial", "Residential", "Entertainment", "Professional"};
-        auto bar = std::make_unique<TabBar>(0, 0, MENU_WIDTH, TAB_HEIGHT, tab_labels);
+        auto bar = std::make_unique<TabBar>(0, 0, menu_width, TAB_HEIGHT, tab_labels);
         bar->SetTabSelectedCallback([this](int tab_index) {
             SwitchCategory(static_cast<FacilityCategory>(tab_index));
         });
@@ -68,7 +70,7 @@ namespace towerforge::ui {
         // Create facility grid panel (scrollable)
         auto grid = std::make_unique<GridPanel>(
             0, TAB_HEIGHT,
-            MENU_WIDTH, MENU_HEIGHT - TAB_HEIGHT - CLOSE_BUTTON_SIZE - 10,
+            menu_width, MENU_HEIGHT - TAB_HEIGHT - CLOSE_BUTTON_SIZE - 10,
             FACILITIES_PER_ROW, FACILITY_BUTTON_SIZE, GRID_PADDING
         );
         grid->SetItemSelectedCallback([this](const int data_index) {
@@ -82,7 +84,7 @@ namespace towerforge::ui {
 
         // Create close button
         close_button_ = std::make_unique<Button>(
-            MENU_WIDTH - CLOSE_BUTTON_SIZE - 10,
+            menu_width - CLOSE_BUTTON_SIZE - 10,
             MENU_HEIGHT - CLOSE_BUTTON_SIZE - 5,
             CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE,
             "X",
@@ -151,22 +153,33 @@ namespace towerforge::ui {
     void BuildMenu::Update(const float delta_time) const {
         if (!visible_ || !root_panel_) return;
         
-        // Update position to stay above action bar (centered)
+        // Update position and size to stay above action bar (centered, same width as action bar)
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
-        const float x = (screen_width - MENU_WIDTH) / 2.0f;
+        const int menu_width = ActionBar::CalculateBarWidth(); // Match action bar width
+        const float x = (screen_width - menu_width) / 2.0f;
         const float y = screen_height - MENU_HEIGHT - 60.0f; // 60px from bottom (above action bar)
         root_panel_->SetRelativePosition(x, y);
+        root_panel_->SetSize(menu_width, MENU_HEIGHT);
         
-        root_panel_->Update(delta_time);
-        
+        // Update tab bar width
         if (tab_bar_) {
+            tab_bar_->SetSize(menu_width, TAB_HEIGHT);
             tab_bar_->Update(delta_time);
         }
         
+        // Update facility grid width
         if (facility_grid_) {
+            facility_grid_->SetSize(menu_width, MENU_HEIGHT - TAB_HEIGHT - CLOSE_BUTTON_SIZE - 10);
             facility_grid_->Update(delta_time);
         }
+        
+        // Update close button position
+        if (close_button_) {
+            close_button_->SetRelativePosition(menu_width - CLOSE_BUTTON_SIZE - 10, MENU_HEIGHT - CLOSE_BUTTON_SIZE - 5);
+        }
+        
+        root_panel_->Update(delta_time);
     }
 
     bool BuildMenu::ProcessMouseEvent(const MouseEvent& event) const {

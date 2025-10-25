@@ -355,13 +355,28 @@ namespace towerforge::ui {
             batch_renderer::adapter::DrawRectangleLinesEx(draw_bounds, border_thickness, border_col);
         }
 
-        // Draw label text centered with font scaling
+        // Draw label text centered with font scaling and truncation if needed
         if (!label_.empty()) {
             const int scaled_font_size = static_cast<int>(font_size_ * font_scale);
-            const int text_width = MeasureText(label_.c_str(), scaled_font_size);
+            int text_width = MeasureText(label_.c_str(), scaled_font_size);
+            
+            // Truncate text if it doesn't fit in the button
+            std::string display_label = label_;
+            const float available_width = draw_bounds.width - 10; // 5px padding on each side
+            
+            if (text_width > available_width) {
+                // Truncate and add ".." suffix
+                size_t len = label_.length();
+                while (len > 0 && text_width > available_width) {
+                    len--;
+                    display_label = label_.substr(0, len) + "..";
+                    text_width = MeasureText(display_label.c_str(), scaled_font_size);
+                }
+            }
+            
             const int text_x = draw_bounds.x + (draw_bounds.width - text_width) / 2;
             const int text_y = draw_bounds.y + (draw_bounds.height - scaled_font_size) / 2;
-            batch_renderer::adapter::DrawText(label_.c_str(), text_x, text_y, scaled_font_size, text_col);
+            batch_renderer::adapter::DrawText(display_label.c_str(), text_x, text_y, scaled_font_size, text_col);
         }
 
         // Render all children

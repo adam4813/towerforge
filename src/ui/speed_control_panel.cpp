@@ -10,40 +10,42 @@ namespace towerforge::ui {
         , is_paused_(false)
         , speed_callback_(nullptr) {
 
-        // Build button structure declaratively (once, in constructor)
-        // Use relative positions within the panel
+        // Build button structure declaratively with responsive sizing
         buttons_.clear();
+        
+        const int button_width = CalculateButtonWidth();
+        const int button_height = height - PADDING * 2;
         
         float button_x = PADDING;
         const float button_y = PADDING;
 
         // Pause button
         buttons_.push_back({
-            Rectangle{button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT},
+            Rectangle{button_x, button_y, static_cast<float>(button_width), static_cast<float>(button_height)},
             0,
             true
         });
-        button_x += BUTTON_WIDTH + BUTTON_SPACING;
+        button_x += button_width + BUTTON_SPACING;
 
         // 1x speed button
         buttons_.push_back({
-            Rectangle{button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT},
+            Rectangle{button_x, button_y, static_cast<float>(button_width), static_cast<float>(button_height)},
             1,
             false
         });
-        button_x += BUTTON_WIDTH + BUTTON_SPACING;
+        button_x += button_width + BUTTON_SPACING;
 
         // 2x speed button
         buttons_.push_back({
-            Rectangle{button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT},
+            Rectangle{button_x, button_y, static_cast<float>(button_width), static_cast<float>(button_height)},
             2,
             false
         });
-        button_x += BUTTON_WIDTH + BUTTON_SPACING;
+        button_x += button_width + BUTTON_SPACING;
 
         // 4x speed button
         buttons_.push_back({
-            Rectangle{button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT},
+            Rectangle{button_x, button_y, static_cast<float>(button_width), static_cast<float>(button_height)},
             4,
             false
         });
@@ -68,9 +70,12 @@ namespace towerforge::ui {
             LIGHTGRAY
         );
 
-        // Render buttons with reactive state colors
-        // Buttons are stored with relative positions, need to offset by panel position
-        for (const auto& btn : buttons_) {
+        // Render buttons with reactive state colors and responsive sizing
+        const int button_width = CalculateButtonWidth();
+        const int font_size = std::max(10, button_width / 4);
+        
+        for (size_t i = 0; i < buttons_.size(); ++i) {
+            const auto& btn = buttons_[i];
             Color button_color;
             if (btn.is_pause) {
                 button_color = is_paused_ ? RED : DARKGRAY;
@@ -97,28 +102,27 @@ namespace towerforge::ui {
                 LIGHTGRAY
             );
 
-            // Button labels
+            // Button labels with responsive font size
             const char* label;
-            int label_offset_x;
             if (btn.is_pause) {
                 label = "||";
-                label_offset_x = 15;
             } else if (btn.speed == 1) {
                 label = "1x";
-                label_offset_x = 12;
             } else if (btn.speed == 2) {
                 label = "2x";
-                label_offset_x = 12;
             } else {
                 label = "4x";
-                label_offset_x = 12;
             }
 
+            const int text_width = MeasureText(label, font_size);
+            const int label_x = abs_x + (static_cast<int>(btn.rect.width) - text_width) / 2;
+            const int label_y = abs_y + (static_cast<int>(btn.rect.height) - font_size) / 2;
+            
             DrawText(
                 label,
-                abs_x + label_offset_x,
-                abs_y + 7,
-                16,
+                label_x,
+                label_y,
+                font_size,
                 WHITE
             );
         }

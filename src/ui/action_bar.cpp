@@ -1,6 +1,7 @@
 #include "ui/action_bar.h"
 #include "ui/ui_theme.h"
 #include "ui/mouse_interface.h"
+#include <algorithm>
 
 namespace towerforge::ui {
 
@@ -13,19 +14,22 @@ namespace towerforge::ui {
         
         SetPadding(5);
 
-        // Create action buttons - positions are relative to panel
+        // Create action buttons with dynamic sizing
+        const int button_width = CalculateButtonWidth();
         CreateActionButton(Action::Build, "Build", 5);
-        CreateActionButton(Action::FacilityInfo, "Facilities", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 1);
-        CreateActionButton(Action::VisitorInfo, "Visitors", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 2);
-        CreateActionButton(Action::StaffManagement, "Staff", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 3);
-        CreateActionButton(Action::Research, "Research", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 4);
-        CreateActionButton(Action::Settings, "Settings", 5 + (BUTTON_WIDTH + BUTTON_SPACING) * 5);
+        CreateActionButton(Action::FacilityInfo, "Facilities", 5 + (button_width + BUTTON_SPACING) * 1);
+        CreateActionButton(Action::VisitorInfo, "Visitors", 5 + (button_width + BUTTON_SPACING) * 2);
+        CreateActionButton(Action::StaffManagement, "Staff", 5 + (button_width + BUTTON_SPACING) * 3);
+        CreateActionButton(Action::Research, "Research", 5 + (button_width + BUTTON_SPACING) * 4);
+        CreateActionButton(Action::Settings, "Settings", 5 + (button_width + BUTTON_SPACING) * 5);
     }
 
     void ActionBar::CreateActionButton(Action action, const std::string& label, float x) {
+        const int button_width = CalculateButtonWidth();
+        
         auto button = std::make_unique<Button>(
             x, 5,
-            BUTTON_WIDTH, height_ - 10,
+            button_width, height_ - 10,
             label,
             UITheme::BUTTON_BACKGROUND,
             UITheme::BORDER_DEFAULT
@@ -49,9 +53,19 @@ namespace towerforge::ui {
     void ActionBar::Update(const float delta_time) {
         Panel::Update(delta_time);
         
-        for (auto* button : action_buttons_) {
-            if (auto* btn = dynamic_cast<Button*>(button)) {
+        // Update button sizes and positions on screen resize
+        const int button_width = CalculateButtonWidth();
+        float x_pos = 5;
+        
+        for (size_t i = 0; i < action_buttons_.size(); ++i) {
+            if (auto* btn = dynamic_cast<Button*>(action_buttons_[i])) {
                 btn->Update(delta_time);
+                
+                // Update button size and position
+                btn->SetSize(button_width, height_ - 10);
+                btn->SetRelativePosition(x_pos, 5);
+                
+                x_pos += button_width + BUTTON_SPACING;
             }
         }
     }
