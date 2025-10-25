@@ -25,6 +25,13 @@ namespace towerforge::rendering {
         void Initialize(int screen_width, int screen_height, float tower_width, float tower_height);
 
         /**
+     * @brief Update camera screen dimensions (call on window resize)
+     * @param screen_width New screen width in pixels
+     * @param screen_height New screen height in pixels
+     */
+        void UpdateScreenSize(int screen_width, int screen_height);
+
+        /**
      * @brief Update camera state (called every frame)
      * @param delta_time Time elapsed since last frame
      */
@@ -104,6 +111,22 @@ namespace towerforge::rendering {
      * @brief Render camera controls overlay (bottom right)
      */
         void RenderControlsOverlay() const;
+
+        /**
+         * @brief Check if mouse is over camera controls overlay
+         * @param mouse_x Mouse X position
+         * @param mouse_y Mouse Y position
+         * @return true if mouse is over the overlay
+         */
+        bool IsMouseOverControls(int mouse_x, int mouse_y) const;
+
+        /**
+         * @brief Handle mouse click on camera controls (e.g., zoom slider)
+         * @param mouse_x Mouse X position
+         * @param mouse_y Mouse Y position
+         * @return true if click was handled
+         */
+        bool HandleControlsClick(int mouse_x, int mouse_y);
 
         /**
      * @brief Render follow mode indicator

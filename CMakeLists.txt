@@ -33,6 +33,7 @@ set(SOURCE_FILES
     src/rendering/camera.cpp
     src/ui/action_bar.cpp
     src/ui/hud.cpp
+    src/ui/speed_control_panel.cpp
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp
     src/ui/history_panel.cpp

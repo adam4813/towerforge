@@ -5,6 +5,7 @@
 #include "ui/notification_center.h"
 #include "ui/analytics_overlay.h"
 #include "ui/action_bar.h"
+#include "ui/speed_control_panel.h"
 #include "ui/mouse_interface.h"
 #include <sstream>
 #include <iomanip>
@@ -29,6 +30,14 @@ namespace towerforge::ui {
             screen_height - ACTION_BAR_HEIGHT,
             bar_width,
             ACTION_BAR_HEIGHT
+        );
+
+        // Create speed control panel in lower-left corner (Sims-style)
+        speed_control_panel_ = std::make_unique<SpeedControlPanel>(
+            10,
+            screen_height - SPEED_CONTROL_HEIGHT - 10,
+            SPEED_CONTROL_WIDTH,
+            SPEED_CONTROL_HEIGHT
         );
     }
 
@@ -62,6 +71,13 @@ namespace towerforge::ui {
             const int bar_x = (screen_width - bar_width) / 2;
             action_bar_->SetRelativePosition(bar_x, screen_height - ACTION_BAR_HEIGHT);
         }
+
+        // Update speed control panel position on resize
+        if (speed_control_panel_) {
+            const int screen_height = GetScreenHeight();
+            speed_control_panel_->SetRelativePosition(10, screen_height - SPEED_CONTROL_HEIGHT - 10);
+            speed_control_panel_->SetSpeedState(game_state_.speed_multiplier, game_state_.paused);
+        }
     }
 
     void HUD::Render() {
@@ -71,16 +87,16 @@ namespace towerforge::ui {
         // Render all info windows through the window manager
         window_manager_->Render();
 
-        // Render legacy notifications (for backward compatibility)
-        RenderNotifications();
-    
-        // Render notification center toasts
+        // Render notification center toasts in upper-right
         notification_center_->RenderToasts();
     
         // Render notification center panel if visible
         notification_center_->Render();
     
-        RenderSpeedControls();
+        // Render speed controls in lower-left
+        if (speed_control_panel_) {
+            speed_control_panel_->Render();
+        }
 
         // Render tooltips on top
         tooltip_manager_->Render();
@@ -213,7 +229,12 @@ namespace towerforge::ui {
     }
 
     bool HUD::ProcessMouseEvent(const MouseEvent& event) {
-        // Forward to action bar first
+        // Forward to speed control panel first
+        if (speed_control_panel_ && speed_control_panel_->ProcessMouseEvent(event)) {
+            return true;
+        }
+
+        // Forward to action bar
         if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
             return true;
         }
@@ -545,44 +566,6 @@ namespace towerforge::ui {
             DrawText(icon, x + 5, y + 5, 20, WHITE);
             DrawText(it->message.c_str(), x + 30, y + 7, 14, WHITE);
         }
-    }
-
-    void HUD::RenderSpeedControls() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-
-        const int x = screen_width - SPEED_CONTROL_WIDTH - 10;
-        const int y = screen_height - SPEED_CONTROL_HEIGHT - 10;
-
-        // Draw background
-        DrawRectangle(x, y, SPEED_CONTROL_WIDTH, SPEED_CONTROL_HEIGHT, ColorAlpha(BLACK, 0.7f));
-
-        constexpr int button_width = 45;
-        int button_x = x + 5;
-        const int button_y = y + 5;
-
-        // Pause button
-        const Color pause_color = game_state_.paused ? RED : DARKGRAY;
-        DrawRectangle(button_x, button_y, button_width, 30, pause_color);
-        DrawText("||", button_x + 15, button_y + 7, 16, WHITE);
-
-        // 1x button
-        button_x += button_width + 5;
-        const Color speed1_color = (!game_state_.paused && game_state_.speed_multiplier == 1) ? GREEN : DARKGRAY;
-        DrawRectangle(button_x, button_y, button_width, 30, speed1_color);
-        DrawText("1x", button_x + 12, button_y + 7, 16, WHITE);
-
-        // 2x button
-        button_x += button_width + 5;
-        const Color speed2_color = (!game_state_.paused && game_state_.speed_multiplier == 2) ? GREEN : DARKGRAY;
-        DrawRectangle(button_x, button_y, button_width, 30, speed2_color);
-        DrawText("2x", button_x + 12, button_y + 7, 16, WHITE);
-
-        // 4x button
-        button_x += button_width + 5;
-        const Color speed4_color = (!game_state_.paused && game_state_.speed_multiplier == 4) ? GREEN : DARKGRAY;
-        DrawRectangle(button_x, button_y, button_width, 30, speed4_color);
-        DrawText("4x", button_x + 12, button_y + 7, 16, WHITE);
     }
 
     std::string HUD::FormatTime(const float time) {

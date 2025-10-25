@@ -279,9 +279,10 @@ namespace towerforge::ui {
         static constexpr int PANEL_PADDING = 10;
         static constexpr int ENTRY_HEIGHT = 80;
         static constexpr int ENTRY_SPACING = 5;
-        static constexpr int TOAST_WIDTH = 350;
-        static constexpr int TOAST_HEIGHT = 70;
-        static constexpr int TOAST_SPACING = 10;
+        // UI layout constants
+        static constexpr int TOAST_WIDTH = 175;  // Half original size (350 -> 175)
+        static constexpr int TOAST_HEIGHT = 35;  // Half original size (70 -> 35)
+        static constexpr int TOAST_SPACING = 5;  // Reduced spacing
         static constexpr int MAX_TOASTS = 3;
         static constexpr int FILTER_HEIGHT = 40;
     

@@ -42,6 +42,14 @@ namespace towerforge::rendering {
         camera_.target = target_position_;
     }
 
+    void Camera::UpdateScreenSize(const int screen_width, const int screen_height) {
+        screen_width_ = screen_width;
+        screen_height_ = screen_height;
+
+        // Update camera offset to new screen center
+        camera_.offset = {screen_width / 2.0f, screen_height / 2.0f};
+    }
+
     void Camera::Update(const float delta_time) {
         // Update follow mode
         if (following_) {
@@ -60,6 +68,13 @@ namespace towerforge::rendering {
     }
 
     void Camera::HandleInput(const bool hud_handled) {
+        // Check if mouse is over camera controls - if so, don't handle camera input
+        const Vector2 mouse_pos = GetMousePosition();
+        if (IsMouseOverControls(static_cast<int>(mouse_pos.x), static_cast<int>(mouse_pos.y))) {
+            is_panning_ = false;
+            return;
+        }
+
         // Don't handle input if HUD consumed it
         if (hud_handled) {
             is_panning_ = false;
@@ -173,8 +188,9 @@ namespace towerforge::rendering {
     }
 
     void Camera::RenderControlsOverlay() const {
-        const int x = screen_width_ - 230;
-        const int y = screen_height_ - 180;
+        // Position in lower-left corner (Sims-style)
+        constexpr int x = 10;
+        const int y = screen_height_ - 180 - 60;  // Above speed controls (60 = speed control height + gap)
         constexpr int width = 220;
         constexpr int height = 170;
 
@@ -183,7 +199,7 @@ namespace towerforge::rendering {
         DrawRectangleLines(x, y, width, height, LIGHTGRAY);
 
         // Title
-        DrawText("CAMERA CONTROLS", x + 10, y + 5, 14, YELLOW);
+        DrawText("CAMERA", x + 10, y + 5, 14, YELLOW);
 
         // Instructions
         DrawText("Pan: Mid-Click+Drag", x + 10, y + 25, 12, LIGHTGRAY);
@@ -216,6 +232,41 @@ namespace towerforge::rendering {
         // Zoom percentage
         const char* zoom_text = TextFormat("%.0f%%", target_zoom_ * 100);
         DrawText(zoom_text, slider_x + slider_width + 10, slider_y + 3, 12, GREEN);
+    }
+
+    bool Camera::IsMouseOverControls(const int mouse_x, const int mouse_y) const {
+        constexpr int x = 10;
+        const int y = screen_height_ - 180 - 60;
+        constexpr int width = 220;
+        constexpr int height = 170;
+        
+        return mouse_x >= x && mouse_x <= x + width && 
+               mouse_y >= y && mouse_y <= y + height;
+    }
+
+    bool Camera::HandleControlsClick(const int mouse_x, const int mouse_y) {
+        // Check if clicking on zoom slider
+        constexpr int panel_x = 10;
+        const int panel_y = screen_height_ - 180 - 60;
+        const int slider_x = panel_x + 10;
+        const int slider_y = panel_y + 120;
+        constexpr int slider_width = 200;
+        constexpr int slider_height = 20;
+        
+        if (mouse_x >= slider_x && mouse_x <= slider_x + slider_width &&
+            mouse_y >= slider_y && mouse_y <= slider_y + slider_height) {
+            // Calculate new zoom based on click position
+            const float normalized = static_cast<float>(mouse_x - slider_x) / static_cast<float>(slider_width);
+            float new_zoom = MIN_ZOOM + normalized * (MAX_ZOOM - MIN_ZOOM);
+            
+            // Round to nearest increment
+            new_zoom = std::round(new_zoom / ZOOM_INCREMENT) * ZOOM_INCREMENT;
+            
+            target_zoom_ = std::clamp(new_zoom, MIN_ZOOM, MAX_ZOOM);
+            return true;
+        }
+        
+        return false;
     }
 
     void Camera::RenderFollowIndicator() const {

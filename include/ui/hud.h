@@ -14,6 +14,7 @@ namespace towerforge::ui {
     class TooltipManager;
     class NotificationCenter;
     class ActionBar;
+    class SpeedControlPanel;
     struct IncomeBreakdown;
     struct ElevatorAnalytics;
     struct PopulationBreakdown;
@@ -284,12 +285,16 @@ namespace towerforge::ui {
          * @brief Get the action bar
          */
         ActionBar* GetActionBar() const { return action_bar_.get(); }
+
+        /**
+         * @brief Get the speed control panel
+         */
+        SpeedControlPanel* GetSpeedControlPanel() const { return speed_control_panel_.get(); }
     
     private:
         void RenderTopBar() const;
         void RenderStarRating() const;
         void RenderNotifications();
-        void RenderSpeedControls() const;
         void RenderEndGameSummary() const;
         
         bool IsMouseOverIncomeArea(int mouse_x, int mouse_y) const;
@@ -311,6 +316,9 @@ namespace towerforge::ui {
         // Action bar at bottom of screen
         std::unique_ptr<ActionBar> action_bar_;
         ActionBarCallback action_bar_callback_;
+
+        // Speed control panel in lower-left corner
+        std::unique_ptr<SpeedControlPanel> speed_control_panel_;
     
         // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;
@@ -325,11 +333,11 @@ namespace towerforge::ui {
         static constexpr int PANEL_PADDING = 10;
         static constexpr int NOTIFICATION_WIDTH = 300;
         static constexpr int NOTIFICATION_HEIGHT = 30;
-        static constexpr int SPEED_CONTROL_WIDTH = 200;
-        static constexpr int SPEED_CONTROL_HEIGHT = 40;
         static constexpr int STAR_RATING_WIDTH = 230;
         static constexpr int STAR_RATING_HEIGHT = 180;
         static constexpr int ACTION_BAR_HEIGHT = 50;
+        static constexpr int SPEED_CONTROL_WIDTH = 200;
+        static constexpr int SPEED_CONTROL_HEIGHT = 50;
     };
 
 }

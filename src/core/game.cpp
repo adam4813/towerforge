@@ -4,6 +4,7 @@
 #include "core/user_preferences.hpp"
 #include "ui/notification_center.h"
 #include "ui/action_bar.h"
+#include "ui/speed_control_panel.h"
 #include "ui/batch_renderer/batch_renderer.h"
 
 using namespace TowerForge::Core;
@@ -646,6 +647,15 @@ namespace towerforge::core {
             }
         });
 
+        // Set up speed control callback
+        if (auto* speed_panel = hud_->GetSpeedControlPanel()) {
+            speed_panel->SetSpeedCallback([this](int speed, bool paused) {
+                game_state_.speed_multiplier = speed;
+                game_state_.paused = paused;
+                is_paused_ = paused;
+            });
+        }
+
         // Add example notifications to showcase notification center
         hud_->AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
         hud_->AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
@@ -1022,6 +1032,17 @@ namespace towerforge::core {
             }
 
             camera_->Update(time_step_);
+            
+            // Update camera screen size on window resize
+            const int screen_width = GetScreenWidth();
+            const int screen_height = GetScreenHeight();
+            static int last_screen_width = screen_width;
+            static int last_screen_height = screen_height;
+            if (screen_width != last_screen_width || screen_height != last_screen_height) {
+                camera_->UpdateScreenSize(screen_width, screen_height);
+                last_screen_width = screen_width;
+                last_screen_height = screen_height;
+            }
         }
 
         HandleInGameInput();
@@ -1084,6 +1105,11 @@ namespace towerforge::core {
                 true, // left_pressed
                 false // right_pressed
             };
+
+            // Check camera controls first (zoom slider, etc.)
+            if (camera_->HandleControlsClick(mouse_x, mouse_y)) {
+                return; // Camera consumed the event
+            }
 
             // Check HUD first (action bar, etc.)
             if (hud_->ProcessMouseEvent(mouse_event)) {
@@ -1465,9 +1491,11 @@ namespace towerforge::core {
             }
         }
 
-        // Handle camera input
-        constexpr bool hud_handled_input = false;
-        camera_->HandleInput(hud_handled_input);
+        // Handle camera input (only if not paused and research menu not visible)
+        if (!is_paused_ && !research_menu_->IsVisible()) {
+            constexpr bool hud_handled_input = false;
+            camera_->HandleInput(hud_handled_input);
+        }
     }
 
     void Game::RenderInGame() {

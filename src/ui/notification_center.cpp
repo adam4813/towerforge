@@ -73,16 +73,13 @@ namespace towerforge::ui {
 
     void NotificationCenter::RenderToasts() {
         const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        constexpr int x = UITheme::PADDING_SMALL;
-        int y = screen_height - UITheme::PADDING_SMALL;
+        const int x = screen_width - TOAST_WIDTH - 10;  // Upper-right corner
+        int y = UITheme::PADDING_SMALL + 50;  // Below top bar (40px) + some margin
     
         // Show up to MAX_TOASTS recent unread notifications
         int toast_count = 0;
         for (auto it = notifications_.rbegin(); it != notifications_.rend() && toast_count < MAX_TOASTS; ++it) {
             if (!it->read && it->time_remaining > 0.0f) {
-                y -= TOAST_HEIGHT + TOAST_SPACING;
-            
                 // Apply fade-in animation
                 const float alpha = it->animation_progress;
                 const Color bg_color = ColorAlpha(GetTypeColor(it->type), 0.9f * alpha);
@@ -93,30 +90,31 @@ namespace towerforge::ui {
                                               static_cast<float>(TOAST_WIDTH), static_cast<float>(TOAST_HEIGHT)}, 
                                     UITheme::BORDER_THIN, border_color);
             
-                // Icon
+                // Icon (smaller)
                 const char* icon = GetTypeIcon(it->type);
-                DrawText(icon, x + UITheme::PADDING_SMALL, y + UITheme::PADDING_SMALL, 
-                        UITheme::FONT_SIZE_LARGE, ColorAlpha(UITheme::TEXT_PRIMARY, alpha));
+                DrawText(icon, x + 5, y + 5, 
+                        14, ColorAlpha(UITheme::TEXT_PRIMARY, alpha));
             
-                // Title
-                DrawText(it->title.c_str(), x + 45, y + UITheme::PADDING_SMALL, 
-                        UITheme::FONT_SIZE_NORMAL, ColorAlpha(UITheme::TEXT_PRIMARY, alpha));
+                // Title (smaller font)
+                DrawText(it->title.c_str(), x + 25, y + 5, 
+                        12, ColorAlpha(UITheme::TEXT_PRIMARY, alpha));
             
-                // Message (truncated if too long)
+                // Message (truncated if too long, smaller font)
                 std::string display_msg = it->message;
-                if (display_msg.length() > 50) {
-                    display_msg = display_msg.substr(0, 47) + "...";
+                if (display_msg.length() > 25) {
+                    display_msg = display_msg.substr(0, 22) + "...";
                 }
-                DrawText(display_msg.c_str(), x + 45, y + 32, 
-                        12, ColorAlpha(UITheme::TEXT_SECONDARY, 0.9f * alpha));
+                DrawText(display_msg.c_str(), x + 25, y + 18, 
+                        10, ColorAlpha(UITheme::TEXT_SECONDARY, 0.9f * alpha));
             
                 // Time remaining indicator
                 if (it->time_remaining > 0.0f) {
                     const int bar_width = static_cast<int>((it->time_remaining / UITheme::NOTIFICATION_DURATION_NORMAL) * TOAST_WIDTH);
-                    DrawRectangle(x, y + TOAST_HEIGHT - 3, bar_width, 3, 
+                    DrawRectangle(x, y + TOAST_HEIGHT - 2, bar_width, 2, 
                                 ColorAlpha(UITheme::TEXT_PRIMARY, 0.7f * alpha));
                 }
             
+                y += TOAST_HEIGHT + TOAST_SPACING;
                 toast_count++;
             }
         }
