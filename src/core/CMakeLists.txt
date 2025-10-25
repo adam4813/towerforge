@@ -11,6 +11,13 @@ add_library(towerforge_core
     game.cpp
     command.cpp
     command_history.cpp
+    systems/time_systems.cpp
+    systems/movement_systems.cpp
+    systems/economy_systems.cpp
+    systems/person_elevator_systems.cpp
+    systems/visitor_employee_systems.cpp
+    systems/facility_systems.cpp
+    systems/staff_systems.cpp
 )
 
 # Find flecs package

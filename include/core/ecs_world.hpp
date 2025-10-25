@@ -86,7 +86,7 @@ namespace TowerForge::Core {
         void RegisterComponents() const;
         void RegisterSystems() const;
 
-        flecs::world world_;
+        mutable flecs::world world_;
         std::unique_ptr<TowerGrid> tower_grid_;
         std::unique_ptr<FacilityManager> facility_manager_;
         std::unique_ptr<LuaModManager> mod_manager_;

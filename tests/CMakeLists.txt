@@ -22,6 +22,13 @@ add_library(towerforge_core_test
     ${CMAKE_SOURCE_DIR}/src/core/lua_mod_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/command.cpp
     ${CMAKE_SOURCE_DIR}/src/core/command_history.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/systems/time_systems.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/systems/movement_systems.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/systems/economy_systems.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/systems/person_elevator_systems.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/systems/visitor_employee_systems.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/systems/facility_systems.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/systems/staff_systems.cpp
     # Explicitly exclude game.cpp which has UI dependencies
 )
 
