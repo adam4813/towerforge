@@ -34,15 +34,15 @@
 
 ### 1.2 Elevator Pitch
 
-TowerForge is a modern, open-source skyscraper simulation game that challenges players to design, build, and manage the ultimate vertical city. Inspired by SimTower, it combines deep simulation with contemporary accessibility and moddability.
+TowerForge is a cozy, open-source skyscraper simulation where players create and nurture their own vertical community at their own pace. Inspired by SimTower and the cozy games movement, it's about creative expression, watching your tower come to life, and building a space that feels uniquely yours.
 
-### 1.3 Core Design Pillars
+### 1.3 Core Design Pillars (Cozy Game Philosophy)
 
-1. **Strategic Depth**: Every decision matters — placement, timing, expansion
-2. **Emergent Complexity**: Simple rules create intricate, challenging gameplay
-3. **Player Empowerment**: Extensive undo/redo, tooltips, analytics, modding
-4. **Accessibility First**: Inclusive design for all players
-5. **Technical Excellence**: Modern architecture enables scale and performance
+1. **Creative Expression**: Every tower is unique — a canvas for architectural and community design
+2. **Gentle Simulation**: No failure states, no time pressure — just peaceful building and growth
+3. **Player Comfort**: Extensive undo/redo, helpful tooltips, optional guidance, stress-free experience
+4. **Accessibility First**: Inclusive design ensuring everyone can enjoy the cozy experience
+5. **Community & Life**: Watch your tower's residents live their lives, form routines, and create stories
 
 ### 1.4 Unique Selling Points
 
@@ -59,28 +59,30 @@ TowerForge is a modern, open-source skyscraper simulation game that challenges p
 
 ### 2.1 High-Level Concept
 
-Players start with an empty lot and modest funds. Their goal: construct a thriving skyscraper that balances profitability, tenant satisfaction, and efficient operations. Each floor presents strategic challenges around facility placement, vertical transportation, and resource management.
+Players start with an empty lot and begin building their dream skyscraper at their own pace. There are no failure states or time limits — just the joy of creating a unique vertical community, watching residents live their daily lives, and shaping a space that reflects your personal style. Each decision is an opportunity for creative expression rather than optimization.
 
 ### 2.2 Core Fantasy
 
-**"You are the master architect and operations manager of a living, breathing skyscraper."**
+**"You are the nurturing creator of a cozy vertical village where people live, work, and thrive."**
 
 Players experience:
-- The satisfaction of efficient layout design
-- The challenge of rush-hour traffic management
-- The reward of watching their tower bustle with life
-- The pride of achieving 5-star excellence
+- The joy of watching your tower slowly come to life
+- The meditative pleasure of arranging spaces and facilities
+- The warmth of seeing residents follow their daily routines
+- The satisfaction of creating something that feels like home
+- The freedom to experiment without fear of failure
 
 ### 2.3 Design Influences
 
 | Source | Influence | Implementation |
 |--------|-----------|----------------|
-| **SimTower (Maxis, 1994)** | Core gameplay loop, facility types | Modernized with QoL features |
-| **Yoot Tower (OPeNBooK, 1998)** | Expanded facility variety | Enhanced with staffing and hours |
-| **RimWorld** | AI storytelling, emergent gameplay | Person AI with needs and schedules |
-| **Factorio** | Production chain optimization | Elevator capacity as bottleneck |
-| **Cities: Skylines** | Traffic flow challenges | Vertical traffic (elevators) |
-| **The Sims** | Individual agent simulation | Person state machines |
+| **SimTower (Maxis, 1994)** | Core gameplay loop, facility types | Gentle pacing, no failure states |
+| **Yoot Tower (OPeNBooK, 1998)** | Expanded facility variety | Enhanced with personality |
+| **Animal Crossing** | Non-competitive, self-expression | No pressure, creative building |
+| **Stardew Valley** | Cozy simulation, community focus | Watching lives unfold |
+| **A Short Hike** | Gentle exploration, no stress | Player-directed experience |
+| **The Sims** | Individual agent simulation | Person routines and stories |
+| **Cozy Games Manifesto** | Core philosophy | No failure, meditative pace, warmth |
 
 ### 2.4 Scope Boundaries
 
@@ -124,66 +126,71 @@ Players experience:
 
 ### 3.2 Moment-to-Moment Gameplay
 
-**Time Scale**: Simulation runs at adjustable speed (pause, 1x, 2x, 4x, 8x)
+**Time Scale**: Simulation runs at your preferred pace (pause anytime, 1x, 2x, 4x, 8x) - take breaks whenever you want
 
-**Player Activities (prioritized by frequency)**:
+**Player Activities (cozy gameplay moments)**:
 
-1. **Placement Decisions** (every 30-120 seconds)
-   - Select facility type from build menu
-   - Choose optimal floor and column position
-   - Consider adjacency bonuses and elevator access
-   - Confirm construction (funds permitting)
+1. **Creative Building** (whenever inspiration strikes)
+   - Browse facility types at leisure
+   - Experiment with different layouts and arrangements
+   - Place facilities where they feel right
+   - Unlimited undo if you change your mind
 
-2. **Monitoring** (continuous, glanceable)
-   - Watch HUD for funds, population, time, satisfaction
-   - Observe person movement and elevator traffic
-   - Check notification center for events
-   - Read info panels on hover
+2. **Observing & Enjoying** (continuous, meditative)
+   - Watch residents go about their daily routines
+   - See patterns emerge in elevator movement
+   - Notice how your tower changes throughout the day
+   - Discover small stories happening in your building
 
-3. **Problem Solving** (every 2-5 minutes)
-   - Address low satisfaction alerts
-   - Manage understaffed facilities
-   - Optimize elevator coverage
-   - Balance revenue vs. expenses
+3. **Gentle Adjustments** (as you feel like it)
+   - Move things around to improve flow
+   - Add amenities where residents might enjoy them
+   - Expand when you feel ready
+   - Try new facility combinations
 
-4. **Strategic Planning** (every 5-15 minutes)
-   - Review analytics overlays (income breakdown, population)
-   - Decide on vertical vs. horizontal expansion
-   - Prioritize research tree investments
-   - Plan facility placement synergies
+4. **Personal Expression** (ongoing)
+   - Shape your tower's personality and style
+   - Create themed floors or districts
+   - Balance aesthetics with functionality (or don't!)
+   - Make decisions based on what feels good to you
 
-5. **Progression** (every 15-60 minutes)
-   - Unlock new facility types via research
-   - Achieve star rating milestones
-   - Complete achievements
-   - Unlock game-changing upgrades
+5. **Discovery** (naturally over time)
+   - Unlock new facility types as you grow
+   - See your tower earn recognition organically
+   - Discover what makes your residents happy
+   - Find your own play style and rhythm
 
-### 3.3 Win/Loss Conditions
+### 3.3 Cozy Game Design: No Win/Loss Conditions
 
-**Win Conditions** (player-chosen goals):
-- Achieve 5-star tower rating
-- Reach specific population targets (500, 1000, 2000+ tenants)
-- Accumulate wealth ($500,000+)
-- Complete all achievements
-- Build to maximum height (100+ floors)
+**Philosophy**: TowerForge is about the journey, not the destination. There are no win conditions, failure states, or game overs.
 
-**Loss Conditions** (recoverable):
-- Bankruptcy (negative balance prevents building)
-- Mass tenant exodus (satisfaction <20%)
+**What This Means**:
+- **No Bankruptcy**: Funds are a gentle pacing mechanism. If low, revenue slowly accumulates so you can continue building when ready.
+- **No Failure States**: Residents may leave if unhappy, but they'll return when conditions improve. No "game over" or permanent consequences.
+- **No Time Pressure**: Pause anytime, take breaks, play at your own pace. There's no rushing or deadlines.
+- **Infinite Continuation**: After achieving any milestone, keep playing indefinitely. The tower is yours to shape forever.
+- **Personal Goals**: Set your own objectives or just enjoy watching your tower evolve organically.
 
-**Philosophy**: No "game over" — players can always recover through smart decisions.
+**Milestone Recognition** (optional celebration, not requirements):
+- Tower growth milestones (10, 25, 50, 100 floors)
+- Community milestones (100, 500, 1000 residents)
+- Prosperity moments (steady income, happy residents)
+- Unlocking new facilities naturally through play
+- Recognition appears as gentle notifications, never demands
 
-### 3.4 Difficulty Scaling
+### 3.4 Gentle Pacing & Growth
 
-**Implicit Difficulty Curve**:
-- **Early Game (Floors 1-10)**: Tutorial-like, forgiving economy, simple layouts
-- **Mid Game (Floors 11-30)**: Elevator bottlenecks emerge, satisfaction becomes critical
-- **Late Game (Floors 31+)**: Tight optimization required, complex multi-shaft planning
+**Natural Progression**:
+- **Early Stages**: Few residents, simple needs, slow comfortable pace
+- **Growing Community**: More residents bring more activity and life
+- **Established Tower**: Complex daily rhythms emerge naturally
+- **Mature Metropolis**: A living vertical city with its own character
 
-**Player-Adjustable Difficulty**:
-- Starting funds (Easy: $50,000 | Normal: $25,000 | Hard: $10,000)
-- Simulation speed (affects challenge of real-time decisions)
-- Tutorial/help system (optional guidance)
+**Player-Controlled Pace**:
+- Starting funds (Comfortable: $50,000 | Standard: $25,000 | Modest: $10,000)
+- Simulation speed (adjust anytime to match your mood)
+- Optional tutorial system (gentle guidance, never required)
+- Pause and save anytime without penalty
 
 ---
 
@@ -558,35 +565,40 @@ Balance = Starting Funds + Cumulative Net Profit
 
 ---
 
-### 4.9 Achievement System
+### 4.9 Milestone & Recognition System
 
-**Purpose**: Provide concrete goals and reward milestones.
+**Purpose**: Celebrate player progress and tower growth without creating pressure or competition.
 
-#### 4.9.1 Achievement Categories
+**Philosophy**: Achievements are gentle celebrations of your journey, not required objectives. They appear as warm notifications that acknowledge your tower's growth, never as demands or requirements.
 
-**Builder** (construction/expansion):
-- First Facility
-- Reach 10 floors
-- Reach 30 floors
-- Build every facility type
+#### 4.9.1 Growth Milestones (Celebrations, Not Objectives)
 
-**Manager** (operations):
-- 100 tenants
-- 500 tenants
-- Maintain 80% satisfaction for 7 days
-- Fully staff all facilities
+**Community Growth**:
+- Welcome your first resident
+- 50 residents living in your tower
+- 100 residents calling your tower home
+- A thriving community of 500+
+- A bustling metropolis of 1000+
 
-**Economist** (financial):
-- Earn $100,000
-- Earn $500,000
-- $10,000/day profit
-- Zero debt for 7 days
+**Architectural Moments**:
+- Your first building complete
+- 10 floors reaching skyward
+- 25 floors of vertical village
+- 50 floors of community
+- Building every facility type (when you feel like it)
 
-**Prestige** (excellence):
-- Achieve 3-star rating
-- Achieve 5-star rating
-- Complete all research
-- 100 hours played
+**Community Happiness**:
+- A week of resident contentment
+- Residents thriving in your care
+- Creating a truly welcoming space
+
+**Time Together**:
+- Your first day in the tower
+- 10 hours of peaceful building
+- 50 hours watching your tower live
+- 100 hours of cozy creation
+
+**Note**: These milestones appear as gentle notifications - small moments of recognition for your creative journey. They're never shown as a checklist or required progression. You discover them naturally as you play.
 
 **Reference**: `docs/ACHIEVEMENTS.md`
 
@@ -596,22 +608,24 @@ Balance = Starting Funds + Cumulative Net Profit
 
 #### 4.10.1 HUD (Heads-Up Display)
 
-**Top Bar** (always visible):
-- **Funds**: Current balance with color coding (green >$10k, yellow $5-10k, red <$5k)
-- **Population**: Total tenants/visitors
+**Design Philosophy**: Information should be helpful and calming, never demanding or stressful.
+
+**Top Bar** (gentle presence):
+- **Funds**: Current balance (no color stress indicators - just information)
+- **Population**: Total residents in your community
 - **Time**: Current in-game time (HH:MM) and day of week
-- **Speed Control**: Pause, 1x, 2x, 4x buttons
+- **Pace Control**: Pause anytime, adjust speed to your comfort (1x, 2x, 4x)
 
 **Side Panels**:
-- **Build Menu** (left): Facility types with costs, staff requirements, descriptions
-- **Info Panels** (bottom): Contextual information on hover (facilities, people, elevators)
-- **Notification Center** (top-right): Alerts for events, milestones, problems
+- **Build Menu** (left): Browse facilities at your leisure - descriptions, ideas, inspiration
+- **Info Panels** (bottom): Friendly information when you hover - learn about residents and spaces
+- **Gentle Notifications** (top-right): Positive updates, milestone celebrations, never urgent demands
 
-**Overlays** (toggle-able):
-- **Research Tree** (R key): Tech tree with progress and costs
-- **Achievements** (A key): Achievement list with unlock status
-- **Analytics** (click HUD elements): Income/population breakdowns
-- **Help System** (F1): Contextual help and tutorials
+**Optional Views** (toggle whenever you like):
+- **Research Tree** (R key): Discover what's unlockable at your own pace
+- **Milestones** (M key): Gentle reminders of your journey (never a checklist)
+- **Community Insights** (click HUD): Learn about your residents' happiness
+- **Help System** (F1): Friendly guidance whenever you want it
 
 #### 4.10.2 Interaction Paradigms
 
@@ -670,27 +684,32 @@ Balance = Starting Funds + Cumulative Net Profit
 - Mid game introduces amenities that boost satisfaction
 - Late game provides premium facilities with high revenue/costs
 
-### 5.2 Scenario Design (Future)
+### 5.2 Gentle Guidance (Optional)
 
-**Tutorial Campaign**:
-1. First Tower: Build lobby and first office
-2. Vertical Expansion: Reach 5 floors
-3. Elevator Basics: Install and manage elevators
-4. Satisfaction 101: Balance crowding and noise
-5. Economic Fundamentals: Achieve profit
-6. Star Power: Reach 3-star rating
+**Tutorial Moments** (never forced):
+1. Welcome: "This is your space - build what feels right"
+2. First Building: Gentle introduction to placing facilities
+3. Community Growth: "Residents are arriving - watch them find their rhythm"
+4. Elevator Basics: Simple explanation when relevant
+5. Creative Freedom: "Your tower, your way - there's no wrong approach"
 
-**Challenge Scenarios**:
-- **Rush Hour Chaos**: Manage heavy traffic with limited elevators
-- **Budget Crisis**: Start with $5,000, reach profitability
-- **Satisfaction Emergency**: Fix failing tower (low satisfaction)
-- **Skyline Architect**: Build aesthetic tower (scoring based on design)
+**No Challenge Scenarios**: TowerForge is about creation and observation, not challenge completion.
 
-### 5.3 Random Events (Future)
+### 5.3 Community Stories & Events
 
-**Positive Events**:
-- Celebrity visit (temporary satisfaction boost)
-- Economic boom (temporary revenue increase)
+**Emergent Stories** (naturally occurring):
+- Residents develop daily routines you can observe
+- Busy times and quiet times emerge organically
+- Small stories unfold as you watch
+- Seasonal celebrations bring the community together
+
+**Gentle Seasonal Events**:
+- Spring flower festival (decorative additions available)
+- Summer rooftop gathering (residents enjoy outdoor spaces)
+- Autumn harvest market (community comes together)
+- Winter holiday lights (your tower sparkles)
+
+**Design Philosophy**: Events are optional decorative opportunities, never demands or stressors. Participate if you want, ignore if you don't - both approaches are perfect.
 - Grand opening (free marketing, attracting tenants)
 
 **Negative Events**:
@@ -704,97 +723,124 @@ Balance = Starting Funds + Cumulative Net Profit
 
 ## 6. Player Experience
 
-### 6.1 Onboarding
+### 6.1 Welcoming Onboarding
 
-**First-Time User Experience (FTUE)**:
-1. **Welcome Screen**: Brief game explanation, "Start Tutorial" vs. "Free Build"
-2. **Tutorial Part 1**: Build lobby, explained with tooltips
-3. **Tutorial Part 2**: Place first office, observe person spawning
-4. **Tutorial Part 3**: Add elevator, watch people use it
-5. **Tutorial Part 4**: Monitor satisfaction, adjust placement
-6. **Tutorial Complete**: Freedom to experiment
+**First-Time Experience** (gentle and optional):
+1. **Warm Welcome**: "Welcome to your tower. Take your time and build what feels right."
+2. **Optional Guidance**: Friendly tooltips appear if helpful, dismiss if you prefer to explore
+3. **Creative Freedom**: Jump in and start building, or follow gentle suggestions
+4. **Your Pace**: No time limits, no pressure, pause anytime
 
 **Design Goals**:
-- 10-15 minute tutorial
-- Interactive (player builds, not just watches)
-- Skippable for experienced players
-- Contextual help available via F1 anytime
+- Welcoming, never overwhelming
+- Optional guidance, never forced tutorials
+- Learn by doing at your own pace
+- Help always available (F1) but never intrusive
 
-### 6.2 Difficulty Curve
+### 6.2 Natural Growth Journey
 
-**Early Game (0-30 minutes)**:
-- Forgiving: High starting funds, simple layouts
-- Focus: Learn controls, understand basic systems
-- Challenges: None (sandbox)
+**Beginning** (your first moments):
+- Few residents, quiet peaceful pace
+- Discover controls through gentle experimentation
+- Build confidence in your own way
+- No wrong choices, unlimited undo
 
-**Mid Game (30-90 minutes)**:
-- Moderate: Elevator bottlenecks emerge, satisfaction matters
-- Focus: Optimization, strategic placement
-- Challenges: Balance revenue vs. expenses, manage traffic
+**Growing Community** (as your tower develops):
+- More residents bring more life and activity
+- Daily rhythms emerge naturally
+- Discover what makes your residents happy
+- Your personal building style develops
 
-**Late Game (90+ minutes)**:
-- High: Tight optimization required, complex multi-shaft layouts
-- Focus: Perfection, 5-star rating, achievements
-- Challenges: Maximize efficiency, handle scale
+**Established Tower** (when you're ready):
+- Complex daily patterns to observe
+- Rich community life unfolding
+- New facilities unlock naturally
+- Your unique tower personality shines
 
-### 6.3 Player Motivation
+**Ongoing Journey** (forever):
+- No end point, just continued creation
+- Seasonal events add variety if you want
+- Keep building, keep watching, keep enjoying
+- Your tower evolves as you do
 
-**Intrinsic Motivators**:
-- **Mastery**: Learning optimal layouts, traffic patterns
-- **Creativity**: Aesthetic tower design, personal style
-- **Problem-Solving**: Overcoming bottlenecks, satisfaction issues
+### 6.3 What Motivates Cozy Play
 
-**Extrinsic Motivators**:
-- **Progression**: Unlocking research, achievements
-- **Competition** (future): Leaderboards, community showcases
-- **Collection**: Building every facility type, completing content
+**Creative Expression**:
+- Design spaces that feel uniquely yours
+- Experiment with layouts and aesthetics
+- Create themed floors or districts
+- Express your personality through your tower
 
-### 6.4 Pacing
+**Nurturing & Care**:
+- Watch residents live their daily lives
+- Create welcoming, comfortable spaces
+- See happiness emerge from your design
+- Feel the warmth of a thriving community
 
-**Session Length**:
-- **Short Sessions** (15-30 min): Build a few floors, address issues
-- **Medium Sessions** (1-2 hours): Reach next star rating
-- **Long Sessions** (2+ hours): Complete achievements, max out tower
+**Meditative Observation**:
+- Watch patterns emerge over time
+- Observe the flow of daily life
+- Discover small stories and moments
+- Peaceful, calming gameplay
 
-**Save/Load**:
-- Autosave every 5 minutes
-- Quick save/load (F5/F9)
-- Multiple manual save slots (20 slots)
+**Personal Discovery**:
+- Find your own play style
+- Unlock content at your pace
+- Set your own goals (or none)
+- Play however feels good
+
+### 6.4 Flexible Play Sessions
+
+**Anytime, Any Length**:
+- **5 Minutes**: Pop in, place one building, watch for a moment
+- **30 Minutes**: Relax and make some changes, observe life
+- **An Hour**: Shape a new floor, discover new possibilities  
+- **An Evening**: Get lost in creation, watch seasons change
+- **Return Anytime**: Your tower waits patiently, never judging
+
+**Savedata**:
+- Autosave every 5 minutes (never lose progress)
+- Manual save anytime you like
+- Multiple save slots for different towers
+- Cloud saves (future) for playing across devices
 
 **Reference**: `docs/SAVE_LOAD.md`
 
 ---
 
-## 7. Progression & Monetization
+## 7. Growth & Discovery
 
-### 7.1 Progression Systems
+### 7.1 Natural Discovery Systems
 
-**Star Rating** (1-5 stars):
-- Primary progression metric
-- Based on satisfaction, tenants, floors, income
-- Each star unlocks congratulations message and bragging rights
+**Organic Unlocking** (no grind, no gates):
+- New facilities unlock as your community naturally grows
+- Discovery through play, not completion
+- No required objectives or checklists
+- Everything accessible at your own pace
 
-**Research Tree**:
-- 9 nodes across 3 tiers
-- Unlocks facilities, upgrades, bonuses
-- Provides long-term goals
+**Community Recognition**:
+- Gentle notifications celebrate your tower's growth
+- "Your community has grown to 50 residents!" 
+- "Residents are thriving in your care"
+- Recognition, not requirements
 
-**Achievements**:
-- 19 achievements across 4 categories
-- Mix of easy (tutorial) and hard (aspirational)
-- Persist across saves
+**Research as Discovery**:
+- Optional system for those who enjoy it
+- Unlock new building types and options
+- Entirely at your discretion
+- Can ignore completely and still enjoy everything
 
-### 7.2 Monetization (Open Source Model)
+### 7.2 Sharing & Expression (Open Source Philosophy)
 
-**Current Model**: Free and open source
+**Current Model**: Free and open source forever
 
-**Potential Future Monetization** (if project becomes sustainable):
-- **Cosmetic DLC**: Themed facility skins (cyberpunk, medieval, etc.)
-- **Scenario Packs**: Curated challenge campaigns
-- **Soundtrack DLC**: Extended music tracks
-- **"Support the Developers" Donation Option**: Voluntary contributions
+**Future Possibilities** (always optional):
+- **Themed Building Packs**: Seasonal or aesthetic variations (always free or donation-based)
+- **Community Showcase**: Share your tower designs with others (screenshots, tours)
+- **Modding Support**: Create and share your own content
+- **"Buy Us a Coffee"**: Optional support for developers, never required
 
-**Philosophy**: Never paywall gameplay features. All mechanics free forever.
+**Core Philosophy**: TowerForge is a gift to the community. All gameplay always free. Optional support welcomed but never expected.
 
 ---
 
@@ -833,65 +879,76 @@ Balance = Starting Funds + Cumulative Net Profit
 
 ---
 
-## 9. Success Criteria
+## 9. Success Criteria (Cozy Game Values)
 
-### 9.1 Gameplay Metrics
+### 9.1 Player Experience Metrics
 
-- **Tutorial Completion**: >90% of players complete tutorial
-- **Session Length**: Average 45+ minutes per session
-- **Retention**: 50%+ return after 7 days
-- **Star Rating Distribution**: 30% reach 5 stars within 10 hours
+- **Welcoming Experience**: Players feel comfortable and calm from the start
+- **Session Flexibility**: Players feel good about any session length (5 min to 5 hours)
+- **Return Comfort**: Players return because they want to, not obligation
+- **Creative Satisfaction**: Players express their unique vision and feel proud
 
-### 9.2 Quality Metrics
+### 9.2 Quality & Comfort Metrics
 
-- **Bugs**: <5 critical bugs in production
-- **Crashes**: <1% crash rate
-- **Performance**: 60 FPS on minimum spec
-- **Accessibility**: WCAG 2.1 AA compliance
+- **Stability**: <5 critical bugs, <1% crash rate
+- **Performance**: Smooth 60 FPS on modest hardware
+- **Accessibility**: WCAG 2.1 AA compliance - everyone can enjoy
+- **Stress-Free**: No aggressive timers, fail states, or punishment mechanics
+- **Respectful**: Never demands player's time or attention
 
-### 9.3 Community Metrics
+### 9.3 Community & Sharing
 
-- **GitHub Stars**: 1,000+ stars (measure of interest)
-- **Contributors**: 20+ active contributors
-- **Mods**: 50+ community mods in first year
-- **Downloads**: 100,000+ total downloads
+- **Positive Community**: Sharing creations, not competition
+- **Modding Creativity**: Community adds cozy content
+- **GitHub Growth**: 1,000+ stars showing interest
+- **Downloads**: 100,000+ players finding their cozy space
+- **Word of Mouth**: "This game is so relaxing and creative"
 
 ---
 
 ## 10. References
 
-### 10.1 Design Influences
+### 10.1 Design Influences & Philosophy
 
-- **SimTower** (Maxis, 1994): Original inspiration
-- **The Tower** (OPeNBooK, 1994): Japanese original
-- **Yoot Tower** (OPeNBooK, 1998): Spiritual sequel
-- **Project Highrise** (SomaSim, 2016): Modern take
-- **RimWorld** (Ludeon Studios, 2018): AI storytelling
-- **Factorio** (Wube Software, 2020): Optimization gameplay
-- **Cities: Skylines** (Colossal Order, 2015): Traffic management
+**Core Inspiration**:
+- **SimTower** (Maxis, 1994): Original tower simulation
+- **Yoot Tower** (OPeNBooK, 1998): Expanded creative freedom
+- **Cozy Games Manifesto** (Lost Garden, 2018): Core design philosophy
+
+**Cozy Game Principles Applied**:
+- **No Failure States**: You can't lose, only create
+- **Gentle Pacing**: Play at your own speed, pause anytime
+- **Personal Expression**: Your tower is unique to you
+- **Nurturing Care**: Watch your community thrive
+- **Meditative Experience**: Calming, peaceful, restorative
+- **Warm Aesthetics**: Welcoming visuals and tone
+
+**Other Cozy Influences**:
+- **Animal Crossing**: Non-competitive, creative expression
+- **Stardew Valley**: Gentle community building
+- **A Short Hike**: No stress, pure exploration
+- **Unpacking**: Meditative organization and expression
+- **The Sims**: Watching lives unfold
 
 ### 10.2 Design Principles
 
-**Sid Meier's "Interesting Decisions"**:
-- Every facility placement is meaningful
-- Trade-offs between expansion and optimization
-- No "obviously correct" solution
+**Cozy Game Design Philosophy**:
+- **Embrace Not Challenge**: Welcoming, not demanding
+- **Expression Not Optimization**: Create, don't min-max
+- **Community Not Competition**: Share, don't compete
+- **Comfort Not Stress**: Calming, not anxiety-inducing
+- **Care Not Control**: Nurture, don't dominate
 
 **John Carmack's Technical Excellence**:
 - Modern C++20 architecture
 - ECS for performance and maintainability
 - Cross-platform from day one
 
-**Shigeru Miyamoto's "Polish"**:
-- Smooth animations, responsive controls
-- Contextual help, tooltips everywhere
-- Undo/redo for forgiving gameplay
-
-**Accessibility Best Practices** (WCAG 2.1):
+**Inclusive Design** (WCAG 2.1):
 - Full keyboard navigation
 - High-contrast mode
 - Scalable text
-- No color-only information
+- Never exclude anyone from the cozy experience
 
 ### 10.3 Technical Documentation
 

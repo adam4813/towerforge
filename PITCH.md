@@ -1,92 +1,99 @@
-# TowerForge: The Next Generation Skyscraper Simulator
+# TowerForge: A Cozy Skyscraper Creation Experience
 
 ## 🏢 One-Line Pitch
-**A modern, open-source reimagining of SimTower that combines deep simulation with player accessibility, built on cutting-edge C++20 architecture.**
+**A cozy, open-source tower-building game where you create and nurture your own vertical community at your own pace — no stress, no failure, just creative expression and gentle simulation.**
 
 ---
 
 ## 🎯 The Vision
 
-TowerForge is the spiritual successor to Maxis's SimTower (1994) — but for the modern era. We're building the definitive skyscraper management simulation: one that respects the genre's roots while embracing contemporary game design principles and technical excellence.
+TowerForge brings the beloved SimTower experience into the cozy games era. We're creating a peaceful, creative space where players build unique vertical communities, watch residents live their lives, and express themselves through architectural design — all without pressure, failure states, or competition.
 
 ### Why Now?
 
-- **Genre Revival**: Tower/vertical city sims are underserved; SimTower's charm remains unmatched 30 years later
-- **Technical Innovation**: Modern C++20 + ECS architecture enables unprecedented scale and moddability
-- **Open Development**: Full source availability means a game that evolves with its community
-- **Cross-Platform**: Windows, Linux, macOS from day one
+- **Cozy Game Movement**: Players crave gentle, non-competitive experiences that respect their time
+- **Genre Revival**: SimTower's charm deserves a modern, stress-free interpretation
+- **Technical Excellence**: Modern C++20 + ECS enables smooth, meditative simulation
+- **Open & Welcoming**: Free, open-source, accessible to everyone
+- **Cross-Platform Comfort**: Play on Windows, Linux, or macOS
 
 ---
 
-## 🎮 Core Gameplay Loop
+## 🎮 Core Experience
 
-1. **Build** → Construct facilities (offices, shops, residences, amenities)
-2. **Manage** → Balance tenant satisfaction, staffing, and vertical transportation
-3. **Optimize** → Improve traffic flow, expand intelligently, unlock upgrades
-4. **Prosper** → Earn star ratings, achieve milestones, expand your architectural empire
+**Build → Watch → Nurture → Enjoy**
 
-### The Hook
+1. **Create** → Place facilities where they feel right, experiment freely
+2. **Observe** → Watch your community come to life with daily rhythms
+3. **Nurture** → Care for your residents' happiness through thoughtful design
+4. **Express** → Make your tower uniquely yours with no wrong choices
 
-**Every floor is a puzzle.** Facility placement isn't just about space — it's about:
-- Elevator access patterns
-- Tenant satisfaction from nearby amenities
-- Traffic flow during rush hours
-- Revenue optimization through strategic adjacency
-- Vertical expansion vs. economic constraints
+### The Magic
+
+**Every building is a creative expression.** TowerForge offers:
+- Peaceful, meditative building at your own pace
+- Watching lives unfold in your vertical village
+- No failure states or pressure — just gentle growth
+- Unlimited undo for stress-free experimentation
+- Personal style and creativity over optimization
+- Community and warmth emerging from your design
 
 ---
 
 ## 🌟 What Makes TowerForge Special?
 
-### 1. **True Simulation Depth**
-- **People AI**: Every person has needs, destinations, schedules, and personality archetypes
-- **Economic Model**: Real-time revenue/expense tracking with quality multipliers
-- **Elevator Physics**: Realistic vertical transportation with capacity management and queuing
-- **Satisfaction Systems**: Tenants respond to crowding, noise, facility quality, and wait times
+### 1. **Cozy Game Design Philosophy**
+- **No Failure States**: You can't lose, only create and discover
+- **Gentle Pacing**: Play for 5 minutes or 5 hours — both are perfect
+- **Personal Expression**: Every tower is unique to its creator
+- **Meditative Experience**: Calming, peaceful, restorative gameplay
+- **Nurturing Care**: Watch your community thrive under your care
 
-### 2. **Modern Accessibility**
+### 2. **Living Community Simulation**
+- **Resident Lives**: Watch people develop routines and live their days
+- **Emergent Stories**: Small narratives unfold naturally
+- **Daily Rhythms**: Morning bustle, lunch breaks, evening calm
+- **Seasonal Events**: Optional celebrations bring warmth (never required)
+
+### 3. **Welcoming Accessibility**
 - Full keyboard navigation
-- High-contrast mode
+- High-contrast mode for visibility
 - Scalable UI (50%-300%)
-- Contextual tooltips
-- Tutorial system
-- Comprehensive help system
+- Gentle tooltips and optional help
+- Screen reader support (future)
+- Never excludes anyone from the cozy experience
 
-### 3. **Extensibility by Design**
-- **Lua Modding API**: Custom facilities and visitor types without touching C++
-- **ECS Architecture**: Easy to add systems and behaviors
-- **Data-Driven Content**: Facilities, achievements, research nodes defined in data
-- **Open Source**: Community contributions welcomed
-
-### 4. **Quality of Life**
-- Unlimited undo/redo with visual history
-- Research tree for progression
-- Achievement system for goals
-- Robust save/load system
-- Real-time analytics overlays
-- Notification center
+### 4. **Creative Freedom Tools**
+- Unlimited undo/redo — experiment fearlessly
+- Optional discovery system for new content
+- Gentle milestone celebrations (never requirements)
+- Robust autosave — never lose your creation
+- Multiple save slots for different towers
+- Mod support for community creativity
 
 ---
 
 ## 📊 Market Position
 
 ### Target Audience
-- **Primary**: PC strategy/simulation enthusiasts (25-45 years old)
-- **Secondary**: Former SimTower/Yoot Tower fans seeking modern alternative
-- **Tertiary**: Management game fans (Cities: Skylines, Factorio, RimWorld)
+- **Primary**: Cozy game fans seeking creative, non-competitive experiences (18-65+)
+- **Secondary**: Former SimTower fans wanting a stress-free modern version
+- **Tertiary**: Players seeking meditative, calming games (Animal Crossing, Stardew Valley fans)
 
 ### Comparable Titles
-| Game | Year | Strengths | TowerForge Advantage |
-|------|------|-----------|---------------------|
-| SimTower | 1994 | Original charm | Modern UX, moddability, active development |
-| Project Highrise | 2016 | Visual polish | Deeper simulation, open source |
-| Yoot Tower | 1998 | Expanded gameplay | Cross-platform, performance, accessibility |
+| Game | Year | Strengths | TowerForge Difference |
+|------|------|-----------|----------------------|
+| SimTower | 1994 | Nostalgic charm | Cozy redesign without stress |
+| Animal Crossing | 2001+ | Cozy perfection | Vertical building focus |
+| Stardew Valley | 2016 | Community & care | Urban vertical setting |
+| Project Highrise | 2016 | Modern polish | Truly cozy design philosophy |
 
 ### Differentiation
-- **Only open-source vertical city sim** with modern architecture
-- **Best-in-class accessibility features** in the genre
-- **Lua modding** for easy content creation
-- **Entity Component System** enables unprecedented scale
+- **Only cozy tower sim** — no failure states, pure creative expression
+- **Open-source & welcoming** — free forever, community-driven
+- **Best-in-class accessibility** — everyone can enjoy the cozy experience
+- **Meditative pacing** — respect for player's time and mental health
+- **Technical excellence** — smooth, performant, beautiful simulation
 
 ---
 
@@ -113,78 +120,84 @@ TowerForge is the spiritual successor to Maxis's SimTower (1994) — but for the
 
 ---
 
-## 🗺️ Roadmap Snapshot
+## 🗺️ Development Journey
 
-### ✅ **Core Foundation (Current)**
-- ECS world with 20+ component types
-- Person movement with 5-state AI
-- Elevator system with realistic physics
-- 12 facility types with staffing
-- Economic simulation (revenue, costs, satisfaction)
-- Research tree and achievements
-- Save/load system
-- Interactive building with undo/redo
-- Star rating progression
+### ✅ **Current Experience**
+- Peaceful building simulation
+- Living residents with daily routines
+- Gentle elevator management
+- 12 facility types to discover
+- Economic system (non-punishing)
+- Optional discovery system
+- Milestone celebrations (not requirements)
+- Unlimited undo/redo
+- Robust autosave
 
-### 🚧 **Next Milestones**
-- Audio system (music, SFX, ambient)
-- Enhanced visitor needs (hunger, entertainment, shopping)
-- Staff management and scheduling
-- Advanced facility upgrades
-- Random events and scenarios
-- Tutorial campaign
-- Steam integration
+### 🚧 **Growing Features**
+- Calming audio atmosphere
+- Seasonal celebrations and events
+- More facility variety for expression
+- Enhanced resident personality
+- Cozy visual themes and decorations
+- Accessibility improvements
+- Community sharing features
 
-### 🔮 **Future Vision**
-- Multiplayer tower competitions
-- Procedural event generation
-- Advanced traffic simulation
-- Weather and time-of-day effects
-- Modding workshop/repository
-- Mobile ports (iOS/Android)
+### 🔮 **Future Warmth**
+- More ways to express your style
+- Community tower showcases (non-competitive)
+- Expanded modding for creativity
+- Weather and seasonal aesthetics
+- Mobile ports for cozy play anywhere
+- Gentle achievements and discovery
 
 ---
 
-## 📈 Success Metrics
+## 📈 Success Through Comfort
 
-### Technical
-- **Build Success**: 100% CI pass rate across platforms
-- **Test Coverage**: >80% on critical systems
-- **Performance**: 60 FPS with 500+ entities
-- **Load Times**: <5 seconds for large saves
+### Experience Metrics
+- **Welcoming Feel**: Players feel calm and comfortable immediately
+- **Return Rate**: Players return because they want to, not obligation
+- **Session Flexibility**: 5 minutes or 5 hours both feel good
+- **Player Creativity**: Unique towers showing personal expression
+- **Positive Sentiment**: "So relaxing," "My cozy space," "Beautiful and calm"
 
-### Player Experience
-- **Onboarding**: 90%+ tutorial completion rate
-- **Retention**: Average 10+ hours played (Steam metrics)
-- **Satisfaction**: 85%+ positive reviews
-- **Accessibility**: WCAG AA compliance
+### Community Health
+- **Sharing Culture**: Players share creations, not compete
+- **Helpful Community**: Welcoming to newcomers
+- **Creative Mods**: Community adds cozy content
+- **Word of Mouth**: "You have to try this peaceful game"
+- **Long-term Love**: Players keep returning to their towers
 
-### Community
-- **Contributors**: 20+ active contributors
-- **Mods**: 50+ community mods in first year
-- **Community**: 5,000+ Discord members
-- **Reach**: 100,000+ downloads in first year
+### Quality Standards
+- **Stability**: Smooth, crash-free experience
+- **Performance**: 60 FPS on modest hardware
+- **Accessibility**: WCAG AA — everyone welcome
+- **Respectful**: Never demands, never stresses
+- **Open Forever**: Free, open-source, community-owned
 
 ---
 
 ## 💡 Why This Matters
 
-**Preservation of Gaming History**: SimTower defined a genre but is effectively lost to modern players. TowerForge ensures this gameplay style survives and evolves.
+**Mental Health Through Play**: In an age of stressful, competitive games, TowerForge offers a peaceful refuge. Gaming should comfort, not stress.
 
-**Technical Showcase**: Demonstrates that C++20 + ECS can deliver both performance *and* developer ergonomics, serving as reference architecture for future sims.
+**Cozy Game Movement**: Responding to players' desire for gentle, meaningful experiences that respect their time and mental wellbeing.
 
-**Open Gaming Future**: Proves open-source game development can match commercial quality while empowering communities.
+**Inclusive by Design**: Accessibility isn't an afterthought — everyone deserves access to cozy experiences.
 
-**Accessibility Leadership**: Sets new standards for inclusive design in management sims.
+**Open & Welcoming**: Free forever, open-source, community-driven. This is a gift to players, not a product to optimize.
+
+**Preservation with Purpose**: Keeping SimTower's spirit alive while evolving it for modern wellness-focused gaming.
 
 ---
 
-## 🎬 Call to Action
+## 🎬 Join the Cozy Community
 
-**Play**: Download pre-built binaries from GitHub Actions  
-**Contribute**: Fork, build, submit PRs — all skill levels welcome  
-**Extend**: Create mods with Lua — no C++ required  
-**Discuss**: Join our community — Discord/GitHub Discussions  
+**Play**: Download and build your peaceful tower  
+**Share**: Show your unique creations (no competition, just appreciation)  
+**Create**: Mod with Lua — add your own cozy content  
+**Connect**: Join our welcoming community  
+**Rest**: Take breaks, return anytime — your tower waits patiently  
 
 ---
 
@@ -192,11 +205,11 @@ TowerForge is the spiritual successor to Maxis's SimTower (1994) — but for the
 
 - **Repository**: https://github.com/adam4813/towerforge
 - **Documentation**: See `GAME_DESIGN_DOCUMENT.md` and `TECHNICAL_DESIGN_DOCUMENT.md`
+- **Cozy Philosophy**: Based on the [Cozy Games Manifesto](https://lostgarden.com/2018/01/24/cozy-games/)
 - **Build Instructions**: See `README.md`
-- **Contributing**: See `CONTRIBUTING.md`
 
 ---
 
-**TowerForge**: *Building the future of vertical city simulation.*
+**TowerForge**: *Creating cozy vertical communities together.*
 
-*Inspired by Maxis. Built by the community. Open to everyone.*
+*Inspired by SimTower. Guided by the cozy games philosophy. Built with care.*
