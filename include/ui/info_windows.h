@@ -29,23 +29,23 @@ namespace towerforge::ui {
     private:
         FacilityInfo info_;
 
-        // Component members
-        std::unique_ptr<StatItem> occupancy_stat_;
-        std::unique_ptr<StatItem> revenue_stat_;
-        std::unique_ptr<StatItem> satisfaction_stat_;
-        std::unique_ptr<StatItem> tenants_stat_;
-        std::unique_ptr<SectionHeader> status_header_;
-        std::unique_ptr<StatItem> cleanliness_state_stat_;
-        std::unique_ptr<StatItem> cleanliness_stat_;
-        std::unique_ptr<StatItem> maintenance_stat_;
-        std::unique_ptr<StatItem> maintenance_state_stat_;
+        // Component members (ownership transferred to UIWindow via AddChild)
+        StatItem* occupancy_stat_;
+        StatItem* revenue_stat_;
+        StatItem* satisfaction_stat_;
+        StatItem* tenants_stat_;
+        SectionHeader* status_header_;
+        StatItem* cleanliness_state_stat_;
+        StatItem* cleanliness_stat_;
+        StatItem* maintenance_stat_;
+        StatItem* maintenance_state_stat_;
         std::unique_ptr<AlertBar> fire_alert_;
         std::unique_ptr<AlertBar> security_alert_;
-        std::unique_ptr<SectionHeader> adjacency_header_;
-        std::vector<std::unique_ptr<StatItem>> adjacency_items_;
+        SectionHeader* adjacency_header_;
+        std::vector<StatItem*> adjacency_items_;
         
         // Button panel and raw pointers to buttons
-        std::unique_ptr<Panel> button_panel_;
+        Panel* button_panel_;
         IconButton* demolish_button_;
         IconButton* upgrade_button_;
         IconButton* repair_button_;
@@ -70,24 +70,24 @@ namespace towerforge::ui {
     private:
         PersonInfo info_;
 
-        // Component members
-        std::unique_ptr<StatItem> type_stat_;
-        std::unique_ptr<StatItem> archetype_stat_;
-        std::unique_ptr<SectionHeader> staff_header_;
-        std::unique_ptr<StatItem> role_stat_;
-        std::unique_ptr<StatItem> duty_stat_;
-        std::unique_ptr<StatItem> shift_stat_;
-        std::unique_ptr<StatItem> status_stat_;
-        std::unique_ptr<StatItem> state_stat_;
-        std::unique_ptr<StatItem> current_floor_stat_;
-        std::unique_ptr<StatItem> dest_floor_stat_;
-        std::unique_ptr<StatItem> wait_time_stat_;
-        std::unique_ptr<SectionHeader> needs_header_;
-        std::unique_ptr<StatItem> hunger_stat_;
-        std::unique_ptr<StatItem> entertainment_stat_;
-        std::unique_ptr<StatItem> comfort_stat_;
-        std::unique_ptr<StatItem> shopping_stat_;
-        std::unique_ptr<StatItem> satisfaction_stat_;
+        // Component members (ownership transferred to UIWindow via AddChild)
+        StatItem* type_stat_;
+        StatItem* archetype_stat_;
+        SectionHeader* staff_header_;
+        StatItem* role_stat_;
+        StatItem* duty_stat_;
+        StatItem* shift_stat_;
+        StatItem* status_stat_;
+        StatItem* state_stat_;
+        StatItem* current_floor_stat_;
+        StatItem* dest_floor_stat_;
+        StatItem* wait_time_stat_;
+        SectionHeader* needs_header_;
+        StatItem* hunger_stat_;
+        StatItem* entertainment_stat_;
+        StatItem* comfort_stat_;
+        StatItem* shopping_stat_;
+        StatItem* satisfaction_stat_;
 
         void BuildComponents();
         void UpdateComponentValues();
@@ -109,12 +109,12 @@ namespace towerforge::ui {
     private:
         ElevatorInfo info_;
 
-        // Component members
-        std::unique_ptr<StatItem> current_floor_stat_;
-        std::unique_ptr<StatItem> occupancy_stat_;
-        std::unique_ptr<StatItem> next_stop_stat_;
-        std::unique_ptr<StatItem> queue_length_stat_;
-        std::vector<std::unique_ptr<StatItem>> queue_items_;
+        // Component members (ownership transferred to UIWindow via AddChild)
+        StatItem* current_floor_stat_;
+        StatItem* occupancy_stat_;
+        StatItem* next_stop_stat_;
+        StatItem* queue_length_stat_;
+        std::vector<StatItem*> queue_items_;
 
         void BuildComponents();
         void UpdateComponentValues();
