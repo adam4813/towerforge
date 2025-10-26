@@ -664,17 +664,17 @@ namespace towerforge::ui {
 
     void HUD::ShowIncomeAnalytics(const IncomeBreakdown& data) const {
         auto window = std::make_unique<IncomeAnalyticsOverlay>(data);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddAnalyticsWindow(std::move(window));
     }
 
     void HUD::ShowElevatorAnalytics(const ElevatorAnalytics& data) const {
         auto window = std::make_unique<ElevatorAnalyticsOverlay>(data);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddAnalyticsWindow(std::move(window));
     }
 
     void HUD::ShowPopulationAnalytics(const PopulationBreakdown& data) const {
         auto window = std::make_unique<PopulationAnalyticsOverlay>(data);
-        window_manager_->AddWindow(std::move(window));
+        window_manager_->AddAnalyticsWindow(std::move(window));
     }
 
     void HUD::SetIncomeAnalyticsCallback(std::function<IncomeBreakdown()> callback) {

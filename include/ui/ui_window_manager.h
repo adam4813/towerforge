@@ -34,6 +34,13 @@ namespace towerforge::ui {
         int AddInfoWindow(std::unique_ptr<UIWindow> window);
     
         /**
+     * @brief Add an analytics/overlay window (singleton per title)
+     * Only one window with the same title can exist at a time
+     * @return Window ID
+     */
+        int AddAnalyticsWindow(std::unique_ptr<UIWindow> window);
+    
+        /**
      * @brief Remove a window by ID
      */
         void RemoveWindow(int window_id);

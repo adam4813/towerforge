@@ -3,84 +3,101 @@
 #include <raylib.h>
 #include <string>
 #include <memory>
+#include <functional>
+#include "ui/ui_element.h"
 #include "ui/window_chrome.h"
 
 namespace towerforge::ui {
 
     /**
- * @brief Base class for all UI windows
- * 
- * Uses WindowChrome (Strategy pattern) for rendering window decoration,
- * allowing chrome behavior to be encapsulated and reused.
- */
-    class UIWindow {
+     * @brief Base class for all UI windows
+     * 
+     * Now inherits from Panel (Composite pattern), integrating into the UIElement hierarchy.
+     * Uses WindowChrome (Strategy pattern) for rendering window decoration.
+     * 
+     * Benefits:
+     * - Automatic event handling via ProcessMouseEvent
+     * - Can add child UIElements with proper composition
+     * - Eliminates parallel hierarchy with UIElement
+     * - Consistent positioning, hit testing, rendering
+     */
+    class UIWindow : public Panel {
     public:
-        UIWindow(const std::string& title, int width, int height);
+        using CloseCallback = std::function<void()>;
+
+        /**
+         * @brief Construct a UI window
+         * @param title Window title text
+         * @param width Window width
+         * @param height Window height
+         */
+        UIWindow(const std::string& title, float width, float height);
         virtual ~UIWindow() = default;
     
         /**
-     * @brief Render the window
-     */
-        virtual void Render() = 0;
+         * @brief Render the window (chrome + children)
+         */
+        void Render() const override;
     
         /**
-     * @brief Update window (for animations, repositioning, etc.)
-     */
-        virtual void Update(float delta_time) {}
+         * @brief Update window (for animations, repositioning, etc.)
+         */
+        void Update(float delta_time) override;
     
         /**
-     * @brief Check if a point is inside the window
-     */
-        bool Contains(int x, int y) const;
+         * @brief Process mouse events (handles close button + delegates to children)
+         */
+        bool ProcessMouseEvent(const MouseEvent& event) override;
     
         /**
-     * @brief Check if the close button was clicked
-     */
-        bool IsCloseButtonClicked(int mouse_x, int mouse_y) const;
-    
+         * @brief Get window ID (unique identifier)
+         */
+        int GetId() const { return id_; }
+        
         /**
-     * @brief Get window bounds
-     */
-        Rectangle GetBounds() const;
-    
+         * @brief Set window title
+         */
+        void SetTitle(const std::string& title) { title_ = title; }
+        
         /**
-     * @brief Set window position
-     */
-        void SetPosition(int x, int y);
-    
+         * @brief Get window title
+         */
+        const std::string& GetTitle() const { return title_; }
+        
         /**
-     * @brief Get z-order (higher values are rendered on top)
-     */
+         * @brief Set close callback (called when X button clicked)
+         */
+        void SetCloseCallback(CloseCallback callback) { close_callback_ = callback; }
+        
+        /**
+         * @brief Set window position (overrides Panel to update both)
+         */
+        void SetWindowPosition(float x, float y);
+        
+        /**
+         * @brief Get z-order (higher values are rendered on top)
+         */
         int GetZOrder() const { return z_order_; }
     
         /**
-     * @brief Set z-order
-     */
-        void SetZOrder(const int z_order) { z_order_ = z_order; }
-    
-        /**
-     * @brief Get window ID
-     */
-        int GetId() const { return id_; }
+         * @brief Set z-order
+         */
+        void SetZOrder(int z_order) { z_order_ = z_order; }
     
     protected:
-        void RenderFrame(Color border_color) const;
-        void RenderCloseButton() const;
-    
+        /**
+         * @brief Render window content (override in subclasses)
+         * Default implementation renders all children
+         */
+        virtual void RenderContent() const;
+        
         int id_;
         std::string title_;
-        int x_;
-        int y_;
-        int width_;
-        int height_;
         int z_order_;
+        CloseCallback close_callback_;
         
         // Strategy pattern: delegate chrome rendering
         WindowChrome chrome_;
-    
-        static constexpr int TITLE_BAR_HEIGHT = 25;
-        static constexpr int CLOSE_BUTTON_SIZE = 15;
-        static constexpr int PADDING = 10;
     
     private:
         static int next_id_;

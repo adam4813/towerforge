@@ -190,12 +190,15 @@ namespace towerforge::ui {
         }
     }
 
-    void FacilityWindow::Render() {
-        RenderFrame(SKYBLUE);
-        RenderCloseButton();
-
-        const int x = x_ + PADDING;
-        const int y_base = y_ + TITLE_BAR_HEIGHT + PADDING;
+    void FacilityWindow::Render() const {
+        // Call parent to render chrome + content
+        UIWindow::Render();
+    }
+    
+    void FacilityWindow::RenderContent() const {
+        const Rectangle bounds = GetAbsoluteBounds();
+        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
+        const int y_base = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
     
         // Render all stat components
         occupancy_stat_->Render(x, y_base);
@@ -371,16 +374,18 @@ namespace towerforge::ui {
 
     void PersonWindow::Update(const PersonInfo& info) {
         info_ = info;
-        title_ = info.name;
+        SetTitle(info.name);
         UpdateComponentValues();
     }
 
-    void PersonWindow::Render() {
-        RenderFrame(YELLOW);
-        RenderCloseButton();
-
-        const int x = x_ + PADDING;
-        const int y_base = y_ + TITLE_BAR_HEIGHT + PADDING;
+    void PersonWindow::Render() const {
+        UIWindow::Render();
+    }
+    
+    void PersonWindow::RenderContent() const {
+        const Rectangle bounds = GetAbsoluteBounds();
+        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
+        const int y_base = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
     
         // Render basic info
         type_stat_->Render(x, y_base);
@@ -483,17 +488,23 @@ namespace towerforge::ui {
 
     void ElevatorWindow::Update(const ElevatorInfo& info) {
         info_ = info;
-        title_ = "ELEVATOR #" + std::to_string(info.id);
-        height_ = 150 + (static_cast<int>(info.queue.size()) * 20);
+        SetTitle("ELEVATOR #" + std::to_string(info.id));
+        
+        // Update window size for queue
+        const float new_height = 150 + (static_cast<float>(info.queue.size()) * 20);
+        SetSize(GetRelativeBounds().width, new_height);
+        
         UpdateComponentValues();
     }
 
-    void ElevatorWindow::Render() {
-        RenderFrame(PURPLE);
-        RenderCloseButton();
-
-        const int x = x_ + PADDING;
-        const int y_base = y_ + TITLE_BAR_HEIGHT + PADDING;
+    void ElevatorWindow::Render() const {
+        UIWindow::Render();
+    }
+    
+    void ElevatorWindow::RenderContent() const {
+        const Rectangle bounds = GetAbsoluteBounds();
+        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
+        const int y_base = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
     
         // Render stats
         current_floor_stat_->Render(x, y_base);

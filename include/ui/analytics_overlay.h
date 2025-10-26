@@ -63,8 +63,11 @@ namespace towerforge::ui {
     class IncomeAnalyticsOverlay : public UIWindow {
     public:
         IncomeAnalyticsOverlay(const IncomeBreakdown& data);
-        void Render() override;
+        void Render() const override;
         void Update(const IncomeBreakdown& data);
+        
+    protected:
+        void RenderContent() const override;
         
     private:
         IncomeBreakdown data_;
@@ -76,8 +79,11 @@ namespace towerforge::ui {
     class ElevatorAnalyticsOverlay : public UIWindow {
     public:
         ElevatorAnalyticsOverlay(const ElevatorAnalytics& data);
-        void Render() override;
+        void Render() const override;
         void Update(const ElevatorAnalytics& data);
+        
+    protected:
+        void RenderContent() const override;
         
     private:
         ElevatorAnalytics data_;
@@ -89,8 +95,11 @@ namespace towerforge::ui {
     class PopulationAnalyticsOverlay : public UIWindow {
     public:
         PopulationAnalyticsOverlay(const PopulationBreakdown& data);
-        void Render() override;
+        void Render() const override;
         void Update(const PopulationBreakdown& data);
+        
+    protected:
+        void RenderContent() const override;
         
     private:
         PopulationBreakdown data_;

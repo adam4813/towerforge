@@ -1,4 +1,5 @@
 #include "ui/ui_window_manager.h"
+#include "ui/mouse_interface.h"
 #include <raylib.h>
 
 namespace towerforge::ui {
@@ -36,6 +37,11 @@ namespace towerforge::ui {
     int UIWindowManager::AddWindow(std::unique_ptr<UIWindow> window) {
         const int window_id = window->GetId();
 
+        // Set close callback
+        window->SetCloseCallback([this, window_id]() {
+            RemoveWindow(window_id);
+        });
+
         // Calculate position for the new window
         CalculateWindowPosition(window.get());
 
@@ -56,6 +62,11 @@ namespace towerforge::ui {
         
         const int window_id = window->GetId();
 
+        // Set close callback
+        window->SetCloseCallback([this, window_id]() {
+            RemoveWindow(window_id);
+        });
+
         // Calculate centered position at bottom
         CalculateInfoWindowPosition(window.get());
 
@@ -66,6 +77,22 @@ namespace towerforge::ui {
         windows_.push_back(std::move(window));
 
         return window_id;
+    }
+
+    int UIWindowManager::AddAnalyticsWindow(std::unique_ptr<UIWindow> window) {
+        const std::string title = window->GetTitle();
+        
+        // Check if a window with this title already exists
+        for (const auto& existing : windows_) {
+            if (existing->GetTitle() == title) {
+                // Window already open, bring to front
+                BringToFront(existing->GetId());
+                return existing->GetId();
+            }
+        }
+        
+        // No existing window, add as normal window
+        return AddWindow(std::move(window));
     }
 
     void UIWindowManager::RemoveWindow(int window_id) {
@@ -105,6 +132,10 @@ namespace towerforge::ui {
     }
 
     bool UIWindowManager::HandleClick(const int mouse_x, const int mouse_y) {
+        // Create mouse event
+        const MouseEvent event(static_cast<float>(mouse_x), static_cast<float>(mouse_y),
+                              false, false, true, false);
+        
         // Check windows in reverse z-order (top windows first)
         std::vector<UIWindow*> sorted_windows;
         sorted_windows.reserve(windows_.size());
@@ -118,11 +149,11 @@ namespace towerforge::ui {
                               return a->GetZOrder() > b->GetZOrder();
                           });
 
-        for (const UIWindow* window : sorted_windows) {
-            if (window->Contains(mouse_x, mouse_y)) {
-                // Check if close button was clicked
-                if (window->IsCloseButtonClicked(mouse_x, mouse_y)) {
-                    RemoveWindow(window->GetId());
+        for (UIWindow* window : sorted_windows) {
+            if (window->Contains(static_cast<float>(mouse_x), static_cast<float>(mouse_y))) {
+                // Process mouse event (handles close button + children)
+                if (window->ProcessMouseEvent(event)) {
+                    // Window handled event (might be close button)
                     return true;
                 }
 
@@ -160,7 +191,7 @@ namespace towerforge::ui {
         const int screen_height = GetScreenHeight();
 
         // Default position: right side of screen
-        int default_x = screen_width - window->GetBounds().width - INITIAL_X_OFFSET;
+        int default_x = screen_width - static_cast<int>(window->GetAbsoluteBounds().width) - INITIAL_X_OFFSET;
         int default_y = INITIAL_Y_OFFSET;
 
         // If there are existing windows, cascade the new window
@@ -177,22 +208,22 @@ namespace towerforge::ui {
             }
 
             if (top_window) {
-                const Rectangle top_bounds = top_window->GetBounds();
+                const Rectangle top_bounds = top_window->GetAbsoluteBounds();
 
                 // Position new window slightly offset from the top window
                 default_x = static_cast<int>(top_bounds.x) + WINDOW_SPACING;
                 default_y = static_cast<int>(top_bounds.y) + WINDOW_SPACING;
 
                 // If the cascaded position goes off-screen, wrap back to initial position
-                if (default_x + window->GetBounds().width > screen_width ||
-                    default_y + window->GetBounds().height > screen_height) {
-                    default_x = screen_width - window->GetBounds().width - INITIAL_X_OFFSET;
+                if (default_x + window->GetAbsoluteBounds().width > screen_width ||
+                    default_y + window->GetAbsoluteBounds().height > screen_height) {
+                    default_x = screen_width - static_cast<int>(window->GetAbsoluteBounds().width) - INITIAL_X_OFFSET;
                     default_y = INITIAL_Y_OFFSET;
                 }
             }
         }
 
-        window->SetPosition(default_x, default_y);
+        window->SetWindowPosition(static_cast<float>(default_x), static_cast<float>(default_y));
     }
 
     void UIWindowManager::CalculateInfoWindowPosition(UIWindow* window) const {
@@ -200,12 +231,12 @@ namespace towerforge::ui {
         const int screen_height = GetScreenHeight();
 
         // Center horizontally
-        const int x = (screen_width - static_cast<int>(window->GetBounds().width)) / 2;
+        const int x = (screen_width - static_cast<int>(window->GetAbsoluteBounds().width)) / 2;
         
         // Position at bottom with margin for action bar
-        const int y = screen_height - static_cast<int>(window->GetBounds().height) - BOTTOM_MARGIN;
+        const int y = screen_height - static_cast<int>(window->GetAbsoluteBounds().height) - BOTTOM_MARGIN;
 
-        window->SetPosition(x, y);
+        window->SetWindowPosition(static_cast<float>(x), static_cast<float>(y));
     }
 
     void UIWindowManager::UpdateZOrders() {

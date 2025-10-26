@@ -20,9 +20,12 @@ namespace towerforge::ui {
     class FacilityWindow : public UIWindow {
     public:
         FacilityWindow(const FacilityInfo& info);
-        void Render() override;
+        void Render() const override;
         void Update(const FacilityInfo& info);
     
+    protected:
+        void RenderContent() const override;
+        
     private:
         FacilityInfo info_;
 
@@ -58,9 +61,12 @@ namespace towerforge::ui {
     class PersonWindow : public UIWindow {
     public:
         PersonWindow(const PersonInfo& info);
-        void Render() override;
+        void Render() const override;
         void Update(const PersonInfo& info);
     
+    protected:
+        void RenderContent() const override;
+        
     private:
         PersonInfo info_;
 
@@ -94,9 +100,12 @@ namespace towerforge::ui {
     class ElevatorWindow : public UIWindow {
     public:
         ElevatorWindow(const ElevatorInfo& info);
-        void Render() override;
+        void Render() const override;
         void Update(const ElevatorInfo& info);
     
+    protected:
+        void RenderContent() const override;
+        
     private:
         ElevatorInfo info_;
 

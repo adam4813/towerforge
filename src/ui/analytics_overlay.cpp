@@ -15,12 +15,14 @@ namespace towerforge::ui {
         data_ = data;
     }
 
-    void IncomeAnalyticsOverlay::Render() {
-        RenderFrame(ColorAlpha(DARKBLUE, 0.95f));
-        RenderCloseButton();
-
-        const int x = x_ + PADDING;
-        int y = y_ + TITLE_BAR_HEIGHT + PADDING;
+    void IncomeAnalyticsOverlay::Render() const {
+        UIWindow::Render();
+    }
+    
+    void IncomeAnalyticsOverlay::RenderContent() const {
+        const Rectangle bounds = GetAbsoluteBounds();
+        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
+        int y = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
 
         // Summary section
         DrawText("=== Revenue Summary ===", x, y, 14, GOLD);
@@ -87,12 +89,14 @@ namespace towerforge::ui {
         data_ = data;
     }
 
-    void ElevatorAnalyticsOverlay::Render() {
-        RenderFrame(ColorAlpha(DARKPURPLE, 0.95f));
-        RenderCloseButton();
-
-        const int x = x_ + PADDING;
-        int y = y_ + TITLE_BAR_HEIGHT + PADDING;
+    void ElevatorAnalyticsOverlay::Render() const {
+        UIWindow::Render();
+    }
+    
+    void ElevatorAnalyticsOverlay::RenderContent() const {
+        const Rectangle bounds = GetAbsoluteBounds();
+        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
+        int y = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
 
         // Summary section
         DrawText("=== Overall Statistics ===", x, y, 14, GOLD);
@@ -178,12 +182,14 @@ namespace towerforge::ui {
         data_ = data;
     }
 
-    void PopulationAnalyticsOverlay::Render() {
-        RenderFrame(ColorAlpha(DARKGREEN, 0.95f));
-        RenderCloseButton();
-
-        const int x = x_ + PADDING;
-        int y = y_ + TITLE_BAR_HEIGHT + PADDING;
+    void PopulationAnalyticsOverlay::Render() const {
+        UIWindow::Render();
+    }
+    
+    void PopulationAnalyticsOverlay::RenderContent() const {
+        const Rectangle bounds = GetAbsoluteBounds();
+        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
+        int y = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
 
         // Title
         DrawText("=== Population Breakdown ===", x, y, 14, GOLD);
@@ -245,3 +251,4 @@ namespace towerforge::ui {
     }
 
 }
+

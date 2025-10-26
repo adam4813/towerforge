@@ -119,7 +119,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if the event was handled and should not propagate further
          */
-        bool ProcessMouseEvent(const MouseEvent& event);
+        virtual bool ProcessMouseEvent(const MouseEvent& event);
 
         /**
          * @brief Handle mouse hover event (override in derived classes)
