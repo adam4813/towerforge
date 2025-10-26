@@ -242,16 +242,16 @@ namespace towerforge::ui::batch_renderer {
         
         const int tex_slot = GetOrAddTextureSlot(texture_id);
         const uint32_t packed_color = ColorToRGBA(color);
-        const float tex_index = static_cast<float>(tex_slot);
+        const auto tex_index = static_cast<float>(tex_slot);
         
         // Center vertex
-        const uint32_t center_idx = static_cast<uint32_t>(state_->vertices.size());
+        const auto center_idx = static_cast<uint32_t>(state_->vertices.size());
         state_->vertices.emplace_back(center_x, center_y, 0.5f, 0.5f, packed_color, tex_index);
         
         // Perimeter vertices (triangle fan)
-        const float angle_step = 2.0f * PI / segments;
+        const float angle_step = 2.0f * PI / static_cast<float>(segments);
         for (int i = 0; i <= segments; ++i) {
-            const float angle = i * angle_step;
+            const float angle = static_cast<float>(i) * angle_step;
             const float x = center_x + std::cos(angle) * radius;
             const float y = center_y + std::sin(angle) * radius;
             state_->vertices.emplace_back(x, y, 0.5f, 0.5f, packed_color, tex_index);
@@ -291,7 +291,7 @@ namespace towerforge::ui::batch_renderer {
         
         const int tex_slot = GetOrAddTextureSlot(texture_id);
         const uint32_t packed_color = ColorToRGBA(color);
-        const float tex_index = static_cast<float>(tex_slot);
+        const auto tex_index = static_cast<float>(tex_slot);
         
         // Center rectangle (non-rounded part)
         const float inner_x = rect.x + corner_radius;
@@ -317,18 +317,18 @@ namespace towerforge::ui::batch_renderer {
             {inner_x + inner_w, inner_y + inner_h},                   // Bottom-right
             {inner_x, inner_y + inner_h}                              // Bottom-left
         };
-        
-        const float angle_offsets[4] = {PI, PI * 0.5f, 0.0f, PI * 1.5f};
+
+        constexpr float angle_offsets[4] = {PI, PI * 0.5f, 0.0f, PI * 1.5f};
         
         for (int c = 0; c < 4; ++c) {
-            const uint32_t center_idx = static_cast<uint32_t>(state_->vertices.size());
+            const auto center_idx = static_cast<uint32_t>(state_->vertices.size());
             state_->vertices.emplace_back(corners[c].x, corners[c].y, 0.5f, 0.5f, packed_color, tex_index);
             
             const float angle_start = angle_offsets[c];
-            const float angle_step = (PI * 0.5f) / corner_segments;
+            const float angle_step = (PI * 0.5f) / static_cast<float>(corner_segments);
             
             for (int i = 0; i <= corner_segments; ++i) {
-                const float angle = angle_start + i * angle_step;
+                const float angle = angle_start + static_cast<float>(i) * angle_step;
                 const float x = corners[c].x + std::cos(angle) * corner_radius;
                 const float y = corners[c].y + std::sin(angle) * corner_radius;
                 state_->vertices.emplace_back(x, y, 0.5f, 0.5f, packed_color, tex_index);
