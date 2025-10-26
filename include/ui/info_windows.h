@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/ui_window.h"
+#include "ui/ui_element.h"
 #include "ui/hud.h"
 #include "ui/stat_item.h"
 #include "ui/alert_bar.h"
@@ -39,9 +40,12 @@ namespace towerforge::ui {
         std::unique_ptr<AlertBar> security_alert_;
         std::unique_ptr<SectionHeader> adjacency_header_;
         std::vector<std::unique_ptr<StatItem>> adjacency_items_;
-        std::unique_ptr<IconButton> demolish_button_;
-        std::unique_ptr<IconButton> upgrade_button_;
-        std::unique_ptr<IconButton> repair_button_;
+        
+        // Button panel and raw pointers to buttons
+        std::unique_ptr<Panel> button_panel_;
+        IconButton* demolish_button_;
+        IconButton* upgrade_button_;
+        IconButton* repair_button_;
 
         void BuildComponents();
         void UpdateComponentValues();

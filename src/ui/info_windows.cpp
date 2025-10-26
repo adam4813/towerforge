@@ -54,22 +54,30 @@ namespace towerforge::ui {
         // Adjacency section
         adjacency_header_ = std::make_unique<SectionHeader>("--- Adjacency Effects ---", GOLD, y);
         
-        // Buttons
-        demolish_button_ = std::make_unique<IconButton>("[Demolish]", 100, 25, DARKGRAY, RED, 0, 0);
-        demolish_button_->SetClickCallback([]() {
-            // TODO: Wire to game logic
-        });
+        // Create button panel for proper UI hierarchy
+        button_panel_ = std::make_unique<Panel>(0, 0, 230, 60, BLANK, BLANK);
         
-        upgrade_button_ = std::make_unique<IconButton>("[Upgrade]", 100, 25, DARKGRAY, YELLOW, 110, 0);
-        upgrade_button_->SetClickCallback([]() {
+        // Buttons - now added as children to button_panel
+        auto demolish = std::make_unique<IconButton>(0, 0, 100, 25, "[Demolish]", DARKGRAY, RED);
+        demolish->SetClickCallback([]() {
             // TODO: Wire to game logic
         });
+        demolish_button_ = demolish.get();
+        button_panel_->AddChild(std::move(demolish));
         
-        repair_button_ = std::make_unique<IconButton>("[Repair Now]", 210, 25, ORANGE, BLACK, 0, 0);
-        repair_button_->SetClickCallback([]() {
+        auto upgrade = std::make_unique<IconButton>(110, 0, 100, 25, "[Upgrade]", DARKGRAY, YELLOW);
+        upgrade->SetClickCallback([]() {
             // TODO: Wire to game logic
         });
-        repair_button_->SetVisible(false);
+        upgrade_button_ = upgrade.get();
+        button_panel_->AddChild(std::move(upgrade));
+        
+        auto repair = std::make_unique<IconButton>(0, 30, 210, 25, "[Repair Now]", ORANGE, BLACK);
+        repair->SetClickCallback([]() {
+            // TODO: Wire to game logic
+        });
+        repair_button_ = repair.get();
+        button_panel_->AddChild(std::move(repair));
     }
 
     void FacilityWindow::Update(const FacilityInfo& info) {
@@ -166,15 +174,19 @@ namespace towerforge::ui {
             adj_y += 18;
         }
         
-        // Update repair button
+        // Update repair button (now uses Button interface)
         if (info_.needs_repair || info_.is_broken) {
-            repair_button_->SetVisible(true);
             const Color repair_color = info_.is_broken ? RED : ORANGE;
             const std::string button_text = info_.is_broken ? "[Emergency Repair]" : "[Repair Now]";
-            repair_button_->SetColors(repair_color, BLACK);
+            repair_button_->SetBackgroundColor(repair_color);
+            repair_button_->SetTextColor(BLACK);
             repair_button_->SetLabel(button_text);
+            repair_button_->SetEnabled(true);
         } else {
-            repair_button_->SetVisible(false);
+            repair_button_->SetEnabled(false);
+            repair_button_->SetBackgroundColor(ColorAlpha(BLANK, 0.0f));
+            repair_button_->SetTextColor(ColorAlpha(BLANK, 0.0f));
+            repair_button_->SetBorderColor(ColorAlpha(BLANK, 0.0f));
         }
     }
 
@@ -218,21 +230,14 @@ namespace towerforge::ui {
             }
         }
         
-        // Render buttons
+        // Render button panel (now uses Panel hierarchy)
         int button_y_offset = 240;
         if (!info_.adjacency_effects.empty()) {
             button_y_offset += 30 + static_cast<int>(info_.adjacency_effects.size() * 18);
         }
         
-        demolish_button_->SetPosition(0, button_y_offset);
-        demolish_button_->Render(x, y_base);
-        upgrade_button_->SetPosition(110, button_y_offset);
-        upgrade_button_->Render(x, y_base);
-        
-        if (repair_button_->IsVisible()) {
-            repair_button_->SetPosition(0, button_y_offset + 30);
-            repair_button_->Render(x, y_base);
-        }
+        button_panel_->SetRelativePosition(static_cast<float>(x), static_cast<float>(y_base + button_y_offset));
+        button_panel_->Render();
     }
 
     std::string FacilityWindow::GetSatisfactionEmoji(const float satisfaction) {

@@ -1,38 +1,29 @@
 #pragma once
 
-#include <string>
-#include <functional>
-#include <raylib.h>
+#include "ui_element.h"
 
 namespace towerforge::ui {
 
     /**
-     * @brief Reusable button component with color customization
+     * @brief Button component with color customization
+     * 
+     * Now inherits from Button, gaining full UI hierarchy integration,
+     * automatic mouse handling, tooltip support, and keyboard navigation.
      */
-    class IconButton {
+    class IconButton : public Button {
     public:
-        using ClickCallback = std::function<void()>;
-
-        IconButton(const std::string& label, int width, int height, Color bg_color, Color text_color, int x_offset = 0, int y_position = 0);
-
-        void SetLabel(const std::string& label);
-        void SetColors(Color bg_color, Color text_color);
-        void SetPosition(int x_offset, int y);
-        void SetClickCallback(ClickCallback callback);
-        void SetVisible(bool visible);
-        bool IsVisible() const { return visible_; }
-        void Render(int base_x, int base_y) const;
-
-    private:
-        std::string label_;
-        int width_;
-        int height_;
-        Color bg_color_;
-        Color text_color_;
-        int x_offset_;
-        int y_position_;
-        bool visible_;
-        ClickCallback callback_;
+        /**
+         * @brief Construct an IconButton
+         * @param relative_x X position relative to parent
+         * @param relative_y Y position relative to parent
+         * @param width Width of the button
+         * @param height Height of the button
+         * @param label Button label text
+         * @param bg_color Background color
+         * @param text_color Text color
+         */
+        IconButton(float relative_x, float relative_y, float width, float height,
+                   const std::string& label, Color bg_color, Color text_color);
     };
 
 }
