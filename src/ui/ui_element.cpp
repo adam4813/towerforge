@@ -864,4 +864,58 @@ namespace towerforge::ui {
                                               indicator_font_size, high_contrast ? YELLOW : UITheme::PRIMARY);
         }
     }
+
+    // ====================
+    // Label Implementation
+    // ====================
+
+    Label::Label(const float relative_x, const float relative_y, const std::string& text,
+                 const int font_size, const Color color, const Alignment alignment)
+        : UIElement(relative_x, relative_y, 0, 0)  // Width/height calculated from text
+        , text_(text)
+        , font_size_(font_size)
+        , color_(color)
+        , alignment_(alignment) {
+        
+        // Calculate size based on text
+        const int text_width = MeasureText(text.c_str(), font_size);
+        width_ = static_cast<float>(text_width);
+        height_ = static_cast<float>(font_size);
+    }
+
+    void Label::Render() const {
+        const Rectangle bounds = GetAbsoluteBounds();
+        
+        float render_x = bounds.x;
+        const int text_width = MeasureText(text_.c_str(), font_size_);
+        
+        // Apply alignment
+        switch (alignment_) {
+            case Alignment::Center:
+                render_x = bounds.x + (width_ - text_width) / 2.0f;
+                break;
+            case Alignment::Right:
+                render_x = bounds.x + width_ - text_width;
+                break;
+            case Alignment::Left:
+            default:
+                break;
+        }
+        
+        batch_renderer::adapter::DrawText(text_.c_str(), 
+                                         static_cast<int>(render_x), 
+                                         static_cast<int>(bounds.y), 
+                                         font_size_, 
+                                         color_);
+    }
+
+    void Label::SetText(const std::string& text) {
+        text_ = text;
+        
+        // Update size based on new text
+        const int text_width = MeasureText(text.c_str(), font_size_);
+        width_ = static_cast<float>(text_width);
+        height_ = static_cast<float>(font_size_);
+    }
+
 }

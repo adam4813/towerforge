@@ -640,4 +640,86 @@ namespace towerforge::ui {
         static constexpr int HEIGHT = 30;
     };
 
+    /**
+     * @brief Label class - text display element
+     * 
+     * Provides a simple text label with configurable font size, color, and alignment.
+     * Useful as a building block for more complex components.
+     */
+    class Label : public UIElement {
+    public:
+        /**
+         * @brief Text alignment options
+         */
+        enum class Alignment {
+            Left,
+            Center,
+            Right
+        };
+
+        /**
+         * @brief Construct a label
+         * @param relative_x X position relative to parent
+         * @param relative_y Y position relative to parent
+         * @param text Label text
+         * @param font_size Font size in pixels
+         * @param color Text color
+         * @param alignment Text alignment (default: Left)
+         */
+        Label(float relative_x, float relative_y, const std::string& text,
+              int font_size = 14, Color color = LIGHTGRAY,
+              Alignment alignment = Alignment::Left);
+
+        /**
+         * @brief Render the label
+         */
+        void Render() const override;
+
+        /**
+         * @brief Set label text (reactive update)
+         */
+        void SetText(const std::string& text);
+
+        /**
+         * @brief Get label text
+         */
+        const std::string& GetText() const { return text_; }
+
+        /**
+         * @brief Set text color (reactive update)
+         */
+        void SetColor(Color color) { color_ = color; }
+
+        /**
+         * @brief Get text color
+         */
+        Color GetColor() const { return color_; }
+
+        /**
+         * @brief Set font size (reactive update)
+         */
+        void SetFontSize(int size) { font_size_ = size; }
+
+        /**
+         * @brief Get font size
+         */
+        int GetFontSize() const { return font_size_; }
+
+        /**
+         * @brief Set text alignment (reactive update)
+         */
+        void SetAlignment(Alignment alignment) { alignment_ = alignment; }
+
+        /**
+         * @brief Get text alignment
+         */
+        Alignment GetAlignment() const { return alignment_; }
+
+    private:
+        std::string text_;
+        int font_size_;
+        Color color_;
+        Alignment alignment_;
+    };
+
 }

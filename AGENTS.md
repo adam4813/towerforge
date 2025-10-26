@@ -82,10 +82,17 @@ These are **reference documentation** that define correct implementation pattern
 - Supplementary documentation of any kind
 - Status reports, completion reports, or any "summary" documents
 
-**Only create documentation if**:
+**Only create NEW documentation if**:
 - User explicitly requests it (e.g., "create a document explaining X")
 - It documents a human workflow/process users must follow (e.g., build instructions, setup steps)
 - It directly improves automated tooling or AI code generation
+
+**When creating NEW documentation files**:
+- You MUST provide a justification in your response explaining:
+  - Why this needs to be a persistent file vs. chat response
+  - What specific future use case requires this reference
+  - How it differs from existing documentation
+- Updating existing documentation does NOT require justification
 
 **Rule of thumb**: If you're just going to tell the user about it anyway, don't create a file for it.
 
