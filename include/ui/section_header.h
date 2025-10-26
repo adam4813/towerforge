@@ -1,26 +1,25 @@
 #pragma once
 
-#include <string>
-#include <raylib.h>
+#include "ui/ui_element.h"
 
 namespace towerforge::ui {
 
     /**
-     * @brief Reusable component for section headers in info windows
+     * @brief Section header component - specialized Label for section titles
+     * 
+     * Now inherits from Label to integrate into UIElement hierarchy.
+     * Provides consistent styling for section headers in info windows.
      */
-    class SectionHeader {
+    class SectionHeader : public Label {
     public:
-        SectionHeader(const std::string& text, Color color = YELLOW, int y_position = 0);
-
-        void SetText(const std::string& text);
-        void SetColor(Color color);
-        void SetPosition(int y);
-        void Render(int x, int y_base) const;
-
-    private:
-        std::string text_;
-        Color color_;
-        int y_position_;
+        /**
+         * @brief Construct a section header
+         * @param relative_x X position relative to parent
+         * @param relative_y Y position relative to parent
+         * @param text Header text
+         * @param color Text color (default: YELLOW)
+         */
+        SectionHeader(float relative_x, float relative_y, const std::string& text, Color color = YELLOW);
     };
 
 }

@@ -11,35 +11,35 @@ namespace towerforge::ui {
     }
 
     void FacilityWindow::BuildComponents() {
-        int y = 0;
+        float y = 0;
         
         // Stats section
-        occupancy_stat_ = std::make_unique<StatItem>("Occupancy:", y);
+        occupancy_stat_ = std::make_unique<StatItem>(0, y, "Occupancy:");
         y += 20;
         
-        revenue_stat_ = std::make_unique<StatItem>("Revenue:", y);
+        revenue_stat_ = std::make_unique<StatItem>(0, y, "Revenue:");
         y += 20;
         
-        satisfaction_stat_ = std::make_unique<StatItem>("Satisfaction:", y);
+        satisfaction_stat_ = std::make_unique<StatItem>(0, y, "Satisfaction:");
         y += 20;
         
-        tenants_stat_ = std::make_unique<StatItem>("Tenants:", y);
+        tenants_stat_ = std::make_unique<StatItem>(0, y, "Tenants:");
         y += 25;
         
         // Status section
-        status_header_ = std::make_unique<SectionHeader>("--- Facility Status ---", YELLOW, y);
+        status_header_ = std::make_unique<SectionHeader>(0, y, "--- Facility Status ---", YELLOW);
         y += 20;
         
-        cleanliness_state_stat_ = std::make_unique<StatItem>("Status:", y);
+        cleanliness_state_stat_ = std::make_unique<StatItem>(0, y, "Status:");
         y += 20;
         
-        cleanliness_stat_ = std::make_unique<StatItem>("Cleanliness:", y);
+        cleanliness_stat_ = std::make_unique<StatItem>(0, y, "Cleanliness:");
         y += 20;
         
-        maintenance_stat_ = std::make_unique<StatItem>("Maintenance:", y);
+        maintenance_stat_ = std::make_unique<StatItem>(0, y, "Maintenance:");
         y += 20;
         
-        maintenance_state_stat_ = std::make_unique<StatItem>("Status:", y);
+        maintenance_state_stat_ = std::make_unique<StatItem>(0, y, "Status:");
         y += 20;
         
         // Alerts
@@ -52,7 +52,7 @@ namespace towerforge::ui {
         y += 20;
         
         // Adjacency section
-        adjacency_header_ = std::make_unique<SectionHeader>("--- Adjacency Effects ---", GOLD, y);
+        adjacency_header_ = std::make_unique<SectionHeader>(0, y, "--- Adjacency Effects ---", GOLD);
         
         // Create button panel for proper UI hierarchy
         button_panel_ = std::make_unique<Panel>(0, 0, 230, 60, BLANK, BLANK);
@@ -158,9 +158,9 @@ namespace towerforge::ui {
         
         // Update adjacency effects
         adjacency_items_.clear();
-        int adj_y = 0;
+        float adj_y = 0;
         for (const auto& effect : info_.adjacency_effects) {
-            auto item = std::make_unique<StatItem>("", adj_y);
+            auto item = std::make_unique<StatItem>(0, adj_y, "");
             
             Color effect_color = LIGHTGRAY;
             if (effect.find("+") != std::string::npos) {
@@ -197,39 +197,50 @@ namespace towerforge::ui {
     
     void FacilityWindow::RenderContent() const {
         const Rectangle bounds = GetAbsoluteBounds();
-        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
-        const int y_base = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
+        const float x = bounds.x + WindowChrome::GetPadding();
+        const float y_base = bounds.y + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
     
-        // Render all stat components
-        occupancy_stat_->Render(x, y_base);
-        revenue_stat_->Render(x, y_base);
-        satisfaction_stat_->Render(x, y_base);
-        tenants_stat_->Render(x, y_base);
+        // Helper lambda to position and render UIElement-based components
+        auto renderAt = [x, y_base](UIElement* elem) {
+            elem->SetRelativePosition(x, y_base + elem->GetRelativeBounds().y);
+            elem->Render();
+        };
+        
+        // Render all stat components (now UIElements)
+        renderAt(occupancy_stat_.get());
+        renderAt(revenue_stat_.get());
+        renderAt(satisfaction_stat_.get());
+        renderAt(tenants_stat_.get());
         
         // Render status section
-        status_header_->Render(x, y_base);
+        renderAt(status_header_.get());
+        
         if (!info_.cleanliness_state.empty()) {
-            cleanliness_state_stat_->Render(x, y_base);
+            renderAt(cleanliness_state_stat_.get());
         }
-        cleanliness_stat_->Render(x, y_base);
-        maintenance_stat_->Render(x, y_base);
+        
+        renderAt(cleanliness_stat_.get());
+        renderAt(maintenance_stat_.get());
+        
         if (!info_.maintenance_state.empty()) {
-            maintenance_state_stat_->Render(x, y_base);
+            renderAt(maintenance_state_stat_.get());
         }
         
         // Render alerts
-        fire_alert_->Render(x, y_base);
-        security_alert_->Render(x, y_base);
+        const int x_int = static_cast<int>(x);
+        const int y_base_int = static_cast<int>(y_base);
+        fire_alert_->Render(x_int, y_base_int);
+        security_alert_->Render(x_int, y_base_int);
         
         // Render adjacency section
         if (!info_.adjacency_effects.empty()) {
-            int adj_y_offset = fire_alert_->IsVisible() ? 20 : 0;
-            adj_y_offset += security_alert_->IsVisible() ? 20 : 0;
-            adjacency_header_->SetPosition(200 + adj_y_offset);
-            adjacency_header_->Render(x, y_base);
+            const int adj_y_offset = (fire_alert_->IsVisible() ? 20 : 0) + 
+                                    (security_alert_->IsVisible() ? 20 : 0);
+            adjacency_header_->SetRelativePosition(x, y_base + 200 + adj_y_offset);
+            adjacency_header_->Render();
             
             for (const auto& item : adjacency_items_) {
-                item->Render(x, y_base);
+                renderAt(item.get());
             }
         }
         
@@ -239,7 +250,7 @@ namespace towerforge::ui {
             button_y_offset += 30 + static_cast<int>(info_.adjacency_effects.size() * 18);
         }
         
-        button_panel_->SetRelativePosition(static_cast<float>(x), static_cast<float>(y_base + button_y_offset));
+        button_panel_->SetRelativePosition(x, y_base + button_y_offset);
         button_panel_->Render();
     }
 
@@ -259,62 +270,62 @@ namespace towerforge::ui {
     }
 
     void PersonWindow::BuildComponents() {
-        int y = 0;
+        float y = 0;
         
         // Basic info
-        type_stat_ = std::make_unique<StatItem>("Type:", y);
+        type_stat_ = std::make_unique<StatItem>(0, y, "Type:");
         y += 20;
         
-        archetype_stat_ = std::make_unique<StatItem>("Profile:", y);
+        archetype_stat_ = std::make_unique<StatItem>(0, y, "Profile:");
         y += 20;
         
         // Staff section
-        staff_header_ = std::make_unique<SectionHeader>("--- Staff Info ---", GOLD, y);
+        staff_header_ = std::make_unique<SectionHeader>(0, y, "--- Staff Info ---", GOLD);
         y += 20;
         
-        role_stat_ = std::make_unique<StatItem>("Role:", y);
+        role_stat_ = std::make_unique<StatItem>(0, y, "Role:");
         y += 20;
         
-        duty_stat_ = std::make_unique<StatItem>("Status:", y);
+        duty_stat_ = std::make_unique<StatItem>(0, y, "Status:");
         y += 20;
         
-        shift_stat_ = std::make_unique<StatItem>("Shift:", y);
+        shift_stat_ = std::make_unique<StatItem>(0, y, "Shift:");
         y += 25;
         
         // Status info
-        status_stat_ = std::make_unique<StatItem>("Status:", y);
+        status_stat_ = std::make_unique<StatItem>(0, y, "Status:");
         y += 20;
         
-        state_stat_ = std::make_unique<StatItem>("State:", y);
+        state_stat_ = std::make_unique<StatItem>(0, y, "State:");
         y += 20;
         
-        current_floor_stat_ = std::make_unique<StatItem>("Current:", y);
+        current_floor_stat_ = std::make_unique<StatItem>(0, y, "Current:");
         y += 20;
         
-        dest_floor_stat_ = std::make_unique<StatItem>("Destination:", y);
+        dest_floor_stat_ = std::make_unique<StatItem>(0, y, "Destination:");
         y += 20;
         
-        wait_time_stat_ = std::make_unique<StatItem>("Wait Time:", y);
+        wait_time_stat_ = std::make_unique<StatItem>(0, y, "Wait Time:");
         y += 20;
         
         // Needs section
-        needs_header_ = std::make_unique<SectionHeader>("--- Visitor Needs ---", YELLOW, y);
+        needs_header_ = std::make_unique<SectionHeader>(0, y, "--- Visitor Needs ---", YELLOW);
         y += 20;
         
-        hunger_stat_ = std::make_unique<StatItem>("Hunger:", y);
+        hunger_stat_ = std::make_unique<StatItem>(0, y, "Hunger:");
         y += 18;
         
-        entertainment_stat_ = std::make_unique<StatItem>("Entertainment:", y);
+        entertainment_stat_ = std::make_unique<StatItem>(0, y, "Entertainment:");
         y += 18;
         
-        comfort_stat_ = std::make_unique<StatItem>("Comfort:", y);
+        comfort_stat_ = std::make_unique<StatItem>(0, y, "Comfort:");
         y += 18;
         
-        shopping_stat_ = std::make_unique<StatItem>("Shopping:", y);
+        shopping_stat_ = std::make_unique<StatItem>(0, y, "Shopping:");
         y += 23;
         
         // Satisfaction
-        satisfaction_stat_ = std::make_unique<StatItem>("Satisfaction:", y);
+        satisfaction_stat_ = std::make_unique<StatItem>(0, y, "Satisfaction:");
     }
 
     void PersonWindow::UpdateComponentValues() {
@@ -384,46 +395,52 @@ namespace towerforge::ui {
     
     void PersonWindow::RenderContent() const {
         const Rectangle bounds = GetAbsoluteBounds();
-        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
-        const int y_base = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
+        const float x = bounds.x + WindowChrome::GetPadding();
+        const float y_base = bounds.y + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
     
+        // Helper lambda to position and render UIElement-based components
+        auto renderAt = [x, y_base](UIElement* elem) {
+            elem->SetRelativePosition(x, y_base + elem->GetRelativeBounds().y);
+            elem->Render();
+        };
+        
         // Render basic info
-        type_stat_->Render(x, y_base);
+        renderAt(type_stat_.get());
         
         if (info_.has_needs && !info_.visitor_archetype.empty()) {
-            archetype_stat_->Render(x, y_base);
+            renderAt(archetype_stat_.get());
         }
         
         // Render staff section
         if (info_.is_staff) {
-            staff_header_->Render(x, y_base);
-            role_stat_->Render(x, y_base);
-            duty_stat_->Render(x, y_base);
-            shift_stat_->Render(x, y_base);
+            renderAt(staff_header_.get());
+            renderAt(role_stat_.get());
+            renderAt(duty_stat_.get());
+            renderAt(shift_stat_.get());
         }
         
         // Render status info
-        status_stat_->Render(x, y_base);
-        state_stat_->Render(x, y_base);
-        current_floor_stat_->Render(x, y_base);
-        dest_floor_stat_->Render(x, y_base);
+        renderAt(status_stat_.get());
+        renderAt(state_stat_.get());
+        renderAt(current_floor_stat_.get());
+        renderAt(dest_floor_stat_.get());
         
         if (!info_.is_staff || info_.wait_time > 0) {
-            wait_time_stat_->Render(x, y_base);
+            renderAt(wait_time_stat_.get());
         }
         
         // Render needs section
         if (info_.has_needs) {
-            needs_header_->Render(x, y_base);
-            hunger_stat_->Render(x, y_base);
-            entertainment_stat_->Render(x, y_base);
-            comfort_stat_->Render(x, y_base);
-            shopping_stat_->Render(x, y_base);
+            renderAt(needs_header_.get());
+            renderAt(hunger_stat_.get());
+            renderAt(entertainment_stat_.get());
+            renderAt(comfort_stat_.get());
+            renderAt(shopping_stat_.get());
         }
         
         // Render satisfaction
         if (!info_.is_staff) {
-            satisfaction_stat_->Render(x, y_base);
+            renderAt(satisfaction_stat_.get());
         }
     }
 
@@ -443,18 +460,18 @@ namespace towerforge::ui {
     }
 
     void ElevatorWindow::BuildComponents() {
-        int y = 0;
+        float y = 0;
         
-        current_floor_stat_ = std::make_unique<StatItem>("Current Floor:", y);
+        current_floor_stat_ = std::make_unique<StatItem>(0, y, "Current Floor:");
         y += 20;
         
-        occupancy_stat_ = std::make_unique<StatItem>("Occupancy:", y);
+        occupancy_stat_ = std::make_unique<StatItem>(0, y, "Occupancy:");
         y += 20;
         
-        next_stop_stat_ = std::make_unique<StatItem>("Next Stop:", y);
+        next_stop_stat_ = std::make_unique<StatItem>(0, y, "Next Stop:");
         y += 20;
         
-        queue_length_stat_ = std::make_unique<StatItem>("Queue Length:", y);
+        queue_length_stat_ = std::make_unique<StatItem>(0, y, "Queue Length:");
         y += 20;
     }
 
@@ -476,9 +493,9 @@ namespace towerforge::ui {
         
         // Build queue items
         queue_items_.clear();
-        int queue_y = 80;
+        float queue_y = 80;
         for (const auto& [floor, waiting] : info_.queue) {
-            auto item = std::make_unique<StatItem>("", queue_y);
+            auto item = std::make_unique<StatItem>(0, queue_y, "");
             const std::string queue_text = "- Floor " + std::to_string(floor) + ": " + std::to_string(waiting) + " waiting";
             item->SetValue(queue_text, GRAY);
             queue_items_.push_back(std::move(item));
@@ -503,18 +520,25 @@ namespace towerforge::ui {
     
     void ElevatorWindow::RenderContent() const {
         const Rectangle bounds = GetAbsoluteBounds();
-        const int x = static_cast<int>(bounds.x) + WindowChrome::GetPadding();
-        const int y_base = static_cast<int>(bounds.y) + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
+        const float x = bounds.x + WindowChrome::GetPadding();
+        const float y_base = bounds.y + WindowChrome::GetTitleBarHeight() + WindowChrome::GetPadding();
     
-        // Render stats
-        current_floor_stat_->Render(x, y_base);
-        occupancy_stat_->Render(x, y_base);
-        next_stop_stat_->Render(x, y_base);
-        queue_length_stat_->Render(x, y_base);
+        // Helper lambda to position and render UIElement-based components
+        auto renderAt = [x, y_base](UIElement* elem) {
+            elem->SetRelativePosition(x, y_base + elem->GetRelativeBounds().y);
+            elem->Render();
+        };
         
-        // Render queue items
+        // Render stats
+        renderAt(current_floor_stat_.get());
+        renderAt(occupancy_stat_.get());
+        renderAt(next_stop_stat_.get());
+        renderAt(queue_length_stat_.get());
+        
+        // Render queue items (with indent)
         for (const auto& item : queue_items_) {
-            item->Render(x + 10, y_base);
+            item->SetRelativePosition(x + 10, y_base + item->GetRelativeBounds().y);
+            item->Render();
         }
     }
 
