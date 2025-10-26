@@ -20,11 +20,8 @@ namespace towerforge::ui {
     }
 
     bool UIWindow::IsCloseButtonClicked(const int mouse_x, const int mouse_y) const {
-        const int button_x = x_ + width_ - CLOSE_BUTTON_SIZE - 5;
-        const int button_y = y_ + 5;
-    
-        return mouse_x >= button_x && mouse_x <= button_x + CLOSE_BUTTON_SIZE &&
-               mouse_y >= button_y && mouse_y <= button_y + CLOSE_BUTTON_SIZE;
+        const Rectangle bounds = GetBounds();
+        return chrome_.IsCloseButtonClicked(mouse_x, mouse_y, bounds);
     }
 
     Rectangle UIWindow::GetBounds() const {
@@ -42,25 +39,18 @@ namespace towerforge::ui {
     }
 
     void UIWindow::RenderFrame(const Color border_color) const {
-        // Draw main window background
-        batch_renderer::adapter::DrawRectangle(x_, y_, width_, height_, ColorAlpha(BLACK, 0.8f));
-    
-        // Draw title bar
-        batch_renderer::adapter::DrawRectangle(x_, y_, width_, TITLE_BAR_HEIGHT, ColorAlpha(BLACK, 0.9f));
-        batch_renderer::adapter::DrawRectangle(x_, y_, width_, 2, border_color);
-    
-        // Draw title text
-        batch_renderer::adapter::DrawText(title_.c_str(), x_ + PADDING, y_ + 5, 14, WHITE);
+        const Rectangle bounds = GetBounds();
+        
+        // Delegate to chrome strategy
+        chrome_.RenderFrame(bounds, border_color);
+        chrome_.RenderTitleBar(bounds, title_);
     }
 
     void UIWindow::RenderCloseButton() const {
-        const int button_x = x_ + width_ - CLOSE_BUTTON_SIZE - 5;
-        const int button_y = y_ + 5;
-    
-        // Draw close button
-        batch_renderer::adapter::DrawRectangle(button_x, button_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 
-                      ColorAlpha(RED, 0.7f));
-        batch_renderer::adapter::DrawText("X", button_x + 3, button_y + 1, 12, WHITE);
+        const Rectangle bounds = GetBounds();
+        
+        // Delegate to chrome strategy
+        chrome_.RenderCloseButton(bounds);
     }
 
 }

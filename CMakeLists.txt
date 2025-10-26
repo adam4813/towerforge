@@ -50,6 +50,7 @@ set(SOURCE_FILES
     src/ui/mods_menu.cpp
     src/ui/ui_window.cpp
     src/ui/ui_window_manager.cpp
+    src/ui/window_chrome.cpp
     src/ui/info_windows.cpp
     src/ui/stat_item.cpp
     src/ui/alert_bar.cpp

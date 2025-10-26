@@ -3,11 +3,15 @@
 #include <raylib.h>
 #include <string>
 #include <memory>
+#include "ui/window_chrome.h"
 
 namespace towerforge::ui {
 
     /**
  * @brief Base class for all UI windows
+ * 
+ * Uses WindowChrome (Strategy pattern) for rendering window decoration,
+ * allowing chrome behavior to be encapsulated and reused.
  */
     class UIWindow {
     public:
@@ -70,6 +74,9 @@ namespace towerforge::ui {
         int width_;
         int height_;
         int z_order_;
+        
+        // Strategy pattern: delegate chrome rendering
+        WindowChrome chrome_;
     
         static constexpr int TITLE_BAR_HEIGHT = 25;
         static constexpr int CLOSE_BUTTON_SIZE = 15;
