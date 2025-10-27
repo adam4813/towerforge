@@ -194,11 +194,6 @@ namespace towerforge::ui {
         root_panel_->Render();
     }
 
-    int BuildMenu::HandleClick(int mouse_x, int mouse_y, bool can_undo, bool can_redo) {
-        // Deprecated - use ProcessMouseEvent instead
-        return -1;
-    }
-
     void BuildMenu::UpdateTooltips(int mouse_x, int mouse_y, float current_funds) const {
         // Tooltips now handled by button hover events
     }

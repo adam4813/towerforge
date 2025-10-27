@@ -1229,57 +1229,9 @@ namespace towerforge::core {
                 return; // Don't process other clicks
             }
 
-            const int menu_result = build_menu_->HandleClick(mouse_x, mouse_y,
-                                                             placement_system_->CanUndo(),
-                                                             placement_system_->CanRedo());
-            if (menu_result >= 0) {
-                hud_->AddNotification(Notification::Type::Info, "Facility selected from menu", 3.0f);
-            } else if (menu_result == -2) {
-                placement_system_->SetDemolishMode(!placement_system_->IsDemolishMode());
-                hud_->AddNotification(Notification::Type::Info,
-                                      placement_system_->IsDemolishMode() ? "Demolish mode ON" : "Demolish mode OFF",
-                                      3.0f);
-            } else if (menu_result == -3) {
-                // Undo button clicked
-                if (placement_system_->Undo(game_state_.funds)) {
-                    hud_->AddNotification(Notification::Type::Info, "Undid last action", 2.0f);
-                } else {
-                    hud_->AddNotification(Notification::Type::Warning,
-                                          "Cannot undo (insufficient funds or nothing to undo)", 2.0f);
-                }
-            } else if (menu_result == -4) {
-                // Redo button clicked
-                if (placement_system_->Redo(game_state_.funds)) {
-                    hud_->AddNotification(Notification::Type::Info, "Redid action", 2.0f);
-                } else {
-                    hud_->AddNotification(Notification::Type::Warning,
-                                          "Cannot redo (insufficient funds or nothing to redo)", 2.0f);
-                }
-            } else if (menu_result == -5) {
-                // Add floor
-                const int floor_cost = TowerGrid::GetFloorBuildCost() * grid.GetColumnCount();
-                if (game_state_.funds >= floor_cost) {
-                    grid.AddFloor();
-                    game_state_.funds -= floor_cost;
-                    hud_->AddNotification(Notification::Type::Success,
-                                          TextFormat("Floor added! Cost: $%d", floor_cost), 3.0f);
-                } else {
-                    hud_->AddNotification(Notification::Type::Error,
-                                          TextFormat("Not enough funds! Need $%d", floor_cost), 3.0f);
-                }
-            } else if (menu_result == -6) {
-                // Add basement
-                const int basement_cost = TowerGrid::GetFloorBuildCost() * grid.GetColumnCount();
-                if (game_state_.funds >= basement_cost) {
-                    grid.AddBasementFloor();
-                    game_state_.funds -= basement_cost;
-                    hud_->AddNotification(Notification::Type::Success,
-                                          TextFormat("Basement added! Cost: $%d", basement_cost), 3.0f);
-                } else {
-                    hud_->AddNotification(Notification::Type::Error,
-                                          TextFormat("Not enough funds! Need $%d", basement_cost), 3.0f);
-                }
-            } else if (!hud_->HandleClick(mouse_x, mouse_y)) {
+            // BuildMenu now uses ProcessMouseEvent (already called above)
+            // Grid/placement click handling
+            if (!hud_->HandleClick(mouse_x, mouse_y)) {
                 // Convert screen coordinates to world coordinates for camera-transformed clicks
                 float world_x, world_y;
                 camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
