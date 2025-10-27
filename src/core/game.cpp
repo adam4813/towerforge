@@ -239,6 +239,15 @@ namespace towerforge::core {
             in_audio_settings_from_pause_ = false;
         });
 
+        // Set up accessibility settings menu callbacks
+        accessibility_settings_menu_.SetBackCallback([this]() {
+            in_accessibility_settings_ = false;
+        });
+
+        pause_accessibility_settings_menu_.SetBackCallback([this]() {
+            in_accessibility_settings_from_pause_ = false;
+        });
+
         // Initialize audio system
         audio_manager_ = &audio::AudioManager::GetInstance();
         audio_manager_->Initialize();
@@ -373,7 +382,17 @@ namespace towerforge::core {
             audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
             current_state_ = GameState::TitleScreen;
         }
-        achievements_menu_.HandleMouse(GetMouseX(), GetMouseY(), GetMouseWheelMove());
+
+        // Create mouse event for modern event API
+        const MouseEvent mouse_event(
+            static_cast<float>(GetMouseX()),
+            static_cast<float>(GetMouseY()),
+            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+        );
+        achievements_menu_.ProcessMouseEvent(mouse_event);
     }
 
     void Game::UpdateSettingsScreen(const float delta_time) {
@@ -419,11 +438,7 @@ namespace towerforge::core {
             if (accessibility_settings_menu_.HandleKeyboard()) {
                 in_accessibility_settings_ = false;
             }
-            const bool back_clicked = accessibility_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(),
-                                                                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
-            if (back_clicked) {
-                in_accessibility_settings_ = false;
-            }
+            accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
         } else if (in_audio_settings_) {
             // Audio settings menu handles state changes via callbacks
             audio_settings_menu_.HandleKeyboard();
@@ -981,6 +996,14 @@ namespace towerforge::core {
                 save_load_menu_->Update(time_step_);
                 save_load_menu_->ProcessMouseEvent(mouse_event);
                 save_load_menu_->HandleKeyboard();
+            } else if (in_accessibility_settings_from_pause_) {
+                pause_accessibility_settings_menu_.Update(time_step_);
+                
+                // Accessibility settings menu handles state changes via callbacks
+                if (pause_accessibility_settings_menu_.HandleKeyboard()) {
+                    in_accessibility_settings_from_pause_ = false;
+                }
+                pause_accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
             } else if (in_audio_settings_from_pause_) {
                 pause_audio_settings_menu_.Update(time_step_);
                 
