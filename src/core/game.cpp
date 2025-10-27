@@ -1230,93 +1230,92 @@ namespace towerforge::core {
             }
 
             // BuildMenu now uses ProcessMouseEvent (already called above)
-            // Grid/placement click handling
-            if (!hud_->HandleClick(mouse_x, mouse_y)) {
-                // Convert screen coordinates to world coordinates for camera-transformed clicks
-                float world_x, world_y;
-                camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+            // Grid/placement click handling (HUD already checked via ProcessMouseEvent above)
+            // Convert screen coordinates to world coordinates for camera-transformed clicks
+            float world_x, world_y;
+            camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
 
-                const int cost_change = placement_system_->HandleClick(static_cast<int>(world_x),
-                                                                       static_cast<int>(world_y),
-                                                                       grid_offset_x_, grid_offset_y_, cell_width_,
-                                                                       cell_height_, game_state_.funds);
+            const int cost_change = placement_system_->HandleClick(static_cast<int>(world_x),
+                                                                   static_cast<int>(world_y),
+                                                                   grid_offset_x_, grid_offset_y_, cell_width_,
+                                                                   cell_height_, game_state_.funds);
 
-                if (cost_change != 0) {
-                    game_state_.funds += cost_change;
-                    if (cost_change < 0) {
-                        audio_manager_->PlaySFX(audio::AudioCue::FacilityPlace);
-                        hud_->AddNotification(Notification::Type::Success,
-                                              TextFormat("Facility placed! Cost: $%d", -cost_change), 3.0f);
+            if (cost_change != 0) {
+                game_state_.funds += cost_change;
+                if (cost_change < 0) {
+                    audio_manager_->PlaySFX(audio::AudioCue::FacilityPlace);
+                    hud_->AddNotification(Notification::Type::Success,
+                                          TextFormat("Facility placed! Cost: $%d", -cost_change), 3.0f);
 
-                        // Notify tutorial if active
-                        if (tutorial_active_ && tutorial_manager_) {
-                            const int selected = build_menu_->GetSelectedFacility();
-                            if (selected >= 0) {
-                                const auto &facility_types = build_menu_->GetFacilityTypes();
-                                if (selected < static_cast<int>(facility_types.size())) {
-                                    tutorial_manager_->OnFacilityPlaced(facility_types[selected].name);
-                                }
+                    // Notify tutorial if active
+                    if (tutorial_active_ && tutorial_manager_) {
+                        const int selected = build_menu_->GetSelectedFacility();
+                        if (selected >= 0) {
+                            const auto &facility_types = build_menu_->GetFacilityTypes();
+                            if (selected < static_cast<int>(facility_types.size())) {
+                                tutorial_manager_->OnFacilityPlaced(facility_types[selected].name);
                             }
                         }
-                    } else {
-                        audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
-                        hud_->AddNotification(Notification::Type::Info,
-                                              TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
                     }
                 } else {
-                    // Check if placement was attempted but failed
-                    const int selected = build_menu_->GetSelectedFacility();
-                    if (selected >= 0 && !placement_system_->IsDemolishMode()) {
-                        // Placement was attempted but failed - provide feedback
-                        const auto &facility_types = build_menu_->GetFacilityTypes();
-                        if (selected < static_cast<int>(facility_types.size())) {
-                            const auto &facility_type = facility_types[selected];
+                    audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
+                    hud_->AddNotification(Notification::Type::Info,
+                                          TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
+                }
+            } else {
+                // Check if placement was attempted but failed
+                const int selected = build_menu_->GetSelectedFacility();
+                if (selected >= 0 && !placement_system_->IsDemolishMode()) {
+                    // Placement was attempted but failed - provide feedback
+                    const auto &facility_types = build_menu_->GetFacilityTypes();
+                    if (selected < static_cast<int>(facility_types.size())) {
+                        const auto &facility_type = facility_types[selected];
 
-                            // Check specific reason for failure
-                            const int ground_floor_screen_y_temp = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
-                            const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
-                            const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y_temp;
+                        // Check specific reason for failure
+                        const int ground_floor_screen_y_temp = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
+                        const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
+                        const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y_temp;
 
-                            if (rel_x >= 0) {
-                                const int clicked_floor = -rel_y / cell_height_;
-                                const int clicked_column = rel_x / cell_width_;
+                        if (rel_x >= 0) {
+                            const int clicked_floor = -rel_y / cell_height_;
+                            const int clicked_column = rel_x / cell_width_;
 
-                                if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
-                                    clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
-                                    const int floor_build_cost = ecs_world_->GetFacilityManager().
-                                            CalculateFloorBuildCost(
-                                                clicked_floor, clicked_column, facility_type.width);
-                                    const int total_cost = facility_type.cost + floor_build_cost;
+                            if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
+                                clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
+                                const int floor_build_cost = ecs_world_->GetFacilityManager().
+                                        CalculateFloorBuildCost(
+                                            clicked_floor, clicked_column, facility_type.width);
+                                const int total_cost = facility_type.cost + floor_build_cost;
 
-                                    if (game_state_.funds < total_cost) {
-                                        hud_->AddNotification(Notification::Type::Error,
-                                                              TextFormat("Insufficient funds! Need $%d (have $%.0f)",
-                                                                         total_cost, game_state_.funds), 3.0f);
-                                    } else if (!grid.IsSpaceAvailable(clicked_floor, clicked_column,
-                                                                      facility_type.width)) {
-                                        hud_->AddNotification(Notification::Type::Warning,
-                                                              "Cannot place facility here - space not available", 3.0f);
-                                    }
+                                if (game_state_.funds < total_cost) {
+                                    hud_->AddNotification(Notification::Type::Error,
+                                                          TextFormat("Insufficient funds! Need $%d (have $%.0f)",
+                                                                     total_cost, game_state_.funds), 3.0f);
+                                } else if (!grid.IsSpaceAvailable(clicked_floor, clicked_column,
+                                                                  facility_type.width)) {
+                                    hud_->AddNotification(Notification::Type::Warning,
+                                                          "Cannot place facility here - space not available", 3.0f);
                                 }
                             }
                         }
                     }
+                }
 
-                    // Original code for entity selection continues below...
-                    const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
-                    const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
-                    const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y;
+                // Original code for entity selection continues below...
+                const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
+                const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
+                const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y;
 
-                    if (rel_x >= 0) {
-                        const int clicked_floor = -rel_y / cell_height_;
-                        const int clicked_column = rel_x / cell_width_;
+                if (rel_x >= 0) {
+                    const int clicked_floor = -rel_y / cell_height_;
+                    const int clicked_column = rel_x / cell_width_;
 
-                        if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
-                            clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
-                            // Check if click is on a Person entity
-                            bool person_clicked = false;
-                            const auto person_query = ecs_world_->GetWorld().query<const Person>();
-                            person_query.each([&](const flecs::entity e, const Person &person) {
+                    if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
+                        clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
+                        // Check if click is on a Person entity
+                        bool person_clicked = false;
+                        const auto person_query = ecs_world_->GetWorld().query<const Person>();
+                        person_query.each([&](const flecs::entity e, const Person &person) {
                                 // Calculate person position on screen with inverted Y
                                 const int person_x =
                                         grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
@@ -1499,8 +1498,7 @@ namespace towerforge::core {
                                         }
                                     }
 
-                                    hud_->ShowFacilityInfo(info);
-                                }
+                                hud_->ShowFacilityInfo(info);
                             }
                         }
                     }

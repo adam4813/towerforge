@@ -176,63 +176,7 @@ namespace towerforge::ui {
                                                NotificationPriority::Medium, duration);
     }
 
-    bool HUD::HandleClick(const int mouse_x, const int mouse_y) const {
-        // Check notification center first if visible (need to cast away const for interaction)
-        if (notification_center_->IsVisible()) {
-            if (const_cast<NotificationCenter*>(notification_center_.get())->HandleClick(mouse_x, mouse_y)) {
-                return true;
-            }
-        }
-    
-        // Check if click is in speed controls area (bottom right)
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
 
-        const int speed_x = screen_width - SPEED_CONTROL_WIDTH - 10;
-        const int speed_y = screen_height - SPEED_CONTROL_HEIGHT - 10;
-
-        if (mouse_x >= speed_x && mouse_x <= screen_width - 10 &&
-            mouse_y >= speed_y && mouse_y <= screen_height - 10) {
-            // Click on speed controls
-            return true;
-        }
-
-        // Check if click is on top bar
-        if (mouse_y <= TOP_BAR_HEIGHT) {
-            // Check income area (left side)
-            if (IsMouseOverIncomeArea(mouse_x, mouse_y)) {
-                const_cast<HUD*>(this)->RequestIncomeAnalytics();
-                return true;
-            }
-        
-            // Check population area
-            if (IsMouseOverPopulationArea(mouse_x, mouse_y)) {
-                const_cast<HUD*>(this)->RequestPopulationAnalytics();
-                return true;
-            }
-        
-            // Check notification center button
-            const int notif_button_x = screen_width - 80;
-            const int notif_button_y = 5;
-            const int notif_button_width = 70;
-            const int notif_button_height = 30;
-        
-            if (mouse_x >= notif_button_x && mouse_x <= notif_button_x + notif_button_width &&
-                mouse_y >= notif_button_y && mouse_y <= notif_button_y + notif_button_height) {
-                const_cast<HUD*>(this)->ToggleNotificationCenter();
-                return true;
-            }
-        
-            return true;
-        }
-
-        // Check if click is on any info window
-        if (window_manager_->HandleClick(mouse_x, mouse_y)) {
-            return true;
-        }
-
-        return false;
-    }
 
     bool HUD::ProcessMouseEvent(const MouseEvent& event) {
         // Forward to action bar
@@ -245,8 +189,52 @@ namespace towerforge::ui {
             return true;
         }
         
-        // Forward to window manager if needed
-        // (UIWindowManager doesn't have ProcessMouseEvent yet)
+        // Handle notification center clicks
+        if (notification_center_->IsVisible() && event.left_pressed) {
+            if (const_cast<NotificationCenter*>(notification_center_.get())->HandleClick(
+                static_cast<int>(event.x), static_cast<int>(event.y))) {
+                return true;
+            }
+        }
+        
+        // Handle top bar clicks (income, population, notification button)
+        if (event.left_pressed && event.y <= TOP_BAR_HEIGHT) {
+            const int mouse_x = static_cast<int>(event.x);
+            const int mouse_y = static_cast<int>(event.y);
+            
+            // Check income area (left side)
+            if (IsMouseOverIncomeArea(mouse_x, mouse_y)) {
+                RequestIncomeAnalytics();
+                return true;
+            }
+            
+            // Check population area
+            if (IsMouseOverPopulationArea(mouse_x, mouse_y)) {
+                RequestPopulationAnalytics();
+                return true;
+            }
+            
+            // Check notification center button
+            const int screen_width = GetScreenWidth();
+            const int notif_button_x = screen_width - 80;
+            const int notif_button_y = 5;
+            const int notif_button_width = 70;
+            const int notif_button_height = 30;
+            
+            if (mouse_x >= notif_button_x && mouse_x <= notif_button_x + notif_button_width &&
+                mouse_y >= notif_button_y && mouse_y <= notif_button_y + notif_button_height) {
+                ToggleNotificationCenter();
+                return true;
+            }
+            
+            // Any click on top bar is consumed
+            return true;
+        }
+        
+        // Handle info window clicks
+        if (event.left_pressed && window_manager_->HandleClick(static_cast<int>(event.x), static_cast<int>(event.y))) {
+            return true;
+        }
         
         return false;
     }

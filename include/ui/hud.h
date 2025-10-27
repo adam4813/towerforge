@@ -199,18 +199,10 @@ namespace towerforge::ui {
         void AddNotification(Notification::Type type, const std::string& message, float duration = 5.0f);
     
         /**
-     * @brief Handle mouse click for entity selection
-     * @param mouse_x Mouse X position
-     * @param mouse_y Mouse Y position
-     * @return true if click was on a HUD element
+     * @brief Process mouse events for interactive elements
+     * @param event Mouse event data
+     * @return true if event was consumed by HUD
      */
-        bool HandleClick(int mouse_x, int mouse_y) const;
-
-        /**
-         * @brief Process mouse events for interactive elements
-         * @param event Mouse event data
-         * @return true if event was consumed by HUD
-         */
         bool ProcessMouseEvent(const MouseEvent& event);
     
         /**
