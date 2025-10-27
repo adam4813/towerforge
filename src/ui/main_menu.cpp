@@ -283,19 +283,9 @@ namespace towerforge::ui {
         }
     }
 
-    void MainMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        // Create mouse event
-        MouseEvent event(
-            static_cast<float>(mouse_x),
-            static_cast<float>(mouse_y),
-            false, // left_down
-            false, // right_down
-            clicked, // left_pressed
-            false // right_pressed
-        );
-
+    bool MainMenu::ProcessMouseEvent(const MouseEvent& event) {
         // Process mouse event through the panel (buttons will handle clicks via callbacks)
-        main_panel_->ProcessMouseEvent(event);
+        const bool consumed = main_panel_->ProcessMouseEvent(event);
 
         // Update hover selection for visual feedback
         for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
@@ -304,5 +294,20 @@ namespace towerforge::ui {
                 break;
             }
         }
+
+        return consumed;
+    }
+
+    void MainMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
+        // Legacy wrapper - delegates to modern API
+        MouseEvent event(
+            static_cast<float>(mouse_x),
+            static_cast<float>(mouse_y),
+            false, // left_down
+            false, // right_down
+            clicked, // left_pressed
+            false // right_pressed
+        );
+        ProcessMouseEvent(event);
     }
 }

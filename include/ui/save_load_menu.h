@@ -10,6 +10,9 @@ namespace TowerForge::Core { class ECSWorld; }
 
 namespace towerforge::ui {
 
+    // Forward declaration
+    struct MouseEvent;
+
     /**
  * @brief State of the save/load menu
  */
@@ -51,22 +54,31 @@ namespace towerforge::ui {
         void Render() const;
     
         /**
-     * @brief Update menu state (called every frame)
-     * @param delta_time Time elapsed since last frame
-     */
+         * @brief Update menu state (called every frame)
+         * @param delta_time Time elapsed since last frame
+         */
         void Update(float delta_time);
     
         /**
-     * @brief Handle keyboard input
-     */
+         * @brief Process mouse events (modern unified API)
+         * @param event Mouse event data
+         * @return true if event was consumed
+         */
+        bool ProcessMouseEvent(const MouseEvent& event) const;
+
+        /**
+         * @brief Handle keyboard input
+         * @deprecated Use ProcessKeyboardEvent instead (to be added)
+         */
         void HandleKeyboard();
     
         /**
-     * @brief Handle mouse input
-     * @param mouse_x Mouse X position
-     * @param mouse_y Mouse Y position
-     * @param clicked Whether mouse was clicked
-     */
+         * @brief Handle mouse input
+         * @param mouse_x Mouse X position
+         * @param mouse_y Mouse Y position
+         * @param clicked Whether mouse was clicked
+         * @deprecated Use ProcessMouseEvent instead
+         */
         void HandleMouse(int mouse_x, int mouse_y, bool clicked) const;
     
         /**

@@ -1,4 +1,5 @@
 #include "ui/history_panel.h"
+#include "ui/mouse_interface.h"
 #include "core/command_history.hpp"
 #include <sstream>
 #include <iomanip>
@@ -268,4 +269,14 @@ namespace towerforge::ui {
                );
     }
 
+    bool HistoryPanel::ProcessMouseEvent(const MouseEvent& event) {
+        if (!event.left_pressed) {
+            return false;  // Only handle clicks
+        }
+
+        // Delegate to legacy HandleClick for now
+        // TODO: Refactor to use callback pattern instead of return value
+        const int steps = HandleClick(static_cast<int>(event.x), static_cast<int>(event.y));
+        return steps != 0;  // Return true if an action was triggered
+    }
 }

@@ -5,6 +5,7 @@
 #include "ui/notification_center.h"
 #include "ui/action_bar.h"
 #include "ui/speed_control_panel.h"
+#include "ui/mouse_interface.h"
 #include "ui/batch_renderer/batch_renderer.h"
 
 using namespace TowerForge::Core;
@@ -342,7 +343,17 @@ namespace towerforge::core {
     void Game::HandleTitleScreenInput() {
         // Main menu now handles state changes directly via callbacks
         main_menu_.HandleKeyboard();
-        main_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+        
+        // Create mouse event for modern event API
+        const MouseEvent mouse_event(
+            static_cast<float>(GetMouseX()),
+            static_cast<float>(GetMouseY()),
+            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+        );
+        main_menu_.ProcessMouseEvent(mouse_event);
     }
 
     void Game::UpdateAchievementsScreen(const float delta_time) {
@@ -394,6 +405,16 @@ namespace towerforge::core {
     }
 
     void Game::HandleSettingsInput() {
+        // Create mouse event for modern event API
+        const MouseEvent mouse_event(
+            static_cast<float>(GetMouseX()),
+            static_cast<float>(GetMouseY()),
+            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+        );
+
         if (in_accessibility_settings_) {
             if (accessibility_settings_menu_.HandleKeyboard()) {
                 in_accessibility_settings_ = false;
@@ -406,11 +427,11 @@ namespace towerforge::core {
         } else if (in_audio_settings_) {
             // Audio settings menu handles state changes via callbacks
             audio_settings_menu_.HandleKeyboard();
-            audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            audio_settings_menu_.ProcessMouseEvent(mouse_event);
         } else {
             // General settings menu handles state changes via callbacks
             general_settings_menu_.HandleKeyboard();
-            general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            general_settings_menu_.ProcessMouseEvent(mouse_event);
         }
     }
 
@@ -946,23 +967,32 @@ namespace towerforge::core {
 
         // Handle pause menu input
         if (is_paused_) {
+            // Create mouse event for modern event API
+            const MouseEvent mouse_event(
+                static_cast<float>(GetMouseX()),
+                static_cast<float>(GetMouseY()),
+                IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+                IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+                IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+            );
+
             if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
                 save_load_menu_->Update(time_step_);
-                save_load_menu_->HandleMouse(GetMouseX(), GetMouseY(),
-                                             IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                save_load_menu_->ProcessMouseEvent(mouse_event);
                 save_load_menu_->HandleKeyboard();
             } else if (in_audio_settings_from_pause_) {
                 pause_audio_settings_menu_.Update(time_step_);
                 
                 // Audio settings menu handles state changes via callbacks
                 pause_audio_settings_menu_.HandleKeyboard();
-                pause_audio_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                pause_audio_settings_menu_.ProcessMouseEvent(mouse_event);
             } else if (in_settings_from_pause_) {
                 pause_general_settings_menu_.Update(time_step_);
                 
                 // General settings menu handles state changes via callbacks
                 pause_general_settings_menu_.HandleKeyboard();
-                pause_general_settings_menu_.HandleMouse(GetMouseX(), GetMouseY(), IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+                pause_general_settings_menu_.ProcessMouseEvent(mouse_event);
             } else {
                 pause_menu_->Update(time_step_);
 
@@ -976,10 +1006,14 @@ namespace towerforge::core {
                     // User cancelled quit
                 } else {
                     const int keyboard_selection = pause_menu_->HandleKeyboard();
-                    const int mouse_selection = pause_menu_->HandleMouse(GetMouseX(), GetMouseY(),
-                                                                         IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
 
-                    int selected = (keyboard_selection >= 0) ? keyboard_selection : mouse_selection;
+                    pause_menu_->ProcessMouseEvent(mouse_event);
+                    
+                    // Get the menu option that was selected (via keyboard or mouse)
+                    int selected = keyboard_selection;
+                    if (selected < 0) {
+                        selected = pause_menu_->GetSelectedMenuOption();
+                    }
 
                     if (selected >= 0) {
                         const auto option = static_cast<PauseMenuOption>(selected);
@@ -1055,7 +1089,15 @@ namespace towerforge::core {
 
         // Handle help system mouse input first (if visible)
         if (help_system_ != nullptr && help_system_->IsVisible()) {
-            help_system_->HandleMouse(mouse_x, mouse_y, IsMouseButtonPressed(MOUSE_LEFT_BUTTON));
+            const MouseEvent help_event(
+                static_cast<float>(mouse_x),
+                static_cast<float>(mouse_y),
+                IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+                IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+                IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+            );
+            help_system_->ProcessMouseEvent(help_event);
             return; // Help system consumes all input when visible
         }
 
@@ -1084,7 +1126,7 @@ namespace towerforge::core {
                 false, // left_pressed (hover only)
                 false // right_pressed (hover only)
             };
-            
+
             // Send hover events to HUD for button highlighting
             hud_->ProcessMouseEvent(hover_event);
             

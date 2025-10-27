@@ -1,4 +1,5 @@
 #include "ui/help_system.h"
+#include "ui/mouse_interface.h"
 #include <cmath>
 #include <algorithm>
 
@@ -62,6 +63,11 @@ namespace towerforge::ui {
             animation_time_ = 0.0f;
             scroll_offset_ = 0.0f;
         }
+    }
+
+    bool HelpSystem::ProcessMouseEvent(const MouseEvent& event) {
+        // Delegate to legacy implementation for now (HelpSystem uses manual collision)
+        return HandleMouse(static_cast<int>(event.x), static_cast<int>(event.y), event.left_pressed);
     }
 
     bool HelpSystem::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {

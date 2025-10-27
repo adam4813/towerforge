@@ -316,19 +316,9 @@ namespace towerforge::ui {
         }
     }
 
-    void AudioSettingsMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        // Create mouse event
-        const MouseEvent event(
-            static_cast<float>(mouse_x),
-            static_cast<float>(mouse_y),
-            false,
-            false,
-            clicked,
-            false
-        );
-
+    bool AudioSettingsMenu::ProcessMouseEvent(const MouseEvent& event) {
         // Process through panel (handles all children)
-        settings_panel_->ProcessMouseEvent(event);
+        const bool consumed = settings_panel_->ProcessMouseEvent(event);
 
         // Update selection based on hover
         for (size_t i = 0; i < interactive_elements_.size(); ++i) {
@@ -337,6 +327,21 @@ namespace towerforge::ui {
                 break;
             }
         }
+
+        return consumed;
+    }
+
+    void AudioSettingsMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
+        // Legacy wrapper - delegates to modern API
+        const MouseEvent event(
+            static_cast<float>(mouse_x),
+            static_cast<float>(mouse_y),
+            false,
+            false,
+            clicked,
+            false
+        );
+        ProcessMouseEvent(event);
     }
 
     void AudioSettingsMenu::LoadSettings() {

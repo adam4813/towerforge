@@ -1,4 +1,5 @@
 #include "ui/save_load_menu.h"
+#include "ui/mouse_interface.h"
 #include <cstring>
 #include <algorithm>
 
@@ -115,13 +116,27 @@ namespace towerforge::ui {
         }
     }
 
-    void SaveLoadMenu::HandleMouse(int mouse_x, int mouse_y, bool clicked) const {
+    bool SaveLoadMenu::ProcessMouseEvent(const MouseEvent& event) const {
         if (state_ == SaveLoadMenuState::Closed) {
-            return;
+            return false;
         }
 
         // Handle based on current state
         // This will be expanded with button click detection
+        return false;
+    }
+
+    void SaveLoadMenu::HandleMouse(int mouse_x, int mouse_y, bool clicked) const {
+        // Legacy wrapper - delegates to modern API
+        const MouseEvent event(
+            static_cast<float>(mouse_x),
+            static_cast<float>(mouse_y),
+            false,
+            false,
+            clicked,
+            false
+        );
+        ProcessMouseEvent(event);
     }
 
     void SaveLoadMenu::Render() const {

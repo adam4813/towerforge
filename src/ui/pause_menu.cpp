@@ -248,27 +248,17 @@ namespace towerforge::ui {
         return -1;
     }
 
-    int PauseMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
+    bool PauseMenu::ProcessMouseEvent(const MouseEvent& event) {
         // If quit confirmation is showing, don't handle menu mouse input
         if (show_quit_confirmation_) {
-            return -1;
+            return false;
         }
-
-        // Create mouse event
-        MouseEvent event(
-            static_cast<float>(mouse_x), 
-            static_cast<float>(mouse_y),
-            false, // left_down
-            false, // right_down
-            clicked, // left_pressed
-            false  // right_pressed
-        );
 
         // Reset selected menu option
         selected_menu_option_ = -1;
 
         // Process mouse event through the panel
-        pause_panel_->ProcessMouseEvent(event);
+        const bool consumed = pause_panel_->ProcessMouseEvent(event);
 
         // Update selected_option_ based on which button is hovered
         for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
@@ -278,6 +268,20 @@ namespace towerforge::ui {
             }
         }
 
+        return consumed;
+    }
+
+    int PauseMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
+        // Legacy wrapper - delegates to modern API
+        MouseEvent event(
+            static_cast<float>(mouse_x),
+            static_cast<float>(mouse_y),
+            false, // left_down
+            false, // right_down
+            clicked, // left_pressed
+            false  // right_pressed
+        );
+        ProcessMouseEvent(event);
         return selected_menu_option_;
     }
 

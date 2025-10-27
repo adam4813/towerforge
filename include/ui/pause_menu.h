@@ -10,6 +10,7 @@ namespace towerforge::ui {
     // Forward declarations
     class Panel;
     class Button;
+    struct MouseEvent;
     /**
  * @brief Menu options available in the pause menu
  */
@@ -45,25 +46,40 @@ namespace towerforge::ui {
         void Update(float delta_time);
     
         /**
-     * @brief Handle keyboard input for menu navigation
-     * @return Selected menu option, or -1 if none selected
-     */
+         * @brief Process mouse events (modern unified API)
+         * @param event Mouse event data
+         * @return true if event was consumed
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
+
+        /**
+         * @brief Handle keyboard input for menu navigation
+         * @return Selected menu option, or -1 if none selected
+         * @deprecated Use ProcessKeyboardEvent instead (to be added)
+         */
         int HandleKeyboard();
     
         /**
-     * @brief Handle mouse input for menu interaction
-     * @param mouse_x Mouse X position
-     * @param mouse_y Mouse Y position
-     * @param clicked Whether mouse was clicked
-     * @return Selected menu option, or -1 if none selected
-     */
+         * @brief Handle mouse input for menu interaction
+         * @param mouse_x Mouse X position
+         * @param mouse_y Mouse Y position
+         * @param clicked Whether mouse was clicked
+         * @return Selected menu option, or -1 if none selected
+         * @deprecated Use ProcessMouseEvent instead
+         */
         int HandleMouse(int mouse_x, int mouse_y, bool clicked);
     
         /**
      * @brief Get the currently selected menu option
      * @return Index of selected option
      */
-        int GetSelectedOption() const { return selected_option_; }
+        int GetHoveredMenuOption() const { return selected_option_; }
+
+       /**
+    * @brief Get the currently selected menu option
+    * @return Index of selected option
+    */
+        int GetSelectedMenuOption() const { return selected_menu_option_; }
     
         /**
      * @brief Show/hide confirmation dialog for quitting
@@ -82,8 +98,8 @@ namespace towerforge::ui {
      * @return 1 for confirm, 0 for cancel, -1 for no action
      */
         int HandleQuitConfirmation();
-    
-    private:
+
+     private:
         void RenderOverlay() const;
         void RenderMenuOptions() const;
         void RenderQuitConfirmation() const;

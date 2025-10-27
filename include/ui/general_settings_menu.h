@@ -12,6 +12,7 @@ namespace towerforge::ui {
     class Button;
     class PanelHeaderOverlay;
     class DimOverlay;
+    struct MouseEvent;
 
     /**
      * @brief Settings options available in the general settings menu
@@ -56,7 +57,15 @@ namespace towerforge::ui {
         void Update(float delta_time);
 
         /**
+         * @brief Process mouse events (modern unified API)
+         * @param event Mouse event data
+         * @return true if event was consumed
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
+
+        /**
          * @brief Handle keyboard input for menu navigation
+         * @deprecated Use ProcessKeyboardEvent instead (to be added)
          */
         void HandleKeyboard();
 
@@ -65,6 +74,7 @@ namespace towerforge::ui {
          * @param mouse_x Mouse X position
          * @param mouse_y Mouse Y position
          * @param clicked Whether mouse was clicked
+         * @deprecated Use ProcessMouseEvent instead
          */
         void HandleMouse(int mouse_x, int mouse_y, bool clicked);
 

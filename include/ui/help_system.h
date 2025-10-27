@@ -8,6 +8,9 @@
 
 namespace towerforge::ui {
 
+    // Forward declaration
+    struct MouseEvent;
+
     /**
      * @brief Help context enumeration - determines which help content to show
      */
@@ -97,11 +100,19 @@ namespace towerforge::ui {
         HelpContext GetCurrentContext() const { return current_context_; }
 
         /**
+         * @brief Process mouse events (modern unified API)
+         * @param event Mouse event data
+         * @return true if event was consumed
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
+
+        /**
          * @brief Handle mouse input
          * @param mouse_x Mouse X position
          * @param mouse_y Mouse Y position
          * @param clicked Whether mouse was clicked
          * @return True if input was handled
+         * @deprecated Use ProcessMouseEvent instead
          */
         bool HandleMouse(int mouse_x, int mouse_y, bool clicked);
 

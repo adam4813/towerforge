@@ -10,6 +10,9 @@ namespace TowerForge::Core {
 
 namespace towerforge::ui {
 
+    // Forward declaration
+    struct MouseEvent;
+
     /**
      * @brief Display entry for history panel
      */
@@ -40,10 +43,18 @@ namespace towerforge::ui {
         void Render();
 
         /**
+         * @brief Process mouse events (modern unified API)
+         * @param event Mouse event data
+         * @return true if event was consumed
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
+
+        /**
          * @brief Handle mouse click
          * @param mouse_x Mouse X position
          * @param mouse_y Mouse Y position
          * @return Number of steps to undo (positive) or redo (negative), or 0 for no action
+         * @deprecated Use ProcessMouseEvent instead (returns bool, caller must track action)
          */
         int HandleClick(int mouse_x, int mouse_y) const;
 
