@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/ui_element.h"
+#include "ui/icon_button.h"
 #include <raylib.h>
 #include <functional>
 #include <algorithm>
@@ -11,17 +12,14 @@ namespace towerforge::ui {
      * @brief Speed control panel for game simulation speed
      * 
      * Declarative UI component following UI Development Bible patterns.
-     * Displays pause and speed multiplier buttons.
+     * Uses proper Composite pattern with IconButton children.
      */
-    class SpeedControlPanel : public UIElement {
+    class SpeedControlPanel : public Panel {
     public:
         using SpeedCallback = std::function<void(int speed, bool paused)>;
 
         SpeedControlPanel(float x, float y, float width, float height);
         ~SpeedControlPanel() override = default;
-
-        void Render() const override;
-        bool ProcessMouseEvent(const MouseEvent& event);
 
         /**
          * @brief Set current speed state (reactive update)
@@ -36,25 +34,28 @@ namespace towerforge::ui {
         void SetSpeedCallback(SpeedCallback callback) { speed_callback_ = callback; }
 
     private:
-        struct ButtonBounds {
-            Rectangle rect;
-            int speed;  // 0 = pause, 1/2/4 = speed multiplier
-            bool is_pause;
-        };
-
-        std::vector<ButtonBounds> buttons_;
+        // Button children (ownership transferred to Panel via AddChild)
+        IconButton* pause_button_;
+        IconButton* speed_1x_button_;
+        IconButton* speed_2x_button_;
+        IconButton* speed_4x_button_;
+        
         int current_speed_;
         bool is_paused_;
         SpeedCallback speed_callback_;
 
         // Responsive sizing constants
-        static constexpr int BASE_WIDTH = 150;  // 75% of original 200
-        static constexpr int BASE_HEIGHT = 38;  // 75% of original 50 (rounded)
-        static constexpr float MAX_WIDTH_PERCENT = 0.20f;  // Max 20% of screen width
-        static constexpr int MIN_WIDTH = 100;  // Minimum usable width
-        
+        static constexpr int BASE_WIDTH = 150;
+        static constexpr int BASE_HEIGHT = 38;
+        static constexpr float MAX_WIDTH_PERCENT = 0.20f;
+        static constexpr int MIN_WIDTH = 100;
         static constexpr int BUTTON_SPACING = 5;
         static constexpr int PADDING = 5;
+        
+        void BuildButtons();
+        void UpdateButtonStates();
+        void OnPauseClick();
+        void OnSpeedClick(int speed);
         
     public:
         // Calculate responsive width

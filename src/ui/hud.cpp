@@ -235,13 +235,13 @@ namespace towerforge::ui {
     }
 
     bool HUD::ProcessMouseEvent(const MouseEvent& event) {
-        // Forward to speed control panel first
-        if (speed_control_panel_ && speed_control_panel_->ProcessMouseEvent(event)) {
-            return true;
-        }
-
         // Forward to action bar
         if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
+            return true;
+        }
+        
+        // Forward to speed control panel
+        if (speed_control_panel_ && speed_control_panel_->ProcessMouseEvent(event)) {
             return true;
         }
         
