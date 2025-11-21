@@ -64,7 +64,7 @@ namespace towerforge::ui {
          * @brief Set the achievement manager to display
          * @param manager Pointer to achievement manager
          */
-        void SetAchievementManager(TowerForge::Core::AchievementManager* manager);
+        void SetAchievementManager(towerforge::core::AchievementManager* manager);
     
         /**
          * @brief Set current game statistics for progress display
@@ -78,14 +78,14 @@ namespace towerforge::ui {
     private:
         void UpdateLayout();
         void RenderAchievementList() const;
-        void RenderAchievementItem(const TowerForge::Core::Achievement& achievement, int y_pos, int x, int width, bool is_unlocked) const;
-        std::string GetProgressText(const TowerForge::Core::Achievement& achievement) const;
+        void RenderAchievementItem(const towerforge::core::Achievement& achievement, int y_pos, int x, int width, bool is_unlocked) const;
+        std::string GetProgressText(const towerforge::core::Achievement& achievement) const;
     
         std::unique_ptr<Panel> main_panel_;
         std::unique_ptr<PanelHeaderOverlay> header_overlay_;
         std::unique_ptr<DimOverlay> dim_overlay_;
 
-        TowerForge::Core::AchievementManager* achievement_manager_;
+        towerforge::core::AchievementManager* achievement_manager_;
     
         // Current game stats for progress calculation
         int current_population_;

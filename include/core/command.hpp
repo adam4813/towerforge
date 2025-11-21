@@ -4,7 +4,7 @@
 #include <string>
 #include "core/components.hpp"
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // Forward declarations
     class FacilityManager;

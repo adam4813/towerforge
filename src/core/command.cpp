@@ -3,7 +3,7 @@
 #include "core/tower_grid.hpp"
 #include <sstream>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // PlaceFacilityCommand implementation
 

@@ -6,7 +6,7 @@
 #include "core/components.hpp"
 #include "core/tower_grid.hpp"
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     /**
  * @brief Manages facility creation, destruction, and lifecycle

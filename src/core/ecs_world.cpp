@@ -13,7 +13,7 @@
 #include <iostream>
 #include <set>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     ECSWorld::ECSWorld() 
         : tower_grid_(std::make_unique<TowerGrid>(1, 20, 0)) {  // Start with 1 floor (ground), 20 columns, ground at index 0

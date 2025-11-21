@@ -33,7 +33,7 @@ namespace towerforge::ui {
         last_action_ = SaveLoadAction::Cancel;
     }
 
-    void SaveLoadMenu::SetSaveLoadManager(TowerForge::Core::SaveLoadManager* manager) {
+    void SaveLoadMenu::SetSaveLoadManager(towerforge::core::SaveLoadManager* manager) {
         save_load_manager_ = manager;
     }
 

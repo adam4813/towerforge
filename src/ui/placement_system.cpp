@@ -8,8 +8,8 @@
 
 namespace towerforge::ui {
 
-    PlacementSystem::PlacementSystem(TowerForge::Core::TowerGrid& grid,
-                                     TowerForge::Core::FacilityManager& facility_mgr,
+    PlacementSystem::PlacementSystem(towerforge::core::TowerGrid& grid,
+                                     towerforge::core::FacilityManager& facility_mgr,
                                      BuildMenu& build_menu)
         : grid_(grid)
           , facility_mgr_(facility_mgr)
@@ -216,7 +216,7 @@ namespace towerforge::ui {
                 // Get facility info for dialog message
                 const int facility_id = grid_.GetFacilityAt(floor, column);
                 const auto facility_type = facility_mgr_.GetFacilityType(facility_id);
-                const std::string facility_name = TowerForge::Core::FacilityManager::GetTypeName(facility_type);
+                const std::string facility_name = towerforge::core::FacilityManager::GetTypeName(facility_type);
                 
                 demolish_confirmation_->Show();
                 
@@ -326,7 +326,7 @@ namespace towerforge::ui {
                 // Check if there's a facility to demolish
                 if (const auto facility_id = grid_.GetFacilityAt(grid_y, grid_x); facility_id >= 0) {
                     const auto buildingType = facility_mgr_.GetFacilityType(facility_id);
-                    const auto name = TowerForge::Core::FacilityManager::GetTypeName(buildingType);
+                    const auto name = towerforge::core::FacilityManager::GetTypeName(buildingType);
                     tooltip_text << "Demolish " << name << "\n";
                 } else {
                     tooltip_text << "No facility to demolish";
@@ -464,7 +464,7 @@ namespace towerforge::ui {
         const auto bc_type = GetFacilityType(facility_type_index);
 
         // Create command
-        auto command = std::make_unique<TowerForge::Core::PlaceFacilityCommand>(
+        auto command = std::make_unique<towerforge::core::PlaceFacilityCommand>(
             facility_mgr_, grid_, bc_type, floor, column, facility_type.width, total_cost
         );
 
@@ -477,7 +477,7 @@ namespace towerforge::ui {
         // Get the entity ID from the last undo entry
         const auto& undo_stack = command_history_.GetUndoStack();
         if (!undo_stack.empty()) {
-            const auto* place_cmd = dynamic_cast<TowerForge::Core::PlaceFacilityCommand*>(
+            const auto* place_cmd = dynamic_cast<towerforge::core::PlaceFacilityCommand*>(
                 undo_stack.back().command.get()
             );
             if (place_cmd) {
@@ -497,7 +497,7 @@ namespace towerforge::ui {
         }
 
         // Create demolish command
-        auto command = std::make_unique<TowerForge::Core::DemolishFacilityCommand>(
+        auto command = std::make_unique<towerforge::core::DemolishFacilityCommand>(
             facility_mgr_, grid_, floor, column, RECOVERY_PERCENTAGE
         );
 
@@ -518,7 +518,7 @@ namespace towerforge::ui {
         return 10.0f; // Default
     }
 
-    TowerForge::Core::BuildingComponent::Type PlacementSystem::GetFacilityType(const int facility_type_index) {
+    towerforge::core::BuildingComponent::Type PlacementSystem::GetFacilityType(const int facility_type_index) {
         // Map build menu index to BuildingComponent::Type
         // Based on BuildMenu initialization order:
         // 0: Lobby, 1: Office, 2: Restaurant, 3: Shop (RetailShop), 4: Hotel,
@@ -526,18 +526,18 @@ namespace towerforge::ui {
         // 9: Flagship (FlagshipStore), 10: Elevator
 
         switch (facility_type_index) {
-            case 0: return TowerForge::Core::BuildingComponent::Type::Lobby;
-            case 1: return TowerForge::Core::BuildingComponent::Type::Office;
-            case 2: return TowerForge::Core::BuildingComponent::Type::Restaurant;
-            case 3: return TowerForge::Core::BuildingComponent::Type::RetailShop;
-            case 4: return TowerForge::Core::BuildingComponent::Type::Hotel;
-            case 5: return TowerForge::Core::BuildingComponent::Type::Gym;
-            case 6: return TowerForge::Core::BuildingComponent::Type::Arcade;
-            case 7: return TowerForge::Core::BuildingComponent::Type::Theater;
-            case 8: return TowerForge::Core::BuildingComponent::Type::ConferenceHall;
-            case 9: return TowerForge::Core::BuildingComponent::Type::FlagshipStore;
-            case 10: return TowerForge::Core::BuildingComponent::Type::Elevator;
-            default: return TowerForge::Core::BuildingComponent::Type::Office;
+            case 0: return towerforge::core::BuildingComponent::Type::Lobby;
+            case 1: return towerforge::core::BuildingComponent::Type::Office;
+            case 2: return towerforge::core::BuildingComponent::Type::Restaurant;
+            case 3: return towerforge::core::BuildingComponent::Type::RetailShop;
+            case 4: return towerforge::core::BuildingComponent::Type::Hotel;
+            case 5: return towerforge::core::BuildingComponent::Type::Gym;
+            case 6: return towerforge::core::BuildingComponent::Type::Arcade;
+            case 7: return towerforge::core::BuildingComponent::Type::Theater;
+            case 8: return towerforge::core::BuildingComponent::Type::ConferenceHall;
+            case 9: return towerforge::core::BuildingComponent::Type::FlagshipStore;
+            case 10: return towerforge::core::BuildingComponent::Type::Elevator;
+            default: return towerforge::core::BuildingComponent::Type::Office;
         }
     }
 

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     void AccessibilitySettings::LoadSettings() {
         try {
@@ -54,4 +54,4 @@ namespace TowerForge::Core {
         }
     }
 
-} // namespace TowerForge::Core
+} // namespace towerforge::core::

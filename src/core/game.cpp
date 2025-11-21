@@ -1,14 +1,20 @@
 #include <iostream>
 #include "core/game.h"
 #include "core/components.hpp"
+#include "core/ecs_world.hpp"
 #include "core/user_preferences.hpp"
+#include "core/scenes/title_scene.hpp"
+#include "core/scenes/achievements_scene.hpp"
+#include "core/scenes/settings_scene.hpp"
+#include "core/scenes/credits_scene.hpp"
+#include "core/scenes/ingame_scene.hpp"
+#include "core/scenes/tutorial_scene.hpp"
 #include "ui/notification_center.h"
 #include "ui/action_bar.h"
 #include "ui/speed_control_panel.h"
 #include "ui/mouse_interface.h"
 #include "ui/batch_renderer/batch_renderer.h"
 
-using namespace TowerForge::Core;
 using namespace towerforge::ui;
 using namespace towerforge::rendering;
 
@@ -130,36 +136,27 @@ namespace towerforge::core {
         : current_state_(GameState::TitleScreen)
           , previous_state_(GameState::TitleScreen)
           , audio_manager_(nullptr)
-          , tutorial_manager_()
-          , tutorial_active_(false)
-          , help_system_()
-          , in_audio_settings_(false)
-          , in_accessibility_settings_(false)
-          , ecs_world_()
-          , save_load_manager_()
-          , achievement_manager_()
-          , hud_()
-          , build_menu_()
-          , pause_menu_()
-          , save_load_menu_()
-          , research_menu_()
-          , mods_menu_()
-          , camera_()
-          , placement_system_()
-          , history_panel_()
+          , active_scene_(nullptr)
+          , title_scene_()
+          , achievements_scene_()
+          , settings_scene_()
+          , credits_scene_()
+          , ingame_scene_()
+          , tutorial_scene_()
           , is_paused_(false)
           , in_settings_from_pause_(false)
           , in_audio_settings_from_pause_(false)
           , in_accessibility_settings_from_pause_(false)
-          , elapsed_time_(0.0f)
-          , sim_time_(0.0f)
-          , time_step_(1.0f / 60.0f)
-          , total_time_(30.0f)
+          , tutorial_active_(false)
+          , game_initialized_(false)
           , grid_offset_x_(300)
           , grid_offset_y_(100)
           , cell_width_(40)
           , cell_height_(50)
-          , game_initialized_(false) {
+          , elapsed_time_(0.0f)
+          , sim_time_(0.0f)
+          , time_step_(1.0f / 60.0f)
+          , total_time_(30.0f) {
         game_state_.funds = 25000.0f;
         game_state_.income_rate = 500.0f;
         game_state_.population = 2;
@@ -170,6 +167,10 @@ namespace towerforge::core {
     }
 
     Game::~Game() {
+        if (active_scene_) {
+            active_scene_->Shutdown();
+            active_scene_ = nullptr;
+        }
         CleanupGameSystems();
     }
 
@@ -193,60 +194,6 @@ namespace towerforge::core {
         main_menu_.SetStateChangeCallback([this](const GameState new_state) {
             current_state_ = new_state;
         });
-        
-        // Set up general settings menu callback
-        general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
-            switch (option) {
-                case SettingsOption::Audio:
-                    in_audio_settings_ = true;
-                    break;
-                case SettingsOption::Accessibility:
-                    in_accessibility_settings_ = true;
-                    break;
-                case SettingsOption::Back:
-                    current_state_ = GameState::TitleScreen;
-                    break;
-                default:
-                    // Other options not yet implemented
-                    break;
-            }
-        });
-        
-        // Set up pause general settings menu callback
-        pause_general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
-            switch (option) {
-                case SettingsOption::Audio:
-                    in_audio_settings_from_pause_ = true;
-                    break;
-                case SettingsOption::Accessibility:
-                    in_accessibility_settings_from_pause_ = true;
-                    break;
-                case SettingsOption::Back:
-                    in_settings_from_pause_ = false;
-                    break;
-                default:
-                    // Other options not yet implemented
-                    break;
-            }
-        });
-
-        // Set up audio settings menu callbacks
-        audio_settings_menu_.SetBackCallback([this]() {
-            in_audio_settings_ = false;
-        });
-        
-        pause_audio_settings_menu_.SetBackCallback([this]() {
-            in_audio_settings_from_pause_ = false;
-        });
-
-        // Set up accessibility settings menu callbacks
-        accessibility_settings_menu_.SetBackCallback([this]() {
-            in_accessibility_settings_ = false;
-        });
-
-        pause_accessibility_settings_menu_.SetBackCallback([this]() {
-            in_accessibility_settings_from_pause_ = false;
-        });
 
         // Initialize audio system
         audio_manager_ = &audio::AudioManager::GetInstance();
@@ -264,12 +211,101 @@ namespace towerforge::core {
         // Set achievement manager for achievements menu
         achievements_menu_.SetAchievementManager(achievement_manager_.get());
 
+        // Transition to initial scene
+        TransitionToState(GameState::TitleScreen);
+
         // Play main theme music (volume already set from preferences)
         audio_manager_->PlayMusic(audio::AudioCue::MainTheme, true, 1.0f);
 
         std::cout << "User preferences applied to all systems" << std::endl;
 
         return true;
+    }
+
+    void Game::SetGameState(GameState state) {
+        if (state != current_state_) {
+            TransitionToState(state);
+        }
+    }
+
+    void Game::TransitionToState(GameState new_state) {
+        // Shutdown current scene
+        if (active_scene_) {
+            active_scene_->Shutdown();
+            active_scene_ = nullptr;
+        }
+
+        previous_state_ = current_state_;
+        current_state_ = new_state;
+
+        // Initialize and activate new scene
+        switch (current_state_) {
+            case GameState::TitleScreen:
+                if (!title_scene_) {
+                    title_scene_ = std::make_unique<TitleScene>(this, main_menu_);
+                    title_scene_->Initialize();
+                }
+                active_scene_ = title_scene_.get();
+                break;
+
+            case GameState::Achievements:
+                if (!achievements_scene_) {
+                    achievements_scene_ = std::make_unique<AchievementsScene>(this, achievements_menu_);
+                    achievements_scene_->Initialize();
+                }
+                active_scene_ = achievements_scene_.get();
+                break;
+
+            case GameState::Settings:
+                if (!settings_scene_) {
+                    settings_scene_ = std::make_unique<SettingsScene>(this, general_settings_menu_,
+                                                                       audio_settings_menu_,
+                                                                       accessibility_settings_menu_);
+                    settings_scene_->Initialize();
+                }
+                active_scene_ = settings_scene_.get();
+                break;
+
+            case GameState::Credits:
+                if (!credits_scene_) {
+                    credits_scene_ = std::make_unique<CreditsScene>(this);
+                    credits_scene_->Initialize();
+                }
+                active_scene_ = credits_scene_.get();
+                break;
+
+            case GameState::InGame:
+                if (!ingame_scene_) {
+                    ingame_scene_ = std::make_unique<InGameScene>(this);
+                }
+                active_scene_ = ingame_scene_.get();
+                if (!game_initialized_) {
+                    active_scene_->Initialize();
+                    game_initialized_ = true;
+                }
+                break;
+
+            case GameState::Tutorial:
+                if (!tutorial_scene_) {
+                    tutorial_scene_ = std::make_unique<TutorialScene>(this);
+                }
+                active_scene_ = tutorial_scene_.get();
+                if (!game_initialized_) {
+                    active_scene_->Initialize();
+                    game_initialized_ = true;
+                    tutorial_active_ = true;
+                }
+                break;
+
+            case GameState::Quit:
+                active_scene_ = nullptr;
+                break;
+
+            case GameState::LoadGame:
+                // TODO: Implement load game scene
+                active_scene_ = nullptr;
+                break;
+        }
     }
 
     void Game::Run() {
@@ -279,220 +315,29 @@ namespace towerforge::core {
             // Update audio system
             audio_manager_->Update(delta_time);
 
-            switch (current_state_) {
-                case GameState::TitleScreen:
-                    UpdateTitleScreen(delta_time);
-                    RenderTitleScreen();
-                    break;
+            // Update and render active scene
+            if (active_scene_) {
+                active_scene_->Update(delta_time);
 
-                case GameState::Tutorial:
-                    if (!game_initialized_) {
-                        InitializeGameSystems();
-                        game_initialized_ = true;
-                        tutorial_active_ = true;
-                    }
-                    UpdateTutorial(delta_time);
-                    RenderTutorial();
-                    break;
-
-                case GameState::Achievements:
-                    UpdateAchievementsScreen(delta_time);
-                    RenderAchievementsScreen();
-                    break;
-
-                case GameState::Settings:
-                    UpdateSettingsScreen(delta_time);
-                    RenderSettingsScreen();
-                    break;
-
-                case GameState::Credits:
-                    UpdateCreditsScreen(delta_time);
-                    RenderCreditsScreen();
-                    break;
-
-                case GameState::InGame:
-                    if (!game_initialized_) {
-                        InitializeGameSystems();
-                        game_initialized_ = true;
-                    }
-                    UpdateInGame(delta_time);
-                    if (current_state_ == GameState::InGame) {
-                        RenderInGame();
-                    }
-                    break;
-
-                case GameState::Quit:
-                    break;
+                renderer_.BeginFrame();
+                active_scene_->Render();
+                renderer_.EndFrame();
             }
         }
     }
 
     void Game::Shutdown() {
-        // Cleanup game systems if initialized
-        CleanupGameSystems();
+        // Cleanup active scene
+        if (active_scene_) {
+            active_scene_->Shutdown();
+            active_scene_ = nullptr;
+        }
 
         // Shutdown batch renderer
         batch_renderer::BatchRenderer::Shutdown();
 
         renderer_.Shutdown();
         std::cout << "Exiting TowerForge..." << std::endl;
-    }
-
-    void Game::UpdateTitleScreen(const float delta_time) {
-        main_menu_.Update(delta_time);
-        HandleTitleScreenInput();
-    }
-
-    void Game::RenderTitleScreen() const {
-        renderer_.BeginFrame();
-        main_menu_.Render();
-        renderer_.EndFrame();
-    }
-
-    void Game::HandleTitleScreenInput() {
-        // Main menu now handles state changes directly via callbacks
-        main_menu_.HandleKeyboard();
-        
-        // Create mouse event for modern event API
-        const MouseEvent mouse_event(
-            static_cast<float>(GetMouseX()),
-            static_cast<float>(GetMouseY()),
-            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-        );
-        main_menu_.ProcessMouseEvent(mouse_event);
-    }
-
-    void Game::UpdateAchievementsScreen(const float delta_time) {
-        achievements_menu_.Update(delta_time);
-        HandleAchievementsInput();
-    }
-
-    void Game::RenderAchievementsScreen() {
-        renderer_.BeginFrame();
-        ClearBackground(Color{20, 20, 30, 255});
-        achievements_menu_.Render();
-        renderer_.EndFrame();
-    }
-
-    void Game::HandleAchievementsInput() {
-        if (achievements_menu_.HandleKeyboard()) {
-            audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
-            current_state_ = GameState::TitleScreen;
-        }
-
-        // Create mouse event for modern event API
-        const MouseEvent mouse_event(
-            static_cast<float>(GetMouseX()),
-            static_cast<float>(GetMouseY()),
-            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-        );
-        achievements_menu_.ProcessMouseEvent(mouse_event);
-    }
-
-    void Game::UpdateSettingsScreen(const float delta_time) {
-        if (in_accessibility_settings_) {
-            accessibility_settings_menu_.Update(delta_time);
-            HandleSettingsInput();
-        } else if (in_audio_settings_) {
-            audio_settings_menu_.Update(delta_time);
-            HandleSettingsInput();
-        } else {
-            general_settings_menu_.Update(delta_time);
-            HandleSettingsInput();
-        }
-    }
-
-    void Game::RenderSettingsScreen() {
-        renderer_.BeginFrame();
-        ClearBackground(Color{20, 20, 30, 255});
-
-        if (in_accessibility_settings_) {
-            accessibility_settings_menu_.Render();
-        } else if (in_audio_settings_) {
-            audio_settings_menu_.Render();
-        } else {
-            general_settings_menu_.Render();
-        }
-
-        renderer_.EndFrame();
-    }
-
-    void Game::HandleSettingsInput() {
-        // Create mouse event for modern event API
-        const MouseEvent mouse_event(
-            static_cast<float>(GetMouseX()),
-            static_cast<float>(GetMouseY()),
-            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-        );
-
-        if (in_accessibility_settings_) {
-            if (accessibility_settings_menu_.HandleKeyboard()) {
-                in_accessibility_settings_ = false;
-            }
-            accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
-        } else if (in_audio_settings_) {
-            // Audio settings menu handles state changes via callbacks
-            audio_settings_menu_.HandleKeyboard();
-            audio_settings_menu_.ProcessMouseEvent(mouse_event);
-        } else {
-            // General settings menu handles state changes via callbacks
-            general_settings_menu_.HandleKeyboard();
-            general_settings_menu_.ProcessMouseEvent(mouse_event);
-        }
-    }
-
-    void Game::UpdateCreditsScreen(float delta_time) {
-        HandleCreditsInput();
-    }
-
-    void Game::RenderCreditsScreen() const {
-        renderer_.BeginFrame();
-        ClearBackground(Color{20, 20, 30, 255});
-
-        const int screen_width = GetScreenWidth();
-        int y = 100;
-
-        DrawText("CREDITS", (screen_width - MeasureText("CREDITS", 40)) / 2, y, 40, GOLD);
-        y += 80;
-
-        DrawText("TowerForge v0.1.0", (screen_width - MeasureText("TowerForge v0.1.0", 24)) / 2, y, 24, WHITE);
-        y += 50;
-
-        DrawText("A modern SimTower-inspired skyscraper simulation",
-                 (screen_width - MeasureText("A modern SimTower-inspired skyscraper simulation", 18)) / 2,
-                 y, 18, LIGHTGRAY);
-        y += 60;
-
-        DrawText("Built with:", (screen_width - MeasureText("Built with:", 20)) / 2, y, 20, LIGHTGRAY);
-        y += 40;
-        DrawText("- C++20", (screen_width - MeasureText("- C++20", 18)) / 2, y, 18, WHITE);
-        y += 30;
-        DrawText("- Raylib (rendering)", (screen_width - MeasureText("- Raylib (rendering)", 18)) / 2, y, 18, WHITE);
-        y += 30;
-        DrawText("- Flecs (ECS framework)", (screen_width - MeasureText("- Flecs (ECS framework)", 18)) / 2, y, 18,
-                 WHITE);
-        y += 60;
-
-        DrawText("Press ESC or ENTER to return to menu",
-                 (screen_width - MeasureText("Press ESC or ENTER to return to menu", 16)) / 2,
-                 y, 16, GRAY);
-
-        renderer_.EndFrame();
-    }
-
-    void Game::HandleCreditsInput() {
-        if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            current_state_ = GameState::TitleScreen;
-        }
     }
 
     void Game::InitializeGameSystems() {
@@ -1516,7 +1361,6 @@ namespace towerforge::core {
     void Game::RenderInGame() {
         const auto &grid = ecs_world_->GetTowerGrid();
 
-        renderer_.BeginFrame();
         renderer_.Clear(DARKGRAY);
 
         // Begin camera mode for all game world rendering
@@ -1752,8 +1596,6 @@ namespace towerforge::core {
         if (help_system_ != nullptr && help_system_->IsVisible()) {
             help_system_->Render();
         }
-
-        renderer_.EndFrame();
     }
 
     void Game::CleanupGameSystems() {

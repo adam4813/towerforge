@@ -71,7 +71,7 @@
 #include "core/components.hpp"
 #include <raylib.h>
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 int main(int argc, char* argv[]) {
     std::cout << "TowerForge - Screenshot Generator" << std::endl;

@@ -10,7 +10,7 @@ namespace towerforge::ui {
 
     ModsMenu::~ModsMenu() = default;
 
-    void ModsMenu::SetModManager(TowerForge::Core::LuaModManager* mod_manager) {
+    void ModsMenu::SetModManager(towerforge::core::LuaModManager* mod_manager) {
         mod_manager_ = mod_manager;
     }
 

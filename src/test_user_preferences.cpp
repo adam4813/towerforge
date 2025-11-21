@@ -37,7 +37,7 @@ int main() {
     // Test 1: Create preferences with default values
     {
         std::cout << "\nTest 1: Creating preferences with defaults..." << std::endl;
-        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        auto& prefs = towerforge::core::UserPreferences::GetInstance();
         
         // Verify defaults
         assert(prefs.GetMasterVolume() == 0.7f);
@@ -53,7 +53,7 @@ int main() {
     // Test 2: Modify and save preferences
     {
         std::cout << "\nTest 2: Modifying preferences..." << std::endl;
-        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        auto& prefs = towerforge::core::UserPreferences::GetInstance();
         
         prefs.SetMasterVolume(0.8f);
         prefs.SetMusicVolume(0.6f);
@@ -62,7 +62,7 @@ int main() {
         prefs.SetFontScale(1.2f);
         prefs.SetHighContrastEnabled(true);
         prefs.SetMuteAll(true);
-        prefs.SetColorMode(TowerForge::Core::ColorMode::HighContrast);
+        prefs.SetColorMode(towerforge::core::ColorMode::HighContrast);
         
         // Verify file was created
         assert(std::filesystem::exists(config_path));
@@ -76,7 +76,7 @@ int main() {
         assert(prefs.GetFontScale() == 1.2f);
         assert(prefs.IsHighContrastEnabled() == true);
         assert(prefs.GetMuteAll() == true);
-        assert(prefs.GetColorMode() == TowerForge::Core::ColorMode::HighContrast);
+        assert(prefs.GetColorMode() == towerforge::core::ColorMode::HighContrast);
         
         std::cout << "✓ Modified values are correct" << std::endl;
     }

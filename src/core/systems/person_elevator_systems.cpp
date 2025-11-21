@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
-namespace TowerForge::Core::Systems {
+namespace towerforge::core::Systems {
 
     void PersonElevatorSystems::RegisterAll(flecs::world& world) {
         RegisterPersonHorizontalMovement(world);

@@ -145,7 +145,7 @@ namespace towerforge::ui {
         EndScissorMode();
     }
 
-    void AchievementsMenu::RenderAchievementItem(const TowerForge::Core::Achievement& achievement, 
+    void AchievementsMenu::RenderAchievementItem(const towerforge::core::Achievement& achievement,
                                                   const int y_pos, const int x, const int width, const bool is_unlocked) const {
 
         // Background
@@ -191,27 +191,27 @@ namespace towerforge::ui {
         }
     }
 
-    std::string AchievementsMenu::GetProgressText(const TowerForge::Core::Achievement& achievement) const {
+    std::string AchievementsMenu::GetProgressText(const towerforge::core::Achievement& achievement) const {
         // Calculate progress based on achievement type
         std::stringstream ss;
         
         // Use achievement type enum instead of string
-        if (achievement.type == TowerForge::Core::AchievementType::Population) {
+        if (achievement.type == towerforge::core::AchievementType::Population) {
             const int current = current_population_;
             const int required = achievement.requirement;
             ss << "Progress: " << current << "/" << required;
         }
-        else if (achievement.type == TowerForge::Core::AchievementType::Income) {
+        else if (achievement.type == towerforge::core::AchievementType::Income) {
             const int current = static_cast<int>(current_income_);
             const int required = achievement.requirement;
             ss << "Progress: $" << current << "/$" << required;
         }
-        else if (achievement.type == TowerForge::Core::AchievementType::Floors) {
+        else if (achievement.type == towerforge::core::AchievementType::Floors) {
             const int current = current_floors_;
             const int required = achievement.requirement;
             ss << "Progress: " << current << "/" << required << " floors";
         }
-        else if (achievement.type == TowerForge::Core::AchievementType::Satisfaction) {
+        else if (achievement.type == towerforge::core::AchievementType::Satisfaction) {
             const int current = static_cast<int>(current_satisfaction_ * 100);
             const int required = achievement.requirement;
             ss << "Progress: " << current << "%/" << required << "%";
@@ -296,7 +296,7 @@ namespace towerforge::ui {
         return false;
     }
 
-    void AchievementsMenu::SetAchievementManager(TowerForge::Core::AchievementManager* manager) {
+    void AchievementsMenu::SetAchievementManager(towerforge::core::AchievementManager* manager) {
         achievement_manager_ = manager;
     }
 

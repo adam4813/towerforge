@@ -9,7 +9,7 @@
 // Forward declare lua_State to avoid including lua headers in header
 struct lua_State;
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // Forward declarations
     class ECSWorld;

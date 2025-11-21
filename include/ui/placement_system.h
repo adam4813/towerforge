@@ -50,8 +50,8 @@ namespace towerforge::ui {
  */
     class PlacementSystem {
     public:
-        PlacementSystem(TowerForge::Core::TowerGrid& grid,
-                        TowerForge::Core::FacilityManager& facility_mgr,
+        PlacementSystem(towerforge::core::TowerGrid& grid,
+                        towerforge::core::FacilityManager& facility_mgr,
                         BuildMenu& build_menu);
         ~PlacementSystem();
     
@@ -136,7 +136,7 @@ namespace towerforge::ui {
         /**
      * @brief Get the command history
      */
-        const TowerForge::Core::CommandHistory& GetCommandHistory() const { return command_history_; }
+        const towerforge::core::CommandHistory& GetCommandHistory() const { return command_history_; }
     
         /**
      * @brief Set the camera for coordinate transformation
@@ -206,10 +206,10 @@ namespace towerforge::ui {
         /**
      * @brief Map facility type index to BuildingComponent::Type
      */
-        static TowerForge::Core::BuildingComponent::Type GetFacilityType(int facility_type_index);
+        static towerforge::core::BuildingComponent::Type GetFacilityType(int facility_type_index);
     
-        TowerForge::Core::TowerGrid& grid_;
-        TowerForge::Core::FacilityManager& facility_mgr_;
+        towerforge::core::TowerGrid& grid_;
+        towerforge::core::FacilityManager& facility_mgr_;
         BuildMenu& build_menu_;
         rendering::Camera* camera_;
     
@@ -219,7 +219,7 @@ namespace towerforge::ui {
         bool hover_valid_;
     
         std::vector<ConstructionState> constructions_in_progress_;
-        TowerForge::Core::CommandHistory command_history_;
+        towerforge::core::CommandHistory command_history_;
         TooltipManager* tooltip_manager_;
     
         // Confirmation dialog for destructive actions

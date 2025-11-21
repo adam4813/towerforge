@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <algorithm>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // Helper function to format time
     std::string Achievement::GetUnlockDateString() const {

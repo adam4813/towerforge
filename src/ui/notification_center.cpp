@@ -29,7 +29,7 @@ namespace towerforge::ui {
           hovered_index_(-1),
           next_id_(1) {
         // Load notification filter from UserPreferences
-        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        auto& prefs = towerforge::core::UserPreferences::GetInstance();
         filter_ = prefs.GetNotificationFilter();
     }
 
@@ -38,7 +38,7 @@ namespace towerforge::ui {
     void NotificationCenter::SetFilter(const NotificationFilter& filter) {
         filter_ = filter;
         // Save filter to UserPreferences
-        TowerForge::Core::UserPreferences::GetInstance().SetNotificationFilter(filter);
+        towerforge::core::UserPreferences::GetInstance().SetNotificationFilter(filter);
     }
 
     void NotificationCenter::Update(const float delta_time) {

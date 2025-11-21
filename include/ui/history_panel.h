@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
     class CommandHistory;
 }
 
@@ -62,7 +62,7 @@ namespace towerforge::ui {
          * @brief Update the history display from the command history
          * @param history The command history to display
          */
-        void UpdateFromHistory(const TowerForge::Core::CommandHistory& history);
+        void UpdateFromHistory(const towerforge::core::CommandHistory& history);
 
         /**
          * @brief Set visibility of history panel

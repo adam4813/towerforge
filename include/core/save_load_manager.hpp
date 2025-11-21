@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <chrono>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // Forward declarations
     class ECSWorld;

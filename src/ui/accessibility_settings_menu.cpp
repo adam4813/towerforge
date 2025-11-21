@@ -31,7 +31,7 @@ namespace towerforge::ui {
         dim_overlay_ = std::make_unique<DimOverlay>();
 
         // Load settings from preferences first (don't sync to UI yet - components don't exist)
-        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        auto& prefs = towerforge::core::UserPreferences::GetInstance();
         high_contrast_enabled_ = prefs.IsHighContrastEnabled();
         font_scale_ = prefs.GetFontScale();
         keyboard_navigation_enabled_ = prefs.IsKeyboardNavigationEnabled();
@@ -136,7 +136,7 @@ namespace towerforge::ui {
     }
 
     void AccessibilitySettingsMenu::UpdateSelection(const int new_selection) {
-        const auto& accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const auto& accessibility = towerforge::core::AccessibilitySettings::GetInstance();
         const bool high_contrast = accessibility.IsHighContrastEnabled();
 
         // Clear old selection
@@ -164,7 +164,7 @@ namespace towerforge::ui {
     }
 
     void AccessibilitySettingsMenu::SyncWithSettings() {
-        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        auto& prefs = towerforge::core::UserPreferences::GetInstance();
         high_contrast_enabled_ = prefs.IsHighContrastEnabled();
         font_scale_ = prefs.GetFontScale();
         keyboard_navigation_enabled_ = prefs.IsKeyboardNavigationEnabled();
@@ -175,7 +175,7 @@ namespace towerforge::ui {
         if (keyboard_nav_checkbox_) keyboard_nav_checkbox_->SetChecked(keyboard_navigation_enabled_);
         
         // Also sync with legacy AccessibilitySettings
-        auto& settings = TowerForge::Core::AccessibilitySettings::GetInstance();
+        auto& settings = towerforge::core::AccessibilitySettings::GetInstance();
         settings.SetHighContrastEnabled(high_contrast_enabled_);
         settings.SetFontScale(font_scale_);
         settings.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
@@ -183,13 +183,13 @@ namespace towerforge::ui {
 
     void AccessibilitySettingsMenu::ApplySettings() const {
         // Save to unified UserPreferences
-        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        auto& prefs = towerforge::core::UserPreferences::GetInstance();
         prefs.SetHighContrastEnabled(high_contrast_enabled_);
         prefs.SetFontScale(font_scale_);
         prefs.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
         
         // Also apply to legacy AccessibilitySettings
-        auto& settings = TowerForge::Core::AccessibilitySettings::GetInstance();
+        auto& settings = towerforge::core::AccessibilitySettings::GetInstance();
         settings.SetHighContrastEnabled(high_contrast_enabled_);
         settings.SetFontScale(font_scale_);
         settings.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);

@@ -345,7 +345,7 @@ namespace towerforge::ui {
     }
 
     void AudioSettingsMenu::LoadSettings() {
-        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        auto& prefs = towerforge::core::UserPreferences::GetInstance();
         master_volume_ = prefs.GetMasterVolume();
         music_volume_ = prefs.GetMusicVolume();
         sfx_volume_ = prefs.GetSFXVolume();
@@ -356,7 +356,7 @@ namespace towerforge::ui {
     }
 
     void AudioSettingsMenu::SaveSettings() const {
-        auto& prefs = TowerForge::Core::UserPreferences::GetInstance();
+        auto& prefs = towerforge::core::UserPreferences::GetInstance();
         prefs.SetMasterVolume(master_volume_);
         prefs.SetMusicVolume(music_volume_);
         prefs.SetSFXVolume(sfx_volume_);

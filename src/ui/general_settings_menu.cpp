@@ -90,7 +90,7 @@ namespace towerforge::ui {
     }
 
     void GeneralSettingsMenu::UpdateButtonSelection(const int new_selection) {
-        const auto &accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const auto &accessibility = towerforge::core::AccessibilitySettings::GetInstance();
         const bool high_contrast = accessibility.IsHighContrastEnabled();
 
         // Clear old selection
@@ -162,7 +162,7 @@ namespace towerforge::ui {
     }
 
     void GeneralSettingsMenu::RenderMenuOptions() const {
-        const auto &accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const auto &accessibility = towerforge::core::AccessibilitySettings::GetInstance();
         const float font_scale = accessibility.GetFontScale();
         const bool high_contrast = accessibility.IsHighContrastEnabled();
 

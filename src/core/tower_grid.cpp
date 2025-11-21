@@ -1,7 +1,7 @@
 #include "core/tower_grid.hpp"
 #include <algorithm>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     TowerGrid::TowerGrid(const int initial_floors, const int initial_columns, const int ground_floor_index)
         : floors_(initial_floors), columns_(initial_columns), 

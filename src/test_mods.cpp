@@ -2,7 +2,7 @@
 #include "core/ecs_world.hpp"
 #include <iostream>
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 int main() {
     std::cout << "Testing Lua Mod Manager..." << std::endl;

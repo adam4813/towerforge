@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     SaveLoadManager::SaveLoadManager()
         : autosave_enabled_(true),

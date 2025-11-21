@@ -5,7 +5,7 @@
 #include <optional>
 #include <memory>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // Forward declaration
     struct BuildingComponent;

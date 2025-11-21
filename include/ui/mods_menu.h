@@ -25,7 +25,7 @@ namespace towerforge::ui {
      * 
      * @param mod_manager Pointer to the LuaModManager
      */
-        void SetModManager(TowerForge::Core::LuaModManager* mod_manager);
+        void SetModManager(towerforge::core::LuaModManager* mod_manager);
     
         /**
      * @brief Show the mods menu
@@ -51,7 +51,7 @@ namespace towerforge::ui {
     
     private:
         bool visible_;
-        TowerForge::Core::LuaModManager* mod_manager_;
+        towerforge::core::LuaModManager* mod_manager_;
         int selected_mod_index_;
         float scroll_offset_;
     };

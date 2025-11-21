@@ -26,7 +26,7 @@ namespace towerforge::ui {
      * @brief Render the research tree menu overlay
      * @param research_tree Reference to the research tree singleton
      */
-        void Render(const TowerForge::Core::ResearchTree& research_tree);
+        void Render(const towerforge::core::ResearchTree& research_tree);
     
         /**
      * @brief Update menu state (called every frame when active)
@@ -43,7 +43,7 @@ namespace towerforge::ui {
      * @return True if a node was unlocked
      */
         bool HandleMouse(int mouse_x, int mouse_y, bool clicked, 
-                         TowerForge::Core::ResearchTree& research_tree) const;
+                         towerforge::core::ResearchTree& research_tree) const;
     
         /**
      * @brief Check if menu is visible
@@ -79,12 +79,12 @@ namespace towerforge::ui {
     private:
         static void RenderOverlay();
 
-        static void RenderHeader(const TowerForge::Core::ResearchTree& research_tree);
-        void RenderTreeGrid(const TowerForge::Core::ResearchTree& research_tree);
+        static void RenderHeader(const towerforge::core::ResearchTree& research_tree);
+        void RenderTreeGrid(const towerforge::core::ResearchTree& research_tree);
 
-        static void RenderNode(const TowerForge::Core::ResearchNode& node, int x, int y, bool hovered);
+        static void RenderNode(const towerforge::core::ResearchNode& node, int x, int y, bool hovered);
 
-        static void RenderNodeDetails(const TowerForge::Core::ResearchNode& node);
+        static void RenderNodeDetails(const towerforge::core::ResearchNode& node);
     
         bool visible_;
         float animation_time_;
@@ -94,7 +94,7 @@ namespace towerforge::ui {
         // Confirmation dialog for research unlocks (mutable because they change during const HandleMouse)
         mutable std::unique_ptr<ConfirmationDialog> unlock_confirmation_;
         mutable std::string pending_unlock_node_id_;
-        mutable TowerForge::Core::ResearchTree* pending_unlock_tree_;
+        mutable towerforge::core::ResearchTree* pending_unlock_tree_;
     
         // Menu layout constants
         static constexpr int MENU_WIDTH = 800;

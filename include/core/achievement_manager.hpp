@@ -8,7 +8,7 @@
 #include <chrono>
 #include <optional>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     /**
  * @brief Types of achievements available in the game

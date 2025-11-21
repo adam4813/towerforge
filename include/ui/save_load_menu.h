@@ -6,7 +6,7 @@
 #include <memory>
 #include "core/save_load_manager.hpp"
 
-namespace TowerForge::Core { class ECSWorld; }
+namespace towerforge::core { class ECSWorld; }
 
 namespace towerforge::ui {
 
@@ -100,7 +100,7 @@ namespace towerforge::ui {
         /**
      * @brief Set the save/load manager
      */
-        void SetSaveLoadManager(TowerForge::Core::SaveLoadManager* manager);
+        void SetSaveLoadManager(towerforge::core::SaveLoadManager* manager);
     
         /**
      * @brief Set error message to display
@@ -138,8 +138,8 @@ namespace towerforge::ui {
         SaveLoadMenuState state_;
         bool is_save_mode_;  // true for save, false for load
         int selected_slot_index_;
-        std::vector<TowerForge::Core::SaveSlotInfo> slots_;
-        TowerForge::Core::SaveLoadManager* save_load_manager_;
+        std::vector<towerforge::core::SaveSlotInfo> slots_;
+        towerforge::core::SaveLoadManager* save_load_manager_;
         std::string error_message_;
         SaveLoadAction last_action_;
     

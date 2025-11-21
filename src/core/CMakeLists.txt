@@ -11,6 +11,12 @@ add_library(towerforge_core
     game.cpp
     command.cpp
     command_history.cpp
+    scenes/title_scene.cpp
+    scenes/achievements_scene.cpp
+    scenes/settings_scene.cpp
+    scenes/credits_scene.cpp
+    scenes/ingame_scene.cpp
+    scenes/tutorial_scene.cpp
     systems/time_systems.cpp
     systems/movement_systems.cpp
     systems/economy_systems.cpp

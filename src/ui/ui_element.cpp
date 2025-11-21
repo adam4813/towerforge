@@ -290,7 +290,7 @@ namespace towerforge::ui {
         const Rectangle bounds = GetAbsoluteBounds();
 
         // Get accessibility settings
-        const auto &accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const auto &accessibility = towerforge::core::AccessibilitySettings::GetInstance();
         const bool high_contrast = accessibility.IsHighContrastEnabled();
         const float font_scale = accessibility.GetFontScale();
 
@@ -699,7 +699,7 @@ namespace towerforge::ui {
 
     void Slider::Render() const {
         const Rectangle bounds = GetAbsoluteBounds();
-        const auto &accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const auto &accessibility = towerforge::core::AccessibilitySettings::GetInstance();
         const bool high_contrast = accessibility.IsHighContrastEnabled();
         const float font_scale = accessibility.GetFontScale();
 
@@ -798,7 +798,7 @@ namespace towerforge::ui {
 
     void Checkbox::Render() const {
         const Rectangle bounds = GetAbsoluteBounds();
-        const auto &accessibility = TowerForge::Core::AccessibilitySettings::GetInstance();
+        const auto &accessibility = towerforge::core::AccessibilitySettings::GetInstance();
         const bool high_contrast = accessibility.IsHighContrastEnabled();
         const float font_scale = accessibility.GetFontScale();
 

@@ -4,7 +4,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     /**
      * @brief Accessibility settings manager
@@ -67,4 +67,4 @@ namespace TowerForge::Core {
         static constexpr const char* SETTINGS_FILE = "accessibility_settings.json";
     };
 
-} // namespace TowerForge::Core
+} // namespace towerforge::core

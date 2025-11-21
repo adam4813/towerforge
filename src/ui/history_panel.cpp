@@ -211,7 +211,7 @@ namespace towerforge::ui {
         return 0;
     }
 
-    void HistoryPanel::UpdateFromHistory(const TowerForge::Core::CommandHistory& history) {
+    void HistoryPanel::UpdateFromHistory(const towerforge::core::CommandHistory& history) {
         entries_.clear();
 
         // Add undo stack entries (in reverse order, most recent first)

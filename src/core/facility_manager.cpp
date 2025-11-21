@@ -1,7 +1,7 @@
 #include "core/facility_manager.hpp"
 #include <iostream>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     FacilityManager::FacilityManager(flecs::world& world, TowerGrid& grid)
         : world_(world), grid_(grid) {

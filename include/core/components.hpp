@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // Forward declaration
     class TowerGrid;

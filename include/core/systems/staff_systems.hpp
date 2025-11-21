@@ -2,7 +2,7 @@
 
 #include <flecs.h>
 
-namespace TowerForge::Core::Systems {
+namespace towerforge::core::Systems {
 
     class StaffSystems {
     public:

@@ -6,7 +6,7 @@
 #include "core/facility_manager.hpp"
 #include "core/lua_mod_manager.hpp"
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // Forward declaration
     class FacilityManager;

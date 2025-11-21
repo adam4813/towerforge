@@ -2,7 +2,7 @@
 #include "core/components.hpp"
 #include <iostream>
 
-namespace TowerForge::Core::Systems {
+namespace towerforge::core::Systems {
 
     void EconomySystems::RegisterAll(flecs::world& world) {
         RegisterSatisfactionUpdate(world);

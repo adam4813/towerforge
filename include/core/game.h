@@ -24,6 +24,17 @@
 #include "ui/analytics_overlay.h"
 #include "audio/audio_manager.h"
 
+// Forward declare scene classes
+namespace towerforge::core {
+    class GameScene;
+    class TitleScene;
+    class AchievementsScene;
+    class SettingsScene;
+    class CreditsScene;
+	class InGameScene;
+	class TutorialScene;
+}
+
 namespace towerforge::core {
 
     /**
@@ -64,38 +75,28 @@ namespace towerforge::core {
      */
         void Shutdown();
 
-    private:
-        // State management
-        void UpdateTitleScreen(float delta_time);
-        void RenderTitleScreen() const;
-        void HandleTitleScreenInput();
+        // Public accessors for scenes
+        rendering::Renderer& GetRenderer() { return renderer_; }
+        audio::AudioManager* GetAudioManager() { return audio_manager_; }
+        ui::AchievementsMenu& GetAchievementsMenu() { return achievements_menu_; }
+        ui::MainMenu& GetMainMenu() { return main_menu_; }
+        void SetGameState(GameState state);
+        GameState GetGameState() const { return current_state_; }
+        towerforge::core::AchievementManager* GetAchievementManager() { return achievement_manager_.get(); }
 
-        void UpdateAchievementsScreen(float delta_time);
-        void RenderAchievementsScreen();
-        void HandleAchievementsInput();
-
-        void UpdateSettingsScreen(float delta_time);
-        void RenderSettingsScreen();
-        void HandleSettingsInput();
-
-        void UpdateCreditsScreen(float delta_time);
-        void RenderCreditsScreen() const;
-        void HandleCreditsInput();
-
+        // Temporary: InGame scene helpers (will be moved into scene)
+        void InitializeGameSystems();
+        void CleanupGameSystems();
         void UpdateInGame(float delta_time);
         void RenderInGame();
         void HandleInGameInput();
-
         void UpdateTutorial(float delta_time);
         void RenderTutorial();
         void HandleTutorialInput();
 
-        // Game initialization for InGame state
-        void InitializeGameSystems();
-        void CleanupGameSystems();
+    private:
+        void TransitionToState(GameState new_state);
         void CreateStarterTower() const;
-
-        // Helper methods
         void CalculateTowerRating();
         void UpdateCameraBounds();
         ui::IncomeBreakdown CollectIncomeAnalytics() const;
@@ -109,28 +110,28 @@ namespace towerforge::core {
         rendering::Renderer renderer_;
         audio::AudioManager* audio_manager_;
 
-        // UI for title screen
+        // Scene management
+        GameScene* active_scene_;
+        std::unique_ptr<TitleScene> title_scene_;
+        std::unique_ptr<AchievementsScene> achievements_scene_;
+        std::unique_ptr<SettingsScene> settings_scene_;
+        std::unique_ptr<CreditsScene> credits_scene_;
+        std::unique_ptr<InGameScene> ingame_scene_;
+        std::unique_ptr<TutorialScene> tutorial_scene_;
+
+        // UI for title screen (kept for backward compatibility during transition)
         ui::MainMenu main_menu_;
         ui::AchievementsMenu achievements_menu_;
         ui::GeneralSettingsMenu general_settings_menu_;
         ui::AudioSettingsMenu audio_settings_menu_;
         ui::AccessibilitySettingsMenu accessibility_settings_menu_;
 
-        // Tutorial system
-        std::unique_ptr<ui::TutorialManager> tutorial_manager_;
-        bool tutorial_active_;
+        // Achievement manager (shared across scenes)
+        std::unique_ptr<towerforge::core::AchievementManager> achievement_manager_;
 
-        // Help system
-        std::unique_ptr<ui::HelpSystem> help_system_;
-
-        // Settings screen state
-        bool in_audio_settings_;
-        bool in_accessibility_settings_;
-
-        // InGame systems (initialized on demand)
-        std::unique_ptr<TowerForge::Core::ECSWorld> ecs_world_;
-        std::unique_ptr<TowerForge::Core::SaveLoadManager> save_load_manager_;
-        std::unique_ptr<TowerForge::Core::AchievementManager> achievement_manager_;
+        // Temporary: InGame state (will be moved into InGameScene)
+        std::unique_ptr<towerforge::core::ECSWorld> ecs_world_;
+        std::unique_ptr<towerforge::core::SaveLoadManager> save_load_manager_;
         std::unique_ptr<ui::HUD> hud_;
         std::unique_ptr<ui::BuildMenu> build_menu_;
         std::unique_ptr<ui::PauseMenu> pause_menu_;
@@ -140,8 +141,9 @@ namespace towerforge::core {
         std::unique_ptr<rendering::Camera> camera_;
         std::unique_ptr<ui::PlacementSystem> placement_system_;
         std::unique_ptr<ui::HistoryPanel> history_panel_;
-
-        // InGame state
+        std::unique_ptr<ui::TutorialManager> tutorial_manager_;
+        std::unique_ptr<ui::HelpSystem> help_system_;
+        
         ui::GameState game_state_;
         bool is_paused_;
         bool in_settings_from_pause_;
@@ -150,21 +152,18 @@ namespace towerforge::core {
         ui::GeneralSettingsMenu pause_general_settings_menu_;
         ui::AudioSettingsMenu pause_audio_settings_menu_;
         ui::AccessibilitySettingsMenu pause_accessibility_settings_menu_;
+        bool tutorial_active_;
+        bool game_initialized_;
+        int grid_offset_x_;
+        int grid_offset_y_;
+        int cell_width_;
+        int cell_height_;
 
         // Timing
         float elapsed_time_;
         float sim_time_;
         const float time_step_;
         const float total_time_;
-
-        // Grid rendering constants
-        int grid_offset_x_;
-        int grid_offset_y_;
-        int cell_width_;
-        int cell_height_;
-
-        // Flags
-        bool game_initialized_;
     };
 
 }

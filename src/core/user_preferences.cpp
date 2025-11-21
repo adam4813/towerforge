@@ -3,7 +3,7 @@
 #include <fstream>
 #include <filesystem>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     void UserPreferences::LoadSettings() {
         try {
@@ -175,4 +175,4 @@ namespace TowerForge::Core {
         }
     }
 
-} // namespace TowerForge::Core
+} // namespace towerforge::core::

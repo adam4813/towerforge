@@ -2,7 +2,7 @@
 #include "core/components.hpp"
 #include <iostream>
 
-namespace TowerForge::Core::Systems {
+namespace towerforge::core::Systems {
 
     void TimeSystems::RegisterAll(flecs::world& world) {
         RegisterTimeSimulation(world);

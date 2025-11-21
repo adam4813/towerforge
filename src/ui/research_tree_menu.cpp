@@ -35,7 +35,7 @@ namespace towerforge::ui {
         }
     }
 
-    void ResearchTreeMenu::Render(const TowerForge::Core::ResearchTree& research_tree) {
+    void ResearchTreeMenu::Render(const towerforge::core::ResearchTree& research_tree) {
         if (!visible_) return;
 
         // Semi-transparent overlay
@@ -75,7 +75,7 @@ namespace towerforge::ui {
         DrawRectangle(0, 0, screen_width, screen_height, Color{0, 0, 0, 180});
     }
 
-    void ResearchTreeMenu::RenderHeader(const TowerForge::Core::ResearchTree& research_tree) {
+    void ResearchTreeMenu::RenderHeader(const towerforge::core::ResearchTree& research_tree) {
         const int screen_width = GetScreenWidth();
         const int menu_x = (screen_width - MENU_WIDTH) / 2;
         const int menu_y = (GetScreenHeight() - MENU_HEIGHT) / 2;
@@ -118,7 +118,7 @@ namespace towerforge::ui {
                  menu_x + MENU_WIDTH - 10, menu_y + HEADER_HEIGHT, GRAY);
     }
 
-    void ResearchTreeMenu::RenderTreeGrid(const TowerForge::Core::ResearchTree& research_tree) {
+    void ResearchTreeMenu::RenderTreeGrid(const towerforge::core::ResearchTree& research_tree) {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
         const int menu_x = (screen_width - MENU_WIDTH) / 2;
@@ -155,36 +155,36 @@ namespace towerforge::ui {
             const int node_y = menu_y + GRID_START_Y + node.grid_row * (NODE_SIZE + NODE_SPACING) + NODE_SIZE / 2;
 
             for (const auto& prereq_id : node.prerequisites) {
-                if (const auto* prereq = const_cast<TowerForge::Core::ResearchTree&>(research_tree).FindNode(prereq_id)) {
+                if (const auto* prereq = const_cast<towerforge::core::ResearchTree&>(research_tree).FindNode(prereq_id)) {
                     const int prereq_x = menu_x + GRID_START_X + prereq->grid_column * (NODE_SIZE + NODE_SPACING) + NODE_SIZE / 2;
                     const int prereq_y = menu_y + GRID_START_Y + prereq->grid_row * (NODE_SIZE + NODE_SPACING) + NODE_SIZE / 2;
 
-                    const Color line_color = prereq->state == TowerForge::Core::ResearchNodeState::Unlocked ? DARKGRAY : Color{60, 60, 60, 255};
+                    const Color line_color = prereq->state == towerforge::core::ResearchNodeState::Unlocked ? DARKGRAY : Color{60, 60, 60, 255};
                     DrawLine(prereq_x, prereq_y, node_x, node_y, line_color);
                 }
             }
         }
     }
 
-    void ResearchTreeMenu::RenderNode(const TowerForge::Core::ResearchNode& node, const int x, const int y, const bool hovered) {
+    void ResearchTreeMenu::RenderNode(const towerforge::core::ResearchNode& node, const int x, const int y, const bool hovered) {
         // Background color based on state
         Color bg_color;
         Color border_color;
 
         switch (node.state) {
-            case TowerForge::Core::ResearchNodeState::Hidden:
+            case towerforge::core::ResearchNodeState::Hidden:
                 bg_color = Color{20, 20, 25, 255};
                 border_color = Color{40, 40, 45, 255};
                 break;
-            case TowerForge::Core::ResearchNodeState::Locked:
+            case towerforge::core::ResearchNodeState::Locked:
                 bg_color = Color{40, 40, 50, 255};
                 border_color = DARKGRAY;
                 break;
-            case TowerForge::Core::ResearchNodeState::Upgradable:
+            case towerforge::core::ResearchNodeState::Upgradable:
                 bg_color = Color{80, 60, 20, 255};
                 border_color = GOLD;
                 break;
-            case TowerForge::Core::ResearchNodeState::Unlocked:
+            case towerforge::core::ResearchNodeState::Unlocked:
                 bg_color = Color{20, 60, 40, 255};
                 border_color = LIME;
                 break;
@@ -225,7 +225,7 @@ namespace towerforge::ui {
         DrawText(cost_text.c_str(), x + (NODE_SIZE - cost_width) / 2, y + NODE_SIZE - 15, 10, LIGHTGRAY);
     }
 
-    void ResearchTreeMenu::RenderNodeDetails(const TowerForge::Core::ResearchNode& node) {
+    void ResearchTreeMenu::RenderNodeDetails(const towerforge::core::ResearchNode& node) {
         int screen_width = GetScreenWidth();
         int screen_height = GetScreenHeight();
         int menu_x = (screen_width - MENU_WIDTH) / 2;
@@ -352,25 +352,25 @@ namespace towerforge::ui {
 
             std::string effect_text;
             switch (node.type) {
-                case TowerForge::Core::ResearchNodeType::ElevatorSpeed:
+                case towerforge::core::ResearchNodeType::ElevatorSpeed:
                     effect_text = "+" + std::to_string(static_cast<int>(node.effect_value * 100)) + "% elevator speed";
                     break;
-                case TowerForge::Core::ResearchNodeType::ElevatorCapacity:
+                case towerforge::core::ResearchNodeType::ElevatorCapacity:
                     effect_text = "+" + std::to_string(static_cast<int>(node.effect_value)) + " capacity";
                     break;
-                case TowerForge::Core::ResearchNodeType::IncomeBonus:
+                case towerforge::core::ResearchNodeType::IncomeBonus:
                     effect_text = "+" + std::to_string(static_cast<int>(node.effect_value * 100)) + "% income";
                     break;
-                case TowerForge::Core::ResearchNodeType::SatisfactionBonus:
+                case towerforge::core::ResearchNodeType::SatisfactionBonus:
                     effect_text = "+" + std::to_string(static_cast<int>(node.effect_value)) + " satisfaction";
                     break;
-                case TowerForge::Core::ResearchNodeType::ConstructionSpeed:
+                case towerforge::core::ResearchNodeType::ConstructionSpeed:
                     effect_text = "+" + std::to_string(static_cast<int>(node.effect_value * 100)) + "% build speed";
                     break;
-                case TowerForge::Core::ResearchNodeType::CostReduction:
+                case towerforge::core::ResearchNodeType::CostReduction:
                     effect_text = "-" + std::to_string(static_cast<int>(node.effect_value * 100)) + "% costs";
                     break;
-                case TowerForge::Core::ResearchNodeType::FacilityUnlock:
+                case towerforge::core::ResearchNodeType::FacilityUnlock:
                     effect_text = "Unlocks " + node.effect_target;
                     break;
             }
@@ -380,14 +380,14 @@ namespace towerforge::ui {
         }
 
         // Click hint
-        if (node.state == TowerForge::Core::ResearchNodeState::Upgradable) {
+        if (node.state == towerforge::core::ResearchNodeState::Upgradable) {
             text_y = panel_y + panel_height - 40;
             DrawText("Click to unlock!", text_x, text_y, 14, YELLOW);
         }
     }
 
     bool ResearchTreeMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked,
-                                       TowerForge::Core::ResearchTree& research_tree) const {
+                                       towerforge::core::ResearchTree& research_tree) const {
         if (!visible_ || !clicked) return false;
 
         const int screen_width = GetScreenWidth();
@@ -406,7 +406,7 @@ namespace towerforge::ui {
                 mouse_y >= node_y && mouse_y <= node_y + NODE_SIZE) {
 
                 // Show confirmation for upgradable nodes
-                if (node.state == TowerForge::Core::ResearchNodeState::Upgradable) {
+                if (node.state == towerforge::core::ResearchNodeState::Upgradable) {
                     pending_unlock_node_id_ = node.id;
                     pending_unlock_tree_ = &research_tree;
                     

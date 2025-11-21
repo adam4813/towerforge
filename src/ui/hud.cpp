@@ -7,6 +7,7 @@
 #include "ui/action_bar.h"
 #include "ui/speed_control_panel.h"
 #include "ui/mouse_interface.h"
+#include "ui/ui_element.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -41,6 +42,43 @@ namespace towerforge::ui {
             speed_width,
             speed_height
         );
+        
+        // Create top bar interactive buttons
+        // Income button (left side of top bar)
+        income_button_ = std::make_unique<Button>(
+            10, 5,
+            280, 30,
+            "", // No text - will be rendered custom
+            ColorAlpha(BLACK, 0.0f), // Transparent
+            ColorAlpha(GREEN, 0.2f) // Hover highlight
+        );
+        income_button_->SetClickCallback([this]() {
+            RequestIncomeAnalytics();
+        });
+        
+        // Population button (center of top bar)
+        population_button_ = std::make_unique<Button>(
+            310, 5,
+            180, 30,
+            "",
+            ColorAlpha(BLACK, 0.0f),
+            ColorAlpha(WHITE, 0.2f)
+        );
+        population_button_->SetClickCallback([this]() {
+            RequestPopulationAnalytics();
+        });
+        
+        // Notification center button (right side of top bar)
+        notification_button_ = std::make_unique<Button>(
+            screen_width - 80, 5,
+            70, 30,
+            "",
+            ColorAlpha(DARKGRAY, 1.0f),
+            GOLD
+        );
+        notification_button_->SetClickCallback([this]() {
+            ToggleNotificationCenter();
+        });
     }
 
     HUD::~HUD() = default;
@@ -84,6 +122,24 @@ namespace towerforge::ui {
             speed_control_panel_->SetSize(speed_width, speed_height);
             speed_control_panel_->SetSpeedState(game_state_.speed_multiplier, game_state_.paused);
         }
+        
+        // Update top bar buttons
+        if (income_button_) {
+            income_button_->Update(delta_time);
+        }
+        if (population_button_) {
+            population_button_->Update(delta_time);
+        }
+        if (notification_button_) {
+            // Update position on resize
+            const int screen_width = GetScreenWidth();
+            notification_button_->SetRelativePosition(screen_width - 80, 5);
+            notification_button_->Update(delta_time);
+            
+            // Update button background color based on notification center state
+            const Color button_color = notification_center_->IsVisible() ? GOLD : ColorAlpha(DARKGRAY, 1.0f);
+            notification_button_->SetBackgroundColor(button_color);
+        }
     }
 
     void HUD::Render() {
@@ -102,6 +158,35 @@ namespace towerforge::ui {
         // Render speed controls in lower-left
         if (speed_control_panel_) {
             speed_control_panel_->Render();
+        }
+        
+        // Render top bar buttons (on top of top bar background)
+        if (income_button_) {
+            income_button_->Render();
+        }
+        if (population_button_) {
+            population_button_->Render();
+        }
+        if (notification_button_) {
+            notification_button_->Render();
+            
+            // Render custom notification button content
+            const int notif_button_x = GetScreenWidth() - 80;
+            const int notif_button_y = 5;
+            const int unread_count = notification_center_->GetUnreadCount();
+            
+            DrawText("N", notif_button_x + 10, notif_button_y + 7, 16, WHITE);
+            
+            if (unread_count > 0) {
+                // Draw badge with count
+                const int badge_x = notif_button_x + 50;
+                const int badge_y = notif_button_y + 10;
+                DrawCircle(badge_x, badge_y, 10, RED);
+                std::string count_str = std::to_string(unread_count);
+                if (unread_count > 99) count_str = "99+";
+                const int text_width = MeasureText(count_str.c_str(), 10);
+                DrawText(count_str.c_str(), badge_x - text_width / 2, badge_y - 5, 10, WHITE);
+            }
         }
 
         // Render tooltips on top
@@ -197,37 +282,19 @@ namespace towerforge::ui {
             }
         }
         
-        // Handle top bar clicks (income, population, notification button)
+        // Forward to top bar buttons
+        if (income_button_ && income_button_->ProcessMouseEvent(event)) {
+            return true;
+        }
+        if (population_button_ && population_button_->ProcessMouseEvent(event)) {
+            return true;
+        }
+        if (notification_button_ && notification_button_->ProcessMouseEvent(event)) {
+            return true;
+        }
+        
+        // Consume any other clicks on top bar
         if (event.left_pressed && event.y <= TOP_BAR_HEIGHT) {
-            const int mouse_x = static_cast<int>(event.x);
-            const int mouse_y = static_cast<int>(event.y);
-            
-            // Check income area (left side)
-            if (IsMouseOverIncomeArea(mouse_x, mouse_y)) {
-                RequestIncomeAnalytics();
-                return true;
-            }
-            
-            // Check population area
-            if (IsMouseOverPopulationArea(mouse_x, mouse_y)) {
-                RequestPopulationAnalytics();
-                return true;
-            }
-            
-            // Check notification center button
-            const int screen_width = GetScreenWidth();
-            const int notif_button_x = screen_width - 80;
-            const int notif_button_y = 5;
-            const int notif_button_width = 70;
-            const int notif_button_height = 30;
-            
-            if (mouse_x >= notif_button_x && mouse_x <= notif_button_x + notif_button_width &&
-                mouse_y >= notif_button_y && mouse_y <= notif_button_y + notif_button_height) {
-                ToggleNotificationCenter();
-                return true;
-            }
-            
-            // Any click on top bar is consumed
             return true;
         }
         
@@ -250,7 +317,7 @@ namespace towerforge::ui {
         if (mouse_y <= TOP_BAR_HEIGHT) {
             int x = 10;
 
-            // Funds tooltip
+            // Income tooltip
             if (mouse_x >= x && mouse_x <= x + 280) {
                 std::stringstream tooltip_text;
                 tooltip_text << "Current funds and hourly income rate.\n";
@@ -410,32 +477,6 @@ namespace towerforge::ui {
             speed_text = std::to_string(game_state_.speed_multiplier) + "x";
         }
         DrawText(speed_text.c_str(), x, y, 20, game_state_.paused ? RED : YELLOW);
-    
-        // Draw notification center button
-        const int notif_button_x = screen_width - 80;
-        const int notif_button_y = 5;
-        const int notif_button_width = 70;
-        const int notif_button_height = 30;
-    
-        // Button background
-        const Color button_color = notification_center_->IsVisible() ? GOLD : DARKGRAY;
-        DrawRectangle(notif_button_x, notif_button_y, notif_button_width, notif_button_height, button_color);
-        DrawRectangleLines(notif_button_x, notif_button_y, notif_button_width, notif_button_height, WHITE);
-    
-        // Notification icon and count
-        const int unread_count = notification_center_->GetUnreadCount();
-        DrawText("N", notif_button_x + 10, notif_button_y + 7, 16, WHITE);
-    
-        if (unread_count > 0) {
-            // Draw badge with count
-            const int badge_x = notif_button_x + 50;
-            const int badge_y = notif_button_y + 10;
-            DrawCircle(badge_x, badge_y, 10, RED);
-            std::string count_str = std::to_string(unread_count);
-            if (unread_count > 99) count_str = "99+";
-            const int text_width = MeasureText(count_str.c_str(), 10);
-            DrawText(count_str.c_str(), badge_x - text_width / 2, badge_y - 5, 10, WHITE);
-        }
     }
 
     void HUD::RenderStarRating() const {
@@ -685,18 +726,6 @@ namespace towerforge::ui {
             const PopulationBreakdown data = population_analytics_callback_();
             ShowPopulationAnalytics(data);
         }
-    }
-
-    bool HUD::IsMouseOverIncomeArea(const int mouse_x, const int mouse_y) const {
-        // Income is displayed at position x=10, y=10 in top bar
-        // Approximately 280 pixels wide
-        return mouse_y <= TOP_BAR_HEIGHT && mouse_x >= 10 && mouse_x <= 290;
-    }
-
-    bool HUD::IsMouseOverPopulationArea(const int mouse_x, const int mouse_y) const {
-        // Population is displayed at position x=310, y=10 in top bar
-        // Approximately 180 pixels wide
-        return mouse_y <= TOP_BAR_HEIGHT && mouse_x >= 310 && mouse_x <= 490;
     }
 
     void HUD::SetActionBarCallback(ActionBarCallback callback) {

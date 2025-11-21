@@ -6,7 +6,7 @@
 #include <chrono>
 #include "core/command.hpp"
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     /**
      * @brief Entry in the command history with timestamp and description

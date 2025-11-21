@@ -8,7 +8,7 @@
 #include <chrono>
 
 // Forward declaration
-namespace TowerForge::Core {
+namespace towerforge::core {
     class UserPreferences;
 }
 

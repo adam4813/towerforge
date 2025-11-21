@@ -3,7 +3,7 @@
 #include "core/facility_manager.hpp"
 #include <iostream>
 
-namespace TowerForge::Core::Systems {
+namespace towerforge::core::Systems {
 
     void MovementSystems::RegisterAll(flecs::world& world) {
         RegisterPositionUpdate(world);

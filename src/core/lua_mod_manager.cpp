@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <algorithm>
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     // Key for storing the manager pointer in Lua registry
     static auto MANAGER_REGISTRY_KEY = "TowerForge_ModManager";

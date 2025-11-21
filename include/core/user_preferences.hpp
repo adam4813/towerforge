@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include "ui/notification_center.h"
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     /**
      * @brief Color/theme mode options
@@ -167,4 +167,4 @@ namespace TowerForge::Core {
         static constexpr const char* SETTINGS_FILE = "user_preferences.json";
     };
 
-} // namespace TowerForge::Core
+} // namespace towerforge::core

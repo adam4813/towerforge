@@ -5,7 +5,7 @@
 #include <set>
 #include <algorithm>
 
-namespace TowerForge::Core::Systems {
+namespace towerforge::core::Systems {
 
     void FacilitySystems::RegisterAll(flecs::world& world) {
         RegisterFacilityStatusDegradation(world);

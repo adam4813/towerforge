@@ -5,7 +5,7 @@
 #include <cstring>
 #include <algorithm>
 
-namespace TowerForge::Core::Systems {
+namespace towerforge::core::Systems {
 
     void VisitorEmployeeSystems::RegisterAll(flecs::world& world) {
         RegisterResearchPointsGeneration(world);

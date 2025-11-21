@@ -15,6 +15,7 @@ namespace towerforge::ui {
     class NotificationCenter;
     class ActionBar;
     class SpeedControlPanel;
+    class Button;
     struct IncomeBreakdown;
     struct ElevatorAnalytics;
     struct PopulationBreakdown;
@@ -288,9 +289,6 @@ namespace towerforge::ui {
         void RenderStarRating() const;
         void RenderNotifications();
         void RenderEndGameSummary() const;
-        
-        bool IsMouseOverIncomeArea(int mouse_x, int mouse_y) const;
-        bool IsMouseOverPopulationArea(int mouse_x, int mouse_y) const;
 
         static std::string FormatTime(float time);
     
@@ -311,6 +309,11 @@ namespace towerforge::ui {
 
         // Speed control panel in lower-left corner
         std::unique_ptr<SpeedControlPanel> speed_control_panel_;
+        
+        // Top bar interactive buttons
+        std::unique_ptr<Button> income_button_;
+        std::unique_ptr<Button> population_button_;
+        std::unique_ptr<Button> notification_button_;
     
         // Legacy notifications (for backward compatibility with toasts)
         std::vector<Notification> notifications_;

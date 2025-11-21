@@ -1,6 +1,6 @@
 #include "core/command_history.hpp"
 
-namespace TowerForge::Core {
+namespace towerforge::core {
 
     CommandHistory::CommandHistory(const size_t max_history_size)
         : max_history_size_(max_history_size) {

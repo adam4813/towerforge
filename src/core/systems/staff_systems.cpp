@@ -3,7 +3,7 @@
 #include "core/facility_manager.hpp"
 #include <iostream>
 
-namespace TowerForge::Core::Systems {
+namespace towerforge::core::Systems {
 
     void StaffSystems::RegisterAll(flecs::world& world) {
         RegisterStaffShiftManagement(world);
