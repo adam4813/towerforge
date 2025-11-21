@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/scenes/game_scene.hpp"
+#include "core/scenes/ingame_scene.hpp"
 #include <memory>
 
 
@@ -11,12 +11,7 @@ namespace towerforge::ui {
 
 namespace towerforge::core {
 
-    // Forward declarations
-    class ECSWorld;
-
-    class InGameScene;
-
-    class TutorialScene : public GameScene {
+    class TutorialScene : public InGameScene {
     public:
         explicit TutorialScene(Game* game);
         ~TutorialScene() override;
@@ -27,10 +22,10 @@ namespace towerforge::core {
         void Render() override;
 
     private:
-        void HandleInput();
+        void HandleTutorialInput();
+        void CreateStarterTower() const;
 
         std::unique_ptr<ui::TutorialManager> tutorial_manager_;
-        std::unique_ptr<InGameScene> ingame_scene_;
         bool tutorial_active_;
     };
 

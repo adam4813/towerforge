@@ -1,70 +1,1576 @@
 #include "core/scenes/ingame_scene.hpp"
+
+#include <iostream>
+
 #include "core/game.h"
 #include <raylib.h>
 
+#include "ui/hud.h"
+#include "ui/action_bar.h"
+#include "ui/notification_center.h"
+#include "ui/speed_control_panel.h"
+
+using namespace towerforge::ui;
+
 namespace towerforge::core {
+	// Constants
+	constexpr float HOURS_PER_DAY = 24.0f;
 
-    InGameScene::InGameScene(Game* game)
-        : GameScene(game)
-        , game_state_(nullptr)
-        , is_paused_(false)
-        , in_settings_from_pause_(false)
-        , in_audio_settings_from_pause_(false)
-        , in_accessibility_settings_from_pause_(false)
-        , grid_offset_x_(300)
-        , grid_offset_y_(100)
-        , cell_width_(40)
-        , cell_height_(50)
-        , game_initialized_(false) {
-    }
+	// Helper function to convert facility type enum to string
+	static std::string GetFacilityTypeName(const BuildingComponent::Type type) {
+		switch (type) {
+			case BuildingComponent::Type::Office: return "Office";
+			case BuildingComponent::Type::Residential: return "Residential";
+			case BuildingComponent::Type::RetailShop: return "Retail Shop";
+			case BuildingComponent::Type::Lobby: return "Lobby";
+			case BuildingComponent::Type::Restaurant: return "Restaurant";
+			case BuildingComponent::Type::Hotel: return "Hotel";
+			case BuildingComponent::Type::Elevator: return "Elevator";
+			case BuildingComponent::Type::Gym: return "Gym";
+			case BuildingComponent::Type::Arcade: return "Arcade";
+			case BuildingComponent::Type::Theater: return "Theater";
+			case BuildingComponent::Type::ConferenceHall: return "Conference Hall";
+			case BuildingComponent::Type::FlagshipStore: return "Flagship Store";
+			case BuildingComponent::Type::ManagementOffice: return "Management Office";
+			case BuildingComponent::Type::SatelliteOffice: return "Satellite Office";
+			default: return "Facility";
+		}
+	}
 
-    InGameScene::~InGameScene() {
-        // Cleanup handled by Game class for now
-    }
+	static void CalculateTowerRatingHelper(TowerRating &rating, ECSWorld &ecs_world, const float income_rate) {
+		// Collect statistics from ECS world
+		int total_tenants = 0;
+		float total_satisfaction = 0.0f;
+		int satisfaction_count = 0;
 
-    void InGameScene::Initialize() {
-        // Delegate to Game class helper
-        game_->InitializeGameSystems();
-    }
+		// Count tenants and satisfaction from facilities
+		ecs_world.GetWorld().each([&](const FacilityEconomics &econ, const Satisfaction &sat) {
+			total_tenants += econ.current_tenants;
+			total_satisfaction += sat.satisfaction_score;
+			satisfaction_count++;
+		});
 
-    void InGameScene::Shutdown() {
-        // Delegate to Game class helper
-        game_->CleanupGameSystems();
-    }
+		// Calculate average satisfaction
+		const float avg_satisfaction = (satisfaction_count > 0) ? (total_satisfaction / satisfaction_count) : 0.0f;
 
-    void InGameScene::Update(const float delta_time) {
-        // Delegate to Game class helper
-        game_->UpdateInGame(delta_time);
-    }
+		// Get floor count from tower grid
+		const int floor_count = ecs_world.GetTowerGrid().GetFloorCount();
 
-    void InGameScene::Render() {
-        // Delegate to Game class helper
-        game_->RenderInGame();
-    }
+		// Update rating structure
+		rating.total_tenants = total_tenants;
+		rating.average_satisfaction = avg_satisfaction;
+		rating.total_floors = floor_count;
+		rating.hourly_income = income_rate;
 
-    void InGameScene::HandleInput() {
-        // Delegate to Game class helper
-        game_->HandleInGameInput();
-    }
+		// Calculate star rating based on thresholds
+		int new_stars = 1; // Start with 1 star
 
-    void InGameScene::InitializeGameSystems() {
-        // Implemented in Game class for now
-    }
+		// 2 stars: 25+ tenants
+		if (total_tenants >= 25) {
+			new_stars = 2;
+			rating.next_star_tenants = 50;
+			rating.next_star_satisfaction = 70.0f;
+			rating.next_star_floors = 0;
+			rating.next_star_income = 0.0f;
+		} else {
+			rating.next_star_tenants = 25;
+			rating.next_star_satisfaction = 0.0f;
+			rating.next_star_floors = 0;
+			rating.next_star_income = 0.0f;
+		}
 
-    void InGameScene::CleanupGameSystems() {
-        // Implemented in Game class for now
-    }
+		// 3 stars: 50+ tenants AND 70%+ satisfaction
+		if (total_tenants >= 50 && avg_satisfaction >= 70.0f) {
+			new_stars = 3;
+			rating.next_star_tenants = 100;
+			rating.next_star_satisfaction = 75.0f;
+			rating.next_star_floors = 20;
+			rating.next_star_income = 0.0f;
+		} else if (new_stars >= 2) {
+			rating.next_star_tenants = 50;
+			rating.next_star_satisfaction = 70.0f;
+			rating.next_star_floors = 0;
+			rating.next_star_income = 0.0f;
+		}
 
-    void InGameScene::CreateStarterTower() const {
-        // Implemented in Game class for now
-    }
+		// 4 stars: 100+ tenants AND 75%+ satisfaction AND 20+ floors
+		if (total_tenants >= 100 && avg_satisfaction >= 75.0f && floor_count >= 20) {
+			new_stars = 4;
+			rating.next_star_tenants = 200;
+			rating.next_star_satisfaction = 80.0f;
+			rating.next_star_floors = 40;
+			rating.next_star_income = 10000.0f;
+		} else if (new_stars >= 3) {
+			rating.next_star_tenants = 100;
+			rating.next_star_satisfaction = 75.0f;
+			rating.next_star_floors = 20;
+			rating.next_star_income = 0.0f;
+		}
 
-    void InGameScene::CalculateTowerRating() {
-        // Implemented in Game class for now
-    }
+		// 5 stars: 200+ tenants AND 80%+ satisfaction AND 40+ floors AND $10k+/hr income
+		if (total_tenants >= 200 && avg_satisfaction >= 80.0f &&
+		    floor_count >= 40 && income_rate >= 10000.0f) {
+			new_stars = 5;
+			rating.next_star_tenants = 0;
+			rating.next_star_satisfaction = 0.0f;
+			rating.next_star_floors = 0;
+			rating.next_star_income = 0.0f;
+		} else if (new_stars >= 4) {
+			rating.next_star_tenants = 200;
+			rating.next_star_satisfaction = 80.0f;
+			rating.next_star_floors = 40;
+			rating.next_star_income = 10000.0f;
+		}
 
-    void InGameScene::UpdateCameraBounds() {
-        // Implemented in Game class for now
-    }
+		rating.stars = new_stars;
+	}
 
+	InGameScene::InGameScene(Game *game)
+		: GameScene(game),
+		  audio_manager_(nullptr),
+		  is_paused_(false),
+		  in_achievements_menu_(false),
+		  in_settings_from_pause_(false),
+		  in_audio_settings_from_pause_(false),
+		  in_accessibility_settings_from_pause_(false),
+		  grid_offset_x_(300),
+		  grid_offset_y_(100),
+		  cell_width_(40),
+		  cell_height_(50),
+		  game_initialized_(false),
+		  elapsed_time_(0),
+		  sim_time_(0),
+		  time_step_(0),
+		  total_time_(0) {
+		achievement_manager_ = game->GetAchievementManager();
+		audio_manager_ =game->GetAudioManager();
+
+		game_state_.funds = 25000.0f;
+		game_state_.income_rate = 500.0f;
+		game_state_.population = 2;
+		game_state_.current_day = 1;
+		game_state_.current_time = 8.5f;
+		game_state_.speed_multiplier = 1;
+		game_state_.paused = false;
+	}
+
+	InGameScene::~InGameScene() {
+		// Cleanup handled by Shutdown()
+	}
+
+	void InGameScene::Initialize() {
+		std::cout << "Initializing game..." << std::endl;
+
+		// Change music to gameplay theme
+		audio_manager_->StopMusic(1.0f);
+		audio_manager_->PlayMusic(audio::AudioCue::GameplayLoop, true, 2.0f);
+
+		// Create and initialize the ECS world with screen-based grid dimensions
+		// Get current screen dimensions (800x600 by default from Initialize)
+		const int screen_width = GetScreenWidth();
+		const int screen_height = GetScreenHeight();
+		ecs_world_ = std::make_unique<ECSWorld>(screen_width, screen_height, cell_width_, cell_height_);
+		ecs_world_->Initialize();
+
+		// Create and initialize save/load manager
+		save_load_manager_ = std::make_unique<SaveLoadManager>();
+		save_load_manager_->Initialize();
+		save_load_manager_->SetAutosaveEnabled(true);
+		save_load_manager_->SetAutosaveInterval(120.0f);
+		save_load_manager_->SetAchievementManager(achievement_manager_);
+
+		// Create save/load menu
+		save_load_menu_ = std::make_unique<SaveLoadMenu>();
+		save_load_menu_->SetSaveLoadManager(save_load_manager_.get());
+
+		// Create the global TimeManager as a singleton
+		ecs_world_->GetWorld().set<TimeManager>({60.0f});
+
+		// Create the global TowerEconomy as a singleton
+		ecs_world_->GetWorld().set<TowerEconomy>({10000.0f});
+
+		// Create the global ResearchTree as a singleton
+		ResearchTree research_tree;
+		research_tree.InitializeDefaultTree();
+		research_tree.AwardPoints(50);
+		ecs_world_->GetWorld().set<ResearchTree>(research_tree);
+
+		// Create the global NPCSpawner as a singleton
+		ecs_world_->GetWorld().set<NPCSpawner>({30.0f}); // Spawn visitors every 30 seconds base rate
+
+		// Create the global StaffManager as a singleton
+		ecs_world_->GetWorld().set<StaffManager>({});
+
+		std::cout << std::endl << "Creating example entities..." << std::endl;
+		std::cout << "Renderer initialized. Window opened." << std::endl;
+		std::cout << "Press ESC or close window to exit." << std::endl;
+		std::cout << std::endl;
+
+		// Create some example actors (people)
+		// Create one employee to demonstrate the system (Alice will be hired for an existing job)
+		const auto employee1 = ecs_world_->CreateEntity("Alice");
+		employee1.set<Person>({"Alice", 0, 5.0f, 2.0f, NPCType::Employee});
+		employee1.set<EmploymentInfo>({"Office Worker", 1, 5, 9.0f, 17.0f});
+		employee1.set<Satisfaction>({80.0f});
+
+		std::cout << "  Created 1 initial employee (Alice - Office Worker)" << std::endl;
+		std::cout << "  Additional visitors and employees will be spawned dynamically" << std::endl;
+
+		// Keep the old actors for compatibility
+		const auto actor1 = ecs_world_->CreateEntity("John");
+		actor1.set<Position>({10.0f, 0.0f});
+		actor1.set<Velocity>({0.5f, 0.0f});
+		actor1.set<Actor>({"John", 5, 1.0f});
+		actor1.set<Satisfaction>({80.0f});
+
+		DailySchedule john_schedule;
+		john_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 9.0f);
+		john_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.0f);
+		john_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 17.0f);
+		john_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 10.0f);
+		actor1.set<DailySchedule>(john_schedule);
+
+		const auto actor2 = ecs_world_->CreateEntity("Sarah");
+		actor2.set<Position>({20.0f, 0.0f});
+		actor2.set<Velocity>({-0.3f, 0.0f});
+		actor2.set<Actor>({"Sarah", 3, 0.8f});
+		actor2.set<Satisfaction>({75.0f});
+
+		DailySchedule sarah_schedule;
+		sarah_schedule.AddWeekdayAction(ScheduledAction::Type::ArriveWork, 8.5f);
+		sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LunchBreak, 12.5f);
+		sarah_schedule.AddWeekdayAction(ScheduledAction::Type::LeaveWork, 16.5f);
+		sarah_schedule.AddWeekendAction(ScheduledAction::Type::Idle, 11.0f);
+		actor2.set<DailySchedule>(sarah_schedule);
+
+		std::cout << "  Created 2 legacy actors for compatibility" << std::endl;
+
+		// Create building components
+		const auto lobby_entity = ecs_world_->CreateEntity("Lobby");
+		lobby_entity.set<Position>({0.0f, 0.0f});
+		lobby_entity.set<BuildingComponent>({BuildingComponent::Type::Lobby, 0, 0, 10, 50});
+		lobby_entity.set<Satisfaction>({85.0f});
+		lobby_entity.set<FacilityEconomics>({50.0f, 10.0f, 50});
+
+		const auto office1_entity = ecs_world_->CreateEntity("Office_Floor_5");
+		office1_entity.set<Position>({0.0f, 50.0f});
+		office1_entity.set<BuildingComponent>({BuildingComponent::Type::Office, 5, 0, 8, 20});
+		office1_entity.set<Satisfaction>({70.0f});
+		office1_entity.set<FacilityEconomics>({150.0f, 30.0f, 20});
+
+		const auto restaurant_entity = ecs_world_->CreateEntity("Restaurant_Floor_3");
+		restaurant_entity.set<Position>({0.0f, 30.0f});
+		restaurant_entity.set<BuildingComponent>({BuildingComponent::Type::Restaurant, 3, 0, 6, 30});
+		restaurant_entity.set<Satisfaction>({65.0f});
+		restaurant_entity.set<FacilityEconomics>({200.0f, 60.0f, 30});
+
+		std::cout << "  Created 2 actors and 3 building components with satisfaction and economics" << std::endl;
+
+		// Create HUD and build menu
+		hud_ = std::make_unique<HUD>();
+		build_menu_ = std::make_unique<BuildMenu>();
+		pause_menu_ = std::make_unique<PauseMenu>();
+		research_menu_ = std::make_unique<ResearchTreeMenu>();
+		mods_menu_ = std::make_unique<ModsMenu>();
+		mods_menu_->SetModManager(&ecs_world_->GetModManager());
+
+		// Connect tooltip manager from HUD to other UI components
+		build_menu_->SetTooltipManager(hud_->GetTooltipManager());
+
+		// Connect notification center to research menu
+		research_menu_->SetNotificationCenter(hud_->GetNotificationCenter());
+
+		// Create and initialize camera with default bounds
+		// The bounds will grow dynamically as the tower is built
+		camera_ = std::make_unique<rendering::Camera>();
+
+		// Initialize with a reasonable default size (slightly larger than screen)
+		const float default_width = 1200.0f;
+		const float default_height = 800.0f;
+
+		camera_->Initialize(800, 600, default_width, default_height);
+
+		// Update camera bounds based on currently built floors
+		UpdateCameraBounds();
+
+		hud_->SetGameState(game_state_);
+
+		// Set up analytics callbacks
+		hud_->SetIncomeAnalyticsCallback([this]() {
+			return CollectIncomeAnalytics();
+		});
+		hud_->SetPopulationAnalyticsCallback([this]() {
+			return CollectPopulationAnalytics();
+		});
+
+		// Set up action bar callback
+		hud_->SetActionBarCallback([this](int action) {
+			const auto actionEnum = static_cast<ActionBar::Action>(action);
+			switch (actionEnum) {
+				case ActionBar::Action::Build:
+					// Toggle build menu visibility
+					build_menu_->SetVisible(!build_menu_->IsVisible());
+					if (build_menu_->IsVisible()) {
+						audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+					} else {
+						audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
+					}
+					break;
+				case ActionBar::Action::FacilityInfo:
+					// TODO: Show facility browser
+					hud_->AddNotification(Notification::Type::Info, "Facility info - Coming soon!", 2.0f);
+					break;
+				case ActionBar::Action::VisitorInfo:
+					// TODO: Show visitor list
+					hud_->AddNotification(Notification::Type::Info, "Visitor info - Coming soon!", 2.0f);
+					break;
+				case ActionBar::Action::StaffManagement:
+					// TODO: Show staff management
+					hud_->AddNotification(Notification::Type::Info, "Staff management - Coming soon!", 2.0f);
+					break;
+				case ActionBar::Action::Research:
+					// Toggle research menu
+					if (research_menu_->IsVisible()) {
+						research_menu_->SetVisible(false);
+						audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
+					} else {
+						research_menu_->SetVisible(true);
+						audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+					}
+					break;
+				case ActionBar::Action::Settings:
+					// Show pause menu / settings
+					is_paused_ = true;
+					audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+					break;
+			}
+		});
+
+		// Set up speed control callback
+		if (auto *speed_panel = hud_->GetSpeedControlPanel()) {
+			speed_panel->SetSpeedCallback([this](int speed, bool paused) {
+				game_state_.speed_multiplier = speed;
+				game_state_.paused = paused;
+				is_paused_ = paused;
+			});
+		}
+
+		// Add example notifications to showcase notification center
+		hud_->AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
+		hud_->AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
+
+		// Add notifications directly to notification center with clickable callbacks
+		auto *nc = hud_->GetNotificationCenter();
+		if (nc) {
+			// Welcome notification
+			nc->AddNotification(
+				"Welcome to TowerForge",
+				"Start building your tower empire! Press N to toggle the notification center.",
+				NotificationType::Info,
+				NotificationPriority::Medium,
+				15.0f
+			);
+
+			// Tutorial notification
+			nc->AddNotification(
+				"Getting Started",
+				"Use the build menu on the left to place facilities. Click the notification button (top right) or press N to view all notifications.",
+				NotificationType::Info,
+				NotificationPriority::Medium,
+				-1.0f // Pin important tutorials
+			);
+
+			// Feature showcase
+			nc->AddNotification(
+				"Notification Center Features",
+				"Pin important notifications, filter by type, and click to trigger actions!",
+				NotificationType::Event,
+				NotificationPriority::Low,
+				20.0f
+			);
+		}
+
+		// Setup tower grid and facilities
+		std::cout << std::endl << "Demonstrating Tower Grid System and Facility Manager..." << std::endl;
+		auto &grid = ecs_world_->GetTowerGrid();
+		auto &facility_mgr = ecs_world_->GetFacilityManager();
+
+		placement_system_ = std::make_unique<PlacementSystem>(grid, facility_mgr, *build_menu_);
+		placement_system_->SetCamera(camera_.get());
+		placement_system_->SetTooltipManager(hud_->GetTooltipManager());
+
+		// Create history panel
+		history_panel_ = std::make_unique<HistoryPanel>();
+		history_panel_->SetVisible(false); // Hidden by default
+
+		std::cout << "  Initial grid: " << grid.GetFloorCount() << " floors x "
+				<< grid.GetColumnCount() << " columns" << std::endl;
+
+		// Create facilities
+		std::cout << "  Creating facilities..." << std::endl;
+		auto grid_lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0, 0, "MainLobby");
+		auto grid_office1 = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2, 0, "Office_Floor_1");
+		auto residential1 = facility_mgr.CreateFacility(BuildingComponent::Type::Residential, 2, 5, 0, "Condo_Floor_2");
+		auto shop1 = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1, 0, "Shop_Floor_3");
+
+		std::cout << "  Created 4 facilities (Lobby, Office, Residential, RetailShop)" << std::endl;
+
+		// Create elevator system
+		std::cout << "  Creating elevator system..." << std::endl;
+		const auto elevator_shaft = ecs_world_->CreateEntity("MainElevatorShaft");
+		elevator_shaft.set<ElevatorShaft>({10, 0, 5, 1});
+
+		const auto elevator_car = ecs_world_->CreateEntity("Elevator1");
+		elevator_car.set<ElevatorCar>({static_cast<int>(elevator_shaft.id()), 0, 8});
+
+		std::cout << "  Created elevator shaft at column 10 serving floors 0-5" << std::endl;
+
+		std::cout << "  Occupied cells: " << grid.GetOccupiedCellCount() << std::endl;
+		std::cout << "  Facility at (0, 0): " << grid.GetFacilityAt(0, 0) << std::endl;
+		std::cout << "  Facility at (1, 5): " << grid.GetFacilityAt(1, 5) << std::endl;
+
+		// Add more floors
+		std::cout << "  Adding 5 more floors..." << std::endl;
+		grid.AddFloors(5);
+		std::cout << "  New grid size: " << grid.GetFloorCount() << " floors x "
+				<< grid.GetColumnCount() << " columns" << std::endl;
+
+		std::cout << std::endl << "Running simulation..." << std::endl;
+		std::cout << std::endl;
+
+
+		// Initialize help system
+		help_system_ = std::make_unique<HelpSystem>();
+		help_system_->Initialize();
+
+		// Reset timing
+		elapsed_time_ = 0.0f;
+		sim_time_ = 0.0f;
+		is_paused_ = false;
+		in_settings_from_pause_ = false;
+		in_audio_settings_from_pause_ = false;
+		in_accessibility_settings_from_pause_ = false;
+	}
+
+	void InGameScene::Shutdown() {
+		if (!game_initialized_) {
+			return;
+		}
+
+		// Perform final autosave before cleanup
+		if (save_load_manager_ && save_load_manager_->IsAutosaveEnabled() && ecs_world_) {
+			std::cout << "Performing final autosave before exit..." << std::endl;
+			const auto result = save_load_manager_->Autosave(*ecs_world_);
+			if (result.success) {
+				std::cout << "Final autosave completed successfully" << std::endl;
+			}
+		}
+
+		// Smart pointers automatically clean up when reset or go out of scope
+		placement_system_.reset();
+		camera_.reset();
+		research_menu_.reset();
+		save_load_menu_.reset();
+		mods_menu_.reset();
+		pause_menu_.reset();
+		build_menu_.reset();
+		hud_.reset();
+		save_load_manager_.reset();
+		ecs_world_.reset();
+		help_system_.reset();
+		history_panel_.reset();
+
+		game_initialized_ = false;
+	}
+
+	void InGameScene::Update(const float delta_time) {
+		// Handle F1 key to toggle help system
+		if (help_system_ != nullptr && IsKeyPressed(KEY_F1)) {
+			if (help_system_->IsVisible()) {
+				help_system_->Hide();
+			} else {
+				// Determine current context based on active UI
+				HelpContext context = HelpContext::MainGame;
+				if (is_paused_) {
+					context = HelpContext::PauseMenu;
+				} else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
+					context = HelpContext::ResearchTree;
+				} else if (mods_menu_ != nullptr && mods_menu_->IsVisible()) {
+					context = HelpContext::ModsMenu;
+				}
+				help_system_->Show(context);
+			}
+			return;
+		}
+
+		// Handle ESC key to close help, pause menu, or research menu
+		if (IsKeyPressed(KEY_ESCAPE)) {
+			if (help_system_ != nullptr && help_system_->IsVisible()) {
+				help_system_->Hide();
+			} else if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
+				save_load_menu_->Close();
+			} else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
+				research_menu_->SetVisible(false);
+			} else if (in_achievements_menu_) {
+				is_paused_ = false;
+				in_achievements_menu_ = false;
+				audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
+			} else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ &&
+			           !in_accessibility_settings_from_pause_ && !is_paused_) {
+				is_paused_ = true;
+				audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+				game_state_.paused = true;
+			}
+			return;
+		}
+
+		// Handle R key to toggle research menu (only if not paused)
+		if (research_menu_ != nullptr && !is_paused_ && IsKeyPressed(KEY_R)) {
+			research_menu_->Toggle();
+		}
+
+		// Handle N key to toggle notification center
+		if (IsKeyPressed(KEY_N)) {
+			hud_->ToggleNotificationCenter();
+		}
+
+		// Handle H key to toggle history panel (only if not paused)
+		if (history_panel_ != nullptr && !is_paused_ && IsKeyPressed(KEY_H)) {
+			history_panel_->ToggleVisible();
+		}
+
+		// Only update simulation if not paused
+		if (!is_paused_) {
+			save_load_manager_->UpdateAutosave(time_step_, *ecs_world_);
+
+			if (!ecs_world_->Update(time_step_)) {
+				// TODO: Return to title scene
+				return;
+			}
+			elapsed_time_ += time_step_;
+			sim_time_ += time_step_ * game_state_.speed_multiplier;
+		}
+
+		// Update game state for HUD
+		game_state_.current_time = 8.5f + (sim_time_ / 3600.0f);
+		if (game_state_.current_time >= 24.0f) {
+			game_state_.current_time -= 24.0f;
+			game_state_.current_day++;
+		}
+
+		// Only update funds if not paused
+		if (!is_paused_) {
+			game_state_.funds += (game_state_.income_rate / 3600.0f) * time_step_;
+		}
+
+		CalculateTowerRating();
+
+		// Update camera bounds based on built floors (checks periodically)
+		UpdateCameraBounds();
+
+		hud_->SetGameState(game_state_);
+		hud_->Update(time_step_);
+
+		// Update build menu (for position updates)
+		if (build_menu_) {
+			build_menu_->Update(time_step_);
+		}
+
+		// Update help system
+		if (help_system_ != nullptr) {
+			help_system_->Update(delta_time);
+		}
+
+		// Handle research menu
+		if (research_menu_->IsVisible()) {
+			research_menu_->Update(time_step_);
+
+			// Handle mouse events for confirmation dialogs first
+			if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+				const MouseEvent mouse_event{
+					static_cast<float>(GetMouseX()),
+					static_cast<float>(GetMouseY()),
+					false, // left_down
+					false, // right_down
+					true, // left_pressed
+					false // right_pressed
+				};
+
+				// Check research menu confirmation dialogs
+				if (research_menu_->ProcessMouseEvent(mouse_event)) {
+					// Dialog consumed the event, don't process node clicks
+					// Apply vertical expansion upgrades after any unlock
+					ecs_world_->ApplyVerticalExpansionUpgrades();
+				} else {
+					// Normal node click handling
+					ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
+					const bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(),
+					                                                  true, // clicked
+					                                                  research_tree_ref);
+					// Note: unlock notification is now handled in ResearchTreeMenu via notification center
+
+					// Apply vertical expansion upgrades if anything was unlocked
+					if (unlocked) {
+						ecs_world_->ApplyVerticalExpansionUpgrades();
+					}
+				}
+			}
+		}
+
+		// Check for achievements (only if not paused)
+		if (!is_paused_) {
+			const flecs::world &world = ecs_world_->GetWorld();
+			float total_income = 0.0f;
+			if (world.has<TowerEconomy>()) {
+				const auto &economy = world.get<TowerEconomy>();
+				total_income = economy.total_revenue;
+			}
+
+			const int floor_count = ecs_world_->GetTowerGrid().GetFloorCount();
+			constexpr float avg_satisfaction = 75.0f;
+
+			achievement_manager_->
+					CheckAchievements(game_state_.population, total_income, floor_count, avg_satisfaction);
+
+			if (achievement_manager_->HasNewAchievements()) {
+				const auto newly_unlocked = achievement_manager_->PopNewlyUnlocked();
+				for (const auto &achievement_id: newly_unlocked) {
+					audio_manager_->PlaySFX(audio::AudioCue::Achievement);
+
+					for (const auto &achievement: achievement_manager_->GetAllAchievements()) {
+						if (achievement.id == achievement_id) {
+							std::string message = "Achievement Unlocked: " + achievement.name;
+							hud_->AddNotification(Notification::Type::Success, message, 5.0f);
+
+							// Also add to notification center with clickable callback
+							auto *nc = hud_->GetNotificationCenter();
+							if (nc) {
+								nc->AddNotification(
+									achievement.name,
+									achievement.description,
+									NotificationType::Achievement,
+									NotificationPriority::High,
+									-1.0f, // Don't auto-dismiss achievements
+									[this]() {
+										in_achievements_menu_ = true;
+										is_paused_ = true;
+									}
+								);
+							}
+							break;
+						}
+					}
+				}
+			}
+
+			achievements_menu_.SetGameStats(game_state_.population, total_income, floor_count, avg_satisfaction);
+		}
+
+		// Handle pause menu input
+		if (is_paused_) {
+			// Create mouse event for modern event API
+			const MouseEvent mouse_event(
+				static_cast<float>(GetMouseX()),
+				static_cast<float>(GetMouseY()),
+				IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+				IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+				IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+				IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+			);
+
+			if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
+				save_load_menu_->Update(time_step_);
+				save_load_menu_->ProcessMouseEvent(mouse_event);
+				save_load_menu_->HandleKeyboard();
+			} else if (in_accessibility_settings_from_pause_) {
+				pause_accessibility_settings_menu_.Update(time_step_);
+
+				// Accessibility settings menu handles state changes via callbacks
+				if (pause_accessibility_settings_menu_.HandleKeyboard()) {
+					in_accessibility_settings_from_pause_ = false;
+				}
+				pause_accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
+			} else if (in_audio_settings_from_pause_) {
+				pause_audio_settings_menu_.Update(time_step_);
+
+				// Audio settings menu handles state changes via callbacks
+				pause_audio_settings_menu_.HandleKeyboard();
+				pause_audio_settings_menu_.ProcessMouseEvent(mouse_event);
+			} else if (in_settings_from_pause_) {
+				pause_general_settings_menu_.Update(time_step_);
+
+				// General settings menu handles state changes via callbacks
+				pause_general_settings_menu_.HandleKeyboard();
+				pause_general_settings_menu_.ProcessMouseEvent(mouse_event);
+			} else if (in_achievements_menu_) {
+				achievements_menu_.Update(time_step_);
+				achievements_menu_.HandleKeyboard();
+				achievements_menu_.ProcessMouseEvent(mouse_event);
+			} else {
+				pause_menu_->Update(time_step_);
+
+				const int quit_result = pause_menu_->HandleQuitConfirmation();
+				if (quit_result == 1) {
+					// TODO: Return to title scene
+					Shutdown();
+					game_initialized_ = false;
+					return;
+				} else if (quit_result == 0) {
+					// User cancelled quit
+				} else {
+					const int keyboard_selection = pause_menu_->HandleKeyboard();
+
+					pause_menu_->ProcessMouseEvent(mouse_event);
+
+					// Get the menu option that was selected (via keyboard or mouse)
+					int selected = keyboard_selection;
+					if (selected < 0) {
+						selected = pause_menu_->GetSelectedMenuOption();
+					}
+
+					if (selected >= 0) {
+						const auto option = static_cast<PauseMenuOption>(selected);
+						switch (option) {
+							case PauseMenuOption::Resume:
+								is_paused_ = false;
+								game_state_.paused = false;
+								break;
+							case PauseMenuOption::SaveGame:
+								save_load_menu_->Open(true);
+								//hud_->AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
+								break;
+							case PauseMenuOption::LoadGame:
+								save_load_menu_->Open(false);
+								break;
+							case PauseMenuOption::Settings:
+								in_settings_from_pause_ = true;
+								break;
+							case PauseMenuOption::Mods:
+								mods_menu_->Show();
+								break;
+							case PauseMenuOption::QuitToTitle:
+								pause_menu_->ShowQuitConfirmation(true);
+								break;
+						}
+					}
+				}
+			}
+		}
+
+		// Update placement system
+
+		// Handle keyboard shortcuts (only if not paused)
+		if (!is_paused_) {
+			placement_system_->Update(time_step_);
+			placement_system_->HandleKeyboard();
+
+			// Check for pending demolish from confirmation dialog
+			const int pending_change = placement_system_->GetPendingFundsChange();
+			if (pending_change != 0) {
+				game_state_.funds += pending_change;
+				audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
+				hud_->AddNotification(Notification::Type::Info,
+				                      TextFormat("Facility demolished! Refund: $%d", pending_change), 3.0f);
+			}
+
+			// Update history panel with current command history
+			if (history_panel_ != nullptr && history_panel_->IsVisible()) {
+				history_panel_->UpdateFromHistory(placement_system_->GetCommandHistory());
+			}
+
+			camera_->Update(time_step_);
+
+			// Update camera screen size on window resize
+			const int screen_width = GetScreenWidth();
+			const int screen_height = GetScreenHeight();
+			static int last_screen_width = screen_width;
+			static int last_screen_height = screen_height;
+			if (screen_width != last_screen_width || screen_height != last_screen_height) {
+				camera_->UpdateScreenSize(screen_width, screen_height);
+				last_screen_width = screen_width;
+				last_screen_height = screen_height;
+			}
+		}
+
+		HandleInput();
+	}
+
+	void InGameScene::Render() {
+		const auto &grid = ecs_world_->GetTowerGrid();
+
+		// Begin camera mode for all game world rendering
+		camera_->BeginMode();
+
+		// Helper function to convert floor index to screen Y coordinate
+		// Ground floor (0) at fixed position, floors build upward (decreasing Y)
+		const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
+		auto FloorToScreenY = [ground_floor_screen_y, this](const int floor) -> int {
+			return ground_floor_screen_y - (floor * cell_height_);
+		};
+
+		// Draw background (sky above ground, earth below)
+		const int ground_y = FloorToScreenY(0);
+		// Sky above ground floor
+		DrawRectangle(0, 0, 2000, ground_y, Color{135, 206, 235, 255});
+		// Earth below ground floor
+		DrawRectangle(0, ground_y + cell_height_, 2000, 2000, Color{101, 67, 33, 255});
+
+		// Draw grid
+		for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
+			for (int col = 0; col < grid.GetColumnCount(); ++col) {
+				const int x = grid_offset_x_ + col * cell_width_;
+				const int y = FloorToScreenY(floor);
+
+				// Show built floors with solid outline, unbuilt with dashed/faded outline
+				if (grid.IsFloorBuilt(floor, col)) {
+					DrawRectangleLines(x, y, cell_width_, cell_height_, ColorAlpha(WHITE, 0.2f));
+				} else {
+					// Draw faded outline for unbuilt floors
+					DrawRectangleLines(x, y, cell_width_, cell_height_, ColorAlpha(DARKGRAY, 0.1f));
+				}
+
+				if (grid.IsOccupied(floor, col)) {
+					const int facility_id = grid.GetFacilityAt(floor, col);
+					auto facility_color = SKYBLUE;
+					if (facility_id % 3 == 0) facility_color = PURPLE;
+					else if (facility_id % 3 == 1) facility_color = GREEN;
+
+					DrawRectangle(x + 2, y + 2, cell_width_ - 4, cell_height_ - 4, facility_color);
+				}
+			}
+		}
+
+		// Draw floor labels
+		for (int floor = 0; floor < grid.GetFloorCount(); ++floor) {
+			const int y = FloorToScreenY(floor);
+			DrawText(TextFormat("F%d", floor), grid_offset_x_ - 30, y + 15, 12, LIGHTGRAY);
+		}
+
+		// Draw elevator shafts
+		const auto shaft_query = ecs_world_->GetWorld().query<const ElevatorShaft>();
+		shaft_query.each([&](flecs::entity e, const ElevatorShaft &shaft) {
+			for (int floor = shaft.bottom_floor; floor <= shaft.top_floor; ++floor) {
+				const int x = grid_offset_x_ + shaft.column * cell_width_;
+				const int y = FloorToScreenY(floor);
+
+				DrawRectangle(x + 4, y + 4, cell_width_ - 8, cell_height_ - 8, Color{60, 60, 70, 255});
+				DrawRectangleLines(x + 4, y + 4, cell_width_ - 8, cell_height_ - 8, Color{100, 100, 120, 255});
+			}
+		});
+
+		// Draw elevator cars
+		const auto car_query = ecs_world_->GetWorld().query<const ElevatorCar>();
+		car_query.each([&](flecs::entity e, const ElevatorCar &car) {
+			const auto shaft_entity = ecs_world_->GetWorld().entity(car.shaft_entity_id);
+			if (shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
+				const ElevatorShaft &shaft = shaft_entity.ensure<ElevatorShaft>();
+
+				const int x = grid_offset_x_ + shaft.column * cell_width_;
+				const int y = FloorToScreenY(static_cast<int>(car.current_floor));
+
+				Color car_color;
+				switch (car.state) {
+					case ElevatorState::Idle:
+						car_color = GRAY;
+						break;
+					case ElevatorState::MovingUp:
+						car_color = SKYBLUE;
+						break;
+					case ElevatorState::MovingDown:
+						car_color = PURPLE;
+						break;
+					case ElevatorState::DoorsOpening:
+					case ElevatorState::DoorsClosing:
+						car_color = YELLOW;
+						break;
+					case ElevatorState::DoorsOpen:
+						car_color = GREEN;
+						break;
+				}
+
+				DrawRectangle(x + 6, y + 6, cell_width_ - 12, cell_height_ - 12, car_color);
+
+				if (car.current_occupancy > 0) {
+					DrawText(TextFormat("%d", car.current_occupancy), x + 16, y + 18, 14, BLACK);
+				}
+			}
+		});
+
+		// Draw Person entities
+		const auto person_query = ecs_world_->GetWorld().query<const Person>();
+		person_query.each([&](const flecs::entity e, const Person &person) {
+			const int x = grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
+			const int y = FloorToScreenY(person.current_floor);
+
+			// Draw person as a circle
+			Color person_color;
+			if (person.npc_type == NPCType::Employee) {
+				// Employees are blue
+				if (e.has<EmploymentInfo>()) {
+					const EmploymentInfo &emp = e.ensure<EmploymentInfo>();
+					person_color = emp.currently_on_shift ? BLUE : SKYBLUE;
+				} else {
+					person_color = BLUE;
+				}
+			} else {
+				// Visitors are orange/yellow
+				if (e.has<VisitorInfo>()) {
+					const VisitorInfo &visitor = e.ensure<VisitorInfo>();
+					if (visitor.activity == VisitorActivity::Leaving) {
+						person_color = GRAY;
+					} else if (visitor.activity == VisitorActivity::Shopping) {
+						person_color = GOLD;
+					} else {
+						person_color = ORANGE;
+					}
+				} else {
+					person_color = ORANGE;
+				}
+			}
+
+			DrawCircle(x + cell_width_ / 2, y + cell_height_ / 2, 8, person_color);
+
+			// Draw outline to make them more visible
+			DrawCircleLines(x + cell_width_ / 2, y + cell_height_ / 2, 8, BLACK);
+		});
+
+		// Render placement system preview
+		placement_system_->Render(grid_offset_x_, grid_offset_y_, cell_width_, cell_height_);
+
+		// End camera mode
+		camera_->EndMode();
+
+		// Render HUD and menus
+		hud_->Render();
+		build_menu_->Render(placement_system_->CanUndo(), placement_system_->CanRedo(),
+		                    placement_system_->IsDemolishMode());
+
+		// Render history panel (if visible)
+		if (history_panel_ != nullptr) {
+			history_panel_->Render();
+		}
+
+		camera_->RenderControlsOverlay();
+		camera_->RenderFollowIndicator();
+
+		// Display tower economy status
+		/*const auto& tower_economy = ecs_world_->GetWorld().get<TowerEconomy>();
+	renderer_.DrawRectangle(10, 140, 280, 100, Color{0, 0, 0, 180});
+	renderer_.DrawText("Tower Economics", 20, 145, 18, GOLD);
+
+	std::string balance_str = "Balance: $" + std::to_string(static_cast<int>(tower_economy.total_balance));
+	std::string revenue_str = "Revenue: $" + std::to_string(static_cast<int>(tower_economy.daily_revenue));
+	std::string expense_str = "Expenses: $" + std::to_string(static_cast<int>(tower_economy.daily_expenses));
+
+	renderer_.DrawText(balance_str.c_str(), 20, 170, 16, GREEN);
+	renderer_.DrawText(revenue_str.c_str(), 20, 195, 16, SKYBLUE);
+	renderer_.DrawText(expense_str.c_str(), 20, 220, 16, ORANGE);*/
+
+		// Display satisfaction indicators
+		/*int y_offset = 250;
+	auto actor_query = ecs_world_->GetWorld().query<const Actor, const Satisfaction>();
+	actor_query.each([&](flecs::entity e, const Actor& actor, const Satisfaction& sat) {
+		if (y_offset < 520) {
+		    renderer_.DrawRectangle(10, y_offset, 280, 50, Color{0, 0, 0, 180});
+
+		    std::string name_str = actor.name + " Satisfaction";
+		    renderer_.DrawText(name_str.c_str(), 20, y_offset + 5, 16, WHITE);
+
+		    std::string score_str = std::to_string(static_cast<int>(sat.satisfaction_score)) + "% - " + sat.GetLevelString();
+
+		    Color sat_color;
+		    switch (sat.GetLevel()) {
+		        case Satisfaction::Level::VeryPoor:
+		            sat_color = RED;
+		            break;
+		        case Satisfaction::Level::Poor:
+		            sat_color = ORANGE;
+		            break;
+		        case Satisfaction::Level::Average:
+		            sat_color = YELLOW;
+		            break;
+		        case Satisfaction::Level::Good:
+		            sat_color = LIME;
+		            break;
+		        case Satisfaction::Level::Excellent:
+		            sat_color = GREEN;
+		            break;
+		        default:
+		            sat_color = WHITE;
+		    }
+
+		    renderer_.DrawText(score_str.c_str(), 20, y_offset + 25, 16, sat_color);
+		    y_offset += 55;
+		}
+	});*/
+
+		// Render pause menu overlay if paused
+		if (is_paused_) {
+			if (save_load_menu_->IsOpen()) {
+				save_load_menu_->Render();
+			} else if (in_accessibility_settings_from_pause_) {
+				pause_accessibility_settings_menu_.Render();
+			} else if (in_audio_settings_from_pause_) {
+				pause_audio_settings_menu_.Render();
+			} else if (in_settings_from_pause_) {
+				pause_general_settings_menu_.Render();
+			} else if (mods_menu_->IsVisible()) {
+				mods_menu_->Render();
+			} else if (in_achievements_menu_) {
+				achievements_menu_.Render();
+			} else {
+				pause_menu_->Render();
+			}
+		}
+
+		// Render research menu overlay if visible
+		if (research_menu_->IsVisible()) {
+			ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
+			research_menu_->Render(research_tree_ref);
+		}
+
+		// Render help system overlay if visible (render last, on top of everything)
+		if (help_system_ != nullptr && help_system_->IsVisible()) {
+			help_system_->Render();
+		}
+	}
+
+	void InGameScene::HandleInput() {
+		// Update tooltips for mouse position (even when paused, for UI tooltips)
+		const int mouse_x = GetMouseX();
+		const int mouse_y = GetMouseY();
+
+		// Handle help system mouse input first (if visible)
+		if (help_system_ != nullptr && help_system_->IsVisible()) {
+			const MouseEvent help_event(
+				static_cast<float>(mouse_x),
+				static_cast<float>(mouse_y),
+				IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+				IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+				IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+				IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+			);
+			help_system_->ProcessMouseEvent(help_event);
+			return; // Help system consumes all input when visible
+		}
+
+		// Update HUD tooltips
+		hud_->UpdateTooltips(mouse_x, mouse_y);
+
+		// Update build menu tooltips
+		build_menu_->UpdateTooltips(mouse_x, mouse_y, game_state_.funds);
+
+		// Update tooltips for placement system (if not paused and not in research menu)
+		if (!is_paused_ && !research_menu_->IsVisible()) {
+			float world_x, world_y;
+			camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+			placement_system_->UpdateTooltips(static_cast<int>(world_x), static_cast<int>(world_y),
+			                                  grid_offset_x_, grid_offset_y_,
+			                                  cell_width_, cell_height_, game_state_.funds);
+		}
+
+		// Handle hover events for HUD (action bar button highlighting, etc.)
+		if (!is_paused_ && !research_menu_->IsVisible()) {
+			const MouseEvent hover_event{
+				static_cast<float>(mouse_x),
+				static_cast<float>(mouse_y),
+				IsMouseButtonDown(MOUSE_LEFT_BUTTON), // left_down
+				IsMouseButtonDown(MOUSE_RIGHT_BUTTON), // right_down
+				false, // left_pressed (hover only)
+				false // right_pressed (hover only)
+			};
+
+			// Send hover events to HUD for button highlighting
+			hud_->ProcessMouseEvent(hover_event);
+
+			// Send hover events to build menu if visible
+			if (build_menu_->IsVisible()) {
+				build_menu_->ProcessMouseEvent(hover_event);
+			}
+		}
+
+		// Handle mouse clicks (only if not paused and research menu not visible)
+		if (!is_paused_ && !research_menu_->IsVisible() && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+			// Create mouse event for UI system
+			const MouseEvent mouse_event{
+				static_cast<float>(mouse_x),
+				static_cast<float>(mouse_y),
+				false, // left_down
+				false, // right_down
+				true, // left_pressed
+				false // right_pressed
+			};
+
+			// Check camera controls first (zoom slider, etc.)
+			if (camera_->HandleControlsClick(mouse_x, mouse_y)) {
+				return; // Camera consumed the event
+			}
+
+			// Check HUD first (action bar, etc.)
+			if (hud_->ProcessMouseEvent(mouse_event)) {
+				return; // HUD consumed the event
+			}
+
+			// Check build menu if visible
+			if (build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(mouse_event)) {
+				return; // Build menu consumed the event
+			}
+
+			// Check placement system confirmation dialogs
+			if (placement_system_->ProcessMouseEvent(mouse_event)) {
+				return; // Dialog consumed the event
+			}
+
+			auto &grid = ecs_world_->GetTowerGrid();
+
+			// Check history panel first (if visible)
+			if (history_panel_ != nullptr && history_panel_->IsVisible() &&
+			    history_panel_->IsMouseOver(mouse_x, mouse_y)) {
+				const int steps = history_panel_->HandleClick(mouse_x, mouse_y);
+				if (steps > 0) {
+					// Undo 'steps' times
+					int success_count = 0;
+					for (int i = 0; i < steps; i++) {
+						if (placement_system_->Undo(game_state_.funds)) {
+							success_count++;
+						} else {
+							break;
+						}
+					}
+					if (success_count > 0) {
+						hud_->AddNotification(Notification::Type::Info,
+						                      TextFormat("Undid %d action(s)", success_count), 2.0f);
+					}
+				} else if (steps < 0) {
+					// Redo 'steps' times
+					int success_count = 0;
+					for (int i = 0; i < -steps; i++) {
+						if (placement_system_->Redo(game_state_.funds)) {
+							success_count++;
+						} else {
+							break;
+						}
+					}
+					if (success_count > 0) {
+						hud_->AddNotification(Notification::Type::Info,
+						                      TextFormat("Redid %d action(s)", success_count), 2.0f);
+					}
+				}
+				return; // Don't process other clicks
+			}
+
+			// BuildMenu now uses ProcessMouseEvent (already called above)
+			// Grid/placement click handling (HUD already checked via ProcessMouseEvent above)
+			// Convert screen coordinates to world coordinates for camera-transformed clicks
+			float world_x, world_y;
+			camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+
+			const int cost_change = placement_system_->HandleClick(static_cast<int>(world_x),
+			                                                       static_cast<int>(world_y),
+			                                                       grid_offset_x_, grid_offset_y_, cell_width_,
+			                                                       cell_height_, game_state_.funds);
+
+			if (cost_change != 0) {
+				game_state_.funds += cost_change;
+				if (cost_change < 0) {
+					audio_manager_->PlaySFX(audio::AudioCue::FacilityPlace);
+					hud_->AddNotification(Notification::Type::Success,
+					                      TextFormat("Facility placed! Cost: $%d", -cost_change), 3.0f);
+
+					// TODO: Notify tutorial if active
+					/*if (tutorial_active_ && tutorial_manager_) {
+					    const int selected = build_menu_->GetSelectedFacility();
+					    if (selected >= 0) {
+					        const auto &facility_types = build_menu_->GetFacilityTypes();
+					        if (selected < static_cast<int>(facility_types.size())) {
+					            tutorial_manager_->OnFacilityPlaced(facility_types[selected].name);
+					        }
+					    }
+					}*/
+				} else {
+					audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
+					hud_->AddNotification(Notification::Type::Info,
+					                      TextFormat("Facility demolished! Refund: $%d", cost_change), 3.0f);
+				}
+			} else {
+				// Check if placement was attempted but failed
+				const int selected = build_menu_->GetSelectedFacility();
+				if (selected >= 0 && !placement_system_->IsDemolishMode()) {
+					// Placement was attempted but failed - provide feedback
+					const auto &facility_types = build_menu_->GetFacilityTypes();
+					if (selected < static_cast<int>(facility_types.size())) {
+						const auto &facility_type = facility_types[selected];
+
+						// Check specific reason for failure
+						const int ground_floor_screen_y_temp =
+								grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
+						const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
+						const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y_temp;
+
+						if (rel_x >= 0) {
+							const int clicked_floor = -rel_y / cell_height_;
+							const int clicked_column = rel_x / cell_width_;
+
+							if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
+							    clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
+								const int floor_build_cost = ecs_world_->GetFacilityManager().
+										CalculateFloorBuildCost(
+											clicked_floor, clicked_column, facility_type.width);
+								const int total_cost = facility_type.cost + floor_build_cost;
+
+								if (game_state_.funds < total_cost) {
+									hud_->AddNotification(Notification::Type::Error,
+									                      TextFormat("Insufficient funds! Need $%d (have $%.0f)",
+									                                 total_cost, game_state_.funds), 3.0f);
+								} else if (!grid.IsSpaceAvailable(clicked_floor, clicked_column,
+								                                  facility_type.width)) {
+									hud_->AddNotification(Notification::Type::Warning,
+									                      "Cannot place facility here - space not available", 3.0f);
+								}
+							}
+						}
+					}
+				}
+
+				// Original code for entity selection continues below...
+				const int ground_floor_screen_y = grid_offset_y_ + (grid.GetFloorCount() / 2) * cell_height_;
+				const int rel_x = static_cast<int>(world_x) - grid_offset_x_;
+				const int rel_y = static_cast<int>(world_y) - ground_floor_screen_y;
+
+				if (rel_x >= 0) {
+					const int clicked_floor = -rel_y / cell_height_;
+					const int clicked_column = rel_x / cell_width_;
+
+					if (clicked_floor >= 0 && clicked_floor < grid.GetFloorCount() &&
+					    clicked_column >= 0 && clicked_column < grid.GetColumnCount()) {
+						// Check if click is on a Person entity
+						bool person_clicked = false;
+						const auto person_query = ecs_world_->GetWorld().query<const Person>();
+						person_query.each([&](const flecs::entity e, const Person &person) {
+							// Calculate person position on screen with inverted Y
+							const int person_x =
+									grid_offset_x_ + static_cast<int>(person.current_column * cell_width_);
+							const int person_y = ground_floor_screen_y - (person.current_floor * cell_height_);
+
+							// Check if click is within person's bounds (circle with radius 10)
+							const int dx = static_cast<int>(world_x) - (person_x + cell_width_ / 2);
+							const int dy = static_cast<int>(world_y) - (person_y + cell_height_ / 2);
+							if (dx * dx + dy * dy <= 100) {
+								// radius of 10 pixels squared
+								// Create PersonInfo and show in HUD
+								PersonInfo info;
+								info.id = static_cast<int>(e.id());
+								info.name = person.name;
+								info.npc_type = (person.npc_type == NPCType::Visitor) ? "Visitor" : "Employee";
+								info.state = person.GetStateString();
+								info.current_floor = person.current_floor;
+								info.destination_floor = person.destination_floor;
+								info.wait_time = person.wait_time;
+								info.needs = person.current_need;
+								info.is_staff = false;
+								info.staff_role = "";
+								info.on_duty = false;
+								info.shift_hours = "";
+
+								// Check if this is staff
+								if (e.has<StaffAssignment>()) {
+									const StaffAssignment &assignment = e.ensure<StaffAssignment>();
+									info.is_staff = true;
+									info.npc_type = "Staff";
+									info.staff_role = assignment.GetRoleName();
+									info.on_duty = assignment.is_active;
+
+									// Format shift hours
+									char shift_buffer[32];
+									snprintf(shift_buffer, sizeof(shift_buffer), "%.0f:00 - %.0f:00",
+									         assignment.shift_start_time, assignment.shift_end_time);
+									info.shift_hours = shift_buffer;
+
+									info.status = info.on_duty
+										              ? (std::string("On duty: ") + info.staff_role)
+										              : (std::string("Off duty: ") + info.staff_role);
+								}
+								// Get status based on NPC type
+								else if (person.npc_type == NPCType::Employee && e.has<EmploymentInfo>()) {
+									const EmploymentInfo &emp = e.ensure<EmploymentInfo>();
+									info.status = emp.GetStatusString();
+								} else if (person.npc_type == NPCType::Visitor && e.has<VisitorInfo>()) {
+									const VisitorInfo &visitor = e.ensure<VisitorInfo>();
+									info.status = visitor.GetActivityString();
+								} else {
+									info.status = person.current_need;
+								}
+
+								// Get satisfaction if available
+								if (e.has<Satisfaction>()) {
+									const Satisfaction &sat = e.ensure<Satisfaction>();
+									info.satisfaction = sat.satisfaction_score;
+								} else {
+									info.satisfaction = 75.0f;
+								}
+
+								hud_->ShowPersonInfo(info);
+								person_clicked = true;
+							}
+						});
+
+						// If no person was clicked, check for facility
+						if (!person_clicked && grid.IsOccupied(clicked_floor, clicked_column)) {
+							// Get facility entity at this location
+							const int facility_id = grid.GetFacilityAt(clicked_floor, clicked_column);
+							if (facility_id >= 0) {
+								const flecs::entity facility_entity = ecs_world_->GetWorld().entity(
+									static_cast<flecs::entity_t>(facility_id));
+
+								FacilityInfo info;
+								info.type = "FACILITY";
+								info.floor = clicked_floor;
+								info.occupancy = 0;
+								info.max_occupancy = 10;
+								info.revenue = 100.0f;
+								info.satisfaction = 75.0f;
+								info.tenant_count = 0;
+
+								// Get actual facility data if available
+								if (facility_entity.is_alive() && facility_entity.has<BuildingComponent>()) {
+									const BuildingComponent &facility = facility_entity.ensure<BuildingComponent>();
+									info.occupancy = facility.current_occupancy;
+									info.max_occupancy = facility.capacity;
+
+									// Get facility type name
+									switch (facility.type) {
+										case BuildingComponent::Type::Office: info.type = "Office";
+											break;
+										case BuildingComponent::Type::Residential: info.type = "Residential";
+											break;
+										case BuildingComponent::Type::RetailShop: info.type = "Retail Shop";
+											break;
+										case BuildingComponent::Type::Lobby: info.type = "Lobby";
+											break;
+										case BuildingComponent::Type::Restaurant: info.type = "Restaurant";
+											break;
+										case BuildingComponent::Type::Hotel: info.type = "Hotel";
+											break;
+										case BuildingComponent::Type::Elevator: info.type = "Elevator";
+											break;
+										case BuildingComponent::Type::Gym: info.type = "Gym";
+											break;
+										case BuildingComponent::Type::Arcade: info.type = "Arcade";
+											break;
+										default: info.type = "Facility";
+											break;
+									}
+								}
+
+								// Get economics data
+								if (facility_entity.is_alive() && facility_entity.has<FacilityEconomics>()) {
+									const FacilityEconomics &econ = facility_entity.ensure<FacilityEconomics>();
+									info.revenue = econ.CalculateDailyRevenue();
+									info.tenant_count = econ.current_tenants;
+								}
+
+								// Get satisfaction
+								if (facility_entity.is_alive() && facility_entity.has<Satisfaction>()) {
+									const Satisfaction &sat = facility_entity.ensure<Satisfaction>();
+									info.satisfaction = sat.satisfaction_score;
+								}
+
+								// Get facility status (cleanliness and maintenance)
+								if (facility_entity.is_alive() && facility_entity.has<FacilityStatus>()) {
+									const FacilityStatus &status = facility_entity.ensure<FacilityStatus>();
+									info.cleanliness = status.cleanliness;
+									info.maintenance_level = status.maintenance_level;
+									info.cleanliness_rating = status.GetCleanlinessRating();
+									info.maintenance_rating = status.GetMaintenanceRating();
+									info.has_fire = status.has_fire;
+									info.has_security_issue = status.has_security_issue;
+								} else {
+									info.cleanliness = 100.0f;
+									info.maintenance_level = 100.0f;
+									info.cleanliness_rating = "Spotless";
+									info.maintenance_rating = "Excellent";
+									info.has_fire = false;
+									info.has_security_issue = false;
+								}
+
+								// Get CleanlinessStatus state information
+								if (facility_entity.is_alive() && facility_entity.has<CleanlinessStatus>()) {
+									const CleanlinessStatus &cleanliness = facility_entity.ensure<
+										CleanlinessStatus>();
+									info.cleanliness_state = cleanliness.GetStateString();
+									info.needs_cleaning = cleanliness.NeedsCleaning();
+									// Override cleanliness percentage with state-based value if available
+									info.cleanliness = cleanliness.GetCleanlinessPercent();
+								} else {
+									info.cleanliness_state = "";
+									info.needs_cleaning = false;
+								}
+
+								// Get MaintenanceStatus state information
+								if (facility_entity.is_alive() && facility_entity.has<MaintenanceStatus>()) {
+									const MaintenanceStatus &maintenance = facility_entity.ensure<
+										MaintenanceStatus>();
+									info.maintenance_state = maintenance.GetStateString();
+									info.needs_repair = maintenance.NeedsService();
+									info.is_broken = maintenance.IsBroken();
+									// Override maintenance percentage with state-based value if available
+									info.maintenance_level = maintenance.GetMaintenancePercent();
+								} else {
+									info.maintenance_state = "";
+									info.needs_repair = false;
+									info.is_broken = false;
+								}
+
+								// Get adjacency effects
+								if (facility_entity.is_alive() && facility_entity.has<AdjacencyEffects>()) {
+									const AdjacencyEffects &adjacency = facility_entity.ensure<AdjacencyEffects>();
+									for (const auto &effect: adjacency.effects) {
+										info.adjacency_effects.push_back(effect.description);
+									}
+								}
+
+								hud_->ShowFacilityInfo(info);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Handle camera input (only if not paused and research menu not visible)
+		if (!is_paused_ && !research_menu_->IsVisible()) {
+			constexpr bool hud_handled_input = false;
+			camera_->HandleInput(hud_handled_input);
+		}
+	}
+
+	void InGameScene::CalculateTowerRating() {
+		if (ecs_world_) {
+			CalculateTowerRatingHelper(game_state_.rating, *ecs_world_, game_state_.income_rate);
+		}
+	}
+
+	void InGameScene::UpdateCameraBounds() const {
+		if (!ecs_world_ || !camera_) {
+			return;
+		}
+
+		const auto &grid = ecs_world_->GetTowerGrid();
+
+		// Allow camera to pan across the entire grid, not just built floors
+		const int total_floors = grid.GetFloorCount();
+
+		// Calculate the full height of the entire grid
+		// The grid includes floors from -floor_count/2 to +floor_count/2
+		const float tower_width = (grid.GetColumnCount() + 2) * cell_width_ + grid_offset_x_;
+		const float tower_height = total_floors * cell_height_ + grid_offset_y_ * 2;
+
+		// Update camera bounds
+		camera_->SetTowerBounds(tower_width, tower_height);
+	}
+
+	IncomeBreakdown InGameScene::CollectIncomeAnalytics() const {
+		IncomeBreakdown breakdown;
+
+		if (!ecs_world_) {
+			return breakdown;
+		}
+
+		// Map to aggregate revenue by facility type
+		std::map<std::string, IncomeBreakdown::FacilityTypeRevenue> revenue_map;
+
+		// Query all facilities with economics
+		ecs_world_->GetWorld().each([&](flecs::entity e,
+		                                const BuildingComponent &building,
+		                                const FacilityEconomics &econ) {
+			const std::string type_name = GetFacilityTypeName(building.type);
+
+			// Initialize or update the revenue data for this type
+			auto &type_revenue = revenue_map[type_name];
+			type_revenue.facility_type = type_name;
+			type_revenue.facility_count++;
+			type_revenue.total_tenants += econ.current_tenants;
+
+			// Calculate hourly revenue (daily revenue / HOURS_PER_DAY)
+			const float daily_revenue = econ.CalculateDailyRevenue();
+			const float hourly_revenue = daily_revenue / HOURS_PER_DAY;
+			type_revenue.hourly_revenue += hourly_revenue;
+
+			// Track operating costs
+			breakdown.total_operating_costs += econ.operating_cost / HOURS_PER_DAY;
+
+			// Calculate average occupancy
+			if (econ.max_tenants > 0) {
+				type_revenue.average_occupancy += econ.GetOccupancyRate();
+			}
+		});
+
+		// Convert map to vector and calculate averages
+		for (auto &pair: revenue_map) {
+			auto &type_revenue = pair.second;
+
+			// Average occupancy across all facilities of this type
+			if (type_revenue.facility_count > 0) {
+				type_revenue.average_occupancy /= type_revenue.facility_count;
+			}
+
+			breakdown.revenues.push_back(type_revenue);
+			breakdown.total_hourly_revenue += type_revenue.hourly_revenue;
+		}
+
+		// Calculate net profit
+		breakdown.net_hourly_profit = breakdown.total_hourly_revenue - breakdown.total_operating_costs;
+
+		// Sort by revenue (highest first)
+		std::sort(breakdown.revenues.begin(), breakdown.revenues.end(),
+		          [](const auto &a, const auto &b) {
+			          return a.hourly_revenue > b.hourly_revenue;
+		          });
+
+		return breakdown;
+	}
+
+	PopulationBreakdown InGameScene::CollectPopulationAnalytics() const {
+		PopulationBreakdown breakdown;
+
+		if (!ecs_world_) {
+			return breakdown;
+		}
+
+		// Count employees and visitors
+		ecs_world_->GetWorld().each([&](flecs::entity e, const Person &person) {
+			breakdown.total_population++;
+
+			if (person.npc_type == NPCType::Employee) {
+				breakdown.employees++;
+			} else {
+				breakdown.visitors++;
+			}
+		});
+
+		// Calculate residential statistics
+		ecs_world_->GetWorld().each([&](flecs::entity e,
+		                                const BuildingComponent &building,
+		                                const FacilityEconomics &econ) {
+			if (building.type == BuildingComponent::Type::Residential) {
+				breakdown.residential_capacity += econ.max_tenants;
+				breakdown.residential_occupancy += econ.current_tenants;
+			}
+		});
+
+		// Calculate average satisfaction
+		float total_satisfaction = 0.0f;
+		int satisfaction_count = 0;
+
+		ecs_world_->GetWorld().each([&](flecs::entity e, const Satisfaction &sat) {
+			total_satisfaction += sat.satisfaction_score;
+			satisfaction_count++;
+		});
+
+		if (satisfaction_count > 0) {
+			breakdown.average_satisfaction = total_satisfaction / satisfaction_count;
+		}
+
+		return breakdown;
+	}
 }
