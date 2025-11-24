@@ -2,27 +2,13 @@ cmake_minimum_required(VERSION 3.28)
 
 project(towerforge VERSION 0.1.0 LANGUAGES CXX)
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 # Enable testing at the root level for CTest to work with presets
 enable_testing()
 
-# Specify the vcpkg toolchain if not already set
-if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        CACHE STRING "Vcpkg toolchain file")
-endif()
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# Output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Subdirectories for modules
 add_subdirectory(src/core)
@@ -74,11 +60,25 @@ add_executable(towerforge src/main.cpp ${SOURCE_FILES})
 # Find and link dependencies
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
-target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core)
+find_package(game-engine CONFIG REQUIRED)
+target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core game-engine::engine-core)
+
+# Setup asset handling
+setup_asset_preload(towerforge "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+
+# Install target
+install(TARGETS towerforge RUNTIME DESTINATION bin)
+
+if(NOT EMSCRIPTEN)
+    install(
+        DIRECTORY assets/
+        DESTINATION bin/assets
+        PATTERN "*")
+endif()
 
 # Screenshot application
 add_executable(screenshot_app src/screenshot_app.cpp ${SOURCE_FILES})
-target_link_libraries(screenshot_app PRIVATE raylib glfw towerforge_core)
+target_link_libraries(screenshot_app PRIVATE raylib towerforge_core)
 
 # Test mods application
 add_executable(test_mods src/test_mods.cpp)

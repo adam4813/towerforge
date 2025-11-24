@@ -4,6 +4,8 @@
 #include "ui/mouse_interface.h"
 #include <raylib.h>
 
+import engine;
+
 using namespace towerforge::ui;
 
 namespace towerforge::core {
@@ -14,13 +16,19 @@ namespace towerforge::core {
     }
 
     void TitleScene::Initialize() {
+        engine::ui::text_renderer::FontManager::Initialize("fonts/Kenney Future.ttf", 16);
+        engine::ui::BatchRenderer::Initialize();
+
         main_menu_.SetStateChangeCallback([this](const GameState new_state) {
             game_->SetGameState(new_state);
         });
+
+        main_menu_.Initialize();
     }
 
     void TitleScene::Shutdown() {
-        // Nothing to clean up
+        engine::ui::BatchRenderer::Shutdown();
+        engine::ui::text_renderer::FontManager::Shutdown();
     }
 
     void TitleScene::Update(const float delta_time) {
@@ -29,7 +37,9 @@ namespace towerforge::core {
     }
 
     void TitleScene::Render() {
+        engine::ui::BatchRenderer::BeginFrame();
         main_menu_.Render();
+        engine::ui::BatchRenderer::EndFrame();
     }
 
     void TitleScene::HandleInput() {

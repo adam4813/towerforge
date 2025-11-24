@@ -15,6 +15,12 @@
 #include "ui/mouse_interface.h"
 #include "ui/batch_renderer/batch_renderer.h"
 
+#ifndef __EMSCRIPTEN__
+#include <glad/glad.h>
+#endif
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 using namespace towerforge::ui;
 using namespace towerforge::rendering;
 
@@ -51,6 +57,12 @@ namespace towerforge::core {
 
 		// Initialize renderer
 		renderer_.Initialize(800, 600, "TowerForge");
+
+		// TODO: Remove once raylib is removed and we can call engine.Initialize()
+		gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
+		const auto renderer = &engine::rendering::GetRenderer();
+		// Initialize renderer (if needed)
+		renderer->Initialize(800, 600);
 
 		// Initialize batch renderer
 		batch_renderer::BatchRenderer::Initialize();
@@ -109,8 +121,8 @@ namespace towerforge::core {
 			case GameState::TitleScreen:
 				if (!title_scene_) {
 					title_scene_ = std::make_unique<TitleScene>(this, main_menu_);
-					title_scene_->Initialize();
 				}
+				title_scene_->Initialize();
 				active_scene_ = title_scene_.get();
 				break;
 
@@ -167,12 +179,13 @@ namespace towerforge::core {
 		}
 	}
 
-	void Game::Run() const {
+	void Game::Run() {
 		while (current_state_ != GameState::Quit && !renderer_.ShouldClose()) {
 			const float delta_time = GetFrameTime();
 
 			// Update audio system
 			audio_manager_->Update(delta_time);
+			//engine.Update(delta_time);
 
 			// Update and render active scene
 			if (active_scene_) {
@@ -192,6 +205,8 @@ namespace towerforge::core {
 			active_scene_->Shutdown();
 			active_scene_ = nullptr;
 		}
+
+		engine.Shutdown();
 
 		// Shutdown batch renderer
 		batch_renderer::BatchRenderer::Shutdown();

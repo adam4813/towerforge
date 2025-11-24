@@ -1,313 +1,282 @@
 #include <cmath>
-#include "ui/batch_renderer/batch_renderer.h"
 #include "ui/batch_renderer/batch_adapter.h"
 #include "ui/main_menu.h"
 #include "ui/ui_element.h"
 #include "ui/ui_theme.h"
 #include "core/game.h"
 
+import engine;
+
 namespace towerforge::ui {
-    MainMenu::MainMenu()
-        : selected_option_(0)
-          , animation_time_(0.0f)
-          , last_screen_width_(0)
-          , last_screen_height_(0)
-          , state_change_callback_(nullptr) {
-        // Initialize menu items with their target states
-        menu_items_.push_back({"New Game", core::GameState::InGame});
-        menu_items_.push_back({"Tutorial", core::GameState::Tutorial});
-        menu_items_.push_back({"Load Game", core::GameState::InGame}); // TODO: Separate LoadGame state?
-        menu_items_.push_back({"Achievements", core::GameState::Achievements});
-        menu_items_.push_back({"Settings", core::GameState::Settings});
-        menu_items_.push_back({"Credits", core::GameState::Credits});
-        menu_items_.push_back({"Quit", core::GameState::Quit});
+	MainMenu::MainMenu()
+		: selected_option_(0)
+		  , animation_time_(0.0f)
+		  , last_screen_width_(0)
+		  , last_screen_height_(0)
+		  , state_change_callback_(nullptr) {
+		// Initialize menu items with their target states
+		menu_items_.push_back({"New Game", core::GameState::InGame});
+		menu_items_.push_back({"Tutorial", core::GameState::Tutorial});
+		menu_items_.push_back({"Load Game", core::GameState::InGame}); // TODO: Separate LoadGame state?
+		menu_items_.push_back({"Achievements", core::GameState::Achievements});
+		menu_items_.push_back({"Settings", core::GameState::Settings});
+		menu_items_.push_back({"Credits", core::GameState::Credits});
+		menu_items_.push_back({"Quit", core::GameState::Quit});
+	}
 
-        // MainMenu is a Panel (container) - position and size don't matter much since it's full screen
-        main_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
+	MainMenu::~MainMenu() = default;
 
-        // Create Button objects for each menu item and add them as children
-        // Initial geometry will be calculated in UpdateLayout()
-        for (size_t i = 0; i < menu_items_.size(); ++i) {
-            auto button = std::make_unique<Button>(
-                0, 0, // Position set in UpdateLayout()
-                100, 50, // Size set in UpdateLayout()
-                menu_items_[i].label,
-                UITheme::BUTTON_BACKGROUND,
-                UITheme::BUTTON_BORDER
-            );
-            button->SetFontSize(UITheme::FONT_SIZE_MEDIUM);
-            button->SetTextColor(UITheme::TEXT_SECONDARY);
+	void MainMenu::SetStateChangeCallback(const StateChangeCallback &callback) {
+		state_change_callback_ = callback;
+	}
 
-            // Set click callback for this button
-            button->SetClickCallback([this, state = menu_items_[i].target_state]() {
-                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
-                state_change_callback_(state);
-            });
+	void MainMenu::UpdateLayout() {
+		const int screen_width = GetScreenWidth();
+		const int screen_height = GetScreenHeight();
 
-            // Store raw pointer for later access
-            Button *button_ptr = button.get();
-            menu_item_buttons_.push_back(button_ptr);
+		if (main_panel_ != nullptr) {
+			main_panel_->SetSize(static_cast<float>(screen_width), static_cast<float>(screen_height));
+		}
 
-            // Add button as child to main panel
-            main_panel_->AddChild(std::move(button));
-        }
+		// Cache screen size to detect changes
+		last_screen_width_ = screen_width;
+		last_screen_height_ = screen_height;
+	}
 
-        // Calculate initial layout
-        UpdateLayout();
+	void MainMenu::Update(const float delta_time) {
+		animation_time_ += delta_time;
 
-        // Set initial selection appearance
-        UpdateButtonSelection(selected_option_);
-    }
+		// Check for window resize and update layout if needed
+		const int screen_width = GetScreenWidth();
+		const int screen_height = GetScreenHeight();
+		if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+			UpdateLayout();
+		}
 
-    MainMenu::~MainMenu() = default;
+		if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
+			auto *button = menu_item_buttons_[selected_option_];
+			const float pulse = sin(animation_time_ * UITheme::ANIMATION_SPEED_NORMAL) * 0.1f + 0.9f;
+			button->SetTextColor(UITheme::ToEngineColor(ColorAlpha(UITheme::TEXT_PRIMARY, pulse)));
+		}
+	}
 
-    void MainMenu::SetStateChangeCallback(const StateChangeCallback &callback) {
-        state_change_callback_ = callback;
-    }
+	void MainMenu::Render() const {
+		RenderBackground();
+		main_panel_->Render();
+		if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
+			const auto *button = menu_item_buttons_[selected_option_];
+			const auto bounds = button->GetAbsoluteBounds();
+			const int indicator_x = bounds.x - UITheme::PADDING_LARGE;
+			const int indicator_font_size = UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_LARGE);
+			const int indicator_y = bounds.y + bounds.height / 2 - indicator_font_size / 2;
+			engine::ui::BatchRenderer::SubmitText(">", indicator_x, indicator_y, indicator_font_size,
+			                                      UITheme::ToEngineColor(UITheme::PRIMARY));
+		}
+	}
 
-    void MainMenu::UpdateLayout() {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+	void MainMenu::RenderBackground() const {
+		// Clear with theme background color
+		ClearBackground(UITheme::BACKGROUND_DARK);
 
-        // Calculate responsive geometry based on current screen size
-        const int responsive_menu_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.25f), 250, 400);
-        const int responsive_item_height = UITheme::ClampSize(screen_height / 18, 40, 60);
-        const int responsive_spacing = UITheme::MARGIN_SMALL;
+		// Draw subtle grid pattern in background
+		const int screen_width = GetScreenWidth();
+		const int screen_height = GetScreenHeight();
+		for (int i = 0; i < screen_height; i += 40) {
+			batch_renderer::adapter::DrawLine(0, i, screen_width, i, UITheme::DECORATIVE_GRID);
+		}
+		for (int i = 0; i < screen_width; i += 40) {
+			batch_renderer::adapter::DrawLine(i, 0, i, screen_height, UITheme::DECORATIVE_GRID);
+		}
 
-        // Update panel size to match screen
-        main_panel_->SetSize(static_cast<float>(screen_width), static_cast<float>(screen_height));
+		// Draw simple tower silhouettes on the sides
+		batch_renderer::adapter::DrawRectangle(50, 300, 60, 300, ColorAlpha(UITheme::DECORATIVE_WINDOW, 0.3f));
+		batch_renderer::adapter::DrawRectangle(screen_width - 110, 250, 60, 350,
+		                                       ColorAlpha(UITheme::DECORATIVE_WINDOW, 0.3f));
 
-        // Recalculate button positions centered on screen
-        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (responsive_item_height + responsive_spacing);
-            const int item_x = UITheme::CenterPosition(screen_width, responsive_menu_width);
+		// Add some "windows" to the silhouettes
+		for (int y = 320; y < 580; y += 30) {
+			for (int x = 60; x < 100; x += 20) {
+				const float pulse = sin(animation_time_ * 2.0f + y * 0.1f) * 0.5f + 0.5f;
+				batch_renderer::adapter::DrawRectangle(x, y, 10, 15, ColorAlpha(YELLOW, 0.2f + pulse * 0.1f));
+			}
+		}
+		for (int y = 270; y < 580; y += 30) {
+			for (int x = screen_width - 100; x < screen_width - 60; x += 20) {
+				const float pulse = sin(animation_time_ * 2.0f + y * 0.1f + 1.0f) * 0.5f + 0.5f;
+				batch_renderer::adapter::DrawRectangle(x, y, 10, 15, ColorAlpha(YELLOW, 0.2f + pulse * 0.1f));
+			}
+		}
 
-            Button *button = menu_item_buttons_[i];
-            button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
-            button->SetSize(static_cast<float>(responsive_menu_width), static_cast<float>(responsive_item_height));
-        }
+		// Draw decorative line with responsive width (35% of screen, clamped between 300-500px)
+		const int line_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.35f), 300, 500);
+		const int line_x = UITheme::CenterPosition(GetScreenWidth(), line_width);
+		engine::ui::BatchRenderer::SubmitLine(line_x, TITLE_Y + 100, line_x + line_width, TITLE_Y + 100, 2,
+		                                      UITheme::ToEngineColor(UITheme::PRIMARY));
+	}
 
-        // Cache screen size to detect changes
-        last_screen_width_ = screen_width;
-        last_screen_height_ = screen_height;
-    }
+	void MainMenu::HandleKeyboard() const {
+		int new_selection = selected_option_;
 
-    void MainMenu::UpdateButtonSelection(const int new_selection) {
-        // Clear old selection
-        if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
-            Button *old_button = menu_item_buttons_[selected_option_];
-            old_button->SetFocused(false);
-            old_button->SetBackgroundColor(UITheme::BUTTON_BACKGROUND);
-            old_button->SetBorderColor(UITheme::BUTTON_BORDER);
-            old_button->SetFontSize(UITheme::FONT_SIZE_MEDIUM);
-            old_button->SetTextColor(UITheme::TEXT_SECONDARY);
-        }
+		// Navigate up
+		if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+			new_selection--;
+			if (new_selection < 0) {
+				new_selection = static_cast<int>(menu_items_.size()) - 1;
+			}
+		}
 
-        // Set new selection
-        if (new_selection >= 0 && new_selection < static_cast<int>(menu_item_buttons_.size())) {
-            Button *new_button = menu_item_buttons_[new_selection];
-            new_button->SetFocused(true);
-            new_button->SetBackgroundColor(ColorAlpha(UITheme::PRIMARY, 0.3f));
-            new_button->SetBorderColor(UITheme::PRIMARY);
-            new_button->SetFontSize(UITheme::FONT_SIZE_LARGE);
-            new_button->SetTextColor(UITheme::TEXT_PRIMARY);
-        }
+		// Navigate down
+		if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+			new_selection++;
+			if (new_selection >= static_cast<int>(menu_items_.size())) {
+				new_selection = 0;
+			}
+		}
 
-        selected_option_ = new_selection;
-    }
+		if (new_selection != selected_option_ && new_selection >= 0 && new_selection < static_cast<int>(
+			    menu_item_buttons_.size())) {
+			auto *button = menu_item_buttons_[new_selection];
+			auto button_position = button->GetAbsoluteBounds();
+			button->OnHover({button_position.x, button_position.y});
+		}
 
-    void MainMenu::Update(const float delta_time) {
-        animation_time_ += delta_time;
+		// Select option
+		if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+			state_change_callback_(menu_items_[selected_option_].target_state);
+		}
 
-        // Check for window resize and update layout if needed
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
-            UpdateLayout();
-        }
+		// Quick access keys
+		if (IsKeyPressed(KEY_N)) {
+			state_change_callback_(core::GameState::InGame);
+		}
+		if (IsKeyPressed(KEY_T)) {
+			state_change_callback_(core::GameState::Tutorial);
+		}
+		if (IsKeyPressed(KEY_L)) {
+			state_change_callback_(core::GameState::InGame);
+		}
+		if (IsKeyPressed(KEY_C)) {
+			state_change_callback_(core::GameState::Credits);
+		}
+		if (IsKeyPressed(KEY_Q) || IsKeyPressed(KEY_ESCAPE)) {
+			state_change_callback_(core::GameState::Quit);
+		}
+	}
 
-        // Update button animations (only for pulsing text on selected item)
-        if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
-            Button *button = menu_item_buttons_[selected_option_];
-            const float pulse = sin(animation_time_ * UITheme::ANIMATION_SPEED_NORMAL) * 0.1f + 0.9f;
-            button->SetTextColor(ColorAlpha(UITheme::TEXT_PRIMARY, pulse));
-            button->Update(delta_time);
-        }
-    }
+	bool MainMenu::ProcessMouseEvent(const MouseEvent &event) const {
+		return main_panel_->ProcessMouseEvent({
+			event.x,
+			event.y,
+			event.left_down,
+			event.right_down,
+			event.left_pressed,
+			event.right_pressed
+		});
+	}
 
-    void MainMenu::Render() const {
-        RenderBackground();
-        RenderTitle();
-        RenderMenuOptions();
-        RenderVersion();
-    }
+	void MainMenu::Initialize() {
+		const int screen_width = GetScreenWidth();
+		const int screen_height = GetScreenHeight();
 
-    void MainMenu::RenderBackground() const {
-        // Clear with theme background color
-        ClearBackground(UITheme::BACKGROUND_DARK);
+		main_panel_ = std::make_unique<engine::ui::elements::Panel>(0, 0, screen_width, screen_height);
+		main_panel_->SetOpacity(0);
+		const int responsive_menu_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.25f), 250, 400);
+		const int responsive_item_height = UITheme::ClampSize(screen_height / 18, 40, 60);
+		constexpr int responsive_spacing = UITheme::MARGIN_SMALL;
 
-        // Draw subtle grid pattern in background
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        for (int i = 0; i < screen_height; i += 40) {
-            batch_renderer::adapter::DrawLine(0, i, screen_width, i, UITheme::DECORATIVE_GRID);
-        }
-        for (int i = 0; i < screen_width; i += 40) {
-            batch_renderer::adapter::DrawLine(i, 0, i, screen_height, UITheme::DECORATIVE_GRID);
-        }
+		for (size_t i = 0; i < menu_items_.size(); ++i) {
+			const int item_x = UITheme::CenterPosition(screen_width, responsive_menu_width);
+			const int item_y = MENU_START_Y + i * (responsive_item_height + responsive_spacing);
+			auto button = std::make_unique<engine::ui::elements::Button>(
+				item_x, item_y,
+				responsive_menu_width, responsive_item_height,
+				menu_items_[i].label, UITheme::FONT_SIZE_MEDIUM
+			);
+			button->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
+			button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
+			button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+			button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
 
-        // Draw simple tower silhouettes on the sides
-        batch_renderer::adapter::DrawRectangle(50, 300, 60, 300, ColorAlpha(UITheme::DECORATIVE_WINDOW, 0.3f));
-        batch_renderer::adapter::DrawRectangle(screen_width - 110, 250, 60, 350,
-                                               ColorAlpha(UITheme::DECORATIVE_WINDOW, 0.3f));
+			// Set click callback for this button
+			button->SetClickCallback([this, state = menu_items_[i].target_state](const engine::ui::MouseEvent &) {
+				audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
+				state_change_callback_(state);
+				return false;
+			});
+			button->SetHoverCallback([this, this_button = button.get()](const engine::ui::MouseEvent &) {
+				// Clear old selection
+				if (selected_option_ >= 0 && selected_option_ < menu_item_buttons_.size()) {
+					const auto old_selected_button = menu_item_buttons_[selected_option_];
+					old_selected_button->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
+					old_selected_button->SetFontSize(UITheme::FONT_SIZE_MEDIUM);
+					old_selected_button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
+					old_selected_button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+				}
 
-        // Add some "windows" to the silhouettes
-        for (int y = 320; y < 580; y += 30) {
-            for (int x = 60; x < 100; x += 20) {
-                const float pulse = sin(animation_time_ * 2.0f + y * 0.1f) * 0.5f + 0.5f;
-                batch_renderer::adapter::DrawRectangle(x, y, 10, 15, ColorAlpha(YELLOW, 0.2f + pulse * 0.1f));
-            }
-        }
-        for (int y = 270; y < 580; y += 30) {
-            for (int x = screen_width - 100; x < screen_width - 60; x += 20) {
-                const float pulse = sin(animation_time_ * 2.0f + y * 0.1f + 1.0f) * 0.5f + 0.5f;
-                batch_renderer::adapter::DrawRectangle(x, y, 10, 15, ColorAlpha(YELLOW, 0.2f + pulse * 0.1f));
-            }
-        }
-    }
+				for (std::size_t i = 0; i < menu_item_buttons_.size(); ++i) {
+					if (menu_item_buttons_[i] == this_button) {
+						this_button->SetBorderColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+						this_button->SetFontSize(UITheme::FONT_SIZE_LARGE);
+						this_button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_PRIMARY));
+						this_button->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
+						selected_option_ = i;
+						return true;
+					}
+				}
 
-    void MainMenu::RenderTitle() {
-        const int screen_width = GetScreenWidth();
+				return false;
+			});
 
-        // Draw main title with responsive sizing
-        const auto title = "TOWERFORGE";
-        const int title_font_size = UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE);
-        const int title_width = MeasureText(title, title_font_size);
-        const int title_x = UITheme::CenterPosition(screen_width, title_width);
+			menu_item_buttons_.push_back(button.get());
 
-        // Draw title shadow for depth
-        batch_renderer::adapter::DrawText(title, title_x + 3, TITLE_Y + 3, title_font_size, ColorAlpha(BLACK, 0.5f));
+			// Auto-hover the first button, before adding to panel
+			if (i == 0) {
+				button->OnHover({item_x + 0.5f, item_y + 0.5f});
+			}
 
-        // Draw title with primary color
-        batch_renderer::adapter::DrawText(title, title_x, TITLE_Y, title_font_size, UITheme::PRIMARY);
+			main_panel_->AddChild(std::move(button));
+		}
 
-        // Draw tagline with responsive sizing
-        const auto tagline = "\"Build, Survive, Thrive!\"";
-        const int tagline_font_size = UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_MEDIUM);
-        const int tagline_width = MeasureText(tagline, tagline_font_size);
-        const int tagline_x = UITheme::CenterPosition(screen_width, tagline_width);
+		const auto title = "TOWERFORGE";
+		auto title_shadow_text = std::make_unique<engine::ui::elements::Text>(
+			UITheme::CenterPosition(screen_width,
+			                        MeasureText(title, UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE))) + 3,
+			TITLE_Y + 2,
+			title,
+			UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE),
+			UITheme::ToEngineColor(ColorAlpha(BLACK, 0.5f))
+		);
+		main_panel_->AddChild(std::move(title_shadow_text));
+		auto title_text = std::make_unique<engine::ui::elements::Text>(
+			UITheme::CenterPosition(screen_width,
+			                        MeasureText(title, UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE))),
+			TITLE_Y,
+			title,
+			UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE),
+			UITheme::ToEngineColor(UITheme::PRIMARY)
+		);
+		main_panel_->AddChild(std::move(title_text));
 
-        batch_renderer::adapter::DrawText(tagline, tagline_x, TITLE_Y + 70, tagline_font_size, UITheme::TEXT_SECONDARY);
+		// Draw tagline with responsive sizing
+		const auto tagline = "\"Build, Survive, Thrive!\"";
+		auto tagline_text = std::make_unique<engine::ui::elements::Text>(
+			UITheme::CenterPosition(screen_width,
+			                        MeasureText(tagline, UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_MEDIUM))),
+			TITLE_Y + 70,
+			tagline,
+			UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_MEDIUM),
+			UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+		);
+		main_panel_->AddChild(std::move(tagline_text));
 
-        // Draw decorative line with responsive width (35% of screen, clamped between 300-500px)
-        const int line_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.35f), 300, 500);
-        const int line_x = UITheme::CenterPosition(screen_width, line_width);
-        batch_renderer::adapter::DrawRectangle(line_x, TITLE_Y + 100, line_width, 2, UITheme::PRIMARY);
-    }
-
-    void MainMenu::RenderMenuOptions() const {
-        const int screen_width = GetScreenWidth();
-
-        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
-            const bool is_selected = (static_cast<int>(i) == selected_option_);
-            Button *button = menu_item_buttons_[i];
-
-            // Render the button (geometry and appearance already set)
-            button->Render();
-
-            // Draw selection indicator
-            if (is_selected) {
-                const Rectangle bounds = button->GetAbsoluteBounds();
-                const int indicator_x = bounds.x - UITheme::PADDING_LARGE;
-                const int indicator_font_size = UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_LARGE);
-                const int indicator_y = bounds.y + bounds.height / 2 - indicator_font_size / 2;
-                batch_renderer::adapter::DrawText(">", indicator_x, indicator_y, indicator_font_size, UITheme::PRIMARY);
-            }
-        }
-    }
-
-    void MainMenu::RenderVersion() {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-
-        const std::string version_text = "Version: " + GetVersion();
-        const int font_size = UITheme::FONT_SIZE_NORMAL;
-        const int text_width = MeasureText(version_text.c_str(), font_size);
-
-        batch_renderer::adapter::DrawText(version_text.c_str(), screen_width - text_width - UITheme::PADDING_LARGE,
-                                          screen_height - UITheme::PADDING_LARGE - UITheme::PADDING_SMALL, font_size,
-                                          UITheme::BORDER_DEFAULT);
-    }
-
-    void MainMenu::HandleKeyboard() {
-        int new_selection = selected_option_;
-
-        // Navigate up
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            new_selection--;
-            if (new_selection < 0) {
-                new_selection = static_cast<int>(menu_items_.size()) - 1;
-            }
-            UpdateButtonSelection(new_selection);
-        }
-
-        // Navigate down
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            new_selection++;
-            if (new_selection >= static_cast<int>(menu_items_.size())) {
-                new_selection = 0;
-            }
-            UpdateButtonSelection(new_selection);
-        }
-
-        // Select option
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            state_change_callback_(menu_items_[selected_option_].target_state);
-        }
-
-        // Quick access keys
-        if (IsKeyPressed(KEY_N)) {
-            state_change_callback_(core::GameState::InGame);
-        }
-        if (IsKeyPressed(KEY_T)) {
-            state_change_callback_(core::GameState::Tutorial);
-        }
-        if (IsKeyPressed(KEY_L)) {
-            state_change_callback_(core::GameState::InGame);
-        }
-        if (IsKeyPressed(KEY_C)) {
-            state_change_callback_(core::GameState::Credits);
-        }
-        if (IsKeyPressed(KEY_Q) || IsKeyPressed(KEY_ESCAPE)) {
-            state_change_callback_(core::GameState::Quit);
-        }
-    }
-
-    bool MainMenu::ProcessMouseEvent(const MouseEvent& event) {
-        // Process mouse event through the panel (buttons will handle clicks via callbacks)
-        const bool consumed = main_panel_->ProcessMouseEvent(event);
-
-        // Update hover selection for visual feedback
-        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
-            if (menu_item_buttons_[i]->IsHovered()) {
-                UpdateButtonSelection(static_cast<int>(i));
-                break;
-            }
-        }
-
-        return consumed;
-    }
-
-    void MainMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        // Legacy wrapper - delegates to modern API
-        MouseEvent event(
-            static_cast<float>(mouse_x),
-            static_cast<float>(mouse_y),
-            false, // left_down
-            false, // right_down
-            clicked, // left_pressed
-            false // right_pressed
-        );
-        ProcessMouseEvent(event);
-    }
+		const std::string version = "Version: " + GetVersion();
+		auto version_text = std::make_unique<engine::ui::elements::Text>(
+			screen_width - MeasureText(version.c_str(), UITheme::FONT_SIZE_NORMAL) - UITheme::PADDING_LARGE,
+			screen_height - UITheme::PADDING_LARGE - UITheme::PADDING_SMALL,
+			version,
+			UITheme::FONT_SIZE_NORMAL,
+			UITheme::ToEngineColor(UITheme::BORDER_DEFAULT)
+		);
+		main_panel_->AddChild(std::move(version_text));
+	}
 }

@@ -24,6 +24,8 @@
 #include "ui/analytics_overlay.h"
 #include "audio/audio_manager.h"
 
+import engine;
+
 // Forward declare scene classes
 namespace towerforge::core {
 	class GameScene;
@@ -68,7 +70,7 @@ namespace towerforge::core {
 		/**
 	 * @brief Run the main game loop
 	 */
-		void Run() const;
+		void Run();
 
 		/**
 	 * @brief Shutdown and cleanup
@@ -88,6 +90,8 @@ namespace towerforge::core {
 
 	private:
 		void TransitionToState(GameState new_state);
+
+		engine::Engine engine;
 
 		// Game state
 		GameState current_state_;

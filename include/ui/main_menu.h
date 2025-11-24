@@ -5,6 +5,8 @@
 #include <memory>
 #include <functional>
 
+import engine;
+
 namespace towerforge::core {
     enum class GameState;
 }
@@ -50,28 +52,21 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent& event);
+        bool ProcessMouseEvent(const MouseEvent& event) const;
 
         /**
          * @brief Handle keyboard input for menu navigation
          * @deprecated Use ProcessKeyboardEvent instead (to be added)
          */
-        void HandleKeyboard();
-
-        /**
-         * @brief Handle mouse input for menu interaction
-         * @param mouse_x Mouse X position
-         * @param mouse_y Mouse Y position
-         * @param clicked Whether mouse was clicked
-         * @deprecated Use ProcessMouseEvent instead
-         */
-        void HandleMouse(int mouse_x, int mouse_y, bool clicked);
+        void HandleKeyboard() const;
 
         /**
          * @brief Get the currently selected menu option
          * @return Index of selected option
          */
         int GetSelectedOption() const { return selected_option_; }
+
+        void Initialize();
 
         /**
          * @brief Get the version string
@@ -80,17 +75,8 @@ namespace towerforge::ui {
         static std::string GetVersion() { return "v0.1.0"; }
 
     private:
-        static void RenderTitle();
-        void RenderMenuOptions() const;
-        static void RenderVersion();
         void RenderBackground() const;
-        
-        /**
-         * @brief Update button appearance when selection changes
-         * @param new_selection Index of newly selected button
-         */
-        void UpdateButtonSelection(int new_selection);
-        
+
         /**
          * @brief Recalculate layout when window size changes
          */
@@ -118,7 +104,7 @@ namespace towerforge::ui {
         StateChangeCallback state_change_callback_;
 
         // Main menu is a Panel container with Button children for menu items
-        std::unique_ptr<Panel> main_panel_;
-        std::vector<Button*> menu_item_buttons_; // Raw pointers to buttons (owned by main_panel_)
+        std::unique_ptr<engine::ui::elements::Panel> main_panel_{nullptr};
+        std::vector<engine::ui::elements::Button*> menu_item_buttons_; // Raw pointers to buttons (owned by main_panel_)
     };
 }
