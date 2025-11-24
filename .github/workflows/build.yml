@@ -50,6 +50,24 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Checkout citrus-engine
+      uses: actions/checkout@v4
+      with:
+        repository: adam4813/citrus-engine
+        path: citrus-engine
+
+    - name: Create vcpkg-configuration.json
+      shell: bash
+      run: |
+        cat > vcpkg-configuration.json << 'EOF'
+        {
+          "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg-configuration.schema.json",
+          "overlay-ports": [
+            "citrus-engine/ports"
+          ]
+        }
+        EOF
+
     - uses: lukka/get-cmake@latest
 
     - name: Install system dependencies (Linux)

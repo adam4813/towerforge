@@ -54,3 +54,4 @@ user_preferences.json
 
 # Assets (audio, textures, etc. - add manually if needed)
 assets/
+vcpkg-configuration.json
