@@ -60,8 +60,8 @@ add_executable(towerforge src/main.cpp ${SOURCE_FILES})
 # Find and link dependencies
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
-find_package(game-engine CONFIG REQUIRED)
-target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core game-engine::engine-core)
+find_package(citrus-engine CONFIG REQUIRED)
+target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core citrus-engine::engine-core)
 
 # Setup asset handling
 setup_asset_preload(towerforge "${CMAKE_CURRENT_SOURCE_DIR}/assets")

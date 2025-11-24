@@ -26,7 +26,7 @@ add_library(towerforge_core
     systems/staff_systems.cpp
 )
 
-find_package(game-engine CONFIG REQUIRED)
+find_package(citrus-engine CONFIG REQUIRED)
 
 # Find flecs package
 find_package(flecs CONFIG REQUIRED)
@@ -45,7 +45,7 @@ find_package(glfw3 CONFIG REQUIRED)
 
 # Link flecs, nlohmann-json, Lua, raylib, and glfw to the core library
 target_link_libraries(towerforge_core 
-    PUBLIC game-engine::engine-core
+    PUBLIC citrus-engine::engine-core
     PUBLIC flecs::flecs_static
     PUBLIC nlohmann_json::nlohmann_json
     PUBLIC ${LUA_LIBRARIES}
