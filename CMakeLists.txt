@@ -78,11 +78,11 @@ endif()
 
 # Screenshot application
 add_executable(screenshot_app src/screenshot_app.cpp ${SOURCE_FILES})
-target_link_libraries(screenshot_app PRIVATE raylib towerforge_core)
+target_link_libraries(screenshot_app PRIVATE raylib towerforge_core citrus-engine::engine-core)
 
 # Test mods application
 add_executable(test_mods src/test_mods.cpp)
-target_link_libraries(test_mods PRIVATE towerforge_core)
+target_link_libraries(test_mods PRIVATE towerforge_core citrus-engine::engine-core)
 
 # Tests subdirectory
 add_subdirectory(tests)
