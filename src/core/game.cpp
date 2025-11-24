@@ -102,7 +102,17 @@ namespace towerforge::core {
 
 	void Game::SetGameState(GameState state) {
 		if (state != current_state_) {
-			TransitionToState(state);
+			deferred_events_.push([this, state]() {
+				TransitionToState(state);
+			});
+		}
+	}
+
+	void Game::ProcessDeferredEvents() {
+		while (!deferred_events_.empty()) {
+			auto event = std::move(deferred_events_.front());
+			deferred_events_.pop();
+			event();
 		}
 	}
 
@@ -196,6 +206,9 @@ namespace towerforge::core {
 				active_scene_->Render();
 				renderer_.EndFrame();
 			}
+
+			// Process any deferred events (like state transitions) after update/render
+			ProcessDeferredEvents();
 		}
 	}
 

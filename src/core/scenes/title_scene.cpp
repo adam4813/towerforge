@@ -27,6 +27,7 @@ namespace towerforge::core {
     }
 
     void TitleScene::Shutdown() {
+        main_menu_.Shutdown();
         engine::ui::BatchRenderer::Shutdown();
         engine::ui::text_renderer::FontManager::Shutdown();
     }

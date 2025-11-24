@@ -69,6 +69,11 @@ namespace towerforge::ui {
         void Initialize();
 
         /**
+         * @brief Shutdown and cleanup resources
+         */
+        void Shutdown();
+
+        /**
          * @brief Get the version string
          * @return Version string
          */

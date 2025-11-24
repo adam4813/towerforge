@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <queue>
+#include <functional>
 #include "rendering/renderer.h"
 #include "rendering/camera.h"
 #include "core/ecs_world.hpp"
@@ -90,12 +92,14 @@ namespace towerforge::core {
 
 	private:
 		void TransitionToState(GameState new_state);
+		void ProcessDeferredEvents();
 
 		engine::Engine engine;
 
 		// Game state
 		GameState current_state_;
 		GameState previous_state_;
+		std::queue<std::function<void()>> deferred_events_;
 
 		// Core systems (always active)
 		rendering::Renderer renderer_;

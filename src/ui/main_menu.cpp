@@ -174,6 +174,11 @@ namespace towerforge::ui {
 		});
 	}
 
+	void MainMenu::Shutdown() {
+		menu_item_buttons_.clear();
+		main_panel_.reset();
+	}
+
 	void MainMenu::Initialize() {
 		const int screen_width = GetScreenWidth();
 		const int screen_height = GetScreenHeight();
