@@ -6,6 +6,7 @@ enable_testing()
 
 # Find GTest package
 find_package(GTest CONFIG REQUIRED)
+find_package(citrus-engine CONFIG REQUIRED)
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -42,6 +43,7 @@ target_link_libraries(towerforge_core_test
     PUBLIC flecs::flecs_static
     PUBLIC nlohmann_json::nlohmann_json
     PUBLIC ${LUA_LIBRARIES}
+    PUBLIC citrus-engine::engine-core
 )
 
 # Include directories for test core library
@@ -60,6 +62,7 @@ function(add_test_executable test_name)
         GTest::gtest 
         GTest::gtest_main
         towerforge_core_test
+        citrus-engine::engine-core
     )
     target_compile_features(${test_name} PRIVATE cxx_std_20)
     # Use $<TARGET_FILE:${test_name}> to get the correct path for multi-config generators
