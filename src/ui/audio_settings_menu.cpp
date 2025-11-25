@@ -54,7 +54,7 @@ namespace towerforge::ui {
         auto title_text = std::make_unique<engine::ui::elements::Text>(
             0, 0,
             "Audio Settings",
-            UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE),
+            UITheme::FONT_SIZE_TITLE,
             UITheme::ToEngineColor(UITheme::TEXT_PRIMARY)
         );
         settings_panel_->AddChild(std::move(title_text));

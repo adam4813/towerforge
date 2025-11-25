@@ -248,19 +248,19 @@ namespace towerforge::ui {
 		const auto title = "TOWERFORGE";
 		auto title_shadow_text = std::make_unique<engine::ui::elements::Text>(
 			UITheme::CenterPosition(screen_width,
-			                        MeasureText(title, UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE))) + 3,
+			                        MeasureText(title, UITheme::FONT_SIZE_TITLE)) + 3,
 			TITLE_Y + 2,
 			title,
-			UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE),
+			UITheme::FONT_SIZE_TITLE,
 			UITheme::ToEngineColor(ColorAlpha(BLACK, 0.5f))
 		);
 		main_panel_->AddChild(std::move(title_shadow_text));
 		auto title_text = std::make_unique<engine::ui::elements::Text>(
 			UITheme::CenterPosition(screen_width,
-			                        MeasureText(title, UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE))),
+			                        MeasureText(title, UITheme::FONT_SIZE_TITLE)),
 			TITLE_Y,
 			title,
-			UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE),
+			UITheme::FONT_SIZE_TITLE,
 			UITheme::ToEngineColor(UITheme::PRIMARY)
 		);
 		main_panel_->AddChild(std::move(title_text));

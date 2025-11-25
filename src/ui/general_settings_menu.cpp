@@ -173,7 +173,7 @@ namespace towerforge::ui {
 			UITheme::PADDING_LARGE,
 			UITheme::PADDING_MEDIUM,
 			"Settings",
-			UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_TITLE),
+			UITheme::FONT_SIZE_TITLE,
 			UITheme::ToEngineColor(UITheme::TEXT_PRIMARY)
 		);
 		settings_panel_->AddChild(std::move(title_text));

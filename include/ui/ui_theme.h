@@ -95,7 +95,7 @@ namespace towerforge::ui {
         static constexpr int FONT_SIZE_NORMAL = 16;
         static constexpr int FONT_SIZE_MEDIUM = 20;
         static constexpr int FONT_SIZE_LARGE = 24;
-        static constexpr int FONT_SIZE_TITLE = 40;
+        static constexpr int FONT_SIZE_TITLE = 32;
 
         // ===== Animation Parameters =====
 
