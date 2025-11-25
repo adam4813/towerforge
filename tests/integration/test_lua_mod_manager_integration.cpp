@@ -2,7 +2,7 @@
 #include "core/lua_mod_manager.hpp"
 #include "core/ecs_world.hpp"
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Integration tests for LuaModManager
 // These tests verify Lua mod loading, custom facility/visitor registration

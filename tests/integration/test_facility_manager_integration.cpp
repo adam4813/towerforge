@@ -4,7 +4,7 @@
 #include "core/components.hpp"
 #include <flecs.h>
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Integration tests for FacilityManager
 // These tests verify the interactions between FacilityManager, TowerGrid, and ECS

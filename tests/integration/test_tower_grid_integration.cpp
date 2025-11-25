@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "core/tower_grid.hpp"
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Integration tests for TowerGrid
 // These tests verify the interactions between TowerGrid's floor/column management,

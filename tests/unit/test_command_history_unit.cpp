@@ -5,7 +5,7 @@
 #include "core/facility_manager.hpp"
 #include <flecs.h>
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Mock command for testing
 class MockCommand : public ICommand {

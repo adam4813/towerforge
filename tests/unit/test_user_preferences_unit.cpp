@@ -2,7 +2,7 @@
 #include "core/user_preferences.hpp"
 #include <filesystem>
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Unit tests for UserPreferences
 // These tests verify preferences persistence, validation, and state management

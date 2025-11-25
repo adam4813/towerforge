@@ -2,7 +2,7 @@
 #include "core/ecs_world.hpp"
 #include "core/components.hpp"
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Integration tests for ECSWorld
 // These tests verify ECS initialization, entity/system management, and subsystem integration

@@ -2,7 +2,7 @@
 #include "core/accessibility_settings.hpp"
 #include <cstdio>
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Unit tests for AccessibilitySettings
 // These tests verify accessibility configuration and validation

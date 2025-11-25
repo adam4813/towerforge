@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <fstream>
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Integration tests for SaveLoadManager
 // These tests verify save/load functionality with ECSWorld and file system

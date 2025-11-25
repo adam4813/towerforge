@@ -5,7 +5,7 @@
 #include "core/facility_manager.hpp"
 #include "core/components.hpp"
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // E2E test for save/load workflow
 // This test verifies the complete workflow of saving and loading game state

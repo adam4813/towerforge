@@ -6,7 +6,7 @@
 #include "core/achievement_manager.hpp"
 #include "core/components.hpp"
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // E2E test for game initialization
 // This test verifies the complete initialization workflow of the game

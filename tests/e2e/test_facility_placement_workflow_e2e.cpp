@@ -4,7 +4,7 @@
 #include "core/facility_manager.hpp"
 #include "core/components.hpp"
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // E2E test for facility placement workflow
 // This test verifies the complete workflow of placing facilities in a tower

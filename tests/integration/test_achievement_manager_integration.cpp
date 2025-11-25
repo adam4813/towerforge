@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "core/achievement_manager.hpp"
 
-using namespace TowerForge::Core;
+using namespace towerforge::core;
 
 // Integration tests for AchievementManager
 // These tests verify achievement tracking, unlocking, and persistence
