@@ -203,9 +203,12 @@ namespace towerforge::ui {
 			button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
 
 			// Set click callback for this button
-			button->SetClickCallback([this, state = menu_items_[i].target_state](const engine::ui::MouseEvent &) {
-				audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
-				state_change_callback_(state);
+			button->SetClickCallback([this, state = menu_items_[i].target_state](const engine::ui::MouseEvent &event) {
+				if (event.left_pressed) {
+					audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
+					state_change_callback_(state);
+					return true;
+				}
 				return false;
 			});
 			button->SetHoverCallback([this, this_button = button.get()](const engine::ui::MouseEvent &) {

@@ -149,8 +149,8 @@ namespace towerforge::core {
 					settings_scene_ = std::make_unique<SettingsScene>(this, general_settings_menu_,
 					                                                  audio_settings_menu_,
 					                                                  accessibility_settings_menu_);
-					settings_scene_->Initialize();
 				}
+				settings_scene_->Initialize();
 				active_scene_ = settings_scene_.get();
 				break;
 

@@ -20,6 +20,8 @@ namespace towerforge::core {
     }
 
     void SettingsScene::Initialize() {
+        general_settings_menu_.Initialize();
+        
         general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
             switch (option) {
                 case SettingsOption::Audio:
@@ -46,6 +48,7 @@ namespace towerforge::core {
     }
 
     void SettingsScene::Shutdown() {
+        general_settings_menu_.Shutdown();
         in_audio_settings_ = false;
         in_accessibility_settings_ = false;
     }
@@ -64,6 +67,7 @@ namespace towerforge::core {
     void SettingsScene::Render() {
         ClearBackground(Color{20, 20, 30, 255});
 
+        engine::ui::BatchRenderer::BeginFrame();
         if (in_accessibility_settings_) {
             accessibility_settings_menu_.Render();
         } else if (in_audio_settings_) {
@@ -71,6 +75,7 @@ namespace towerforge::core {
         } else {
             general_settings_menu_.Render();
         }
+        engine::ui::BatchRenderer::EndFrame();
     }
 
     void SettingsScene::HandleInput() {

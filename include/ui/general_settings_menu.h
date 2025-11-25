@@ -6,6 +6,8 @@
 #include <memory>
 #include <functional>
 
+import engine;
+
 namespace towerforge::ui {
     // Forward declarations
     class Panel;
@@ -70,18 +72,18 @@ namespace towerforge::ui {
         void HandleKeyboard();
 
         /**
-         * @brief Handle mouse input for menu interaction
-         * @param mouse_x Mouse X position
-         * @param mouse_y Mouse Y position
-         * @param clicked Whether mouse was clicked
-         * @deprecated Use ProcessMouseEvent instead
+         * @brief Initialize the menu UI components
          */
-        void HandleMouse(int mouse_x, int mouse_y, bool clicked);
+        void Initialize();
+
+        /**
+         * @brief Shutdown and cleanup resources
+         */
+        void Shutdown();
 
     private:
-        void RenderHeader() const;
-        void RenderMenuOptions() const;
-        void UpdateButtonSelection(int new_selection);
+        void RenderDimOverlay() const;
+        void RenderIndicator() const;
         void UpdateLayout();
 
         int selected_option_;  // Currently highlighted menu option
@@ -106,9 +108,7 @@ namespace towerforge::ui {
         OptionCallback option_callback_;
         
         // Settings menu panel with Button children
-        std::unique_ptr<Panel> settings_panel_;
-        std::unique_ptr<PanelHeaderOverlay> header_overlay_;
-        std::unique_ptr<DimOverlay> dim_overlay_;
-        std::vector<Button*> menu_item_buttons_;  // Raw pointers to buttons (owned by settings_panel_)
+        std::unique_ptr<engine::ui::elements::Panel> settings_panel_;
+        std::vector<engine::ui::elements::Button*> menu_item_buttons_;  // Raw pointers to buttons (owned by settings_panel_)
     };
 }
