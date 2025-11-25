@@ -6,7 +6,8 @@
 #include <memory>
 #include <functional>
 #include "audio/audio_manager.h"
-#include "ui/ui_element.h"
+
+import engine;
 
 namespace towerforge::ui {
 
@@ -16,7 +17,7 @@ namespace towerforge::ui {
     /**
      * @brief Audio settings menu for adjusting volume levels
      * 
-     * Declarative, event-driven UI using Slider and Checkbox components.
+     * Declarative, event-driven UI using engine Slider and Checkbox components.
      * All changes apply immediately via callbacks and persist automatically.
      */
     class AudioSettingsMenu {
@@ -27,9 +28,19 @@ namespace towerforge::ui {
         ~AudioSettingsMenu();
     
         /**
+         * @brief Initialize UI components (must be called after graphics context is ready)
+         */
+        void Initialize();
+
+        /**
+         * @brief Clean up UI components
+         */
+        void Shutdown();
+
+        /**
          * @brief Render the audio settings menu
          */
-        void Render();
+        void Render() const;
     
         /**
          * @brief Update menu state (called every frame)
@@ -51,18 +62,8 @@ namespace towerforge::ui {
 
         /**
          * @brief Handle keyboard input for menu navigation
-         * @deprecated Use ProcessKeyboardEvent instead (to be added)
          */
         void HandleKeyboard();
-    
-        /**
-         * @brief Handle mouse input for menu interaction
-         * @param mouse_x Mouse X position
-         * @param mouse_y Mouse Y position
-         * @param clicked Whether mouse was clicked
-         * @deprecated Use ProcessMouseEvent instead
-         */
-        void HandleMouse(int mouse_x, int mouse_y, bool clicked);
 
         /**
          * @brief Set callback for back button
@@ -71,26 +72,22 @@ namespace towerforge::ui {
     
     private:
         void UpdateLayout();
-        void UpdateSelection(int new_selection);
         void LoadSettings();
         void SaveSettings() const;
         void ApplyAudioSettings();
-        void RenderHeader() const;
+        void RenderDimOverlay() const;
     
         BackCallback back_callback_;
-        std::unique_ptr<Panel> settings_panel_;
-        std::unique_ptr<class PanelHeaderOverlay> header_overlay_;
-        std::unique_ptr<class DimOverlay> dim_overlay_;
-        std::vector<UIElement*> interactive_elements_;  // Pointers to focusable elements
+        std::unique_ptr<engine::ui::elements::Panel> settings_panel_;
         
-        Slider* master_slider_;
-        Slider* music_slider_;
-        Slider* sfx_slider_;
-        Checkbox* mute_all_checkbox_;
-        Checkbox* mute_music_checkbox_;
-        Checkbox* mute_sfx_checkbox_;
-        Checkbox* enable_ambient_checkbox_;
-        Button* back_button_;
+        engine::ui::elements::Slider* master_slider_;
+        engine::ui::elements::Slider* music_slider_;
+        engine::ui::elements::Slider* sfx_slider_;
+        engine::ui::elements::Checkbox* mute_all_checkbox_;
+        engine::ui::elements::Checkbox* mute_music_checkbox_;
+        engine::ui::elements::Checkbox* mute_sfx_checkbox_;
+        engine::ui::elements::Checkbox* enable_ambient_checkbox_;
+        engine::ui::elements::Button* back_button_;
         
         int selected_index_;
         float animation_time_;
@@ -110,14 +107,14 @@ namespace towerforge::ui {
     
         // Menu layout constants
         static constexpr int MENU_WIDTH = 600;
-        static constexpr int MENU_HEIGHT = 650;  // Increased to prevent overlap
-        static constexpr int SLIDER_START_Y = 120;
-        static constexpr int SLIDER_HEIGHT = 70;
+        static constexpr int MENU_HEIGHT = 550;
+        static constexpr int SLIDER_START_Y = 80;
+        static constexpr int SLIDER_HEIGHT = 30;
         static constexpr int SLIDER_SPACING = 20;
-        static constexpr int CHECKBOX_START_Y = 380;
-        static constexpr int CHECKBOX_HEIGHT = 40;
+        static constexpr int CHECKBOX_START_Y = 250;
+        static constexpr int CHECKBOX_HEIGHT = 30;
         static constexpr int CHECKBOX_SPACING = 10;
-        static constexpr int BACK_BUTTON_Y = 580;  // Moved down to avoid overlap with checkboxes
+        static constexpr int BACK_BUTTON_Y = 430;
     };
 
 }

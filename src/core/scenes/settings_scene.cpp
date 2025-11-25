@@ -38,6 +38,7 @@ namespace towerforge::core {
             }
         });
 
+        audio_settings_menu_.Initialize();
         audio_settings_menu_.SetBackCallback([this]() {
             in_audio_settings_ = false;
         });
