@@ -36,6 +36,8 @@ namespace towerforge::ui {
 
 		if (main_panel_ != nullptr) {
 			main_panel_->SetSize(static_cast<float>(screen_width), static_cast<float>(screen_height));
+			main_panel_->InvalidateComponents();
+			main_panel_->UpdateComponentsRecursive();
 		}
 
 		// Cache screen size to detect changes
@@ -106,12 +108,6 @@ namespace towerforge::ui {
 				batch_renderer::adapter::DrawRectangle(x, y, 10, 15, ColorAlpha(YELLOW, 0.2f + pulse * 0.1f));
 			}
 		}
-
-		// Draw decorative line with responsive width (35% of screen, clamped between 300-500px)
-		const int line_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.35f), 300, 500);
-		const int line_x = UITheme::CenterPosition(GetScreenWidth(), line_width);
-		engine::ui::BatchRenderer::SubmitLine(line_x, TITLE_Y + 100, line_x + line_width, TITLE_Y + 100, 2,
-		                                      UITheme::ToEngineColor(UITheme::PRIMARY));
 	}
 
 	void MainMenu::HandleKeyboard() const {
@@ -145,20 +141,7 @@ namespace towerforge::ui {
 			state_change_callback_(menu_items_[selected_option_].target_state);
 		}
 
-		// Quick access keys
-		if (IsKeyPressed(KEY_N)) {
-			state_change_callback_(core::GameState::InGame);
-		}
-		if (IsKeyPressed(KEY_T)) {
-			state_change_callback_(core::GameState::Tutorial);
-		}
-		if (IsKeyPressed(KEY_L)) {
-			state_change_callback_(core::GameState::InGame);
-		}
-		if (IsKeyPressed(KEY_C)) {
-			state_change_callback_(core::GameState::Credits);
-		}
-		if (IsKeyPressed(KEY_Q) || IsKeyPressed(KEY_ESCAPE)) {
+		if (IsKeyPressed(KEY_ESCAPE)) {
 			state_change_callback_(core::GameState::Quit);
 		}
 	}
@@ -180,36 +163,75 @@ namespace towerforge::ui {
 	}
 
 	void MainMenu::Initialize() {
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		using namespace engine::ui::components;
+		using namespace engine::ui::elements;
 
-		main_panel_ = std::make_unique<engine::ui::elements::Panel>(0, 0, screen_width, screen_height);
+		main_panel_ = std::make_unique<engine::ui::elements::Panel>();
+		main_panel_->SetSize(static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()));
 		main_panel_->SetOpacity(0);
-		const int responsive_menu_width = UITheme::ClampSize(UITheme::ResponsiveWidth(0.25f), 250, 400);
-		const int responsive_item_height = UITheme::ClampSize(screen_height / 18, 40, 60);
-		constexpr int responsive_spacing = UITheme::MARGIN_SMALL;
+		main_panel_->SetPadding(64.0f);
+		main_panel_->AddComponent<LayoutComponent>(
+			std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center)
+		);
 
-		for (size_t i = 0; i < menu_items_.size(); ++i) {
-			const int item_x = UITheme::CenterPosition(screen_width, responsive_menu_width);
-			const int item_y = MENU_START_Y + i * (responsive_item_height + responsive_spacing);
+		const auto title = "TOWERFORGE";
+		auto title_container_stack = engine::ui::ContainerBuilder()
+				.Opacity(0)
+				.Size(MeasureText(title, UITheme::FONT_SIZE_TITLE) + 3, UITheme::FONT_SIZE_TITLE + 3)
+				.Layout(std::make_unique<StackLayout>())
+				.Build();
+		auto title_shadow_text = std::make_unique<Text>(
+			0, 0,
+			title,
+			UITheme::FONT_SIZE_TITLE,
+			UITheme::ToEngineColor(ColorAlpha(BLACK, 0.5f))
+		);
+		title_container_stack->AddChild(std::move(title_shadow_text));
+		auto title_text = std::make_unique<Text>(
+			0, 0,
+			title,
+			UITheme::FONT_SIZE_TITLE,
+			UITheme::ToEngineColor(UITheme::PRIMARY)
+		);
+		title_container_stack->AddChild(std::move(title_text));
+
+		main_panel_->AddChild(std::move(title_container_stack));
+
+		auto divider = std::make_unique<Divider>();
+		divider->SetColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+		divider->SetSize(UITheme::ClampSize(UITheme::ResponsiveWidth(0.35f), 300, 500), 2);
+		main_panel_->AddChild(std::move(divider));
+
+		auto tagline_text = std::make_unique<Text>(
+			0, 0,
+			"\"Build, Survive, Thrive!\"",
+			UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_MEDIUM),
+			UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+		);
+		main_panel_->AddChild(std::move(tagline_text));
+
+		constexpr float item_width = 250.0f;
+		constexpr float item_height = 40.0f;
+
+		auto button_container = engine::ui::ContainerBuilder()
+				.Opacity(0)
+				.Size(item_width, item_height * menu_items_.size() + UITheme::MARGIN_SMALL * menu_items_.size() - 1)
+				.Layout(std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center))
+				.Build();
+		for (auto &[label, target_state]: menu_items_) {
 			auto button = std::make_unique<engine::ui::elements::Button>(
-				item_x, item_y,
-				responsive_menu_width, responsive_item_height,
-				menu_items_[i].label, UITheme::FONT_SIZE_MEDIUM
-			);
+				item_width, item_height, label, UITheme::FONT_SIZE_MEDIUM);
 			button->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
 			button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
 			button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
 			button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
 
-			// Set click callback for this button
-			button->SetClickCallback([this, state = menu_items_[i].target_state](const engine::ui::MouseEvent &event) {
-				if (event.left_pressed) {
-					audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
-					state_change_callback_(state);
-					return true;
-				}
-				return false;
+			button->SetClickCallback([this, state = target_state](const engine::ui::MouseEvent &event) {
+				if (!event.left_pressed) return false;
+
+				audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
+				state_change_callback_(state);
+				return true;
 			});
 			button->SetHoverCallback([this, this_button = button.get()](const engine::ui::MouseEvent &) {
 				// Clear old selection
@@ -236,55 +258,22 @@ namespace towerforge::ui {
 			});
 
 			menu_item_buttons_.push_back(button.get());
-
-			// Auto-hover the first button, before adding to panel
-			if (i == 0) {
-				button->OnHover({item_x + 0.5f, item_y + 0.5f});
-			}
-
-			main_panel_->AddChild(std::move(button));
+			button_container->AddChild(std::move(button));
 		}
 
-		const auto title = "TOWERFORGE";
-		auto title_shadow_text = std::make_unique<engine::ui::elements::Text>(
-			UITheme::CenterPosition(screen_width,
-			                        MeasureText(title, UITheme::FONT_SIZE_TITLE)) + 3,
-			TITLE_Y + 2,
-			title,
-			UITheme::FONT_SIZE_TITLE,
-			UITheme::ToEngineColor(ColorAlpha(BLACK, 0.5f))
-		);
-		main_panel_->AddChild(std::move(title_shadow_text));
-		auto title_text = std::make_unique<engine::ui::elements::Text>(
-			UITheme::CenterPosition(screen_width,
-			                        MeasureText(title, UITheme::FONT_SIZE_TITLE)),
-			TITLE_Y,
-			title,
-			UITheme::FONT_SIZE_TITLE,
-			UITheme::ToEngineColor(UITheme::PRIMARY)
-		);
-		main_panel_->AddChild(std::move(title_text));
+		// Auto-hover the first button, before adding to container
+		menu_item_buttons_[0]->OnHover({0.5f, 0.5f});
 
-		// Draw tagline with responsive sizing
-		const auto tagline = "\"Build, Survive, Thrive!\"";
-		auto tagline_text = std::make_unique<engine::ui::elements::Text>(
-			UITheme::CenterPosition(screen_width,
-			                        MeasureText(tagline, UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_MEDIUM))),
-			TITLE_Y + 70,
-			tagline,
-			UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_MEDIUM),
-			UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
-		);
-		main_panel_->AddChild(std::move(tagline_text));
+		main_panel_->AddChild(std::move(button_container));
 
-		const std::string version = "Version: " + GetVersion();
-		auto version_text = std::make_unique<engine::ui::elements::Text>(
-			screen_width - MeasureText(version.c_str(), UITheme::FONT_SIZE_NORMAL) - UITheme::PADDING_LARGE,
-			screen_height - UITheme::PADDING_LARGE - UITheme::PADDING_SMALL,
-			version,
+		auto version_text = std::make_unique<Text>(
+			0, 0,
+			"Version: " + GetVersion(),
 			UITheme::FONT_SIZE_NORMAL,
 			UITheme::ToEngineColor(UITheme::BORDER_DEFAULT)
 		);
 		main_panel_->AddChild(std::move(version_text));
+
+		UpdateLayout();
 	}
 }
