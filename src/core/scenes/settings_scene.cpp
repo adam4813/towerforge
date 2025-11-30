@@ -9,19 +9,18 @@
 using namespace towerforge::ui;
 
 namespace towerforge::core {
-
-    SettingsScene::SettingsScene(Game* game, ui::GeneralSettingsMenu& general_settings_menu,
-                                 ui::AudioSettingsMenu& audio_settings_menu,
-                                 ui::AccessibilitySettingsMenu& accessibility_settings_menu)
+    SettingsScene::SettingsScene(Game *game, ui::GeneralSettingsMenu &general_settings_menu,
+                                 ui::AudioSettingsMenu &audio_settings_menu,
+                                 ui::AccessibilitySettingsMenu &accessibility_settings_menu)
         : GameScene(game)
-        , general_settings_menu_(general_settings_menu)
-        , audio_settings_menu_(audio_settings_menu)
-        , accessibility_settings_menu_(accessibility_settings_menu) {
+          , general_settings_menu_(general_settings_menu)
+          , audio_settings_menu_(audio_settings_menu)
+          , accessibility_settings_menu_(accessibility_settings_menu) {
     }
 
     void SettingsScene::Initialize() {
         general_settings_menu_.Initialize();
-        
+
         general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
             switch (option) {
                 case SettingsOption::Audio:
@@ -50,6 +49,7 @@ namespace towerforge::core {
 
     void SettingsScene::Shutdown() {
         general_settings_menu_.Shutdown();
+        audio_settings_menu_.Shutdown();
         in_audio_settings_ = false;
         in_accessibility_settings_ = false;
     }
@@ -102,5 +102,4 @@ namespace towerforge::core {
             general_settings_menu_.ProcessMouseEvent(mouse_event);
         }
     }
-
 }

@@ -143,7 +143,7 @@ namespace towerforge::core {
 		  time_step_(0),
 		  total_time_(0) {
 		achievement_manager_ = game->GetAchievementManager();
-		audio_manager_ =game->GetAudioManager();
+		audio_manager_ = game->GetAudioManager();
 
 		game_state_.funds = 25000.0f;
 		game_state_.income_rate = 500.0f;
@@ -450,12 +450,19 @@ namespace towerforge::core {
 		in_settings_from_pause_ = false;
 		in_audio_settings_from_pause_ = false;
 		in_accessibility_settings_from_pause_ = false;
+
+		pause_audio_settings_menu_.Initialize();
+		pause_audio_settings_menu_.SetBackCallback([this] {
+			in_audio_settings_from_pause_ = false;
+		});
 	}
 
 	void InGameScene::Shutdown() {
 		if (!game_initialized_) {
 			return;
 		}
+
+		pause_audio_settings_menu_.Shutdown();
 
 		// Perform final autosave before cleanup
 		if (save_load_manager_ && save_load_manager_->IsAutosaveEnabled() && ecs_world_) {
@@ -693,7 +700,6 @@ namespace towerforge::core {
 			} else if (in_audio_settings_from_pause_) {
 				pause_audio_settings_menu_.Update(time_step_);
 
-				// Audio settings menu handles state changes via callbacks
 				pause_audio_settings_menu_.HandleKeyboard();
 				pause_audio_settings_menu_.ProcessMouseEvent(mouse_event);
 			} else if (in_settings_from_pause_) {
@@ -940,6 +946,7 @@ namespace towerforge::core {
 		// End camera mode
 		camera_->EndMode();
 
+		engine::ui::BatchRenderer::BeginFrame();
 		// Render HUD and menus
 		hud_->Render();
 		build_menu_->Render(placement_system_->CanUndo(), placement_system_->CanRedo(),
@@ -1033,6 +1040,7 @@ namespace towerforge::core {
 		if (help_system_ != nullptr && help_system_->IsVisible()) {
 			help_system_->Render();
 		}
+		engine::ui::BatchRenderer::EndFrame();
 	}
 
 	void InGameScene::HandleInput() {
