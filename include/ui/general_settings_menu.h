@@ -37,10 +37,11 @@ namespace towerforge::ui {
     class GeneralSettingsMenu {
     public:
         using OptionCallback = std::function<void(SettingsOption)>;
-        
+
         GeneralSettingsMenu();
+
         ~GeneralSettingsMenu();
-        
+
         /**
          * @brief Set the callback for option selection
          * @param callback Function to call when an option is selected
@@ -63,13 +64,13 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent& event);
+        bool ProcessMouseEvent(const MouseEvent &event) const;
 
         /**
          * @brief Handle keyboard input for menu navigation
          * @deprecated Use ProcessKeyboardEvent instead (to be added)
          */
-        void HandleKeyboard();
+        void HandleKeyboard() const;
 
         /**
          * @brief Initialize the menu UI components
@@ -82,11 +83,13 @@ namespace towerforge::ui {
         void Shutdown();
 
     private:
-        void RenderDimOverlay() const;
+        static void RenderDimOverlay();
+
         void RenderIndicator() const;
+
         void UpdateLayout();
 
-        int selected_option_;  // Currently highlighted menu option
+        int selected_option_; // Currently highlighted menu option
         float animation_time_; // For animations
         int last_screen_width_;
         int last_screen_height_;
@@ -106,9 +109,10 @@ namespace towerforge::ui {
 
         std::vector<MenuItem> menu_items_;
         OptionCallback option_callback_;
-        
+
         // Settings menu panel with Button children
         std::unique_ptr<engine::ui::elements::Panel> settings_panel_;
-        std::vector<engine::ui::elements::Button*> menu_item_buttons_;  // Raw pointers to buttons (owned by settings_panel_)
+        std::vector<engine::ui::elements::Button *> menu_item_buttons_;
+        // Raw pointers to buttons (owned by settings_panel_)
     };
 }

@@ -36,11 +36,13 @@ namespace towerforge::ui {
 		if (settings_panel_ != nullptr) {
 			// Center the panel
 			const int panel_x = (screen_width - MENU_WIDTH) / 2;
-			const int menu_height = HEADER_Y + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) +
-			                        UITheme::PADDING_LARGE;
-			settings_panel_->SetRelativePosition(static_cast<float>(panel_x),
-			                                     static_cast<float>(HEADER_Y - UITheme::PADDING_LARGE));
+			const int menu_height = HEADER_Y + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) -
+			                        MENU_ITEM_SPACING;
+			const int panel_y = (screen_height - menu_height) / 2;
+			settings_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
 			settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(menu_height));
+			settings_panel_->InvalidateComponents();
+			settings_panel_->UpdateComponentsRecursive();
 		}
 
 		last_screen_width_ = screen_width;
@@ -71,7 +73,7 @@ namespace towerforge::ui {
 		RenderIndicator();
 	}
 
-	void GeneralSettingsMenu::RenderDimOverlay() const {
+	void GeneralSettingsMenu::RenderDimOverlay() {
 		// Dim the background
 		const int screen_width = GetScreenWidth();
 		const int screen_height = GetScreenHeight();
@@ -91,7 +93,7 @@ namespace towerforge::ui {
 		}
 	}
 
-	void GeneralSettingsMenu::HandleKeyboard() {
+	void GeneralSettingsMenu::HandleKeyboard() const {
 		int new_selection = selected_option_;
 
 		// Navigate up
@@ -135,7 +137,7 @@ namespace towerforge::ui {
 		}
 	}
 
-	bool GeneralSettingsMenu::ProcessMouseEvent(const MouseEvent &event) {
+	bool GeneralSettingsMenu::ProcessMouseEvent(const MouseEvent &event) const {
 		return settings_panel_->ProcessMouseEvent({
 			event.x,
 			event.y,
@@ -152,41 +154,54 @@ namespace towerforge::ui {
 	}
 
 	void GeneralSettingsMenu::Initialize() {
+		using namespace engine::ui::components;
+		using namespace engine::ui::elements;
+
 		const int screen_width = GetScreenWidth();
 		const int screen_height = GetScreenHeight();
 
-		// Create main panel
+		// Create main panel with vertical layout
 		const int panel_x = (screen_width - MENU_WIDTH) / 2;
-		const int menu_height = HEADER_Y + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) +
-		                        UITheme::PADDING_LARGE;
-		settings_panel_ = std::make_unique<engine::ui::elements::Panel>(
-			panel_x,
-			HEADER_Y - UITheme::PADDING_LARGE,
-			MENU_WIDTH,
-			menu_height
-		);
+		const int menu_height = HEADER_Y + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) -
+		                        MENU_ITEM_SPACING;
+		const int panel_y = (screen_height - menu_height) / 2;
+		settings_panel_ = std::make_unique<engine::ui::elements::Panel>();
+		settings_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+		settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(menu_height));
 		settings_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f)));
 		settings_panel_->SetBorderColor(UITheme::ToEngineColor(UITheme::BORDER_ACCENT));
+		settings_panel_->SetPadding(static_cast<float>(UITheme::PADDING_LARGE));
+		settings_panel_->AddComponent<LayoutComponent>(
+			std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center)
+		);
 
 		// Add title text
-		auto title_text = std::make_unique<engine::ui::elements::Text>(
-			UITheme::PADDING_LARGE,
-			UITheme::PADDING_MEDIUM,
+		auto title_text = std::make_unique<Text>(
+			0, 0,
 			"Settings",
 			UITheme::FONT_SIZE_TITLE,
 			UITheme::ToEngineColor(UITheme::TEXT_PRIMARY)
 		);
 		settings_panel_->AddChild(std::move(title_text));
 
+		// Add divider below title
+		auto divider = std::make_unique<Divider>();
+		divider->SetColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+		divider->SetSize(MENU_WIDTH - UITheme::PADDING_LARGE * 2, 2);
+		settings_panel_->AddChild(std::move(divider));
+
+		// Create button container with vertical layout
+		constexpr float item_width = MENU_WIDTH - UITheme::PADDING_MEDIUM * 2;
+		auto button_container = engine::ui::ContainerBuilder()
+				.Opacity(0)
+				.Size(item_width, MENU_ITEM_HEIGHT * menu_items_.size() + MENU_ITEM_SPACING * (menu_items_.size() - 1))
+				.Layout(std::make_unique<VerticalLayout>(MENU_ITEM_SPACING, Alignment::Center))
+				.Build();
+
 		// Create buttons for each menu item
 		for (size_t i = 0; i < menu_items_.size(); ++i) {
-			const int item_x = UITheme::PADDING_MEDIUM;
-			const int item_y = HEADER_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-
 			auto button = std::make_unique<engine::ui::elements::Button>(
-				item_x,
-				item_y,
-				MENU_WIDTH - UITheme::PADDING_MEDIUM * 2,
+				item_width,
 				MENU_ITEM_HEIGHT,
 				menu_items_[i].label,
 				UITheme::FONT_SIZE_LARGE
@@ -236,14 +251,13 @@ namespace towerforge::ui {
 			});
 
 			menu_item_buttons_.push_back(button.get());
-
-			// Auto-hover the first button
-			if (i == 0) {
-				button->OnHover({item_x + 0.5f, item_y + 0.5f});
-			}
-
-			settings_panel_->AddChild(std::move(button));
+			button_container->AddChild(std::move(button));
 		}
+
+		// Auto-hover the first button
+		menu_item_buttons_[0]->OnHover({0.5f, 0.5f});
+
+		settings_panel_->AddChild(std::move(button_container));
 
 		UpdateLayout();
 	}
