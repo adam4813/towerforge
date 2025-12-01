@@ -97,9 +97,8 @@ namespace towerforge::ui {
         // Menu layout constants
         static constexpr int MENU_ITEM_HEIGHT = 60;
         static constexpr int MENU_ITEM_SPACING = 15;
-        static constexpr int MENU_START_Y = 180;
         static constexpr int MENU_WIDTH = 400;
-        static constexpr int HEADER_Y = 100;
+        static constexpr int HEADER_HEIGHT = 100;
 
         // Menu items
         struct MenuItem {

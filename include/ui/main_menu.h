@@ -26,10 +26,11 @@ namespace towerforge::ui {
     class MainMenu {
     public:
         using StateChangeCallback = std::function<void(core::GameState)>;
-        
+
         MainMenu();
+
         ~MainMenu();
-        
+
         /**
          * @brief Set the callback for state changes
          * @param callback Function to call when a menu option triggers a state change
@@ -52,7 +53,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent& event) const;
+        bool ProcessMouseEvent(const MouseEvent &event) const;
 
         /**
          * @brief Handle keyboard input for menu navigation
@@ -89,15 +90,13 @@ namespace towerforge::ui {
 
         int selected_option_; // Currently highlighted menu option
         float animation_time_; // For animations
-        int last_screen_width_;  // For detecting window resize
+        int last_screen_width_; // For detecting window resize
         int last_screen_height_; // For detecting window resize
 
         // Menu layout constants
         static constexpr int MENU_ITEM_HEIGHT = 50;
         static constexpr int MENU_ITEM_SPACING = 10;
-        static constexpr int MENU_START_Y = 250;
         static constexpr int MENU_WIDTH = 300;
-        static constexpr int TITLE_Y = 80;
 
         // Menu options
         struct MenuItem {
@@ -110,6 +109,7 @@ namespace towerforge::ui {
 
         // Main menu is a Panel container with Button children for menu items
         std::unique_ptr<engine::ui::elements::Panel> main_panel_{nullptr};
-        std::vector<engine::ui::elements::Button*> menu_item_buttons_; // Raw pointers to buttons (owned by main_panel_)
+        std::vector<engine::ui::elements::Button *> menu_item_buttons_;
+        // Raw pointers to buttons (owned by main_panel_)
     };
 }

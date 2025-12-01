@@ -112,12 +112,9 @@ namespace towerforge::ui {
         // Menu layout constants
         static constexpr int MENU_WIDTH = 600;
         static constexpr int MENU_HEIGHT = 450;
-        static constexpr int SLIDER_START_Y = 80;
         static constexpr int SLIDER_HEIGHT = 30;
         static constexpr int SLIDER_SPACING = 20;
-        static constexpr int CHECKBOX_START_Y = 250;
         static constexpr int CHECKBOX_HEIGHT = 30;
         static constexpr int CHECKBOX_SPACING = 10;
-        static constexpr int BACK_BUTTON_Y = 430;
     };
 }

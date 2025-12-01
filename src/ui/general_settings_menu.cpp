@@ -36,7 +36,7 @@ namespace towerforge::ui {
 		if (settings_panel_ != nullptr) {
 			// Center the panel
 			const int panel_x = (screen_width - MENU_WIDTH) / 2;
-			const int menu_height = HEADER_Y + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) -
+			const int menu_height = HEADER_HEIGHT + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) -
 			                        MENU_ITEM_SPACING;
 			const int panel_y = (screen_height - menu_height) / 2;
 			settings_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
@@ -162,7 +162,7 @@ namespace towerforge::ui {
 
 		// Create main panel with vertical layout
 		const int panel_x = (screen_width - MENU_WIDTH) / 2;
-		const int menu_height = HEADER_Y + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) -
+		const int menu_height = HEADER_HEIGHT + menu_items_.size() * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) -
 		                        MENU_ITEM_SPACING;
 		const int panel_y = (screen_height - menu_height) / 2;
 		settings_panel_ = std::make_unique<engine::ui::elements::Panel>();
