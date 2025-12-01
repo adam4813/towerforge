@@ -91,7 +91,7 @@ namespace towerforge::ui {
 
         // Font Scale Slider
         auto font_slider = std::make_unique<engine::ui::elements::Slider>(
-            SLIDER_WIDTH, ITEM_HEIGHT,
+            content_width, ITEM_HEIGHT,
             0.8f, 1.5f, font_scale_
         );
         font_slider->SetLabel("Font Scale");
@@ -211,7 +211,16 @@ namespace towerforge::ui {
     }
 
     void AccessibilitySettingsMenu::Render() const {
+        RenderDimOverlay();
         settings_panel_->Render();
+    }
+
+    void AccessibilitySettingsMenu::RenderDimOverlay() {
+        // Dim the background
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        engine::ui::BatchRenderer::SubmitQuad(engine::ui::Rectangle(0, 0, screen_width, screen_height),
+                                              UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f)));
     }
 
     bool AccessibilitySettingsMenu::ProcessMouseEvent(const MouseEvent &event) const {

@@ -19,6 +19,8 @@ namespace towerforge::core {
     }
 
     void SettingsScene::Initialize() {
+        engine::ui::text_renderer::FontManager::Initialize("fonts/Kenney Future.ttf", 16);
+        engine::ui::BatchRenderer::Initialize();
         general_settings_menu_.Initialize();
 
         general_settings_menu_.SetOptionCallback([this](const SettingsOption option) {
@@ -54,6 +56,8 @@ namespace towerforge::core {
         audio_settings_menu_.Shutdown();
         in_audio_settings_ = false;
         in_accessibility_settings_ = false;
+        engine::ui::BatchRenderer::Shutdown();
+        engine::ui::text_renderer::FontManager::Shutdown();
     }
 
     void SettingsScene::Update(const float delta_time) {

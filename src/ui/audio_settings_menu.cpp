@@ -268,10 +268,7 @@ namespace towerforge::ui {
     }
 
     void AudioSettingsMenu::Render() const {
-        // Render dim overlay
         RenderDimOverlay();
-
-        // Render the panel (which renders its own background, border, and all children)
         settings_panel_->Render();
     }
 
@@ -279,7 +276,8 @@ namespace towerforge::ui {
         // Dim the background
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
-        DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.7f));
+        engine::ui::BatchRenderer::SubmitQuad(engine::ui::Rectangle(0, 0, screen_width, screen_height),
+                                              UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f)));
     }
 
     void AudioSettingsMenu::HandleKeyboard() {

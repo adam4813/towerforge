@@ -77,6 +77,8 @@ namespace towerforge::ui {
 
         void ApplySettings() const;
 
+        static void RenderDimOverlay();
+
         BackCallback back_callback_;
         std::unique_ptr<engine::ui::elements::Panel> settings_panel_;
 
@@ -101,6 +103,5 @@ namespace towerforge::ui {
         static constexpr int MENU_HEIGHT = 275;
         static constexpr int ITEM_HEIGHT = 30;
         static constexpr int ITEM_SPACING = 15;
-        static constexpr int SLIDER_WIDTH = 300;
     };
 } // namespace towerforge::ui

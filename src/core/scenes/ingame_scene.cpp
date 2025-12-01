@@ -159,6 +159,8 @@ namespace towerforge::core {
 	}
 
 	void InGameScene::Initialize() {
+		engine::ui::text_renderer::FontManager::Initialize("fonts/Kenney Future.ttf", 16);
+		engine::ui::BatchRenderer::Initialize();
 		std::cout << "Initializing game..." << std::endl;
 
 		// Change music to gameplay theme
@@ -451,6 +453,19 @@ namespace towerforge::core {
 		in_audio_settings_from_pause_ = false;
 		in_accessibility_settings_from_pause_ = false;
 
+		pause_general_settings_menu_.Initialize();
+		pause_general_settings_menu_.SetOptionCallback([this](auto option) {
+			if (option == SettingsOption::Back) {
+				in_settings_from_pause_ = false;
+			}
+			if (option == SettingsOption::Audio) {
+				in_audio_settings_from_pause_ = true;
+			}
+			if (option == SettingsOption::Accessibility) {
+				in_accessibility_settings_from_pause_ = true;
+			}
+		});
+
 		pause_accessibility_settings_menu_.Initialize();
 		pause_accessibility_settings_menu_.SetBackCallback([this] {
 			in_accessibility_settings_from_pause_ = false;
@@ -469,6 +484,10 @@ namespace towerforge::core {
 
 		pause_accessibility_settings_menu_.Shutdown();
 		pause_audio_settings_menu_.Shutdown();
+		pause_general_settings_menu_.Shutdown();
+
+		engine::ui::BatchRenderer::Shutdown();
+		engine::ui::text_renderer::FontManager::Shutdown();
 
 		// Perform final autosave before cleanup
 		if (save_load_manager_ && save_load_manager_->IsAutosaveEnabled() && ecs_world_) {

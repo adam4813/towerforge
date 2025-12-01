@@ -1,6 +1,5 @@
 #pragma once
 
-#include <raylib.h>
 #include <string>
 #include <vector>
 #include <memory>
@@ -9,11 +8,6 @@
 import engine;
 
 namespace towerforge::ui {
-    // Forward declarations
-    class Panel;
-    class Button;
-    class PanelHeaderOverlay;
-    class DimOverlay;
     struct MouseEvent;
 
     /**
