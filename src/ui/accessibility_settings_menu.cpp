@@ -1,155 +1,170 @@
 #include "ui/accessibility_settings_menu.h"
 #include "ui/ui_element.h"
 #include "ui/ui_theme.h"
-#include "ui/panel_header_overlay.h"
-#include "ui/dim_overlay.h"
 #include "ui/mouse_interface.h"
 #include "core/accessibility_settings.hpp"
 #include "core/user_preferences.hpp"
 
-namespace towerforge::ui {
+import engine;
 
+namespace towerforge::ui {
     AccessibilitySettingsMenu::AccessibilitySettingsMenu()
-        : selected_option_(0)
+        : back_callback_(nullptr)
+          , high_contrast_checkbox_(nullptr)
+          , font_scale_slider_(nullptr)
+          , keyboard_nav_checkbox_(nullptr)
+          , back_button_(nullptr)
+          , selected_option_(0)
           , animation_time_(0.0f)
           , last_screen_width_(0)
           , last_screen_height_(0)
           , high_contrast_enabled_(false)
           , font_scale_(1.0f)
-          , keyboard_navigation_enabled_(true)
-          , back_callback_(nullptr) {
-        
-        // Create main panel centered on screen
-        const Color background_color = ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f);
-        settings_panel_ = std::make_unique<Panel>(0, 0, MENU_WIDTH, 550, background_color, UITheme::BORDER_ACCENT);
-        settings_panel_->SetPadding(UITheme::PADDING_MEDIUM);
-        
-        // Create header overlay
-        header_overlay_ = std::make_unique<PanelHeaderOverlay>("Accessibility Settings");
-        
-        // Create dim overlay
-        dim_overlay_ = std::make_unique<DimOverlay>();
-
-        // Load settings from preferences first (don't sync to UI yet - components don't exist)
-        auto& prefs = towerforge::core::UserPreferences::GetInstance();
+          , keyboard_navigation_enabled_(true) {
+        // Load settings from preferences
+        auto &prefs = towerforge::core::UserPreferences::GetInstance();
         high_contrast_enabled_ = prefs.IsHighContrastEnabled();
         font_scale_ = prefs.GetFontScale();
         keyboard_navigation_enabled_ = prefs.IsKeyboardNavigationEnabled();
+    }
 
-        // Position items relative to panel (0-based, panel handles absolute positioning)
-        // Start below header which takes ~80-100px (title + underline + spacing)
-        int y_pos = CONTENT_START_Y;
-        constexpr int content_x = 40;  // Left margin for content (away from border)
+    AccessibilitySettingsMenu::~AccessibilitySettingsMenu() = default;
+
+    void AccessibilitySettingsMenu::Initialize() {
+        using namespace engine::ui::components;
+
+        // Create main panel with vertical layout
+        engine::ui::BatchRenderer::EndFrame();
+        settings_panel_ = std::make_unique<engine::ui::elements::Panel>();
+        settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(MENU_HEIGHT));
+
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const int panel_x = (screen_width - MENU_WIDTH) / 2;
+        const int panel_y = (screen_height - MENU_HEIGHT) / 2;
+        settings_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+
+        settings_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f)));
+        settings_panel_->SetBorderColor(UITheme::ToEngineColor(UITheme::BORDER_ACCENT));
+        settings_panel_->SetPadding(static_cast<float>(UITheme::PADDING_LARGE));
+        settings_panel_->AddComponent<LayoutComponent>(
+            std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center)
+        );
+
+        // Add title text
+        auto title_text = std::make_unique<engine::ui::elements::Text>(
+            0, 0,
+            "Accessibility Settings",
+            UITheme::FONT_SIZE_TITLE,
+            UITheme::ToEngineColor(UITheme::TEXT_PRIMARY)
+        );
+        settings_panel_->AddChild(std::move(title_text));
+
+        // Add divider below title
+        auto divider = std::make_unique<engine::ui::elements::Divider>();
+        divider->SetColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        divider->SetSize(MENU_WIDTH - UITheme::PADDING_LARGE * 2, 2);
+        settings_panel_->AddChild(std::move(divider));
+
+        // Calculate content width
+        constexpr float content_width = MENU_WIDTH - UITheme::PADDING_LARGE * 2;
+
+        // Create controls container with vertical layout
+        auto controls_container = engine::ui::ContainerBuilder()
+                .Opacity(0)
+                .Size(content_width, ITEM_HEIGHT * 3 + ITEM_SPACING * 2)
+                .Layout(std::make_unique<VerticalLayout>(ITEM_SPACING, Alignment::Stretch))
+                .Build();
 
         // High Contrast Checkbox
-        auto high_contrast = std::make_unique<Checkbox>(
-            static_cast<float>(content_x),
-            static_cast<float>(y_pos),
+        auto high_contrast = std::make_unique<engine::ui::elements::Checkbox>(
             "High Contrast Mode"
         );
+        high_contrast->SetSize(high_contrast->GetWidth(), ITEM_HEIGHT);
         high_contrast->SetChecked(high_contrast_enabled_);
-        high_contrast->SetToggleCallback([this](bool checked) {
+        high_contrast->SetToggleCallback([this](const bool checked) {
             high_contrast_enabled_ = checked;
             ApplySettings();
         });
         high_contrast_checkbox_ = high_contrast.get();
-        interactive_elements_.push_back(high_contrast_checkbox_);
-        settings_panel_->AddChild(std::move(high_contrast));
-
-        y_pos += ITEM_HEIGHT + ITEM_SPACING;
+        controls_container->AddChild(std::move(high_contrast));
 
         // Font Scale Slider
-        auto font_slider = std::make_unique<Slider>(
-            static_cast<float>(content_x),
-            static_cast<float>(y_pos),
-            SLIDER_WIDTH,
-            30,
-            0.8f, 1.5f,
-            "Font Scale"
+        auto font_slider = std::make_unique<engine::ui::elements::Slider>(
+            SLIDER_WIDTH, ITEM_HEIGHT,
+            0.8f, 1.5f, font_scale_
         );
-        font_slider->SetValue(font_scale_);
-        font_slider->SetValueChangedCallback([this](float value) {
+        font_slider->SetLabel("Font Scale");
+        font_slider->SetShowValue(true);
+        font_slider->SetValueChangedCallback([this](const float value) {
             font_scale_ = value;
             ApplySettings();
         });
         font_scale_slider_ = font_slider.get();
-        interactive_elements_.push_back(font_scale_slider_);
-        settings_panel_->AddChild(std::move(font_slider));
-
-        y_pos += ITEM_HEIGHT + ITEM_SPACING;
+        controls_container->AddChild(std::move(font_slider));
 
         // Keyboard Navigation Checkbox
-        auto keyboard_nav = std::make_unique<Checkbox>(
-            static_cast<float>(content_x),
-            static_cast<float>(y_pos),
+        auto keyboard_nav = std::make_unique<engine::ui::elements::Checkbox>(
             "Keyboard Navigation"
         );
+        keyboard_nav->SetSize(keyboard_nav->GetWidth(), ITEM_HEIGHT);
         keyboard_nav->SetChecked(keyboard_navigation_enabled_);
-        keyboard_nav->SetToggleCallback([this](bool checked) {
+        keyboard_nav->SetToggleCallback([this](const bool checked) {
             keyboard_navigation_enabled_ = checked;
             ApplySettings();
         });
         keyboard_nav_checkbox_ = keyboard_nav.get();
-        interactive_elements_.push_back(keyboard_nav_checkbox_);
-        settings_panel_->AddChild(std::move(keyboard_nav));
+        controls_container->AddChild(std::move(keyboard_nav));
 
-        y_pos += ITEM_HEIGHT + ITEM_SPACING * 3;
+        settings_panel_->AddChild(std::move(controls_container));
 
         // Back Button
-        auto back_btn = std::make_unique<Button>(
-            static_cast<float>(content_x),
-            static_cast<float>(y_pos),
-            150,
-            40,
-            "Back",
-            UITheme::BUTTON_BACKGROUND,
-            UITheme::BUTTON_BORDER
+        constexpr float button_width = 150.0f;
+        auto back_btn = std::make_unique<engine::ui::elements::Button>(
+            button_width, UITheme::BUTTON_HEIGHT_LARGE,
+            "Back", UITheme::FONT_SIZE_LARGE
         );
-        back_btn->SetClickCallback([this]() {
-            if (back_callback_) {
+        back_btn->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
+        back_btn->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
+        back_btn->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+        back_btn->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
+        back_btn->SetClickCallback([this](const engine::ui::MouseEvent &event) {
+            if (event.left_pressed && back_callback_) {
                 back_callback_();
+                return true;
             }
+            return false;
         });
         back_button_ = back_btn.get();
-        interactive_elements_.push_back(back_button_);
         settings_panel_->AddChild(std::move(back_btn));
 
         // Calculate initial layout
         UpdateLayout();
-
-        // Set initial selection appearance
-        UpdateSelection(selected_option_);
     }
 
-    AccessibilitySettingsMenu::~AccessibilitySettingsMenu() = default;
+    void AccessibilitySettingsMenu::Shutdown() {
+        settings_panel_.reset();
+        high_contrast_checkbox_ = nullptr;
+        font_scale_slider_ = nullptr;
+        keyboard_nav_checkbox_ = nullptr;
+        back_button_ = nullptr;
+    }
 
     void AccessibilitySettingsMenu::UpdateLayout() {
         last_screen_width_ = GetScreenWidth();
         last_screen_height_ = GetScreenHeight();
 
-        // Center the panel
+        if (!settings_panel_) {
+            return;
+        }
+
         const int panel_x = (last_screen_width_ - MENU_WIDTH) / 2;
-        const int panel_y = (last_screen_height_ - 550) / 2;
-        
+        const int panel_y = (last_screen_height_ - MENU_HEIGHT) / 2;
+
         settings_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
-        settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), 550.0f);
-    }
-
-    void AccessibilitySettingsMenu::UpdateSelection(const int new_selection) {
-        const auto& accessibility = towerforge::core::AccessibilitySettings::GetInstance();
-        const bool high_contrast = accessibility.IsHighContrastEnabled();
-
-        // Clear old selection
-        if (selected_option_ >= 0 && selected_option_ < static_cast<int>(interactive_elements_.size())) {
-            interactive_elements_[selected_option_]->SetFocused(false);
-        }
-
-        // Set new selection
-        if (new_selection >= 0 && new_selection < static_cast<int>(interactive_elements_.size())) {
-            interactive_elements_[new_selection]->SetFocused(true);
-        }
-
-        selected_option_ = new_selection;
+        settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(MENU_HEIGHT));
+        settings_panel_->InvalidateComponents();
+        settings_panel_->UpdateComponentsRecursive();
     }
 
     void AccessibilitySettingsMenu::Update(const float delta_time) {
@@ -164,18 +179,18 @@ namespace towerforge::ui {
     }
 
     void AccessibilitySettingsMenu::SyncWithSettings() {
-        auto& prefs = towerforge::core::UserPreferences::GetInstance();
+        const auto &prefs = towerforge::core::UserPreferences::GetInstance();
         high_contrast_enabled_ = prefs.IsHighContrastEnabled();
         font_scale_ = prefs.GetFontScale();
         keyboard_navigation_enabled_ = prefs.IsKeyboardNavigationEnabled();
-        
+
         // Update UI components
         if (high_contrast_checkbox_) high_contrast_checkbox_->SetChecked(high_contrast_enabled_);
         if (font_scale_slider_) font_scale_slider_->SetValue(font_scale_);
         if (keyboard_nav_checkbox_) keyboard_nav_checkbox_->SetChecked(keyboard_navigation_enabled_);
-        
+
         // Also sync with legacy AccessibilitySettings
-        auto& settings = towerforge::core::AccessibilitySettings::GetInstance();
+        auto &settings = towerforge::core::AccessibilitySettings::GetInstance();
         settings.SetHighContrastEnabled(high_contrast_enabled_);
         settings.SetFontScale(font_scale_);
         settings.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
@@ -183,107 +198,40 @@ namespace towerforge::ui {
 
     void AccessibilitySettingsMenu::ApplySettings() const {
         // Save to unified UserPreferences
-        auto& prefs = towerforge::core::UserPreferences::GetInstance();
+        auto &prefs = towerforge::core::UserPreferences::GetInstance();
         prefs.SetHighContrastEnabled(high_contrast_enabled_);
         prefs.SetFontScale(font_scale_);
         prefs.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
-        
+
         // Also apply to legacy AccessibilitySettings
-        auto& settings = towerforge::core::AccessibilitySettings::GetInstance();
+        auto &settings = towerforge::core::AccessibilitySettings::GetInstance();
         settings.SetHighContrastEnabled(high_contrast_enabled_);
         settings.SetFontScale(font_scale_);
         settings.SetKeyboardNavigationEnabled(keyboard_navigation_enabled_);
     }
 
     void AccessibilitySettingsMenu::Render() const {
-        // Render dim overlay
-        dim_overlay_->Render();
-
-        // Render main panel (includes all children automatically)
         settings_panel_->Render();
-
-        // Render header overlay on top
-        const Rectangle panel_bounds = settings_panel_->GetAbsoluteBounds();
-        header_overlay_->Render(
-            static_cast<int>(panel_bounds.x),
-            static_cast<int>(panel_bounds.y),
-            MENU_WIDTH
-        );
     }
 
-    bool AccessibilitySettingsMenu::ProcessMouseEvent(const MouseEvent& event) {
+    bool AccessibilitySettingsMenu::ProcessMouseEvent(const MouseEvent &event) const {
         // Process through panel (handles all children)
-        const bool consumed = settings_panel_->ProcessMouseEvent(event);
-
-        // Update selection based on hover
-        for (size_t i = 0; i < interactive_elements_.size(); ++i) {
-            if (interactive_elements_[i]->IsHovered()) {
-                UpdateSelection(static_cast<int>(i));
-                break;
-            }
-        }
-
-        return consumed;
+        return settings_panel_->ProcessMouseEvent({
+            event.x,
+            event.y,
+            event.left_down,
+            event.right_down,
+            event.left_pressed,
+            event.right_pressed
+        });
     }
 
-    bool AccessibilitySettingsMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        // Legacy wrapper - delegates to modern API
-        const MouseEvent event(
-            static_cast<float>(mouse_x),
-            static_cast<float>(mouse_y),
-            false,
-            false,
-            clicked,
-            false
-        );
-        ProcessMouseEvent(event);
-
-        // Legacy API expects bool return for "back button clicked"
-        // With callbacks, we don't track this, so return false
-        return false;
-    }
-
-    bool AccessibilitySettingsMenu::HandleKeyboard() {
-        int new_selection = selected_option_;
-
-        // Navigate up
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            new_selection--;
-            if (new_selection < 0) {
-                new_selection = static_cast<int>(interactive_elements_.size()) - 1;
-            }
-            UpdateSelection(new_selection);
-        }
-
-        // Navigate down
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            new_selection++;
-            if (new_selection >= static_cast<int>(interactive_elements_.size())) {
-                new_selection = 0;
-            }
-            UpdateSelection(new_selection);
-        }
-
-        // Activate selected item
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            if (selected_option_ >= 0 && selected_option_ < static_cast<int>(interactive_elements_.size())) {
-                auto* elem = interactive_elements_[selected_option_];
-                
-                // Create a click event
-                const MouseEvent click_event(0, 0, false, false, true, false);
-                elem->OnClick(click_event);
-            }
-        }
-
+    void AccessibilitySettingsMenu::HandleKeyboard() const {
         // ESC to go back
         if (IsKeyPressed(KEY_ESCAPE)) {
             if (back_callback_) {
                 back_callback_();
             }
-            return true;
         }
-
-        return false;
     }
-
 } // namespace towerforge::ui

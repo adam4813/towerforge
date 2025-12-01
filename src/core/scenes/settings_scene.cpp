@@ -42,6 +42,7 @@ namespace towerforge::core {
             in_audio_settings_ = false;
         });
 
+        accessibility_settings_menu_.Initialize();
         accessibility_settings_menu_.SetBackCallback([this]() {
             in_accessibility_settings_ = false;
         });
@@ -49,6 +50,7 @@ namespace towerforge::core {
 
     void SettingsScene::Shutdown() {
         general_settings_menu_.Shutdown();
+        accessibility_settings_menu_.Shutdown();
         audio_settings_menu_.Shutdown();
         in_audio_settings_ = false;
         in_accessibility_settings_ = false;
@@ -90,9 +92,7 @@ namespace towerforge::core {
         );
 
         if (in_accessibility_settings_) {
-            if (accessibility_settings_menu_.HandleKeyboard()) {
-                in_accessibility_settings_ = false;
-            }
+            accessibility_settings_menu_.HandleKeyboard();
             accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
         } else if (in_audio_settings_) {
             audio_settings_menu_.HandleKeyboard();

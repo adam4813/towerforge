@@ -451,6 +451,11 @@ namespace towerforge::core {
 		in_audio_settings_from_pause_ = false;
 		in_accessibility_settings_from_pause_ = false;
 
+		pause_accessibility_settings_menu_.Initialize();
+		pause_accessibility_settings_menu_.SetBackCallback([this] {
+			in_accessibility_settings_from_pause_ = false;
+		});
+
 		pause_audio_settings_menu_.Initialize();
 		pause_audio_settings_menu_.SetBackCallback([this] {
 			in_audio_settings_from_pause_ = false;
@@ -462,6 +467,7 @@ namespace towerforge::core {
 			return;
 		}
 
+		pause_accessibility_settings_menu_.Shutdown();
 		pause_audio_settings_menu_.Shutdown();
 
 		// Perform final autosave before cleanup
@@ -692,10 +698,7 @@ namespace towerforge::core {
 			} else if (in_accessibility_settings_from_pause_) {
 				pause_accessibility_settings_menu_.Update(time_step_);
 
-				// Accessibility settings menu handles state changes via callbacks
-				if (pause_accessibility_settings_menu_.HandleKeyboard()) {
-					in_accessibility_settings_from_pause_ = false;
-				}
+				pause_accessibility_settings_menu_.HandleKeyboard();
 				pause_accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
 			} else if (in_audio_settings_from_pause_) {
 				pause_audio_settings_menu_.Update(time_step_);
