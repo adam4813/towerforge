@@ -4,7 +4,6 @@
 
 #include "core/game.h"
 #include "ui/tutorial_manager.h"
-#include <raylib.h>
 
 namespace towerforge::core {
 	TutorialScene::TutorialScene(Game *game)

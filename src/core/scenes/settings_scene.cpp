@@ -4,7 +4,6 @@
 #include "ui/audio_settings_menu.h"
 #include "ui/accessibility_settings_menu.h"
 #include "ui/mouse_interface.h"
-#include <raylib.h>
 
 using namespace towerforge::ui;
 

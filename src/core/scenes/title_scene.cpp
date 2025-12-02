@@ -2,17 +2,15 @@
 #include "core/game.h"
 #include "ui/main_menu.h"
 #include "ui/mouse_interface.h"
-#include <raylib.h>
 
 import engine;
 
 using namespace towerforge::ui;
 
 namespace towerforge::core {
-
-    TitleScene::TitleScene(Game* game, ui::MainMenu& main_menu)
+    TitleScene::TitleScene(Game *game, ui::MainMenu &main_menu)
         : GameScene(game)
-        , main_menu_(main_menu) {
+          , main_menu_(main_menu) {
     }
 
     void TitleScene::Initialize() {
@@ -45,7 +43,7 @@ namespace towerforge::core {
 
     void TitleScene::HandleInput() {
         main_menu_.HandleKeyboard();
-        
+
         const MouseEvent mouse_event(
             static_cast<float>(GetMouseX()),
             static_cast<float>(GetMouseY()),
@@ -56,5 +54,4 @@ namespace towerforge::core {
         );
         main_menu_.ProcessMouseEvent(mouse_event);
     }
-
 }
