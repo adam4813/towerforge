@@ -9,18 +9,25 @@ using namespace towerforge::ui;
 using namespace towerforge::audio;
 
 namespace towerforge::core {
-
-    AchievementsScene::AchievementsScene(Game* game, ui::AchievementsMenu& achievements_menu)
-        : GameScene(game)
-        , achievements_menu_(achievements_menu) {
+    AchievementsScene::AchievementsScene(Game *game, ui::AchievementsMenu &achievements_menu)
+        : GameScene(game), achievements_menu_(achievements_menu) {
     }
 
     void AchievementsScene::Initialize() {
-        // Achievement manager will be set by Game class
+        engine::ui::text_renderer::FontManager::Initialize("fonts/Kenney Future.ttf", 16);
+        engine::ui::BatchRenderer::Initialize();
+
+        achievements_menu_.Initialize();
+        achievements_menu_.SetCloseCallback([this]() {
+            AudioManager::GetInstance().PlaySFX(AudioCue::MenuClose);
+            game_->SetGameState(GameState::TitleScreen);
+        });
     }
 
     void AchievementsScene::Shutdown() {
-        // Nothing to clean up
+        achievements_menu_.Shutdown();
+        engine::ui::BatchRenderer::Shutdown();
+        engine::ui::text_renderer::FontManager::Shutdown();
     }
 
     void AchievementsScene::Update(const float delta_time) {
@@ -30,15 +37,13 @@ namespace towerforge::core {
 
     void AchievementsScene::Render() {
         ClearBackground(Color{20, 20, 30, 255});
+
+        engine::ui::BatchRenderer::BeginFrame();
         achievements_menu_.Render();
+        engine::ui::BatchRenderer::EndFrame();
     }
 
     void AchievementsScene::HandleInput() {
-        if (achievements_menu_.HandleKeyboard()) {
-            AudioManager::GetInstance().PlaySFX(AudioCue::MenuClose);
-            game_->SetGameState(GameState::TitleScreen);
-        }
-
         const MouseEvent mouse_event(
             static_cast<float>(GetMouseX()),
             static_cast<float>(GetMouseY()),
@@ -47,7 +52,8 @@ namespace towerforge::core {
             IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
             IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
         );
+
+        achievements_menu_.HandleKeyboard();
         achievements_menu_.ProcessMouseEvent(mouse_event);
     }
-
 }
