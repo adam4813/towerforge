@@ -48,7 +48,6 @@ set(SOURCE_FILES
     src/ui/notification_center.cpp
     src/ui/ui_element.cpp
     src/ui/panel_header_overlay.cpp
-    src/ui/dim_overlay.cpp
     src/ui/mouse_event_manager.cpp
     src/ui/help_system.cpp
     src/ui/batch_renderer/batch_renderer.cpp
@@ -69,12 +68,12 @@ setup_asset_preload(towerforge "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 # Install target
 install(TARGETS towerforge RUNTIME DESTINATION bin)
 
-if(NOT EMSCRIPTEN)
+if (NOT EMSCRIPTEN)
     install(
         DIRECTORY assets/
         DESTINATION bin/assets
         PATTERN "*")
-endif()
+endif ()
 
 # Screenshot application
 add_executable(screenshot_app src/screenshot_app.cpp ${SOURCE_FILES})

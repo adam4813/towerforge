@@ -9,7 +9,6 @@ import engine;
 
 namespace towerforge::ui {
     // Forward declarations
-    class DimOverlay;
     struct MouseEvent;
 
     /**
