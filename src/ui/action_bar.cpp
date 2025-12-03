@@ -52,6 +52,14 @@ namespace towerforge::ui {
 
     void ActionBar::Update(const float delta_time) {
         Panel::Update(delta_time);
+
+        // Update position and size on resize - centered at bottom
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const int bar_width = CalculateBarWidth();
+        const int bar_x = (screen_width - bar_width) / 2;
+        SetRelativePosition(bar_x, screen_height - HEIGHT);
+        SetSize(bar_width, HEIGHT);
         
         // Update button sizes and positions on screen resize
         const int button_width = CalculateButtonWidth();
@@ -62,7 +70,7 @@ namespace towerforge::ui {
                 btn->Update(delta_time);
                 
                 // Update button size and position
-                btn->SetSize(button_width, height_ - 10);
+                btn->SetSize(button_width, HEIGHT - 10);
                 btn->SetRelativePosition(x_pos, 5);
                 
                 x_pos += button_width + BUTTON_SPACING;

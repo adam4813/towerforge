@@ -89,6 +89,7 @@ namespace towerforge::ui {
         static constexpr int MAX_BUTTON_WIDTH = 140;  // Maximum button width
         static constexpr int BUTTON_SPACING = 10;
         static constexpr float MAX_BAR_WIDTH_PERCENT = 0.5f;  // 50% of screen width
+        static constexpr int HEIGHT = 50;
         
     public:
         // Calculate the total width needed for the action bar based on screen width

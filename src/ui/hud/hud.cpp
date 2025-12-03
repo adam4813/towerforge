@@ -1,4 +1,7 @@
 #include "ui/hud/hud.h"
+#include "ui/hud/top_bar.h"
+#include "ui/hud/star_rating_panel.h"
+#include "ui/hud/end_game_summary.h"
 #include "ui/ui_window_manager.h"
 #include "ui/info_windows.h"
 #include "ui/tooltip.h"
@@ -19,131 +22,74 @@ namespace towerforge::ui {
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
 
-        // Create action bar at bottom of screen - fixed width, centered
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        const int bar_width = ActionBar::CalculateBarWidth();
-        const int bar_x = (screen_width - bar_width) / 2;
+        // Create action bar - position will be set in Update()
+        action_bar_ = std::make_unique<ActionBar>(0, 0, 0, 0);
 
-        action_bar_ = std::make_unique<ActionBar>(
-            bar_x,
-            screen_height - ACTION_BAR_HEIGHT,
-            bar_width,
-            ACTION_BAR_HEIGHT
-        );
+        // Create speed control panel - position will be set in Update()
+        speed_control_panel_ = std::make_unique<SpeedControlPanel>(0, 0, 0, 0);
+        speed_control_panel_->SetGameState(&game_state_);
 
-        // Create speed control panel in lower-left corner (Sims-style) with responsive sizing
-        const int speed_width = SpeedControlPanel::CalculateWidth();
-        const int speed_height = SpeedControlPanel::CalculateHeight();
-        speed_control_panel_ = std::make_unique<SpeedControlPanel>(
-            10,
-            screen_height - speed_height - 10,
-            speed_width,
-            speed_height
-        );
-
-        // Create top bar interactive buttons
-        // Income button (left side of top bar)
-        income_button_ = std::make_unique<Button>(
-            10, 5,
-            280, 30,
-            "", // No text - will be rendered custom
-            ColorAlpha(BLACK, 0.0f), // Transparent
-            ColorAlpha(GREEN, 0.2f) // Hover highlight
-        );
-        income_button_->SetClickCallback([this]() {
+        // Create composed HUD components
+        top_bar_ = std::make_unique<TopBar>();
+        top_bar_->SetNotificationCenter(notification_center_.get());
+        top_bar_->SetGameState(&game_state_);
+        top_bar_->SetIncomeClickCallback([this]() {
             RequestIncomeAnalytics();
         });
-
-        // Population button (center of top bar)
-        population_button_ = std::make_unique<Button>(
-            310, 5,
-            180, 30,
-            "",
-            ColorAlpha(BLACK, 0.0f),
-            ColorAlpha(WHITE, 0.2f)
-        );
-        population_button_->SetClickCallback([this]() {
+        top_bar_->SetPopulationClickCallback([this]() {
             RequestPopulationAnalytics();
         });
-
-        // Notification center button (right side of top bar)
-        notification_button_ = std::make_unique<Button>(
-            screen_width - 80, 5,
-            70, 30,
-            "",
-            ColorAlpha(DARKGRAY, 1.0f),
-            GOLD
-        );
-        notification_button_->SetClickCallback([this]() {
+        top_bar_->SetNotificationClickCallback([this]() {
             ToggleNotificationCenter();
         });
+
+        star_rating_panel_ = std::make_unique<StarRatingPanel>();
+        star_rating_panel_->SetGameState(&game_state_);
+
+        end_game_summary_ = std::make_unique<EndGameSummary>();
+        end_game_summary_->SetGameState(&game_state_);
     }
 
     HUD::~HUD() = default;
 
     void HUD::Update(const float delta_time) {
-        // Update notifications - remove expired ones
-        for (auto it = notifications_.begin(); it != notifications_.end();) {
-            it->time_remaining -= delta_time;
-            if (it->time_remaining <= 0.0f) {
-                it = notifications_.erase(it);
-            } else {
-                ++it;
-            }
-        }
-
         // Update notification center
         notification_center_->Update(delta_time);
 
         // Update window manager (handles repositioning on resize)
         window_manager_->Update(delta_time);
 
-        // Update action bar
+        // Update composed HUD components (they manage their own position/size)
         if (action_bar_) {
             action_bar_->Update(delta_time);
-
-            // Update position and size if screen resized - keep centered
-            const int screen_width = GetScreenWidth();
-            const int screen_height = GetScreenHeight();
-            const int bar_width = ActionBar::CalculateBarWidth();
-            const int bar_x = (screen_width - bar_width) / 2;
-            action_bar_->SetRelativePosition(bar_x, screen_height - ACTION_BAR_HEIGHT);
-            action_bar_->SetSize(bar_width, ACTION_BAR_HEIGHT);
         }
 
-        // Update speed control panel position and size on resize
         if (speed_control_panel_) {
-            const int screen_height = GetScreenHeight();
-            const int speed_width = SpeedControlPanel::CalculateWidth();
-            const int speed_height = SpeedControlPanel::CalculateHeight();
-            speed_control_panel_->SetRelativePosition(10, screen_height - speed_height - 10);
-            speed_control_panel_->SetSize(speed_width, speed_height);
-            speed_control_panel_->SetSpeedState(game_state_.speed_multiplier, game_state_.paused);
+            speed_control_panel_->Update(delta_time);
         }
 
-        // Update top bar buttons
-        if (income_button_) {
-            income_button_->Update(delta_time);
+        if (top_bar_) {
+            top_bar_->Update(delta_time);
         }
-        if (population_button_) {
-            population_button_->Update(delta_time);
-        }
-        if (notification_button_) {
-            // Update position on resize
-            const int screen_width = GetScreenWidth();
-            notification_button_->SetRelativePosition(screen_width - 80, 5);
-            notification_button_->Update(delta_time);
 
-            // Update button background color based on notification center state
-            const Color button_color = notification_center_->IsVisible() ? GOLD : ColorAlpha(DARKGRAY, 1.0f);
-            notification_button_->SetBackgroundColor(button_color);
+        if (star_rating_panel_) {
+            star_rating_panel_->Update(delta_time);
+        }
+
+        if (end_game_summary_) {
+            end_game_summary_->Update(delta_time);
         }
     }
 
     void HUD::Render() {
-        RenderTopBar();
-        RenderStarRating();
+        // Render composed HUD components
+        if (top_bar_) {
+            top_bar_->Render();
+        }
+
+        if (star_rating_panel_) {
+            star_rating_panel_->Render();
+        }
 
         // Render all info windows through the window manager
         window_manager_->Render();
@@ -159,35 +105,6 @@ namespace towerforge::ui {
             speed_control_panel_->Render();
         }
 
-        // Render top bar buttons (on top of top bar background)
-        if (income_button_) {
-            income_button_->Render();
-        }
-        if (population_button_) {
-            population_button_->Render();
-        }
-        if (notification_button_) {
-            notification_button_->Render();
-
-            // Render custom notification button content
-            const int notif_button_x = GetScreenWidth() - 80;
-            const int notif_button_y = 5;
-            const int unread_count = notification_center_->GetUnreadCount();
-
-            DrawText("N", notif_button_x + 10, notif_button_y + 7, 16, WHITE);
-
-            if (unread_count > 0) {
-                // Draw badge with count
-                const int badge_x = notif_button_x + 50;
-                const int badge_y = notif_button_y + 10;
-                DrawCircle(badge_x, badge_y, 10, RED);
-                std::string count_str = std::to_string(unread_count);
-                if (unread_count > 99) count_str = "99+";
-                const int text_width = MeasureText(count_str.c_str(), 10);
-                DrawText(count_str.c_str(), badge_x - text_width / 2, badge_y - 5, 10, WHITE);
-            }
-        }
-
         // Render tooltips on top
         tooltip_manager_->Render();
 
@@ -197,8 +114,8 @@ namespace towerforge::ui {
         }
 
         // Render end-game summary if max stars achieved
-        if (game_state_.rating.stars >= 5) {
-            RenderEndGameSummary();
+        if (end_game_summary_) {
+            end_game_summary_->Render();
         }
     }
 
@@ -229,14 +146,6 @@ namespace towerforge::ui {
     }
 
     void HUD::AddNotification(Notification::Type type, const std::string &message, float duration) {
-        // Add to legacy notification system for backward compatibility
-        notifications_.emplace_back(type, message, duration);
-        // Keep only the last 5 notifications
-        if (notifications_.size() > 5) {
-            notifications_.erase(notifications_.begin());
-        }
-
-        // Also add to new notification center
         NotificationType nc_type;
         switch (type) {
             case Notification::Type::Warning:
@@ -280,14 +189,8 @@ namespace towerforge::ui {
             }
         }
 
-        // Forward to top bar buttons
-        if (income_button_ && income_button_->ProcessMouseEvent(event)) {
-            return true;
-        }
-        if (population_button_ && population_button_->ProcessMouseEvent(event)) {
-            return true;
-        }
-        if (notification_button_ && notification_button_->ProcessMouseEvent(event)) {
+        // Forward to top bar
+        if (top_bar_ && top_bar_->ProcessMouseEvent(event)) {
             return true;
         }
 
@@ -375,11 +278,11 @@ namespace towerforge::ui {
         }
 
         // Check star rating panel
-        int rating_x = screen_width - STAR_RATING_WIDTH - 10;
-        int rating_y = TOP_BAR_HEIGHT + 10;
+        const int rating_x = screen_width - StarRatingPanel::WIDTH - 10;
+        const int rating_y = TOP_BAR_HEIGHT + 10;
 
-        if (mouse_x >= rating_x && mouse_x <= rating_x + STAR_RATING_WIDTH &&
-            mouse_y >= rating_y && mouse_y <= rating_y + STAR_RATING_HEIGHT) {
+        if (mouse_x >= rating_x && mouse_x <= rating_x + StarRatingPanel::WIDTH &&
+            mouse_y >= rating_y && mouse_y <= rating_y + StarRatingPanel::HEIGHT) {
             std::stringstream tooltip_text;
             tooltip_text << "Tower Rating System\n";
             tooltip_text << "Earn stars by:\n";
@@ -388,17 +291,19 @@ namespace towerforge::ui {
             tooltip_text << "- Expanding your tower\n";
             tooltip_text << "- Generating revenue";
             Tooltip tooltip(tooltip_text.str());
-            tooltip_manager_->ShowTooltip(tooltip, rating_x, rating_y, STAR_RATING_WIDTH, STAR_RATING_HEIGHT);
+            tooltip_manager_->ShowTooltip(tooltip, rating_x, rating_y, StarRatingPanel::WIDTH, StarRatingPanel::HEIGHT);
             return;
         }
 
         // Check speed controls
-        int speed_x = screen_width - SPEED_CONTROL_WIDTH - 10;
-        int speed_y = screen_height - SPEED_CONTROL_HEIGHT - 10;
+        const int speed_width = SpeedControlPanel::CalculateWidth();
+        const int speed_height = SpeedControlPanel::CalculateHeight();
+        const int speed_x = 10;
+        const int speed_y = screen_height - speed_height - 10;
 
-        if (mouse_x >= speed_x && mouse_x <= screen_width - 10 &&
+        if (mouse_x >= speed_x && mouse_x <= speed_x + speed_width &&
             mouse_y >= speed_y && mouse_y <= screen_height - 10) {
-            int button_width = 45;
+            const int button_width = SpeedControlPanel::CalculateButtonWidth();
             int button_x = speed_x + 5;
 
             // Pause button
@@ -437,171 +342,6 @@ namespace towerforge::ui {
         tooltip_manager_->HideTooltip();
     }
 
-    void HUD::RenderTopBar() const {
-        int screen_width = GetScreenWidth();
-
-        // Draw top bar background
-        DrawRectangle(0, 0, screen_width, TOP_BAR_HEIGHT, ColorAlpha(BLACK, 0.7f));
-        DrawRectangle(0, TOP_BAR_HEIGHT - 2, screen_width, 2, GOLD);
-
-        int x = 10;
-        int y = 10;
-
-        // Draw funds
-        std::stringstream funds_ss;
-        funds_ss << std::fixed << std::setprecision(0);
-        std::string income_sign = game_state_.income_rate >= 0 ? "+" : "";
-        funds_ss << "$" << game_state_.funds << " (" << income_sign << "$" << game_state_.income_rate << "/hr)";
-        DrawText(funds_ss.str().c_str(), x, y, 20, GREEN);
-
-        // Draw population
-        x += 300;
-        std::stringstream pop_ss;
-        pop_ss << "Population: " << game_state_.population;
-        DrawText(pop_ss.str().c_str(), x, y, 20, WHITE);
-
-        // Draw time
-        x += 200;
-        std::stringstream time_ss;
-        time_ss << FormatTime(game_state_.current_time) << " Day " << game_state_.current_day;
-        DrawText(time_ss.str().c_str(), x, y, 20, SKYBLUE);
-
-        // Draw speed indicator
-        x += 200;
-        std::string speed_text;
-        if (game_state_.paused) {
-            speed_text = "PAUSED";
-        } else {
-            speed_text = std::to_string(game_state_.speed_multiplier) + "x";
-        }
-        DrawText(speed_text.c_str(), x, y, 20, game_state_.paused ? RED : YELLOW);
-    }
-
-    void HUD::RenderStarRating() const {
-        int screen_width = GetScreenWidth();
-        int panel_x = screen_width - STAR_RATING_WIDTH - 10;
-        int panel_y = TOP_BAR_HEIGHT + 10;
-
-        // Draw panel background
-        DrawRectangle(panel_x, panel_y, STAR_RATING_WIDTH, STAR_RATING_HEIGHT, ColorAlpha(BLACK, 0.8f));
-        DrawRectangle(panel_x, panel_y, STAR_RATING_WIDTH, 2, GOLD);
-
-        int x = panel_x + PANEL_PADDING;
-        int y = panel_y + PANEL_PADDING;
-
-        // Title with stars
-        std::string stars_display;
-        for (int i = 0; i < 5; i++) {
-            if (i < game_state_.rating.stars) {
-                stars_display += "*"; // Filled star
-            } else {
-                stars_display += "o"; // Empty star (using 'o' as placeholder)
-            }
-        }
-
-        DrawText(stars_display.c_str(), x, y, 20, GOLD);
-        DrawText("Tower Rating", x + 110, y + 2, 16, WHITE);
-        y += 30;
-
-        // Satisfaction
-        std::stringstream sat_ss;
-        sat_ss << "Satisfaction: " << std::fixed << std::setprecision(0)
-                << game_state_.rating.average_satisfaction << "%";
-        DrawText(sat_ss.str().c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-
-        // Tenants
-        std::stringstream tenants_ss;
-        tenants_ss << "Tenants: " << game_state_.rating.total_tenants;
-        DrawText(tenants_ss.str().c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-
-        // Floors
-        std::stringstream floors_ss;
-        floors_ss << "Floors: " << game_state_.rating.total_floors;
-        DrawText(floors_ss.str().c_str(), x, y, 14, LIGHTGRAY);
-        y += 20;
-
-        // Income
-        std::stringstream income_ss;
-        income_ss << "Income: $" << std::fixed << std::setprecision(0)
-                << game_state_.rating.hourly_income << "/hr";
-        DrawText(income_ss.str().c_str(), x, y, 14, GREEN);
-        y += 25;
-
-        // Next milestone (only if not at max stars)
-        if (game_state_.rating.stars < 5) {
-            DrawRectangle(panel_x + 5, y, STAR_RATING_WIDTH - 10, 1, DARKGRAY);
-            y += 10;
-
-            std::string next_star = "Next star:";
-            DrawText(next_star.c_str(), x, y, 14, YELLOW);
-            y += 20;
-
-            // Show the most relevant requirement
-            if (game_state_.rating.next_star_tenants > 0) {
-                if (int needed = game_state_.rating.next_star_tenants - game_state_.rating.total_tenants; needed > 0) {
-                    std::stringstream next_ss;
-                    next_ss << "  +" << needed << " tenants";
-                    DrawText(next_ss.str().c_str(), x, y, 12, GRAY);
-                    y += 18;
-                }
-            }
-
-            if (game_state_.rating.next_star_satisfaction > 0) {
-                if (float needed = game_state_.rating.next_star_satisfaction - game_state_.rating.average_satisfaction;
-                    needed > 0) {
-                    std::stringstream next_ss;
-                    next_ss << "  " << std::fixed << std::setprecision(0)
-                            << needed << "% satisfaction";
-                    DrawText(next_ss.str().c_str(), x, y, 12, GRAY);
-                    y += 18;
-                }
-            }
-        } else {
-            DrawRectangle(panel_x + 5, y, STAR_RATING_WIDTH - 10, 1, GOLD);
-            y += 10;
-            DrawText("MAX RATING!", x + 45, y, 16, GOLD);
-        }
-    }
-
-    void HUD::RenderNotifications() {
-        const int screen_height = GetScreenHeight();
-        constexpr int x = 10;
-        int y = screen_height - 10;
-
-        // Render notifications from bottom to top
-        for (auto it = notifications_.rbegin(); it != notifications_.rend(); ++it) {
-            y -= NOTIFICATION_HEIGHT + 5;
-
-            Color bg_color;
-            const char *icon;
-
-            switch (it->type) {
-                case Notification::Type::Warning:
-                    bg_color = ColorAlpha(ORANGE, 0.8f);
-                    icon = "!";
-                    break;
-                case Notification::Type::Success:
-                    bg_color = ColorAlpha(GREEN, 0.8f);
-                    icon = "+";
-                    break;
-                case Notification::Type::Info:
-                    bg_color = ColorAlpha(SKYBLUE, 0.8f);
-                    icon = "i";
-                    break;
-                case Notification::Type::Error:
-                    bg_color = ColorAlpha(RED, 0.8f);
-                    icon = "X";
-                    break;
-            }
-
-            DrawRectangle(x, y, NOTIFICATION_WIDTH, NOTIFICATION_HEIGHT, bg_color);
-            DrawText(icon, x + 5, y + 5, 20, WHITE);
-            DrawText(it->message.c_str(), x + 30, y + 7, 14, WHITE);
-        }
-    }
-
     std::string HUD::FormatTime(const float time) {
         const int hours = static_cast<int>(time);
         const int minutes = static_cast<int>((time - hours) * 60);
@@ -618,72 +358,6 @@ namespace towerforge::ui {
         result << display_hours << ":" << std::setfill('0') << std::setw(2) << minutes << period;
 
         return result.str();
-    }
-
-    void HUD::RenderEndGameSummary() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-
-        // Semi-transparent overlay
-        DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.7f));
-
-        // Summary box
-        constexpr int box_width = 400;
-        constexpr int box_height = 300;
-        const int box_x = (screen_width - box_width) / 2;
-        const int box_y = (screen_height - box_height) / 2;
-
-        DrawRectangle(box_x, box_y, box_width, box_height, ColorAlpha(BLACK, 0.95f));
-        DrawRectangle(box_x, box_y, box_width, 3, GOLD);
-        DrawRectangle(box_x, box_y + box_height - 3, box_width, 3, GOLD);
-
-        const int x = box_x + 20;
-        int y = box_y + 20;
-
-        // Title
-        DrawText("CONGRATULATIONS!", x + 50, y, 24, GOLD);
-        y += 40;
-
-        // Stars
-        DrawText("*****", x + 140, y, 32, GOLD);
-        y += 50;
-
-        // Achievement message
-        DrawText("You've achieved the maximum", x + 40, y, 16, WHITE);
-        y += 25;
-        DrawText("5-star tower rating!", x + 90, y, 16, WHITE);
-        y += 40;
-
-        // Final statistics
-        std::stringstream stats_ss;
-        stats_ss << "Final Statistics:";
-        DrawText(stats_ss.str().c_str(), x + 20, y, 14, SKYBLUE);
-        y += 25;
-
-        stats_ss.str("");
-        stats_ss << "  Tenants: " << game_state_.rating.total_tenants;
-        DrawText(stats_ss.str().c_str(), x + 30, y, 14, LIGHTGRAY);
-        y += 20;
-
-        stats_ss.str("");
-        stats_ss << "  Floors: " << game_state_.rating.total_floors;
-        DrawText(stats_ss.str().c_str(), x + 30, y, 14, LIGHTGRAY);
-        y += 20;
-
-        stats_ss.str("");
-        stats_ss << "  Satisfaction: " << std::fixed << std::setprecision(0)
-                << game_state_.rating.average_satisfaction << "%";
-        DrawText(stats_ss.str().c_str(), x + 30, y, 14, LIGHTGRAY);
-        y += 20;
-
-        stats_ss.str("");
-        stats_ss << "  Income: $" << std::fixed << std::setprecision(0)
-                << game_state_.rating.hourly_income << "/hr";
-        DrawText(stats_ss.str().c_str(), x + 30, y, 14, GREEN);
-        y += 30;
-
-        // Continue message
-        DrawText("(Continue playing to build more!)", x + 55, y, 12, GRAY);
     }
 
     void HUD::ToggleNotificationCenter() const {

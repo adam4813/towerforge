@@ -1,4 +1,5 @@
 #include "ui/speed_control_panel.h"
+#include "ui/hud/hud.h"
 #include "ui/mouse_interface.h"
 #include <raylib.h>
 
@@ -6,6 +7,7 @@ namespace towerforge::ui {
 
     SpeedControlPanel::SpeedControlPanel(float x, float y, float width, float height)
         : Panel(x, y, width, height, ColorAlpha(BLACK, 0.7f), LIGHTGRAY)
+        , game_state_(nullptr)
         , pause_button_(nullptr)
         , speed_1x_button_(nullptr)
         , speed_2x_button_(nullptr)
@@ -17,6 +19,26 @@ namespace towerforge::ui {
         SetPadding(PADDING);
         BuildButtons();
         UpdateButtonStates();
+    }
+
+    void SpeedControlPanel::Update(float delta_time) {
+        Panel::Update(delta_time);
+
+        // Update position and size on resize
+        const int screen_height = GetScreenHeight();
+        const int speed_width = CalculateWidth();
+        const int speed_height = CalculateHeight();
+        SetRelativePosition(10, screen_height - speed_height - 10);
+        SetSize(speed_width, speed_height);
+
+        // Update speed state from game state
+        if (game_state_) {
+            if (current_speed_ != game_state_->speed_multiplier || is_paused_ != game_state_->paused) {
+                current_speed_ = game_state_->speed_multiplier;
+                is_paused_ = game_state_->paused;
+                UpdateButtonStates();
+            }
+        }
     }
 
     void SpeedControlPanel::BuildButtons() {
@@ -88,14 +110,6 @@ namespace towerforge::ui {
     void SpeedControlPanel::OnSpeedClick(int speed) {
         if (speed_callback_) {
             speed_callback_(speed, false);
-        }
-    }
-
-    void SpeedControlPanel::SetSpeedState(const int speed, const bool paused) {
-        if (current_speed_ != speed || is_paused_ != paused) {
-            current_speed_ = speed;
-            is_paused_ = paused;
-            UpdateButtonStates();
         }
     }
 

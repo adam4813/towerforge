@@ -19,6 +19,9 @@ set(SOURCE_FILES
     src/rendering/camera.cpp
     src/ui/action_bar.cpp
     src/ui/hud/hud.cpp
+    src/ui/hud/top_bar.cpp
+    src/ui/hud/star_rating_panel.cpp
+    src/ui/hud/end_game_summary.cpp
     src/ui/speed_control_panel.cpp
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp

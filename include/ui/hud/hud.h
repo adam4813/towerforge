@@ -20,6 +20,9 @@ namespace towerforge::ui {
     struct ElevatorAnalytics;
     struct PopulationBreakdown;
     class PopulationAnalyticsOverlay;
+    class TopBar;
+    class StarRatingPanel;
+    class EndGameSummary;
 
     /**
  * @brief Structure to hold tower rating information
@@ -285,11 +288,6 @@ namespace towerforge::ui {
         SpeedControlPanel* GetSpeedControlPanel() const { return speed_control_panel_.get(); }
     
     private:
-        void RenderTopBar() const;
-        void RenderStarRating() const;
-        void RenderNotifications();
-        void RenderEndGameSummary() const;
-
         static std::string FormatTime(float time);
     
         GameState game_state_;
@@ -309,30 +307,18 @@ namespace towerforge::ui {
 
         // Speed control panel in lower-left corner
         std::unique_ptr<SpeedControlPanel> speed_control_panel_;
-        
-        // Top bar interactive buttons
-        std::unique_ptr<Button> income_button_;
-        std::unique_ptr<Button> population_button_;
-        std::unique_ptr<Button> notification_button_;
+
+        // Composed HUD components
+        std::unique_ptr<TopBar> top_bar_;
+        std::unique_ptr<StarRatingPanel> star_rating_panel_;
+        std::unique_ptr<EndGameSummary> end_game_summary_;
     
-        // Legacy notifications (for backward compatibility with toasts)
-        std::vector<Notification> notifications_;
-        
         // Analytics callbacks
         std::function<IncomeBreakdown()> income_analytics_callback_;
         std::function<PopulationBreakdown()> population_analytics_callback_;
     
         // UI layout constants
         static constexpr int TOP_BAR_HEIGHT = 40;
-        static constexpr int PANEL_WIDTH = 250;
-        static constexpr int PANEL_PADDING = 10;
-        static constexpr int NOTIFICATION_WIDTH = 300;
-        static constexpr int NOTIFICATION_HEIGHT = 30;
-        static constexpr int STAR_RATING_WIDTH = 230;
-        static constexpr int STAR_RATING_HEIGHT = 180;
-        static constexpr int ACTION_BAR_HEIGHT = 50;
-        static constexpr int SPEED_CONTROL_WIDTH = 200;
-        static constexpr int SPEED_CONTROL_HEIGHT = 50;
     };
 
 }

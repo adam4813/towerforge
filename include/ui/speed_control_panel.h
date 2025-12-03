@@ -8,6 +8,8 @@
 
 namespace towerforge::ui {
 
+    struct GameState;
+
     /**
      * @brief Speed control panel for game simulation speed
      * 
@@ -22,11 +24,14 @@ namespace towerforge::ui {
         ~SpeedControlPanel() override = default;
 
         /**
-         * @brief Set current speed state (reactive update)
-         * @param speed Speed multiplier (1, 2, 4)
-         * @param paused Whether simulation is paused
+         * @brief Update panel state and position
          */
-        void SetSpeedState(int speed, bool paused);
+        void Update(float delta_time);
+
+        /**
+         * @brief Set the game state reference for reading speed/pause state
+         */
+        void SetGameState(const GameState* state) { game_state_ = state; }
 
         /**
          * @brief Set callback for speed changes
@@ -34,6 +39,8 @@ namespace towerforge::ui {
         void SetSpeedCallback(SpeedCallback callback) { speed_callback_ = callback; }
 
     private:
+        const GameState* game_state_;
+
         // Button children (ownership transferred to Panel via AddChild)
         IconButton* pause_button_;
         IconButton* speed_1x_button_;
