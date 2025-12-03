@@ -5,7 +5,7 @@
 #include "ui/audio_settings_menu.h"
 #include "ui/accessibility_settings_menu.h"
 #include "ui/achievements_menu.h"
-#include "ui/hud.h"
+#include "ui/hud/hud.h"
 #include <memory>
 
 namespace towerforge::ui {

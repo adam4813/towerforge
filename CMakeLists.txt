@@ -18,7 +18,7 @@ set(SOURCE_FILES
     src/rendering/renderer.cpp
     src/rendering/camera.cpp
     src/ui/action_bar.cpp
-    src/ui/hud.cpp
+    src/ui/hud/hud.cpp
     src/ui/speed_control_panel.cpp
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp

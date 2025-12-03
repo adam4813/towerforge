@@ -5,7 +5,7 @@
 #include "core/game.h"
 #include <raylib.h>
 
-#include "ui/hud.h"
+#include "ui/hud/hud.h"
 #include "ui/action_bar.h"
 #include "ui/notification_center.h"
 #include "ui/speed_control_panel.h"

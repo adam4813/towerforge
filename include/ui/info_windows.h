@@ -2,7 +2,7 @@
 
 #include "ui/ui_window.h"
 #include "ui/ui_element.h"
-#include "ui/hud.h"
+#include "hud/hud.h"
 #include "ui/stat_item.h"
 #include "ui/alert_bar.h"
 #include "ui/section_header.h"

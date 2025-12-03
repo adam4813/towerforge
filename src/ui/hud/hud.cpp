@@ -1,4 +1,4 @@
-#include "ui/hud.h"
+#include "ui/hud/hud.h"
 #include "ui/ui_window_manager.h"
 #include "ui/info_windows.h"
 #include "ui/tooltip.h"
@@ -13,19 +13,18 @@
 #include <algorithm>
 
 namespace towerforge::ui {
-
     HUD::HUD()
         : action_bar_callback_(nullptr) {
         window_manager_ = std::make_unique<UIWindowManager>();
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
-        
+
         // Create action bar at bottom of screen - fixed width, centered
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
         const int bar_width = ActionBar::CalculateBarWidth();
         const int bar_x = (screen_width - bar_width) / 2;
-        
+
         action_bar_ = std::make_unique<ActionBar>(
             bar_x,
             screen_height - ACTION_BAR_HEIGHT,
@@ -42,7 +41,7 @@ namespace towerforge::ui {
             speed_width,
             speed_height
         );
-        
+
         // Create top bar interactive buttons
         // Income button (left side of top bar)
         income_button_ = std::make_unique<Button>(
@@ -55,7 +54,7 @@ namespace towerforge::ui {
         income_button_->SetClickCallback([this]() {
             RequestIncomeAnalytics();
         });
-        
+
         // Population button (center of top bar)
         population_button_ = std::make_unique<Button>(
             310, 5,
@@ -67,7 +66,7 @@ namespace towerforge::ui {
         population_button_->SetClickCallback([this]() {
             RequestPopulationAnalytics();
         });
-        
+
         // Notification center button (right side of top bar)
         notification_button_ = std::make_unique<Button>(
             screen_width - 80, 5,
@@ -93,17 +92,17 @@ namespace towerforge::ui {
                 ++it;
             }
         }
-    
+
         // Update notification center
         notification_center_->Update(delta_time);
-        
+
         // Update window manager (handles repositioning on resize)
         window_manager_->Update(delta_time);
-        
+
         // Update action bar
         if (action_bar_) {
             action_bar_->Update(delta_time);
-            
+
             // Update position and size if screen resized - keep centered
             const int screen_width = GetScreenWidth();
             const int screen_height = GetScreenHeight();
@@ -122,7 +121,7 @@ namespace towerforge::ui {
             speed_control_panel_->SetSize(speed_width, speed_height);
             speed_control_panel_->SetSpeedState(game_state_.speed_multiplier, game_state_.paused);
         }
-        
+
         // Update top bar buttons
         if (income_button_) {
             income_button_->Update(delta_time);
@@ -135,7 +134,7 @@ namespace towerforge::ui {
             const int screen_width = GetScreenWidth();
             notification_button_->SetRelativePosition(screen_width - 80, 5);
             notification_button_->Update(delta_time);
-            
+
             // Update button background color based on notification center state
             const Color button_color = notification_center_->IsVisible() ? GOLD : ColorAlpha(DARKGRAY, 1.0f);
             notification_button_->SetBackgroundColor(button_color);
@@ -151,15 +150,15 @@ namespace towerforge::ui {
 
         // Render notification center toasts in upper-right
         notification_center_->RenderToasts();
-    
+
         // Render notification center panel if visible
         notification_center_->Render();
-    
+
         // Render speed controls in lower-left
         if (speed_control_panel_) {
             speed_control_panel_->Render();
         }
-        
+
         // Render top bar buttons (on top of top bar background)
         if (income_button_) {
             income_button_->Render();
@@ -169,14 +168,14 @@ namespace towerforge::ui {
         }
         if (notification_button_) {
             notification_button_->Render();
-            
+
             // Render custom notification button content
             const int notif_button_x = GetScreenWidth() - 80;
             const int notif_button_y = 5;
             const int unread_count = notification_center_->GetUnreadCount();
-            
+
             DrawText("N", notif_button_x + 10, notif_button_y + 7, 16, WHITE);
-            
+
             if (unread_count > 0) {
                 // Draw badge with count
                 const int badge_x = notif_button_x + 50;
@@ -203,23 +202,23 @@ namespace towerforge::ui {
         }
     }
 
-    void HUD::SetGameState(const GameState& state) {
+    void HUD::SetGameState(const GameState &state) {
         game_state_ = state;
     }
 
-    void HUD::ShowFacilityInfo(const FacilityInfo& info) const {
+    void HUD::ShowFacilityInfo(const FacilityInfo &info) const {
         // Create a new facility window and add it to the window manager
         auto window = std::make_unique<FacilityWindow>(info);
         window_manager_->AddInfoWindow(std::move(window));
     }
 
-    void HUD::ShowPersonInfo(const PersonInfo& info) const {
+    void HUD::ShowPersonInfo(const PersonInfo &info) const {
         // Create a new person window and add it to the window manager
         auto window = std::make_unique<PersonWindow>(info);
         window_manager_->AddInfoWindow(std::move(window));
     }
 
-    void HUD::ShowElevatorInfo(const ElevatorInfo& info) const {
+    void HUD::ShowElevatorInfo(const ElevatorInfo &info) const {
         // Create a new elevator window and add it to the window manager
         auto window = std::make_unique<ElevatorWindow>(info);
         window_manager_->AddInfoWindow(std::move(window));
@@ -229,14 +228,14 @@ namespace towerforge::ui {
         window_manager_->Clear();
     }
 
-    void HUD::AddNotification(Notification::Type type, const std::string& message, float duration) {
+    void HUD::AddNotification(Notification::Type type, const std::string &message, float duration) {
         // Add to legacy notification system for backward compatibility
         notifications_.emplace_back(type, message, duration);
         // Keep only the last 5 notifications
         if (notifications_.size() > 5) {
             notifications_.erase(notifications_.begin());
         }
-    
+
         // Also add to new notification center
         NotificationType nc_type;
         switch (type) {
@@ -256,32 +255,31 @@ namespace towerforge::ui {
                 nc_type = NotificationType::Info;
                 break;
         }
-    
-        notification_center_->AddNotification("Notification", message, nc_type, 
-                                               NotificationPriority::Medium, duration);
+
+        notification_center_->AddNotification("Notification", message, nc_type,
+                                              NotificationPriority::Medium, duration);
     }
 
 
-
-    bool HUD::ProcessMouseEvent(const MouseEvent& event) {
+    bool HUD::ProcessMouseEvent(const MouseEvent &event) {
         // Forward to action bar
         if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
             return true;
         }
-        
+
         // Forward to speed control panel
         if (speed_control_panel_ && speed_control_panel_->ProcessMouseEvent(event)) {
             return true;
         }
-        
+
         // Handle notification center clicks
         if (notification_center_->IsVisible() && event.left_pressed) {
-            if (const_cast<NotificationCenter*>(notification_center_.get())->HandleClick(
+            if (const_cast<NotificationCenter *>(notification_center_.get())->HandleClick(
                 static_cast<int>(event.x), static_cast<int>(event.y))) {
                 return true;
             }
         }
-        
+
         // Forward to top bar buttons
         if (income_button_ && income_button_->ProcessMouseEvent(event)) {
             return true;
@@ -292,17 +290,17 @@ namespace towerforge::ui {
         if (notification_button_ && notification_button_->ProcessMouseEvent(event)) {
             return true;
         }
-        
+
         // Consume any other clicks on top bar
         if (event.left_pressed && event.y <= TOP_BAR_HEIGHT) {
             return true;
         }
-        
+
         // Handle info window clicks
         if (event.left_pressed && window_manager_->HandleClick(static_cast<int>(event.x), static_cast<int>(event.y))) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -331,7 +329,8 @@ namespace towerforge::ui {
             x += 300;
             // Population tooltip
             if (mouse_x >= x && mouse_x <= x + 180) {
-                Tooltip tooltip("Total population in your tower.\nIncreases as you build residential facilities.\nClick for detailed population analytics.");
+                Tooltip tooltip(
+                    "Total population in your tower.\nIncreases as you build residential facilities.\nClick for detailed population analytics.");
                 tooltip_manager_->ShowTooltip(tooltip, x, 0, 180, TOP_BAR_HEIGHT);
                 return;
             }
@@ -358,7 +357,7 @@ namespace towerforge::ui {
                 tooltip_manager_->ShowTooltip(tooltip, x, 0, 100, TOP_BAR_HEIGHT);
                 return;
             }
-        
+
             // Notification center button tooltip
             int notif_button_x = screen_width - 80;
             if (mouse_x >= notif_button_x && mouse_x <= notif_button_x + 70) {
@@ -399,7 +398,6 @@ namespace towerforge::ui {
 
         if (mouse_x >= speed_x && mouse_x <= screen_width - 10 &&
             mouse_y >= speed_y && mouse_y <= screen_height - 10) {
-
             int button_width = 45;
             int button_x = speed_x + 5;
 
@@ -495,9 +493,9 @@ namespace towerforge::ui {
         std::string stars_display;
         for (int i = 0; i < 5; i++) {
             if (i < game_state_.rating.stars) {
-                stars_display += "*";  // Filled star
+                stars_display += "*"; // Filled star
             } else {
-                stars_display += "o";  // Empty star (using 'o' as placeholder)
+                stars_display += "o"; // Empty star (using 'o' as placeholder)
             }
         }
 
@@ -551,7 +549,8 @@ namespace towerforge::ui {
             }
 
             if (game_state_.rating.next_star_satisfaction > 0) {
-                if (float needed = game_state_.rating.next_star_satisfaction - game_state_.rating.average_satisfaction; needed > 0) {
+                if (float needed = game_state_.rating.next_star_satisfaction - game_state_.rating.average_satisfaction;
+                    needed > 0) {
                     std::stringstream next_ss;
                     next_ss << "  " << std::fixed << std::setprecision(0)
                             << needed << "% satisfaction";
@@ -576,7 +575,7 @@ namespace towerforge::ui {
             y -= NOTIFICATION_HEIGHT + 5;
 
             Color bg_color;
-            const char* icon;
+            const char *icon;
 
             switch (it->type) {
                 case Notification::Type::Warning:
@@ -691,17 +690,17 @@ namespace towerforge::ui {
         notification_center_->ToggleVisibility();
     }
 
-    void HUD::ShowIncomeAnalytics(const IncomeBreakdown& data) const {
+    void HUD::ShowIncomeAnalytics(const IncomeBreakdown &data) const {
         auto window = std::make_unique<IncomeAnalyticsOverlay>(data);
         window_manager_->AddAnalyticsWindow(std::move(window));
     }
 
-    void HUD::ShowElevatorAnalytics(const ElevatorAnalytics& data) const {
+    void HUD::ShowElevatorAnalytics(const ElevatorAnalytics &data) const {
         auto window = std::make_unique<ElevatorAnalyticsOverlay>(data);
         window_manager_->AddAnalyticsWindow(std::move(window));
     }
 
-    void HUD::ShowPopulationAnalytics(const PopulationBreakdown& data) const {
+    void HUD::ShowPopulationAnalytics(const PopulationBreakdown &data) const {
         auto window = std::make_unique<PopulationAnalyticsOverlay>(data);
         window_manager_->AddAnalyticsWindow(std::move(window));
     }
@@ -730,7 +729,7 @@ namespace towerforge::ui {
 
     void HUD::SetActionBarCallback(ActionBarCallback callback) {
         action_bar_callback_ = callback;
-        
+
         if (action_bar_) {
             action_bar_->SetActionCallback([this, callback](ActionBar::Action action) {
                 if (callback) {
@@ -739,5 +738,4 @@ namespace towerforge::ui {
             });
         }
     }
-
 }

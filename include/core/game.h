@@ -8,7 +8,7 @@
 #include "core/ecs_world.hpp"
 #include "core/save_load_manager.hpp"
 #include "core/achievement_manager.hpp"
-#include "ui/hud.h"
+#include "ui/hud/hud.h"
 #include "ui/build_menu.h"
 #include "ui/placement_system.h"
 #include "ui/history_panel.h"
