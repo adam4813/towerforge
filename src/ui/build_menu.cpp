@@ -181,6 +181,24 @@ namespace towerforge::ui {
                     return false;
                 });
 
+                // Add hover callback for tooltips
+                button->SetHoverCallback([this, facility_index, btn_ptr = button.get()](const engine::ui::MouseEvent &event) {
+                    if (tooltip_manager_ && facility_index >= 0 && facility_index < static_cast<int>(facility_types_.size())) {
+                        const auto& fac = facility_types_[facility_index];
+                        std::stringstream ss;
+                        ss << fac.name << "\nCost: $" << fac.cost << "\nWidth: " << fac.width << " cells";
+                        const auto bounds = btn_ptr->GetAbsoluteBounds();
+                        tooltip_manager_->ShowTooltip(
+                            Tooltip(ss.str()),
+                            static_cast<int>(bounds.x),
+                            static_cast<int>(bounds.y),
+                            static_cast<int>(bounds.width),
+                            static_cast<int>(bounds.height)
+                        );
+                    }
+                    return true;
+                });
+
                 content->AddChild(std::move(button));
             }
         }

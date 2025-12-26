@@ -1,6 +1,9 @@
 #include "ui/tooltip.h"
+#include "ui/ui_theme.h"
 #include <algorithm>
 #include <sstream>
+
+import engine;
 
 namespace towerforge::ui {
 
@@ -166,14 +169,22 @@ namespace towerforge::ui {
             y = 5;
         }
 
-        // Draw background
-        DrawRectangle(x, y, tooltip_width, tooltip_height, ColorAlpha(BLACK, 0.95f));
-        DrawRectangleLines(x, y, tooltip_width, tooltip_height, GOLD);
+        // Draw background using engine BatchRenderer
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(x), static_cast<float>(y), 
+                                  static_cast<float>(tooltip_width), static_cast<float>(tooltip_height)),
+            UITheme::ToEngineColor(ColorAlpha(BLACK, 0.95f))
+        );
+        
+        // Draw border
+        DrawRectangleLines(x, y, tooltip_width, tooltip_height, UITheme::PRIMARY);
 
-        // Draw text
+        // Draw text using engine BatchRenderer
         int text_y = y + TOOLTIP_PADDING;
         for (const auto& line : lines) {
-            DrawText(line.c_str(), x + TOOLTIP_PADDING, text_y, TOOLTIP_FONT_SIZE, WHITE);
+            engine::ui::BatchRenderer::SubmitText(line, static_cast<float>(x + TOOLTIP_PADDING), 
+                                                  static_cast<float>(text_y), TOOLTIP_FONT_SIZE, 
+                                                  UITheme::ToEngineColor(WHITE));
             text_y += line_height;
         }
     }

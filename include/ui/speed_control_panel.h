@@ -2,7 +2,6 @@
 
 #include "ui/ui_theme.h"
 #include "ui/mouse_interface.h"
-#include <raylib.h>
 #include <functional>
 #include <algorithm>
 #include <memory>
@@ -10,7 +9,6 @@
 import engine;
 
 namespace towerforge::ui {
-
     struct GameState;
 
     /**
@@ -24,6 +22,7 @@ namespace towerforge::ui {
         using SpeedCallback = std::function<void(int speed, bool paused)>;
 
         SpeedControlPanel(float x, float y, float width, float height);
+
         ~SpeedControlPanel() = default;
 
         /**
@@ -39,12 +38,12 @@ namespace towerforge::ui {
         /**
          * @brief Process mouse events (towerforge event type)
          */
-        bool ProcessMouseEvent(const MouseEvent& event);
+        bool ProcessMouseEvent(const MouseEvent &event);
 
         /**
          * @brief Set the game state reference for reading speed/pause state
          */
-        void SetGameState(const GameState* state) { game_state_ = state; }
+        void SetGameState(const GameState *state) { game_state_ = state; }
 
         /**
          * @brief Set callback for speed changes
@@ -53,14 +52,14 @@ namespace towerforge::ui {
 
     private:
         std::unique_ptr<engine::ui::elements::Panel> main_panel_;
-        const GameState* game_state_;
+        const GameState *game_state_;
 
         // Button references (ownership in main_panel_)
-        engine::ui::elements::Button* pause_button_;
-        engine::ui::elements::Button* speed_1x_button_;
-        engine::ui::elements::Button* speed_2x_button_;
-        engine::ui::elements::Button* speed_4x_button_;
-        
+        engine::ui::elements::Button *pause_button_;
+        engine::ui::elements::Button *speed_1x_button_;
+        engine::ui::elements::Button *speed_2x_button_;
+        engine::ui::elements::Button *speed_4x_button_;
+
         int current_speed_;
         bool is_paused_;
         SpeedCallback speed_callback_;
@@ -72,12 +71,15 @@ namespace towerforge::ui {
         static constexpr int MIN_WIDTH = 100;
         static constexpr int BUTTON_SPACING = 5;
         static constexpr int PADDING = 5;
-        
+
         void BuildComponents();
+
         void UpdateButtonStates();
+
         void OnPauseClick();
+
         void OnSpeedClick(int speed);
-        
+
     public:
         // Calculate responsive width
         static int CalculateWidth() {
@@ -85,13 +87,13 @@ namespace towerforge::ui {
             const int max_width = static_cast<int>(screen_width * MAX_WIDTH_PERCENT);
             return std::clamp(std::min(BASE_WIDTH, max_width), MIN_WIDTH, BASE_WIDTH);
         }
-        
+
         // Calculate responsive height based on width
         static int CalculateHeight() {
             const int width = CalculateWidth();
             return static_cast<int>(BASE_HEIGHT * (static_cast<float>(width) / BASE_WIDTH));
         }
-        
+
         // Calculate button width based on panel width
         static int CalculateButtonWidth() {
             const int panel_width = CalculateWidth();
@@ -100,5 +102,4 @@ namespace towerforge::ui {
             return std::max(20, available_width / num_buttons);
         }
     };
-
 } // namespace towerforge::ui
