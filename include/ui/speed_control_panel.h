@@ -1,10 +1,13 @@
 #pragma once
 
-#include "ui/ui_element.h"
-#include "ui/icon_button.h"
+#include "ui/ui_theme.h"
+#include "ui/mouse_interface.h"
 #include <raylib.h>
 #include <functional>
 #include <algorithm>
+#include <memory>
+
+import engine;
 
 namespace towerforge::ui {
 
@@ -13,20 +16,30 @@ namespace towerforge::ui {
     /**
      * @brief Speed control panel for game simulation speed
      * 
-     * Declarative UI component following UI Development Bible patterns.
-     * Uses proper Composite pattern with IconButton children.
+     * Declarative UI component using citrus engine Panel and Button elements.
+     * Provides pause/play and speed multiplier controls.
      */
-    class SpeedControlPanel : public Panel {
+    class SpeedControlPanel {
     public:
         using SpeedCallback = std::function<void(int speed, bool paused)>;
 
         SpeedControlPanel(float x, float y, float width, float height);
-        ~SpeedControlPanel() override = default;
+        ~SpeedControlPanel() = default;
 
         /**
          * @brief Update panel state and position
          */
         void Update(float delta_time);
+
+        /**
+         * @brief Render the panel
+         */
+        void Render() const;
+
+        /**
+         * @brief Process mouse events (towerforge event type)
+         */
+        bool ProcessMouseEvent(const MouseEvent& event);
 
         /**
          * @brief Set the game state reference for reading speed/pause state
@@ -39,13 +52,14 @@ namespace towerforge::ui {
         void SetSpeedCallback(SpeedCallback callback) { speed_callback_ = callback; }
 
     private:
+        std::unique_ptr<engine::ui::elements::Panel> main_panel_;
         const GameState* game_state_;
 
-        // Button children (ownership transferred to Panel via AddChild)
-        IconButton* pause_button_;
-        IconButton* speed_1x_button_;
-        IconButton* speed_2x_button_;
-        IconButton* speed_4x_button_;
+        // Button references (ownership in main_panel_)
+        engine::ui::elements::Button* pause_button_;
+        engine::ui::elements::Button* speed_1x_button_;
+        engine::ui::elements::Button* speed_2x_button_;
+        engine::ui::elements::Button* speed_4x_button_;
         
         int current_speed_;
         bool is_paused_;
@@ -59,7 +73,7 @@ namespace towerforge::ui {
         static constexpr int BUTTON_SPACING = 5;
         static constexpr int PADDING = 5;
         
-        void BuildButtons();
+        void BuildComponents();
         void UpdateButtonStates();
         void OnPauseClick();
         void OnSpeedClick(int speed);

@@ -1,13 +1,10 @@
 #include "ui/speed_control_panel.h"
 #include "ui/hud/hud.h"
-#include "ui/mouse_interface.h"
-#include <raylib.h>
 
 namespace towerforge::ui {
 
-    SpeedControlPanel::SpeedControlPanel(float x, float y, float width, float height)
-        : Panel(x, y, width, height, ColorAlpha(BLACK, 0.7f), LIGHTGRAY)
-        , game_state_(nullptr)
+    SpeedControlPanel::SpeedControlPanel(float /*x*/, float /*y*/, float /*width*/, float /*height*/)
+        : game_state_(nullptr)
         , pause_button_(nullptr)
         , speed_1x_button_(nullptr)
         , speed_2x_button_(nullptr)
@@ -16,20 +13,113 @@ namespace towerforge::ui {
         , is_paused_(false)
         , speed_callback_(nullptr) {
         
-        SetPadding(PADDING);
-        BuildButtons();
+        BuildComponents();
         UpdateButtonStates();
     }
 
-    void SpeedControlPanel::Update(float delta_time) {
-        Panel::Update(delta_time);
+    void SpeedControlPanel::BuildComponents() {
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
+
+        const int speed_width = CalculateWidth();
+        const int speed_height = CalculateHeight();
+        const int screen_height = GetScreenHeight();
+        
+        main_panel_ = std::make_unique<Panel>();
+        main_panel_->SetSize(static_cast<float>(speed_width), static_cast<float>(speed_height));
+        main_panel_->SetRelativePosition(10, static_cast<float>(screen_height - speed_height - 10));
+        main_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f)));
+        main_panel_->SetBorderColor(UITheme::ToEngineColor(LIGHTGRAY));
+        main_panel_->SetBorderWidth(1.0f);
+        main_panel_->SetPadding(static_cast<float>(PADDING));
+        main_panel_->AddComponent<LayoutComponent>(
+            std::make_unique<HorizontalLayout>(static_cast<float>(BUTTON_SPACING), Alignment::Center)
+        );
+
+        const int button_width = CalculateButtonWidth();
+        const int button_height = speed_height - PADDING * 2;
+
+        // Pause button
+        auto pause = std::make_unique<engine::ui::elements::Button>(
+            button_width, button_height, "||", 12
+        );
+        pause->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
+        pause->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.8f)));
+        pause->SetTextColor(UITheme::ToEngineColor(WHITE));
+        pause->SetClickCallback([this](const engine::ui::MouseEvent& event) {
+            if (event.left_pressed) {
+                OnPauseClick();
+                return true;
+            }
+            return false;
+        });
+        pause_button_ = pause.get();
+        main_panel_->AddChild(std::move(pause));
+
+        // 1x speed button
+        auto speed_1x = std::make_unique<engine::ui::elements::Button>(
+            button_width, button_height, "1x", 12
+        );
+        speed_1x->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
+        speed_1x->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.8f)));
+        speed_1x->SetTextColor(UITheme::ToEngineColor(WHITE));
+        speed_1x->SetClickCallback([this](const engine::ui::MouseEvent& event) {
+            if (event.left_pressed) {
+                OnSpeedClick(1);
+                return true;
+            }
+            return false;
+        });
+        speed_1x_button_ = speed_1x.get();
+        main_panel_->AddChild(std::move(speed_1x));
+
+        // 2x speed button
+        auto speed_2x = std::make_unique<engine::ui::elements::Button>(
+            button_width, button_height, "2x", 12
+        );
+        speed_2x->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
+        speed_2x->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.8f)));
+        speed_2x->SetTextColor(UITheme::ToEngineColor(WHITE));
+        speed_2x->SetClickCallback([this](const engine::ui::MouseEvent& event) {
+            if (event.left_pressed) {
+                OnSpeedClick(2);
+                return true;
+            }
+            return false;
+        });
+        speed_2x_button_ = speed_2x.get();
+        main_panel_->AddChild(std::move(speed_2x));
+
+        // 4x speed button
+        auto speed_4x = std::make_unique<engine::ui::elements::Button>(
+            button_width, button_height, "4x", 12
+        );
+        speed_4x->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
+        speed_4x->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.8f)));
+        speed_4x->SetTextColor(UITheme::ToEngineColor(WHITE));
+        speed_4x->SetClickCallback([this](const engine::ui::MouseEvent& event) {
+            if (event.left_pressed) {
+                OnSpeedClick(4);
+                return true;
+            }
+            return false;
+        });
+        speed_4x_button_ = speed_4x.get();
+        main_panel_->AddChild(std::move(speed_4x));
+
+        main_panel_->InvalidateComponents();
+        main_panel_->UpdateComponentsRecursive();
+    }
+
+    void SpeedControlPanel::Update(float /*delta_time*/) {
+        if (!main_panel_) return;
 
         // Update position and size on resize
         const int screen_height = GetScreenHeight();
         const int speed_width = CalculateWidth();
         const int speed_height = CalculateHeight();
-        SetRelativePosition(10, screen_height - speed_height - 10);
-        SetSize(speed_width, speed_height);
+        main_panel_->SetRelativePosition(10, static_cast<float>(screen_height - speed_height - 10));
+        main_panel_->SetSize(static_cast<float>(speed_width), static_cast<float>(speed_height));
 
         // Update speed state from game state
         if (game_state_) {
@@ -41,64 +131,44 @@ namespace towerforge::ui {
         }
     }
 
-    void SpeedControlPanel::BuildButtons() {
-        const int button_width = CalculateButtonWidth();
-        const int button_height = static_cast<int>(GetRelativeBounds().height) - PADDING * 2;
-        float button_x = static_cast<float>(PADDING);
-        const float button_y = static_cast<float>(PADDING);
+    void SpeedControlPanel::Render() const {
+        if (main_panel_) {
+            main_panel_->Render();
+        }
+    }
 
-        // Pause button
-        auto pause = std::make_unique<IconButton>(
-            button_x, button_y, button_width, button_height, "||", DARKGRAY, WHITE
-        );
-        pause->SetClickCallback([this]() { OnPauseClick(); });
-        pause_button_ = pause.get();
-        AddChild(std::move(pause));
-        button_x += button_width + BUTTON_SPACING;
-
-        // 1x speed button
-        auto speed_1x = std::make_unique<IconButton>(
-            button_x, button_y, button_width, button_height, "1x", DARKGRAY, WHITE
-        );
-        speed_1x->SetClickCallback([this]() { OnSpeedClick(1); });
-        speed_1x_button_ = speed_1x.get();
-        AddChild(std::move(speed_1x));
-        button_x += button_width + BUTTON_SPACING;
-
-        // 2x speed button
-        auto speed_2x = std::make_unique<IconButton>(
-            button_x, button_y, button_width, button_height, "2x", DARKGRAY, WHITE
-        );
-        speed_2x->SetClickCallback([this]() { OnSpeedClick(2); });
-        speed_2x_button_ = speed_2x.get();
-        AddChild(std::move(speed_2x));
-        button_x += button_width + BUTTON_SPACING;
-
-        // 4x speed button
-        auto speed_4x = std::make_unique<IconButton>(
-            button_x, button_y, button_width, button_height, "4x", DARKGRAY, WHITE
-        );
-        speed_4x->SetClickCallback([this]() { OnSpeedClick(4); });
-        speed_4x_button_ = speed_4x.get();
-        AddChild(std::move(speed_4x));
+    bool SpeedControlPanel::ProcessMouseEvent(const MouseEvent& event) {
+        if (main_panel_) {
+            // Convert towerforge MouseEvent to engine MouseEvent
+            engine::ui::MouseEvent engine_event;
+            engine_event.x = event.x;
+            engine_event.y = event.y;
+            engine_event.left_pressed = event.left_pressed;
+            engine_event.left_released = false;
+            engine_event.right_pressed = event.right_pressed;
+            engine_event.right_released = false;
+            
+            return main_panel_->ProcessMouseEvent(engine_event);
+        }
+        return false;
     }
 
     void SpeedControlPanel::UpdateButtonStates() {
         if (!pause_button_) return;
         
         // Update pause button color
-        pause_button_->SetBackgroundColor(is_paused_ ? RED : DARKGRAY);
+        pause_button_->SetNormalColor(UITheme::ToEngineColor(is_paused_ ? RED : DARKGRAY));
         
         // Update speed button colors
-        speed_1x_button_->SetBackgroundColor(
+        speed_1x_button_->SetNormalColor(UITheme::ToEngineColor(
             (!is_paused_ && current_speed_ == 1) ? GREEN : DARKGRAY
-        );
-        speed_2x_button_->SetBackgroundColor(
+        ));
+        speed_2x_button_->SetNormalColor(UITheme::ToEngineColor(
             (!is_paused_ && current_speed_ == 2) ? GREEN : DARKGRAY
-        );
-        speed_4x_button_->SetBackgroundColor(
+        ));
+        speed_4x_button_->SetNormalColor(UITheme::ToEngineColor(
             (!is_paused_ && current_speed_ == 4) ? GREEN : DARKGRAY
-        );
+        ));
     }
 
     void SpeedControlPanel::OnPauseClick() {
