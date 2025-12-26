@@ -14,6 +14,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <variant>
 
 namespace towerforge::ui {
     HUD::HUD()
@@ -60,6 +61,22 @@ namespace towerforge::ui {
         // Update window manager (handles repositioning on resize)
         window_manager_->Update(delta_time);
 
+        // Update current info window and reposition on screen resize
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        std::visit([delta_time, screen_width, screen_height](auto& window) {
+            using T = std::decay_t<decltype(window)>;
+            if constexpr (!std::is_same_v<T, std::monostate>) {
+                if (window) {
+                    window->Update(delta_time);
+                    // Reposition to stay centered at bottom
+                    const float x = (screen_width - window->GetWidth()) / 2.0f;
+                    const float y = screen_height - window->GetHeight() - 60.0f;
+                    window->SetPosition(x, y);
+                }
+            }
+        }, current_info_window_);
+
         // Update composed HUD components (they manage their own position/size)
         if (action_bar_) {
             action_bar_->Update(delta_time);
@@ -95,6 +112,16 @@ namespace towerforge::ui {
         // Render all info windows through the window manager
         window_manager_->Render();
 
+        // Render current info window
+        std::visit([](const auto& window) {
+            using T = std::decay_t<decltype(window)>;
+            if constexpr (!std::is_same_v<T, std::monostate>) {
+                if (window && window->IsVisible()) {
+                    window->Render();
+                }
+            }
+        }, current_info_window_);
+
         // Render notification center toasts in upper-right
         notification_center_->RenderToasts();
 
@@ -125,24 +152,49 @@ namespace towerforge::ui {
     }
 
     void HUD::ShowFacilityInfo(const FacilityInfo &info) const {
-        // Create a new facility window and add it to the window manager
+        // Create a new facility window
         auto window = std::make_unique<FacilityWindow>(info);
-        window_manager_->AddInfoWindow(std::move(window));
+        
+        // Position at bottom center
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const float x = (screen_width - window->GetWidth()) / 2.0f;
+        const float y = screen_height - window->GetHeight() - 60.0f;  // 60px margin for action bar
+        window->SetPosition(x, y);
+        
+        current_info_window_ = std::move(window);
     }
 
     void HUD::ShowPersonInfo(const PersonInfo &info) const {
-        // Create a new person window and add it to the window manager
+        // Create a new person window
         auto window = std::make_unique<PersonWindow>(info);
-        window_manager_->AddInfoWindow(std::move(window));
+        
+        // Position at bottom center
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const float x = (screen_width - window->GetWidth()) / 2.0f;
+        const float y = screen_height - window->GetHeight() - 60.0f;
+        window->SetPosition(x, y);
+        
+        current_info_window_ = std::move(window);
     }
 
     void HUD::ShowElevatorInfo(const ElevatorInfo &info) const {
-        // Create a new elevator window and add it to the window manager
+        // Create a new elevator window
         auto window = std::make_unique<ElevatorWindow>(info);
-        window_manager_->AddInfoWindow(std::move(window));
+        
+        // Position at bottom center
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        const float x = (screen_width - window->GetWidth()) / 2.0f;
+        const float y = screen_height - window->GetHeight() - 60.0f;
+        window->SetPosition(x, y);
+        
+        current_info_window_ = std::move(window);
     }
 
     void HUD::HideInfoPanels() const {
+        current_info_window_ = std::monostate{};
         window_manager_->Clear();
     }
 
@@ -172,6 +224,32 @@ namespace towerforge::ui {
 
 
     bool HUD::ProcessMouseEvent(const MouseEvent &event) {
+        // Forward to current info window first (highest priority for close button)
+        bool info_window_handled = false;
+        std::visit([&event, &info_window_handled](auto& window) {
+            using T = std::decay_t<decltype(window)>;
+            if constexpr (!std::is_same_v<T, std::monostate>) {
+                if (window && window->IsVisible()) {
+                    // Convert towerforge MouseEvent to engine MouseEvent
+                    engine::ui::MouseEvent engine_event;
+                    engine_event.x = event.x;
+                    engine_event.y = event.y;
+                    engine_event.left_pressed = event.left_pressed;
+                    engine_event.left_released = false;  // Not available in towerforge MouseEvent
+                    engine_event.right_pressed = event.right_pressed;
+                    engine_event.right_released = false;  // Not available in towerforge MouseEvent
+                    
+                    if (window->ProcessMouseEvent(engine_event)) {
+                        info_window_handled = true;
+                    }
+                }
+            }
+        }, current_info_window_);
+        
+        if (info_window_handled) {
+            return true;
+        }
+        
         // Forward to action bar
         if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
             return true;

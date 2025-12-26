@@ -1,54 +1,63 @@
 #pragma once
 
-#include "ui/ui_window.h"
-#include "ui/ui_element.h"
 #include "hud/hud.h"
-#include "ui/stat_item.h"
-#include "ui/alert_bar.h"
-#include "ui/section_header.h"
-#include "ui/icon_button.h"
+#include "ui/ui_theme.h"
 #include <sstream>
 #include <iomanip>
 #include <memory>
 #include <vector>
+#include <functional>
+
+import engine;
 
 namespace towerforge::ui {
 
     /**
- * @brief Window for displaying facility information
- */
-    class FacilityWindow : public UIWindow {
+     * @brief Window for displaying facility information using citrus engine UI
+     */
+    class FacilityWindow {
     public:
-        FacilityWindow(const FacilityInfo& info);
-        void Render() const override;
-        void Update(const FacilityInfo& info);
-    
-    protected:
-        void RenderContent() const override;
+        using CloseCallback = std::function<void()>;
         
+        FacilityWindow(const FacilityInfo& info);
+        
+        void Render() const;
+        void Update(float delta_time);
+        void Update(const FacilityInfo& info);
+        
+        bool ProcessMouseEvent(const engine::ui::MouseEvent& event);
+        
+        void SetPosition(float x, float y);
+        void SetCloseCallback(CloseCallback callback) { close_callback_ = callback; }
+        
+        void Show() { visible_ = true; }
+        void Hide() { visible_ = false; }
+        bool IsVisible() const { return visible_; }
+        
+        float GetWidth() const;
+        float GetHeight() const;
+    
     private:
         FacilityInfo info_;
+        std::unique_ptr<engine::ui::elements::Panel> main_panel_;
+        bool visible_ = true;
+        CloseCallback close_callback_;
 
-        // Component members (ownership transferred to UIWindow via AddChild)
-        StatItem* occupancy_stat_;
-        StatItem* revenue_stat_;
-        StatItem* satisfaction_stat_;
-        StatItem* tenants_stat_;
-        SectionHeader* status_header_;
-        StatItem* cleanliness_state_stat_;
-        StatItem* cleanliness_stat_;
-        StatItem* maintenance_stat_;
-        StatItem* maintenance_state_stat_;
-        std::unique_ptr<AlertBar> fire_alert_;
-        std::unique_ptr<AlertBar> security_alert_;
-        SectionHeader* adjacency_header_;
-        std::vector<StatItem*> adjacency_items_;
-        
-        // Button panel and raw pointers to buttons
-        Panel* button_panel_;
-        IconButton* demolish_button_;
-        IconButton* upgrade_button_;
-        IconButton* repair_button_;
+        // Raw pointers to text elements for updates
+        engine::ui::elements::Text* title_text_ = nullptr;
+        engine::ui::elements::Button* close_button_ = nullptr;
+        engine::ui::elements::Text* occupancy_value_ = nullptr;
+        engine::ui::elements::Text* revenue_value_ = nullptr;
+        engine::ui::elements::Text* satisfaction_value_ = nullptr;
+        engine::ui::elements::Text* tenants_value_ = nullptr;
+        engine::ui::elements::Text* cleanliness_state_value_ = nullptr;
+        engine::ui::elements::Text* cleanliness_value_ = nullptr;
+        engine::ui::elements::Text* maintenance_value_ = nullptr;
+        engine::ui::elements::Text* maintenance_state_value_ = nullptr;
+        engine::ui::elements::Container* adjacency_container_ = nullptr;
+        engine::ui::elements::Button* demolish_button_ = nullptr;
+        engine::ui::elements::Button* upgrade_button_ = nullptr;
+        engine::ui::elements::Button* repair_button_ = nullptr;
 
         void BuildComponents();
         void UpdateComponentValues();
@@ -56,38 +65,54 @@ namespace towerforge::ui {
     };
 
     /**
- * @brief Window for displaying person information
- */
-    class PersonWindow : public UIWindow {
+     * @brief Window for displaying person information using citrus engine UI
+     */
+    class PersonWindow {
     public:
-        PersonWindow(const PersonInfo& info);
-        void Render() const override;
-        void Update(const PersonInfo& info);
-    
-    protected:
-        void RenderContent() const override;
+        using CloseCallback = std::function<void()>;
         
+        PersonWindow(const PersonInfo& info);
+        
+        void Render() const;
+        void Update(float delta_time);
+        void Update(const PersonInfo& info);
+        
+        bool ProcessMouseEvent(const engine::ui::MouseEvent& event);
+        
+        void SetPosition(float x, float y);
+        void SetCloseCallback(CloseCallback callback) { close_callback_ = callback; }
+        
+        void Show() { visible_ = true; }
+        void Hide() { visible_ = false; }
+        bool IsVisible() const { return visible_; }
+        
+        float GetWidth() const;
+        float GetHeight() const;
+    
     private:
         PersonInfo info_;
+        std::unique_ptr<engine::ui::elements::Panel> main_panel_;
+        bool visible_ = true;
+        CloseCallback close_callback_;
 
-        // Component members (ownership transferred to UIWindow via AddChild)
-        StatItem* type_stat_;
-        StatItem* archetype_stat_;
-        SectionHeader* staff_header_;
-        StatItem* role_stat_;
-        StatItem* duty_stat_;
-        StatItem* shift_stat_;
-        StatItem* status_stat_;
-        StatItem* state_stat_;
-        StatItem* current_floor_stat_;
-        StatItem* dest_floor_stat_;
-        StatItem* wait_time_stat_;
-        SectionHeader* needs_header_;
-        StatItem* hunger_stat_;
-        StatItem* entertainment_stat_;
-        StatItem* comfort_stat_;
-        StatItem* shopping_stat_;
-        StatItem* satisfaction_stat_;
+        // Raw pointers to text elements for updates
+        engine::ui::elements::Text* title_text_ = nullptr;
+        engine::ui::elements::Button* close_button_ = nullptr;
+        engine::ui::elements::Text* type_value_ = nullptr;
+        engine::ui::elements::Text* archetype_value_ = nullptr;
+        engine::ui::elements::Text* role_value_ = nullptr;
+        engine::ui::elements::Text* duty_value_ = nullptr;
+        engine::ui::elements::Text* shift_value_ = nullptr;
+        engine::ui::elements::Text* status_value_ = nullptr;
+        engine::ui::elements::Text* state_value_ = nullptr;
+        engine::ui::elements::Text* current_floor_value_ = nullptr;
+        engine::ui::elements::Text* dest_floor_value_ = nullptr;
+        engine::ui::elements::Text* wait_time_value_ = nullptr;
+        engine::ui::elements::Text* hunger_value_ = nullptr;
+        engine::ui::elements::Text* entertainment_value_ = nullptr;
+        engine::ui::elements::Text* comfort_value_ = nullptr;
+        engine::ui::elements::Text* shopping_value_ = nullptr;
+        engine::ui::elements::Text* satisfaction_value_ = nullptr;
 
         void BuildComponents();
         void UpdateComponentValues();
@@ -95,26 +120,44 @@ namespace towerforge::ui {
     };
 
     /**
- * @brief Window for displaying elevator information
- */
-    class ElevatorWindow : public UIWindow {
+     * @brief Window for displaying elevator information using citrus engine UI
+     */
+    class ElevatorWindow {
     public:
-        ElevatorWindow(const ElevatorInfo& info);
-        void Render() const override;
-        void Update(const ElevatorInfo& info);
-    
-    protected:
-        void RenderContent() const override;
+        using CloseCallback = std::function<void()>;
         
+        ElevatorWindow(const ElevatorInfo& info);
+        
+        void Render() const;
+        void Update(float delta_time);
+        void Update(const ElevatorInfo& info);
+        
+        bool ProcessMouseEvent(const engine::ui::MouseEvent& event);
+        
+        void SetPosition(float x, float y);
+        void SetCloseCallback(CloseCallback callback) { close_callback_ = callback; }
+        
+        void Show() { visible_ = true; }
+        void Hide() { visible_ = false; }
+        bool IsVisible() const { return visible_; }
+        
+        float GetWidth() const;
+        float GetHeight() const;
+    
     private:
         ElevatorInfo info_;
+        std::unique_ptr<engine::ui::elements::Panel> main_panel_;
+        bool visible_ = true;
+        CloseCallback close_callback_;
 
-        // Component members (ownership transferred to UIWindow via AddChild)
-        StatItem* current_floor_stat_;
-        StatItem* occupancy_stat_;
-        StatItem* next_stop_stat_;
-        StatItem* queue_length_stat_;
-        std::vector<StatItem*> queue_items_;
+        // Raw pointers to text elements for updates
+        engine::ui::elements::Text* title_text_ = nullptr;
+        engine::ui::elements::Button* close_button_ = nullptr;
+        engine::ui::elements::Text* current_floor_value_ = nullptr;
+        engine::ui::elements::Text* occupancy_value_ = nullptr;
+        engine::ui::elements::Text* next_stop_value_ = nullptr;
+        engine::ui::elements::Text* queue_length_value_ = nullptr;
+        engine::ui::elements::Container* queue_container_ = nullptr;
 
         void BuildComponents();
         void UpdateComponentValues();

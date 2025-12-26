@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <variant>
 
 namespace towerforge::ui {
    struct MouseEvent;
@@ -23,6 +24,9 @@ namespace towerforge::ui {
     class TopBar;
     class StarRatingPanel;
     class EndGameSummary;
+    class FacilityWindow;
+    class PersonWindow;
+    class ElevatorWindow;
 
     /**
  * @brief Structure to hold tower rating information
@@ -316,6 +320,15 @@ namespace towerforge::ui {
         // Analytics callbacks
         std::function<IncomeBreakdown()> income_analytics_callback_;
         std::function<PopulationBreakdown()> population_analytics_callback_;
+    
+        // Current info window (using variant for type-safe polymorphism)
+        using InfoWindowVariant = std::variant<
+            std::monostate,
+            std::unique_ptr<FacilityWindow>,
+            std::unique_ptr<PersonWindow>,
+            std::unique_ptr<ElevatorWindow>
+        >;
+        mutable InfoWindowVariant current_info_window_;
     
         // UI layout constants
         static constexpr int TOP_BAR_HEIGHT = 40;
