@@ -23,7 +23,8 @@ namespace towerforge::ui {
         notification_center_ = std::make_unique<NotificationCenter>();
 
         // Create action bar - position will be set in Update()
-        action_bar_ = std::make_unique<ActionBar>(0, 0, 0, 0);
+        action_bar_ = std::make_unique<ActionBar>();
+        action_bar_->Initialize();
 
         // Create speed control panel - position will be set in Update()
         speed_control_panel_ = std::make_unique<SpeedControlPanel>(0, 0, 0, 0);

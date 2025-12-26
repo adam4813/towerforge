@@ -271,6 +271,7 @@ namespace towerforge::core {
 		// Create HUD and build menu
 		hud_ = std::make_unique<HUD>();
 		build_menu_ = std::make_unique<BuildMenu>();
+		build_menu_->Initialize();
 		pause_menu_ = std::make_unique<PauseMenu>();
 		research_menu_ = std::make_unique<ResearchTreeMenu>();
 		mods_menu_ = std::make_unique<ModsMenu>();

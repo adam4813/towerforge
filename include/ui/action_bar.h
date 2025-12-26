@@ -1,20 +1,24 @@
 #pragma once
 
-#include "ui_element.h"
+#include "mouse_interface.h"
 #include <vector>
 #include <string>
 #include <functional>
 #include <algorithm>
+#include <memory>
+
+import engine;
 
 namespace towerforge::ui {
-
     /**
      * @brief Action bar displayed at bottom of HUD
      * 
      * Contains buttons for main game actions like Build, Info, Staff Management, etc.
      * Uses Observer pattern to notify when actions are triggered.
+     * 
+     * Implements declarative, event-driven UI pattern using citrus engine components.
      */
-    class ActionBar : public Panel {
+    class ActionBar {
     public:
         /**
          * @brief Action type enumeration
@@ -34,25 +38,18 @@ namespace towerforge::ui {
          */
         using ActionCallback = std::function<void(Action action)>;
 
-        /**
-         * @brief Construct an action bar
-         * @param relative_x X position relative to parent
-         * @param relative_y Y position relative to parent
-         * @param width Width of the action bar
-         * @param height Height of the action bar
-         */
-        ActionBar(float relative_x, float relative_y, float width, float height);
+        void Initialize();
 
         /**
          * @brief Render the action bar
          */
-        void Render() const override;
+        void Render() const;
 
         /**
          * @brief Update action bar state
          * @param delta_time Time elapsed since last frame
          */
-        void Update(float delta_time) override;
+        void Update(float delta_time);
 
         /**
          * @brief Set action callback
@@ -75,53 +72,56 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent& event);
+        bool ProcessMouseEvent(const MouseEvent &event);
 
     private:
-        void CreateActionButton(Action action, const std::string& label, float x);
+        void UpdateLayout();
 
-        std::vector<Button*> action_buttons_;
+        // Engine UI panel (owns the buttons)
+        std::unique_ptr<engine::ui::elements::Panel> main_panel_;
+        std::vector<engine::ui::elements::Button *> action_buttons_;
         ActionCallback action_callback_;
         int active_action_index_;
+        mutable int last_screen_width_;
+        mutable int last_screen_height_;
 
         // Button sizing constants
-        static constexpr int MIN_BUTTON_WIDTH = 60;   // Minimum button width before text truncates
-        static constexpr int MAX_BUTTON_WIDTH = 140;  // Maximum button width
+        static constexpr int MIN_BUTTON_WIDTH = 60; // Minimum button width before text truncates
+        static constexpr int MAX_BUTTON_WIDTH = 140; // Maximum button width
         static constexpr int BUTTON_SPACING = 10;
-        static constexpr float MAX_BAR_WIDTH_PERCENT = 0.5f;  // 50% of screen width
+        static constexpr float MAX_BAR_WIDTH_PERCENT = 0.5f; // 50% of screen width
         static constexpr int HEIGHT = 50;
-        
+
     public:
         // Calculate the total width needed for the action bar based on screen width
         static int CalculateBarWidth() {
             const int screen_width = GetScreenWidth();
             const int max_bar_width = static_cast<int>(screen_width * MAX_BAR_WIDTH_PERCENT);
-            
+
             // Calculate button width that fits within max bar width
             // Formula: bar_width = num_buttons * button_width + (num_buttons - 1) * spacing + padding
             constexpr int num_buttons = 6;
             constexpr int padding = 10;
             const int available_width = max_bar_width - (num_buttons - 1) * BUTTON_SPACING - padding;
             const int button_width = available_width / num_buttons;
-            
+
             // Clamp button width between min and max
             const int clamped_button_width = std::clamp(button_width, MIN_BUTTON_WIDTH, MAX_BUTTON_WIDTH);
-            
+
             return num_buttons * clamped_button_width + (num_buttons - 1) * BUTTON_SPACING + padding;
         }
-        
+
         // Calculate individual button width based on screen width
         static int CalculateButtonWidth() {
             const int screen_width = GetScreenWidth();
             const int max_bar_width = static_cast<int>(screen_width * MAX_BAR_WIDTH_PERCENT);
-            
+
             constexpr int num_buttons = 6;
             constexpr int padding = 10;
             const int available_width = max_bar_width - (num_buttons - 1) * BUTTON_SPACING - padding;
             const int button_width = available_width / num_buttons;
-            
+
             return std::clamp(button_width, MIN_BUTTON_WIDTH, MAX_BUTTON_WIDTH);
         }
     };
-
 }
