@@ -23,6 +23,7 @@ set(SOURCE_FILES
     src/ui/hud/star_rating_panel.cpp
     src/ui/hud/end_game_summary.cpp
     src/ui/speed_control_panel.cpp
+    src/ui/camera_controls_panel.cpp
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp
     src/ui/history_panel.cpp

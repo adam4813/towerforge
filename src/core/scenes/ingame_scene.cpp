@@ -9,6 +9,7 @@
 #include "ui/action_bar.h"
 #include "ui/notification_center.h"
 #include "ui/speed_control_panel.h"
+#include "ui/camera_controls_panel.h"
 
 using namespace towerforge::ui;
 
@@ -358,6 +359,16 @@ namespace towerforge::core {
 			});
 		}
 
+		// Set up camera controls panel
+		if (auto *camera_panel = hud_->GetCameraControlsPanel()) {
+			camera_panel->SetZoomRange(rendering::Camera::MIN_ZOOM, rendering::Camera::MAX_ZOOM);
+			camera_panel->SetZoomCallback([this](float zoom) {
+				if (camera_) {
+					camera_->SetTargetZoom(zoom);
+				}
+			});
+		}
+
 		// Add example notifications to showcase notification center
 		hud_->AddNotification(Notification::Type::Success, "Welcome to TowerForge!", 10.0f);
 		hud_->AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
@@ -476,6 +487,8 @@ namespace towerforge::core {
 		pause_audio_settings_menu_.SetBackCallback([this] {
 			in_audio_settings_from_pause_ = false;
 		});
+
+		camera_->Reset();
 	}
 
 	void InGameScene::Shutdown() {
@@ -600,6 +613,11 @@ namespace towerforge::core {
 
 		// Update camera bounds based on built floors (checks periodically)
 		UpdateCameraBounds();
+
+		// Update camera controls panel with current zoom
+		if (auto *camera_panel = hud_->GetCameraControlsPanel()) {
+			camera_panel->SetZoom(camera_->GetZoom());
+		}
 
 		hud_->SetGameState(game_state_);
 		hud_->Update(time_step_);
@@ -980,7 +998,7 @@ namespace towerforge::core {
 			history_panel_->Render();
 		}
 
-		camera_->RenderControlsOverlay();
+		// Camera controls are now rendered by HUD's CameraControlsPanel
 		camera_->RenderFollowIndicator();
 
 		// Display tower economy status
@@ -1132,12 +1150,7 @@ namespace towerforge::core {
 				false // right_pressed
 			};
 
-			// Check camera controls first (zoom slider, etc.)
-			if (camera_->HandleControlsClick(mouse_x, mouse_y)) {
-				return; // Camera consumed the event
-			}
-
-			// Check HUD first (action bar, etc.)
+			// Check HUD first (action bar, camera controls, etc.)
 			if (hud_->ProcessMouseEvent(mouse_event)) {
 				return; // HUD consumed the event
 			}

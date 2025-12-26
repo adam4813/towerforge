@@ -1,6 +1,7 @@
 #pragma once
 
 #include <raylib.h>
+#include <algorithm>
 
 namespace towerforge::rendering {
 
@@ -9,6 +10,8 @@ namespace towerforge::rendering {
  * 
  * This class provides camera controls for navigating the tower view,
  * including pan, zoom, entity following, and bounds checking.
+ * 
+ * Note: Camera controls overlay is now handled by ui::CameraControlsPanel
  */
     class Camera {
     public:
@@ -90,6 +93,14 @@ namespace towerforge::rendering {
         float GetZoom() const { return target_zoom_; }
 
         /**
+     * @brief Set target zoom level
+     * @param zoom Target zoom level (will be clamped to MIN_ZOOM..MAX_ZOOM)
+     */
+        void SetTargetZoom(float zoom) { 
+            target_zoom_ = std::clamp(zoom, MIN_ZOOM, MAX_ZOOM); 
+        }
+
+        /**
      * @brief Convert screen coordinates to world coordinates
      * @param screen_x Screen X position
      * @param screen_y Screen Y position
@@ -106,27 +117,6 @@ namespace towerforge::rendering {
      * @param screen_y Output screen Y position
      */
         void WorldToScreen(float world_x, float world_y, int& screen_x, int& screen_y) const;
-
-        /**
-     * @brief Render camera controls overlay (bottom right)
-     */
-        void RenderControlsOverlay() const;
-
-        /**
-         * @brief Check if mouse is over camera controls overlay
-         * @param mouse_x Mouse X position
-         * @param mouse_y Mouse Y position
-         * @return true if mouse is over the overlay
-         */
-        bool IsMouseOverControls(int mouse_x, int mouse_y) const;
-
-        /**
-         * @brief Handle mouse click on camera controls (e.g., zoom slider)
-         * @param mouse_x Mouse X position
-         * @param mouse_y Mouse Y position
-         * @return true if click was handled
-         */
-        bool HandleControlsClick(int mouse_x, int mouse_y);
 
         /**
      * @brief Render follow mode indicator

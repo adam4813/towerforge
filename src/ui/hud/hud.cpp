@@ -9,6 +9,7 @@
 #include "ui/analytics_overlay.h"
 #include "ui/action_bar.h"
 #include "ui/speed_control_panel.h"
+#include "ui/camera_controls_panel.h"
 #include "ui/mouse_interface.h"
 #include "ui/ui_element.h"
 #include <sstream>
@@ -30,6 +31,9 @@ namespace towerforge::ui {
         // Create speed control panel - position will be set in Update()
         speed_control_panel_ = std::make_unique<SpeedControlPanel>(0, 0, 0, 0);
         speed_control_panel_->SetGameState(&game_state_);
+
+        // Create camera controls panel
+        camera_controls_panel_ = std::make_unique<CameraControlsPanel>();
 
         // Create composed HUD components
         top_bar_ = std::make_unique<TopBar>();
@@ -86,6 +90,10 @@ namespace towerforge::ui {
             speed_control_panel_->Update(delta_time);
         }
 
+        if (camera_controls_panel_) {
+            camera_controls_panel_->Update(delta_time);
+        }
+
         if (top_bar_) {
             top_bar_->Update(delta_time);
         }
@@ -127,6 +135,11 @@ namespace towerforge::ui {
 
         // Render notification center panel if visible
         notification_center_->Render();
+
+        // Render camera controls above speed controls
+        if (camera_controls_panel_) {
+            camera_controls_panel_->Render();
+        }
 
         // Render speed controls in lower-left
         if (speed_control_panel_) {
@@ -252,6 +265,11 @@ namespace towerforge::ui {
         
         // Forward to action bar
         if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
+            return true;
+        }
+
+        // Forward to camera controls panel
+        if (camera_controls_panel_ && camera_controls_panel_->ProcessMouseEvent(event)) {
             return true;
         }
 

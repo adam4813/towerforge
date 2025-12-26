@@ -16,6 +16,7 @@ namespace towerforge::ui {
     class NotificationCenter;
     class ActionBar;
     class SpeedControlPanel;
+    class CameraControlsPanel;
     class Button;
     struct IncomeBreakdown;
     struct ElevatorAnalytics;
@@ -290,6 +291,11 @@ namespace towerforge::ui {
          * @brief Get the speed control panel
          */
         SpeedControlPanel* GetSpeedControlPanel() const { return speed_control_panel_.get(); }
+
+        /**
+         * @brief Get the camera controls panel
+         */
+        CameraControlsPanel* GetCameraControlsPanel() const { return camera_controls_panel_.get(); }
     
     private:
         static std::string FormatTime(float time);
@@ -311,6 +317,9 @@ namespace towerforge::ui {
 
         // Speed control panel in lower-left corner
         std::unique_ptr<SpeedControlPanel> speed_control_panel_;
+
+        // Camera controls panel above speed controls
+        std::unique_ptr<CameraControlsPanel> camera_controls_panel_;
 
         // Composed HUD components
         std::unique_ptr<TopBar> top_bar_;

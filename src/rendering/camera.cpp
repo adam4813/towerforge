@@ -68,14 +68,7 @@ namespace towerforge::rendering {
     }
 
     void Camera::HandleInput(const bool hud_handled) {
-        // Check if mouse is over camera controls - if so, don't handle camera input
-        const Vector2 mouse_pos = GetMousePosition();
-        if (IsMouseOverControls(static_cast<int>(mouse_pos.x), static_cast<int>(mouse_pos.y))) {
-            is_panning_ = false;
-            return;
-        }
-
-        // Don't handle input if HUD consumed it
+        // Don't handle input if HUD consumed it (includes camera controls panel)
         if (hud_handled) {
             is_panning_ = false;
             return;
@@ -185,120 +178,6 @@ namespace towerforge::rendering {
         const Vector2 screen_pos = GetWorldToScreen2D({world_x, world_y}, camera_);
         screen_x = static_cast<int>(screen_pos.x);
         screen_y = static_cast<int>(screen_pos.y);
-    }
-
-    void Camera::RenderControlsOverlay() const {
-        // Position in lower-left corner (Sims-style)
-        // Responsive sizing: 75% of original (165px), max 20% of screen width
-        const int screen_width = GetScreenWidth();
-        constexpr int x = 10;
-        constexpr int base_width = 165;  // 75% of original 220
-        const int max_width = static_cast<int>(screen_width * 0.20f);
-        const int width = std::min(base_width, max_width);
-        constexpr int base_height = 128;  // 75% of original 170 (rounded)
-        const int height = static_cast<int>(base_height * (static_cast<float>(width) / base_width));
-        const int y = screen_height_ - height - 60;  // Above speed controls
-
-        // Background
-        DrawRectangle(x, y, width, height, Fade(BLACK, 0.7f));
-        DrawRectangleLines(x, y, width, height, LIGHTGRAY);
-
-        // Title
-        const int title_font_size = std::max(10, width / 16);
-        DrawText("CAMERA", x + 10, y + 5, title_font_size, YELLOW);
-
-        // Instructions - scale font and spacing based on width
-        const int text_font_size = std::max(8, width / 18);
-        const int line_spacing = std::max(12, height / 12);
-        int text_y = y + 20;
-        
-        DrawText("Pan: Mid-Click+Drag", x + 8, text_y, text_font_size, LIGHTGRAY);
-        text_y += line_spacing;
-        DrawText("     or Arrow Keys", x + 8, text_y, text_font_size, LIGHTGRAY);
-        text_y += line_spacing;
-        DrawText("Zoom: Mouse Wheel", x + 8, text_y, text_font_size, LIGHTGRAY);
-        text_y += line_spacing;
-        DrawText("      or +/- keys", x + 8, text_y, text_font_size, LIGHTGRAY);
-        text_y += line_spacing;
-        DrawText("Reset: Home", x + 8, text_y, text_font_size, LIGHTGRAY);
-        text_y += line_spacing;
-        DrawText("Follow: F", x + 8, text_y, text_font_size, LIGHTGRAY);
-
-        // Zoom slider - proportional to panel width
-        const int slider_x = x + 8;
-        const int slider_y = y + height - 30;
-        const int slider_width = width - 16;
-        constexpr int slider_height = 18;
-        
-        DrawText("Zoom:", slider_x, slider_y - 13, text_font_size, LIGHTGRAY);
-        
-        // Slider track
-        DrawRectangle(slider_x, slider_y, slider_width, slider_height, DARKGRAY);
-        DrawRectangleLines(slider_x, slider_y, slider_width, slider_height, LIGHTGRAY);
-        
-        // Slider handle position
-        const float zoom_normalized = (target_zoom_ - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM);
-        const int handle_x = slider_x + static_cast<int>(zoom_normalized * (slider_width - 10));
-        
-        // Slider handle
-        DrawRectangle(handle_x, slider_y - 2, 10, slider_height + 4, GREEN);
-        DrawRectangleLines(handle_x, slider_y - 2, 10, slider_height + 4, LIGHTGRAY);
-        
-        // Zoom percentage - only show if there's room
-        if (width > 100) {
-            const char* zoom_text = TextFormat("%.0f%%", target_zoom_ * 100);
-            const int zoom_text_width = MeasureText(zoom_text, text_font_size);
-            if (slider_x + slider_width + zoom_text_width + 5 < x + width) {
-                DrawText(zoom_text, slider_x + slider_width + 5, slider_y + 2, text_font_size, GREEN);
-            }
-        }
-    }
-
-    bool Camera::IsMouseOverControls(const int mouse_x, const int mouse_y) const {
-        // Responsive sizing to match RenderControlsOverlay
-        const int screen_width = GetScreenWidth();
-        constexpr int x = 10;
-        constexpr int base_width = 165;
-        const int max_width = static_cast<int>(screen_width * 0.20f);
-        const int width = std::min(base_width, max_width);
-        constexpr int base_height = 128;
-        const int height = static_cast<int>(base_height * (static_cast<float>(width) / base_width));
-        const int y = screen_height_ - height - 60;
-        
-        return mouse_x >= x && mouse_x <= x + width && 
-               mouse_y >= y && mouse_y <= y + height;
-    }
-
-    bool Camera::HandleControlsClick(const int mouse_x, const int mouse_y) {
-        // Check if clicking on zoom slider - responsive sizing
-        const int screen_width = GetScreenWidth();
-        constexpr int panel_x = 10;
-        constexpr int base_width = 165;
-        const int max_width = static_cast<int>(screen_width * 0.20f);
-        const int width = std::min(base_width, max_width);
-        constexpr int base_height = 128;
-        const int height = static_cast<int>(base_height * (static_cast<float>(width) / base_width));
-        const int panel_y = screen_height_ - height - 60;
-        
-        const int slider_x = panel_x + 8;
-        const int slider_y = panel_y + height - 30;
-        const int slider_width = width - 16;
-        constexpr int slider_height = 18;
-        
-        if (mouse_x >= slider_x && mouse_x <= slider_x + slider_width &&
-            mouse_y >= slider_y && mouse_y <= slider_y + slider_height) {
-            // Calculate new zoom based on click position
-            const float normalized = static_cast<float>(mouse_x - slider_x) / static_cast<float>(slider_width);
-            float new_zoom = MIN_ZOOM + normalized * (MAX_ZOOM - MIN_ZOOM);
-            
-            // Round to nearest increment
-            new_zoom = std::round(new_zoom / ZOOM_INCREMENT) * ZOOM_INCREMENT;
-            
-            target_zoom_ = std::clamp(new_zoom, MIN_ZOOM, MAX_ZOOM);
-            return true;
-        }
-        
-        return false;
     }
 
     void Camera::RenderFollowIndicator() const {
