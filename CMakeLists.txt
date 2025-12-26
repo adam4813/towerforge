@@ -26,7 +26,6 @@ set(SOURCE_FILES
     src/ui/build_menu.cpp
     src/ui/placement_system.cpp
     src/ui/history_panel.cpp
-    src/ui/grid_panel.cpp
     src/ui/main_menu.cpp
     src/ui/pause_menu.cpp
     src/ui/save_load_menu.cpp
@@ -42,7 +41,6 @@ set(SOURCE_FILES
     src/ui/window_chrome.cpp
     src/ui/info_windows.cpp
     src/ui/stat_item.cpp
-    src/ui/alert_bar.cpp
     src/ui/section_header.cpp
     src/ui/icon_button.cpp
     src/ui/analytics_overlay.cpp
