@@ -1,19 +1,18 @@
 #pragma once
 
-#include <raylib.h>
+#include "ui/ui_theme.h"
+#include "ui/mouse_interface.h"
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
+
+import engine;
 
 namespace towerforge::ui {
-
-    // Forward declarations
-    class Panel;
-    class Button;
-    struct MouseEvent;
     /**
- * @brief Menu options available in the pause menu
- */
+     * @brief Menu options available in the pause menu
+     */
     enum class PauseMenuOption {
         Resume,
         SaveGame,
@@ -24,110 +23,127 @@ namespace towerforge::ui {
     };
 
     /**
- * @brief Pause menu class for in-game menu overlay
- * 
- * Displays when ESC is pressed during gameplay, pausing the simulation
- * and providing options to save, load, change settings, or quit
- */
+     * @brief Pause menu class for in-game menu overlay
+     * 
+     * Displays when ESC is pressed during gameplay, pausing the simulation
+     * and providing options to save, load, change settings, or quit.
+     * Uses citrus engine UI elements for rendering.
+     */
     class PauseMenu {
     public:
+        using OptionCallback = std::function<void(PauseMenuOption)>;
+        using QuitCallback = std::function<void()>;
+
         PauseMenu();
+
         ~PauseMenu();
-    
+
         /**
-     * @brief Render the pause menu overlay
-     */
+         * @brief Initialize the menu components
+         */
+        void Initialize();
+
+        /**
+         * @brief Shutdown and cleanup resources
+         */
+        void Shutdown();
+
+        /**
+         * @brief Render the pause menu overlay
+         */
         void Render() const;
-    
+
         /**
-     * @brief Update menu state (called every frame when active)
-     * @param delta_time Time elapsed since last frame
-     */
+         * @brief Update menu state (called every frame when active)
+         * @param delta_time Time elapsed since last frame
+         */
         void Update(float delta_time);
-    
+
         /**
-         * @brief Process mouse events (modern unified API)
+         * @brief Process mouse events
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent& event);
+        bool ProcessMouseEvent(const MouseEvent &event) const;
 
         /**
          * @brief Handle keyboard input for menu navigation
-         * @return Selected menu option, or -1 if none selected
-         * @deprecated Use ProcessKeyboardEvent instead (to be added)
          */
-        int HandleKeyboard();
-    
-        /**
-         * @brief Handle mouse input for menu interaction
-         * @param mouse_x Mouse X position
-         * @param mouse_y Mouse Y position
-         * @param clicked Whether mouse was clicked
-         * @return Selected menu option, or -1 if none selected
-         * @deprecated Use ProcessMouseEvent instead
-         */
-        int HandleMouse(int mouse_x, int mouse_y, bool clicked);
-    
-        /**
-     * @brief Get the currently selected menu option
-     * @return Index of selected option
-     */
-        int GetHoveredMenuOption() const { return selected_option_; }
+        void HandleKeyboard() const;
 
-       /**
-    * @brief Get the currently selected menu option
-    * @return Index of selected option
-    */
-        int GetSelectedMenuOption() const { return selected_menu_option_; }
-    
         /**
-     * @brief Show/hide confirmation dialog for quitting
-     * @param show Whether to show the confirmation dialog
-     */
+         * @brief Set callback for option selection
+         */
+        void SetOptionCallback(const OptionCallback &callback) { option_callback_ = callback; }
+
+        /**
+         * @brief Set callback for quit confirmation result
+         */
+        void SetQuitConfirmationCallback(const QuitCallback &callback) { quit_confirmation_callback_ = callback; }
+
+        /**
+         * @brief Show/hide confirmation dialog for quitting
+         * @param show Whether to show the confirmation dialog
+         */
         void ShowQuitConfirmation(const bool show) { show_quit_confirmation_ = show; }
-    
-        /**
-     * @brief Check if quit confirmation is showing
-     * @return True if confirmation dialog is visible
-     */
-        bool IsQuitConfirmationShowing() const { return show_quit_confirmation_; }
-    
-        /**
-     * @brief Handle input for quit confirmation dialog
-     * @return 1 for confirm, 0 for cancel, -1 for no action
-     */
-        int HandleQuitConfirmation();
 
-     private:
-        void RenderOverlay() const;
-        void RenderMenuOptions() const;
+        /**
+         * @brief Check if quit confirmation is showing
+         * @return True if confirmation dialog is visible
+         */
+        bool IsQuitConfirmationShowing() const { return show_quit_confirmation_; }
+
+        /**
+         * @brief Handle input for quit confirmation dialog
+         * @return 1 for confirm, 0 for cancel, -1 for no action
+         */
+        int HandleQuitConfirmation() const;
+
+    private:
+        void UpdateLayout();
+
+        void RenderDimOverlay() const;
+
+        void RenderIndicator() const;
+
         void RenderQuitConfirmation() const;
-    
-        int selected_option_;  // Currently highlighted menu option
-        float animation_time_; // For animations
-        bool show_quit_confirmation_;  // Whether to show quit confirmation dialog
-        int quit_confirmation_selection_;  // 0 = Cancel, 1 = Confirm
-    
+
+        mutable int selected_option_;
+        float animation_time_;
+        mutable bool show_quit_confirmation_;
+        mutable int quit_confirmation_selection_;
+        int last_screen_width_;
+        int last_screen_height_;
+        OptionCallback option_callback_;
+        QuitCallback quit_confirmation_callback_;
+
         // Menu layout constants
         static constexpr int MENU_ITEM_HEIGHT = 50;
         static constexpr int MENU_ITEM_SPACING = 10;
-        static constexpr int MENU_START_Y = 200;
         static constexpr int MENU_WIDTH = 350;
-        static constexpr int TITLE_Y = 100;
-    
+        static constexpr int HEADER_HEIGHT = 100;
+
         // Menu options
         struct MenuItem {
             std::string label;
             PauseMenuOption option;
         };
-    
-        std::vector<MenuItem> menu_items_;
-        
-        // Pause menu is a Panel container with Button children for menu items
-        std::unique_ptr<Panel> pause_panel_;
-        std::vector<Button*> menu_item_buttons_;  // Raw pointers to buttons (owned by pause_panel_)
-        int selected_menu_option_;  // Stores the menu option selected via click callback
-    };
 
+        std::vector<MenuItem> menu_items_;
+
+        // Engine UI panel and buttons
+        std::unique_ptr<engine::ui::elements::Panel> pause_panel_;
+        std::vector<engine::ui::elements::Button *> menu_item_buttons_;
+
+        // Quit confirmation dialog
+        std::unique_ptr<engine::ui::elements::Panel> confirmation_panel_;
+        engine::ui::elements::Button *cancel_button_ = nullptr;
+        engine::ui::elements::Button *confirm_button_ = nullptr;
+
+        void BuildConfirmationDialog();
+
+        void UpdateConfirmationLayout();
+
+        void UpdateConfirmationButtonStyles() const;
+    };
 }

@@ -274,6 +274,33 @@ namespace towerforge::core {
 		build_menu_ = std::make_unique<BuildMenu>();
 		build_menu_->Initialize();
 		pause_menu_ = std::make_unique<PauseMenu>();
+		pause_menu_->Initialize();
+		pause_menu_->SetOptionCallback([this](PauseMenuOption option) {
+			switch (option) {
+				case PauseMenuOption::Resume:
+					is_paused_ = false;
+					game_state_.paused = false;
+					break;
+				case PauseMenuOption::SaveGame:
+					save_load_menu_->Open(true);
+					break;
+				case PauseMenuOption::LoadGame:
+					save_load_menu_->Open(false);
+					break;
+				case PauseMenuOption::Settings:
+					in_settings_from_pause_ = true;
+					break;
+				case PauseMenuOption::Mods:
+					mods_menu_->Show();
+					break;
+				case PauseMenuOption::QuitToTitle:
+					pause_menu_->ShowQuitConfirmation(true);
+					break;
+			}
+		});
+		pause_menu_->SetQuitConfirmationCallback([this]() {
+			game_->SetGameState(GameState::TitleScreen);
+		});
 		research_menu_ = std::make_unique<ResearchTreeMenu>();
 		mods_menu_ = std::make_unique<ModsMenu>();
 		mods_menu_->SetModManager(&ecs_world_->GetModManager());
@@ -489,6 +516,7 @@ namespace towerforge::core {
 		});
 
 		camera_->Reset();
+		game_initialized_ = true;
 	}
 
 	void InGameScene::Shutdown() {
@@ -755,52 +783,8 @@ namespace towerforge::core {
 				achievements_menu_.ProcessMouseEvent(mouse_event);
 			} else {
 				pause_menu_->Update(time_step_);
-
-				const int quit_result = pause_menu_->HandleQuitConfirmation();
-				if (quit_result == 1) {
-					// TODO: Return to title scene
-					Shutdown();
-					game_initialized_ = false;
-					return;
-				} else if (quit_result == 0) {
-					// User cancelled quit
-				} else {
-					const int keyboard_selection = pause_menu_->HandleKeyboard();
-
-					pause_menu_->ProcessMouseEvent(mouse_event);
-
-					// Get the menu option that was selected (via keyboard or mouse)
-					int selected = keyboard_selection;
-					if (selected < 0) {
-						selected = pause_menu_->GetSelectedMenuOption();
-					}
-
-					if (selected >= 0) {
-						const auto option = static_cast<PauseMenuOption>(selected);
-						switch (option) {
-							case PauseMenuOption::Resume:
-								is_paused_ = false;
-								game_state_.paused = false;
-								break;
-							case PauseMenuOption::SaveGame:
-								save_load_menu_->Open(true);
-								//hud_->AddNotification(Notification::Type::Info, "Save game not yet implemented", 3.0f);
-								break;
-							case PauseMenuOption::LoadGame:
-								save_load_menu_->Open(false);
-								break;
-							case PauseMenuOption::Settings:
-								in_settings_from_pause_ = true;
-								break;
-							case PauseMenuOption::Mods:
-								mods_menu_->Show();
-								break;
-							case PauseMenuOption::QuitToTitle:
-								pause_menu_->ShowQuitConfirmation(true);
-								break;
-						}
-					}
-				}
+				pause_menu_->HandleKeyboard();
+				pause_menu_->ProcessMouseEvent(mouse_event);
 			}
 		}
 

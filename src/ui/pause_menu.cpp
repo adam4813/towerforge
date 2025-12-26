@@ -1,16 +1,15 @@
 #include "ui/pause_menu.h"
-#include "ui/ui_element.h"
-#include <cmath>
+#include "audio/audio_manager.h"
 
 namespace towerforge::ui {
-
     PauseMenu::PauseMenu()
         : selected_option_(0)
           , animation_time_(0.0f)
           , show_quit_confirmation_(false)
           , quit_confirmation_selection_(0)
-          , selected_menu_option_(-1) {
-
+          , last_screen_width_(0)
+          , last_screen_height_(0)
+          , option_callback_(nullptr) {
         // Initialize menu items
         menu_items_.push_back({"Resume Game", PauseMenuOption::Resume});
         menu_items_.push_back({"Save Game", PauseMenuOption::SaveGame});
@@ -18,340 +17,457 @@ namespace towerforge::ui {
         menu_items_.push_back({"Settings", PauseMenuOption::Settings});
         menu_items_.push_back({"Mods", PauseMenuOption::Mods});
         menu_items_.push_back({"Quit to Title", PauseMenuOption::QuitToTitle});
-        
-        // PauseMenu is a Panel (container)
-        pause_panel_ = std::make_unique<Panel>(0, 0, 800, 600, BLANK, BLANK);
-        
-        // Create Button objects for each menu item and add as children
-        for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-            auto button = std::make_unique<Button>(
-                0, // x will be set during render
-                static_cast<float>(item_y),
-                static_cast<float>(MENU_WIDTH),
-                static_cast<float>(MENU_ITEM_HEIGHT),
-                menu_items_[i].label,
-                ColorAlpha(DARKGRAY, 0.3f),
-                GRAY
-            );
-            button->SetFontSize(22);
-            
-            // Set click callback
-            const int option_index = static_cast<int>(i);
-            button->SetClickCallback([this, option_index]() {
-                selected_menu_option_ = option_index;
-            });
-            
-            // Store raw pointer for later access
-            Button* button_ptr = button.get();
-            menu_item_buttons_.push_back(button_ptr);
-            
-            // Add as child to panel
-            pause_panel_->AddChild(std::move(button));
-        }
     }
 
     PauseMenu::~PauseMenu() = default;
 
-    void PauseMenu::Update(const float delta_time) {
-        animation_time_ += delta_time;
-    }
+    void PauseMenu::Initialize() {
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
 
-    void PauseMenu::Render() const {
-        RenderOverlay();
-
-        if (show_quit_confirmation_) {
-            RenderQuitConfirmation();
-        } else {
-            RenderMenuOptions();
-        }
-    }
-
-    void PauseMenu::RenderOverlay() const {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
 
-        // Draw semi-transparent overlay to dim the game
-        DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.7f));
+        // Create main panel with vertical layout
+        const int panel_x = (screen_width - MENU_WIDTH) / 2;
+        const int menu_height = HEADER_HEIGHT + static_cast<int>(menu_items_.size()) * (
+                                    MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) - MENU_ITEM_SPACING;
+        const int panel_y = (screen_height - menu_height) / 2;
 
-        // Draw subtle grid pattern for background
-        for (int i = 0; i < screen_height; i += 50) {
-            DrawLine(0, i, screen_width, i, ColorAlpha(DARKGRAY, 0.1f));
-        }
-        for (int i = 0; i < screen_width; i += 50) {
-            DrawLine(i, 0, i, screen_height, ColorAlpha(DARKGRAY, 0.1f));
-        }
+        pause_panel_ = std::make_unique<engine::ui::elements::Panel>();
+        pause_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+        pause_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(menu_height));
+        pause_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f)));
+        pause_panel_->SetBorderColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        pause_panel_->SetBorderWidth(2.0f);
+        pause_panel_->SetPadding(static_cast<float>(UITheme::PADDING_LARGE));
+        pause_panel_->AddComponent<LayoutComponent>(
+            std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center)
+        );
 
-        // Draw "PAUSED" title
-        const auto title = "PAUSED";
-        constexpr int title_font_size = 50;
-        const int title_width = MeasureText(title, title_font_size);
-        const int title_x = (screen_width - title_width) / 2;
+        // Add title text
+        auto title_text = std::make_unique<Text>(
+            0, 0,
+            "PAUSED",
+            UITheme::FONT_SIZE_TITLE,
+            UITheme::ToEngineColor(UITheme::PRIMARY)
+        );
+        pause_panel_->AddChild(std::move(title_text));
 
-        // Draw title shadow
-        DrawText(title, title_x + 2, TITLE_Y + 2, title_font_size, ColorAlpha(BLACK, 0.5f));
+        // Add divider below title
+        auto divider = std::make_unique<Divider>();
+        divider->SetColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        divider->SetSize(MENU_WIDTH - UITheme::PADDING_LARGE * 2, 2);
+        pause_panel_->AddChild(std::move(divider));
 
-        // Draw title with pulsing effect
-        const float pulse = sin(animation_time_ * 2.0f) * 0.1f + 0.9f;
-        DrawText(title, title_x, TITLE_Y, title_font_size, ColorAlpha(GOLD, pulse));
+        // Create button container with vertical layout
+        constexpr float item_width = MENU_WIDTH - UITheme::PADDING_MEDIUM * 2;
+        auto button_container = engine::ui::ContainerBuilder()
+                .Opacity(0)
+                .Size(item_width,
+                      static_cast<float>(MENU_ITEM_HEIGHT * menu_items_.size() + MENU_ITEM_SPACING * (
+                                             menu_items_.size() - 1)))
+                .Layout(std::make_unique<VerticalLayout>(static_cast<float>(MENU_ITEM_SPACING), Alignment::Center))
+                .Build();
 
-        // Draw decorative line
-        constexpr int line_width = 300;
-        const int line_x = (screen_width - line_width) / 2;
-        DrawRectangle(line_x, TITLE_Y + 60, line_width, 2, GOLD);
-    }
-
-    void PauseMenu::RenderMenuOptions() const {
-        const int screen_width = GetScreenWidth();
-
+        // Create buttons for each menu item
         for (size_t i = 0; i < menu_items_.size(); ++i) {
-            const int item_y = MENU_START_Y + i * (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
-            const int item_x = (screen_width - MENU_WIDTH) / 2;
+            auto button = std::make_unique<engine::ui::elements::Button>(
+                static_cast<int>(item_width),
+                MENU_ITEM_HEIGHT,
+                menu_items_[i].label,
+                UITheme::FONT_SIZE_LARGE
+            );
 
-            const bool is_selected = (static_cast<int>(i) == selected_option_);
+            button->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
+            button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
+            button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+            button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
 
-            // Update button position and appearance based on selection
-            auto& button = menu_item_buttons_[i];
-            button->SetRelativePosition(static_cast<float>(item_x), static_cast<float>(item_y));
-            button->SetBackgroundColor(is_selected ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.3f));
-            button->SetBorderColor(is_selected ? GOLD : GRAY);
-            button->SetFontSize(is_selected ? 24 : 22);
-            
-            // Add subtle animation to selected item
-            Color text_color = is_selected ? WHITE : LIGHTGRAY;
-            if (is_selected) {
-                const float pulse = sin(animation_time_ * 3.0f) * 0.1f + 0.9f;
-                text_color = ColorAlpha(WHITE, pulse);
-            }
-            button->SetTextColor(text_color);
-            
-            // Render the button
-            button->Render();
+            // Set click callback
+            button->SetClickCallback([this, option = menu_items_[i].option](const engine::ui::MouseEvent &event) {
+                if (event.left_pressed) {
+                    audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
+                    if (option_callback_) {
+                        option_callback_(option);
+                    }
+                    return true;
+                }
+                return false;
+            });
 
-            // Draw selection indicator
-            if (is_selected) {
-                const int indicator_x = item_x - 30;
-                const int indicator_y = item_y + MENU_ITEM_HEIGHT / 2;
-                DrawText(">", indicator_x, indicator_y - 12, 24, GOLD);
-            }
+            // Set hover callback
+            button->SetHoverCallback([this, this_button = button.get()](const engine::ui::MouseEvent &) {
+                // Clear old selection
+                if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
+                    const auto old_button = menu_item_buttons_[selected_option_];
+                    old_button->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
+                    old_button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
+                    old_button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+                }
+
+                // Set new selection
+                for (std::size_t j = 0; j < menu_item_buttons_.size(); ++j) {
+                    if (menu_item_buttons_[j] == this_button) {
+                        this_button->SetBorderColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+                        this_button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_PRIMARY));
+                        this_button->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
+                        selected_option_ = static_cast<int>(j);
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            menu_item_buttons_.push_back(button.get());
+            button_container->AddChild(std::move(button));
         }
 
-        // Draw instruction at bottom
-        const int screen_height = GetScreenHeight();
-        const auto instruction = "ESC to Resume | ENTER to Select";
-        const int instruction_width = MeasureText(instruction, 16);
-        DrawText(instruction, (screen_width - instruction_width) / 2,
-                 screen_height - 50, 16, LIGHTGRAY);
+        // Auto-hover the first button
+        if (!menu_item_buttons_.empty()) {
+            menu_item_buttons_[0]->OnHover({0.5f, 0.5f});
+        }
+
+        pause_panel_->AddChild(std::move(button_container));
+
+        // Build confirmation dialog
+        BuildConfirmationDialog();
+
+        UpdateLayout();
     }
 
-    void PauseMenu::RenderQuitConfirmation() const {
+    void PauseMenu::BuildConfirmationDialog() {
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
+
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
 
-        // Draw confirmation dialog box
         constexpr int dialog_width = 500;
         constexpr int dialog_height = 250;
         const int dialog_x = (screen_width - dialog_width) / 2;
         const int dialog_y = (screen_height - dialog_height) / 2;
 
-        // Draw dialog background
-        DrawRectangle(dialog_x, dialog_y, dialog_width, dialog_height, ColorAlpha(Color{30, 30, 40, 255}, 0.95f));
-        DrawRectangleLines(dialog_x, dialog_y, dialog_width, dialog_height, GOLD);
-        DrawRectangleLines(dialog_x + 2, dialog_y + 2, dialog_width - 4, dialog_height - 4, GOLD);
+        confirmation_panel_ = std::make_unique<Panel>();
+        confirmation_panel_->SetRelativePosition(static_cast<float>(dialog_x), static_cast<float>(dialog_y));
+        confirmation_panel_->SetSize(static_cast<float>(dialog_width), static_cast<float>(dialog_height));
+        confirmation_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f)));
+        confirmation_panel_->SetBorderColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        confirmation_panel_->SetBorderWidth(2.0f);
+        confirmation_panel_->SetPadding(static_cast<float>(UITheme::PADDING_LARGE));
+        confirmation_panel_->AddComponent<LayoutComponent>(
+            std::make_unique<VerticalLayout>(UITheme::MARGIN_MEDIUM, Alignment::Center)
+        );
 
-        // Draw warning icon (exclamation mark)
-        DrawText("!", dialog_x + dialog_width / 2 - 10, dialog_y + 30, 40, ORANGE);
+        // Warning icon
+        auto warning_icon = std::make_unique<Text>(
+            0, 0, "!", 40, UITheme::ToEngineColor(ORANGE)
+        );
+        confirmation_panel_->AddChild(std::move(warning_icon));
 
-        // Draw confirmation message
-        const auto message1 = "Quit to Title Screen?";
-        const auto message2 = "Any unsaved progress will be lost.";
-        const int message1_width = MeasureText(message1, 24);
-        const int message2_width = MeasureText(message2, 18);
+        // Title
+        auto title = std::make_unique<Text>(
+            0, 0, "Quit to Title Screen?", UITheme::FONT_SIZE_LARGE, UITheme::ToEngineColor(WHITE)
+        );
+        confirmation_panel_->AddChild(std::move(title));
 
-        DrawText(message1, dialog_x + (dialog_width - message1_width) / 2, dialog_y + 85, 24, WHITE);
-        DrawText(message2, dialog_x + (dialog_width - message2_width) / 2, dialog_y + 120, 18, LIGHTGRAY);
+        // Message
+        auto message = std::make_unique<Text>(
+            0, 0, "Any unsaved progress will be lost.", UITheme::FONT_SIZE_MEDIUM, UITheme::ToEngineColor(LIGHTGRAY)
+        );
+        confirmation_panel_->AddChild(std::move(message));
 
-        // Draw buttons
+        // Button container with horizontal layout
         constexpr int button_width = 150;
         constexpr int button_height = 45;
         constexpr int button_spacing = 30;
-        constexpr int buttons_total_width = button_width * 2 + button_spacing;
-        const int button_start_x = dialog_x + (dialog_width - buttons_total_width) / 2;
-        const int button_y = dialog_y + dialog_height - 75;
+
+        auto button_container = engine::ui::ContainerBuilder()
+                .Opacity(0)
+                .Size(static_cast<float>(button_width * 2 + button_spacing), static_cast<float>(button_height))
+                .Layout(std::make_unique<HorizontalLayout>(static_cast<float>(button_spacing), Alignment::Center))
+                .Build();
 
         // Cancel button
-        const bool cancel_selected = quit_confirmation_selection_ == 0;
-        const Color cancel_bg = cancel_selected ? ColorAlpha(GRAY, 0.5f) : ColorAlpha(DARKGRAY, 0.3f);
-        const Color cancel_border = cancel_selected ? WHITE : GRAY;
-
-        DrawRectangle(button_start_x, button_y, button_width, button_height, cancel_bg);
-        DrawRectangleLines(button_start_x, button_y, button_width, button_height, cancel_border);
-
-        const auto cancel_text = "Cancel";
-        const int cancel_text_width = MeasureText(cancel_text, 20);
-        DrawText(cancel_text, button_start_x + (button_width - cancel_text_width) / 2,
-                 button_y + 12, 20, cancel_selected ? WHITE : LIGHTGRAY);
+        auto cancel_btn = std::make_unique<Button>(
+            button_width, button_height, "Cancel", UITheme::FONT_SIZE_MEDIUM
+        );
+        cancel_btn->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(GRAY, 0.3f)));
+        cancel_btn->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(GRAY, 0.5f)));
+        cancel_btn->SetBorderColor(UITheme::ToEngineColor(WHITE));
+        cancel_btn->SetTextColor(UITheme::ToEngineColor(WHITE));
+        cancel_btn->SetClickCallback([this](const engine::ui::MouseEvent &event) {
+            if (event.left_pressed) {
+                show_quit_confirmation_ = false;
+                quit_confirmation_selection_ = 0;
+                return true;
+            }
+            return false;
+        });
+        cancel_btn->SetHoverCallback([this](const engine::ui::MouseEvent &) {
+            quit_confirmation_selection_ = 0;
+            UpdateConfirmationButtonStyles();
+            return true;
+        });
+        cancel_button_ = cancel_btn.get();
+        button_container->AddChild(std::move(cancel_btn));
 
         // Confirm button
-        const bool confirm_selected = quit_confirmation_selection_ == 1;
-        const Color confirm_bg = confirm_selected ? ColorAlpha(RED, 0.5f) : ColorAlpha(DARKGRAY, 0.3f);
-        const Color confirm_border = confirm_selected ? RED : GRAY;
+        auto confirm_btn = std::make_unique<Button>(
+            button_width, button_height, "Quit", UITheme::FONT_SIZE_MEDIUM
+        );
+        confirm_btn->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(RED, 0.3f)));
+        confirm_btn->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(RED, 0.5f)));
+        confirm_btn->SetBorderColor(UITheme::ToEngineColor(RED));
+        confirm_btn->SetTextColor(UITheme::ToEngineColor(WHITE));
+        confirm_btn->SetClickCallback([this](const engine::ui::MouseEvent &event) {
+            if (event.left_pressed && quit_confirmation_callback_) {
+                show_quit_confirmation_ = false;
+                quit_confirmation_selection_ = 1;
+                quit_confirmation_callback_();
+                return true;
+            }
+            return false;
+        });
+        confirm_btn->SetHoverCallback([this](const engine::ui::MouseEvent &) {
+            quit_confirmation_selection_ = 1;
+            UpdateConfirmationButtonStyles();
+            return true;
+        });
+        confirm_button_ = confirm_btn.get();
+        button_container->AddChild(std::move(confirm_btn));
 
-        const int confirm_x = button_start_x + button_width + button_spacing;
-        DrawRectangle(confirm_x, button_y, button_width, button_height, confirm_bg);
-        DrawRectangleLines(confirm_x, button_y, button_width, button_height, confirm_border);
+        confirmation_panel_->AddChild(std::move(button_container));
 
-        const auto confirm_text = "Quit";
-        const int confirm_text_width = MeasureText(confirm_text, 20);
-        DrawText(confirm_text, confirm_x + (button_width - confirm_text_width) / 2,
-                 button_y + 12, 20, confirm_selected ? WHITE : LIGHTGRAY);
+        // Instruction text
+        auto instruction = std::make_unique<Text>(
+            0, 0, "LEFT/RIGHT to Select | ENTER to Confirm | ESC to Cancel",
+            UITheme::FONT_SIZE_SMALL, UITheme::ToEngineColor(DARKGRAY)
+        );
+        confirmation_panel_->AddChild(std::move(instruction));
 
-        // Draw instruction
-        const auto instruction = "LEFT/RIGHT to Select | ENTER to Confirm | ESC to Cancel";
-        const int instruction_width = MeasureText(instruction, 14);
-        DrawText(instruction, dialog_x + (dialog_width - instruction_width) / 2,
-                 dialog_y + dialog_height - 25, 14, DARKGRAY);
+        confirmation_panel_->InvalidateComponents();
+        confirmation_panel_->UpdateComponentsRecursive();
     }
 
-    int PauseMenu::HandleKeyboard() {
-        // If quit confirmation is showing, handle that separately
-        if (show_quit_confirmation_) {
-            return -1;
+    void PauseMenu::UpdateConfirmationButtonStyles() const {
+        if (cancel_button_) {
+            const bool cancel_selected = quit_confirmation_selection_ == 0;
+            cancel_button_->SetNormalColor(UITheme::ToEngineColor(
+                cancel_selected ? ColorAlpha(GRAY, 0.5f) : ColorAlpha(DARKGRAY, 0.3f)));
+            cancel_button_->SetBorderColor(UITheme::ToEngineColor(cancel_selected ? WHITE : GRAY));
         }
+        if (confirm_button_) {
+            const bool confirm_selected = quit_confirmation_selection_ == 1;
+            confirm_button_->SetNormalColor(UITheme::ToEngineColor(
+                confirm_selected ? ColorAlpha(RED, 0.5f) : ColorAlpha(DARKGRAY, 0.3f)));
+            confirm_button_->SetBorderColor(UITheme::ToEngineColor(confirm_selected ? RED : GRAY));
+        }
+    }
+
+    void PauseMenu::UpdateConfirmationLayout() {
+        if (!confirmation_panel_) return;
+
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        constexpr int dialog_width = 500;
+        constexpr int dialog_height = 250;
+        const int dialog_x = (screen_width - dialog_width) / 2;
+        const int dialog_y = (screen_height - dialog_height) / 2;
+
+        confirmation_panel_->SetRelativePosition(static_cast<float>(dialog_x), static_cast<float>(dialog_y));
+        confirmation_panel_->InvalidateComponents();
+        confirmation_panel_->UpdateComponentsRecursive();
+    }
+
+    void PauseMenu::Shutdown() {
+        menu_item_buttons_.clear();
+        pause_panel_.reset();
+        cancel_button_ = nullptr;
+        confirm_button_ = nullptr;
+        confirmation_panel_.reset();
+    }
+
+    void PauseMenu::UpdateLayout() {
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+
+        if (pause_panel_ != nullptr) {
+            const int panel_x = (screen_width - MENU_WIDTH) / 2;
+            const int menu_height = HEADER_HEIGHT + static_cast<int>(menu_items_.size()) * (
+                                        MENU_ITEM_HEIGHT + MENU_ITEM_SPACING) - MENU_ITEM_SPACING;
+            const int panel_y = (screen_height - menu_height) / 2;
+            pause_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+            pause_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(menu_height));
+            pause_panel_->InvalidateComponents();
+            pause_panel_->UpdateComponentsRecursive();
+        }
+
+        UpdateConfirmationLayout();
+
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+    }
+
+    void PauseMenu::Update(const float delta_time) {
+        animation_time_ += delta_time;
+
+        // Check for window resize
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+            UpdateLayout();
+        }
+
+        // Animate selected button
+        if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
+            auto *button = menu_item_buttons_[selected_option_];
+            const float pulse = sin(animation_time_ * UITheme::ANIMATION_SPEED_NORMAL) * 0.1f + 0.9f;
+            button->SetTextColor(UITheme::ToEngineColor(ColorAlpha(UITheme::TEXT_PRIMARY, pulse)));
+        }
+    }
+
+    void PauseMenu::Render() const {
+        if (show_quit_confirmation_) {
+            RenderDimOverlay();
+            RenderQuitConfirmation();
+        } else {
+            RenderDimOverlay();
+            if (pause_panel_) {
+                pause_panel_->Render();
+            }
+            RenderIndicator();
+        }
+    }
+
+    void PauseMenu::RenderDimOverlay() const {
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(0, 0, static_cast<float>(screen_width), static_cast<float>(screen_height)),
+            UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f))
+        );
+    }
+
+    void PauseMenu::RenderIndicator() const {
+        if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_item_buttons_.size())) {
+            const auto *button = menu_item_buttons_[selected_option_];
+            const auto bounds = button->GetAbsoluteBounds();
+            const int indicator_x = static_cast<int>(bounds.x) - UITheme::PADDING_LARGE;
+            const int indicator_font_size = UITheme::ResponsiveFontSize(UITheme::FONT_SIZE_LARGE);
+            const int indicator_y = static_cast<int>(bounds.y + bounds.height / 2) - indicator_font_size / 2;
+
+            engine::ui::BatchRenderer::SubmitText(">", static_cast<float>(indicator_x), static_cast<float>(indicator_y),
+                                                  indicator_font_size, UITheme::ToEngineColor(UITheme::PRIMARY));
+        }
+    }
+
+    void PauseMenu::HandleKeyboard() const {
+        if (show_quit_confirmation_ && HandleQuitConfirmation() != 0) {
+            return;
+        }
+
+        int new_selection = selected_option_;
 
         // Navigate up
         if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            selected_option_--;
-            if (selected_option_ < 0) {
-                selected_option_ = static_cast<int>(menu_items_.size()) - 1;
+            new_selection--;
+            if (new_selection < 0) {
+                new_selection = static_cast<int>(menu_items_.size()) - 1;
             }
         }
 
         // Navigate down
         if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            selected_option_++;
-            if (selected_option_ >= static_cast<int>(menu_items_.size())) {
-                selected_option_ = 0;
+            new_selection++;
+            if (new_selection >= static_cast<int>(menu_items_.size())) {
+                new_selection = 0;
             }
         }
 
-        // Select option
+        if (new_selection != selected_option_ && new_selection >= 0 &&
+            new_selection < static_cast<int>(menu_item_buttons_.size())) {
+            auto *button = menu_item_buttons_[new_selection];
+            auto button_position = button->GetAbsoluteBounds();
+            button->OnHover({button_position.x, button_position.y});
+        }
+
+        // Select option with Enter/Space
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            return selected_option_;
+            if (selected_option_ >= 0 && selected_option_ < static_cast<int>(menu_items_.size())) {
+                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
+                if (option_callback_) {
+                    option_callback_(menu_items_[selected_option_].option);
+                }
+            }
         }
 
         // ESC to resume
         if (IsKeyPressed(KEY_ESCAPE)) {
-            return static_cast<int>(PauseMenuOption::Resume);
-        }
-
-        return -1;
-    }
-
-    bool PauseMenu::ProcessMouseEvent(const MouseEvent& event) {
-        // If quit confirmation is showing, don't handle menu mouse input
-        if (show_quit_confirmation_) {
-            return false;
-        }
-
-        // Reset selected menu option
-        selected_menu_option_ = -1;
-
-        // Process mouse event through the panel
-        const bool consumed = pause_panel_->ProcessMouseEvent(event);
-
-        // Update selected_option_ based on which button is hovered
-        for (size_t i = 0; i < menu_item_buttons_.size(); ++i) {
-            if (menu_item_buttons_[i]->IsHovered()) {
-                selected_option_ = static_cast<int>(i);
-                break;
+            if (option_callback_) {
+                option_callback_(PauseMenuOption::Resume);
             }
         }
-
-        return consumed;
     }
 
-    int PauseMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        // Legacy wrapper - delegates to modern API
-        MouseEvent event(
-            static_cast<float>(mouse_x),
-            static_cast<float>(mouse_y),
-            false, // left_down
-            false, // right_down
-            clicked, // left_pressed
-            false  // right_pressed
-        );
-        ProcessMouseEvent(event);
-        return selected_menu_option_;
+    bool PauseMenu::ProcessMouseEvent(const MouseEvent &event) const {
+        const auto mouse_event = engine::ui::MouseEvent{
+            event.x,
+            event.y,
+            event.left_down,
+            event.right_down,
+            event.left_pressed,
+            event.right_pressed
+        };
+        if (show_quit_confirmation_ && confirmation_panel_->ProcessMouseEvent(mouse_event)) {
+            return true;
+        }
+
+        if (pause_panel_) {
+            return pause_panel_->ProcessMouseEvent(mouse_event);
+        }
+
+        return false;
     }
 
-    int PauseMenu::HandleQuitConfirmation() {
+    void PauseMenu::RenderQuitConfirmation() const {
+        if (confirmation_panel_) {
+            UpdateConfirmationButtonStyles();
+            confirmation_panel_->Render();
+        }
+    }
+
+    int PauseMenu::HandleQuitConfirmation() const {
         if (!show_quit_confirmation_) {
             return -1;
         }
 
         // Navigate left/right
         if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
-            quit_confirmation_selection_ = 0;  // Cancel
+            quit_confirmation_selection_ = 0; // Cancel
+            UpdateConfirmationButtonStyles();
         }
         if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
-            quit_confirmation_selection_ = 1;  // Confirm
+            quit_confirmation_selection_ = 1; // Confirm
+            UpdateConfirmationButtonStyles();
         }
 
         // Confirm selection
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
             const int result = quit_confirmation_selection_;
             show_quit_confirmation_ = false;
-            quit_confirmation_selection_ = 0;  // Reset to cancel
+            quit_confirmation_selection_ = 0;
             return result;
         }
 
         // Cancel with ESC
         if (IsKeyPressed(KEY_ESCAPE)) {
             show_quit_confirmation_ = false;
-            quit_confirmation_selection_ = 0;  // Reset to cancel
-            return 0;  // Cancel
-        }
-
-        // Handle mouse input for confirmation dialog
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            const int mouse_x = GetMouseX();
-            const int mouse_y = GetMouseY();
-
-            const int screen_width = GetScreenWidth();
-            const int screen_height = GetScreenHeight();
-
-            constexpr int dialog_width = 500;
-            constexpr int dialog_height = 250;
-            const int dialog_x = (screen_width - dialog_width) / 2;
-            const int dialog_y = (screen_height - dialog_height) / 2;
-
-            constexpr int button_width = 150;
-            constexpr int button_height = 45;
-            constexpr int button_spacing = 30;
-            constexpr int buttons_total_width = button_width * 2 + button_spacing;
-            const int button_start_x = dialog_x + (dialog_width - buttons_total_width) / 2;
-            const int button_y = dialog_y + dialog_height - 75;
-
-            // Check cancel button
-            if (mouse_x >= button_start_x && mouse_x <= button_start_x + button_width &&
-                mouse_y >= button_y && mouse_y <= button_y + button_height) {
-                show_quit_confirmation_ = false;
-                quit_confirmation_selection_ = 0;
-                return 0;  // Cancel
-            }
-
-            // Check confirm button
-            const int confirm_x = button_start_x + button_width + button_spacing;
-            if (mouse_x >= confirm_x && mouse_x <= confirm_x + button_width &&
-                mouse_y >= button_y && mouse_y <= button_y + button_height) {
-                show_quit_confirmation_ = false;
-                quit_confirmation_selection_ = 0;
-                return 1;  // Confirm
-            }
+            quit_confirmation_selection_ = 0;
+            return 0;
         }
 
         return -1;
     }
-
 }

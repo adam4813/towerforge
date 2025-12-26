@@ -165,16 +165,16 @@ namespace towerforge::core {
 			case GameState::InGame:
 				if (!ingame_scene_) {
 					ingame_scene_ = std::make_unique<InGameScene>(this);
-					ingame_scene_->Initialize();
 				}
+				ingame_scene_->Initialize();
 				active_scene_ = ingame_scene_.get();
 				break;
 
 			case GameState::Tutorial:
 				if (!tutorial_scene_) {
 					tutorial_scene_ = std::make_unique<TutorialScene>(this);
-					tutorial_scene_->Initialize();
 				}
+				tutorial_scene_->Initialize();
 				active_scene_ = tutorial_scene_.get();
 				break;
 
