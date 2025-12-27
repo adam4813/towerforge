@@ -1,11 +1,10 @@
 #pragma once
 
-#include "ui/ui_element.h"
-#include <raylib.h>
-#include <string>
+#include <memory>
+
+import engine;
 
 namespace towerforge::ui {
-
     struct GameState;
 
     /**
@@ -13,26 +12,33 @@ namespace towerforge::ui {
      * 
      * Declarative UI component following UI Development Bible patterns.
      * Displays current star rating and progress toward next milestone.
+     * Uses citrus engine Panel for consistent styling.
      */
-    class StarRatingPanel : public Panel {
+    class StarRatingPanel {
     public:
         StarRatingPanel();
-        ~StarRatingPanel() override = default;
+
+        ~StarRatingPanel() = default;
+
+        /**
+         * @brief Initialize the panel UI elements
+         */
+        void Initialize();
 
         /**
          * @brief Update panel position on resize
          */
-        void Update(float delta_time) override;
+        void Update(float delta_time);
 
         /**
          * @brief Render the star rating panel
          */
-        void Render() const override;
+        void Render() const;
 
         /**
          * @brief Set the game state reference for display
          */
-        void SetGameState(const GameState* state) { game_state_ = state; }
+        void SetGameState(const GameState *state) { game_state_ = state; }
 
         /**
          * @brief Check if max rating achieved
@@ -44,9 +50,13 @@ namespace towerforge::ui {
         static constexpr int PADDING = 10;
 
     private:
+        void UpdateLayout();
+
         void RenderContent() const;
 
-        const GameState* game_state_;
+        const GameState *game_state_;
+        std::unique_ptr<engine::ui::elements::Panel> panel_;
+        int last_screen_width_;
+        int last_screen_height_;
     };
-
 } // namespace towerforge::ui

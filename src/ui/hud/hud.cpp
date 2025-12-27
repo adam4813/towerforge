@@ -50,6 +50,7 @@ namespace towerforge::ui {
         });
 
         star_rating_panel_ = std::make_unique<StarRatingPanel>();
+        star_rating_panel_->Initialize();
         star_rating_panel_->SetGameState(&game_state_);
 
         end_game_summary_ = std::make_unique<EndGameSummary>();
