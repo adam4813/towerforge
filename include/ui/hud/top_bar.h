@@ -1,14 +1,12 @@
 #pragma once
 
-#include "ui/ui_element.h"
-#include <raylib.h>
 #include <memory>
 #include <functional>
 #include <string>
 
-namespace towerforge::ui {
+import engine;
 
-    class Button;
+namespace towerforge::ui {
     class NotificationCenter;
     struct GameState;
 
@@ -16,36 +14,48 @@ namespace towerforge::ui {
      * @brief Top bar panel displaying funds, population, time, and speed
      * 
      * Declarative UI component following UI Development Bible patterns.
+     * Uses citrus engine Panel and Button for consistent styling.
      * Handles interactive buttons for income/population analytics.
      */
-    class TopBar : public Panel {
+    class TopBar {
     public:
         using IncomeClickCallback = std::function<void()>;
         using PopulationClickCallback = std::function<void()>;
         using NotificationClickCallback = std::function<void()>;
 
         TopBar();
-        ~TopBar() override = default;
+
+        ~TopBar() = default;
+
+        /**
+         * @brief Initialize UI elements
+         */
+        void Initialize();
 
         /**
          * @brief Update top bar state
          */
-        void Update(float delta_time) override;
+        void Update(float delta_time);
 
         /**
          * @brief Render the top bar
          */
-        void Render() const override;
+        void Render() const;
+
+        /**
+         * @brief Process mouse events
+         */
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
         /**
          * @brief Set the game state reference for display
          */
-        void SetGameState(const GameState* state) { game_state_ = state; }
+        void SetGameState(const GameState *state) { game_state_ = state; }
 
         /**
          * @brief Set notification center for unread count display
          */
-        void SetNotificationCenter(NotificationCenter* center) { notification_center_ = center; }
+        void SetNotificationCenter(NotificationCenter *center) { notification_center_ = center; }
 
         /**
          * @brief Set income button click callback
@@ -55,32 +65,49 @@ namespace towerforge::ui {
         /**
          * @brief Set population button click callback
          */
-        void SetPopulationClickCallback(PopulationClickCallback callback) { population_click_callback_ = std::move(callback); }
+        void SetPopulationClickCallback(PopulationClickCallback callback) {
+            population_click_callback_ = std::move(callback);
+        }
 
         /**
          * @brief Set notification button click callback
          */
-        void SetNotificationClickCallback(NotificationClickCallback callback) { notification_click_callback_ = std::move(callback); }
+        void SetNotificationClickCallback(NotificationClickCallback callback) {
+            notification_click_callback_ = std::move(callback);
+        }
 
         static constexpr int HEIGHT = 40;
 
     private:
-        void BuildButtons();
-        void RenderContent() const;
+        void BuildPanel();
+
+        void UpdateLayout();
+
+        void UpdateTextElements() const;
+
         static std::string FormatTime(float time);
 
-        const GameState* game_state_;
-        NotificationCenter* notification_center_;
+        const GameState *game_state_;
+        NotificationCenter *notification_center_;
 
-        // Interactive buttons (ownership via Panel::children_)
-        Button* income_button_;
-        Button* population_button_;
-        Button* notification_button_;
+        // Engine UI elements
+        std::unique_ptr<engine::ui::elements::Panel> panel_;
+        engine::ui::elements::Button *income_button_;
+        engine::ui::elements::Button *population_button_;
+        engine::ui::elements::Button *notification_button_;
+
+        // Text elements for dynamic content
+        engine::ui::elements::Text *funds_text_;
+        engine::ui::elements::Text *population_text_;
+        engine::ui::elements::Text *time_text_;
+        engine::ui::elements::Text *speed_text_;
+        engine::ui::elements::Text *badge_text_;
+
+        int last_screen_width_;
 
         // Callbacks
         IncomeClickCallback income_click_callback_;
         PopulationClickCallback population_click_callback_;
         NotificationClickCallback notification_click_callback_;
     };
-
 } // namespace towerforge::ui

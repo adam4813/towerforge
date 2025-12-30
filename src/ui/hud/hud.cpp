@@ -48,6 +48,7 @@ namespace towerforge::ui {
         top_bar_->SetNotificationClickCallback([this]() {
             ToggleNotificationCenter();
         });
+        top_bar_->Initialize();
 
         star_rating_panel_ = std::make_unique<StarRatingPanel>();
         star_rating_panel_->Initialize();
@@ -288,8 +289,17 @@ namespace towerforge::ui {
         }
 
         // Forward to top bar
-        if (top_bar_ && top_bar_->ProcessMouseEvent(event)) {
-            return true;
+        if (top_bar_) {
+            engine::ui::MouseEvent engine_event;
+            engine_event.x = event.x;
+            engine_event.y = event.y;
+            engine_event.left_pressed = event.left_pressed;
+            engine_event.left_released = false;
+            engine_event.right_pressed = event.right_pressed;
+            engine_event.right_released = false;
+            if (top_bar_->ProcessMouseEvent(engine_event)) {
+                return true;
+            }
         }
 
         // Consume any other clicks on top bar
