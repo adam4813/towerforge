@@ -99,22 +99,13 @@ namespace towerforge::ui {
         }
     }
 
-    bool CameraControlsPanel::ProcessMouseEvent(const MouseEvent &event) {
+    bool CameraControlsPanel::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
         if (!main_panel_) return false;
 
         // Convert towerforge MouseEvent to engine MouseEvent
-        engine::ui::MouseEvent engine_event;
-        engine_event.x = event.x;
-        engine_event.y = event.y;
-        engine_event.left_pressed = event.left_pressed;
-        engine_event.left_released = false;
-        engine_event.right_pressed = event.right_pressed;
-        engine_event.right_released = false;
-        engine_event.left_down = event.left_down;
-        engine_event.right_down = event.right_down;
 
         // Let the panel handle the event (will propagate to slider)
-        if (main_panel_->ProcessMouseEvent(engine_event)) {
+        if (main_panel_->ProcessMouseEvent(event)) {
             return true;
         }
 

@@ -72,7 +72,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent &event);
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
     private:
         void UpdateLayout();

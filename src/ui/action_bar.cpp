@@ -136,14 +136,7 @@ namespace towerforge::ui {
         }
     }
 
-    bool ActionBar::ProcessMouseEvent(const MouseEvent &event) {
-        return main_panel_->ProcessMouseEvent({
-            event.x,
-            event.y,
-            event.left_down,
-            event.right_down,
-            event.left_pressed,
-            event.right_pressed
-        });
+    bool ActionBar::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
+        return main_panel_ ? main_panel_->ProcessMouseEvent(event) : false;
     }
 }

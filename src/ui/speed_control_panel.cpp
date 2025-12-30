@@ -2,17 +2,15 @@
 #include "ui/hud/hud.h"
 
 namespace towerforge::ui {
-
     SpeedControlPanel::SpeedControlPanel(float /*x*/, float /*y*/, float /*width*/, float /*height*/)
         : game_state_(nullptr)
-        , pause_button_(nullptr)
-        , speed_1x_button_(nullptr)
-        , speed_2x_button_(nullptr)
-        , speed_4x_button_(nullptr)
-        , current_speed_(1)
-        , is_paused_(false)
-        , speed_callback_(nullptr) {
-        
+          , pause_button_(nullptr)
+          , speed_1x_button_(nullptr)
+          , speed_2x_button_(nullptr)
+          , speed_4x_button_(nullptr)
+          , current_speed_(1)
+          , is_paused_(false)
+          , speed_callback_(nullptr) {
         BuildComponents();
         UpdateButtonStates();
     }
@@ -24,7 +22,7 @@ namespace towerforge::ui {
         const int speed_width = CalculateWidth();
         const int speed_height = CalculateHeight();
         const int screen_height = GetScreenHeight();
-        
+
         main_panel_ = std::make_unique<Panel>();
         main_panel_->SetSize(static_cast<float>(speed_width), static_cast<float>(speed_height));
         main_panel_->SetRelativePosition(10, static_cast<float>(screen_height - speed_height - 10));
@@ -46,7 +44,7 @@ namespace towerforge::ui {
         pause->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
         pause->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.8f)));
         pause->SetTextColor(UITheme::ToEngineColor(WHITE));
-        pause->SetClickCallback([this](const engine::ui::MouseEvent& event) {
+        pause->SetClickCallback([this](const engine::ui::MouseEvent &event) {
             if (event.left_pressed) {
                 OnPauseClick();
                 return true;
@@ -63,7 +61,7 @@ namespace towerforge::ui {
         speed_1x->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
         speed_1x->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.8f)));
         speed_1x->SetTextColor(UITheme::ToEngineColor(WHITE));
-        speed_1x->SetClickCallback([this](const engine::ui::MouseEvent& event) {
+        speed_1x->SetClickCallback([this](const engine::ui::MouseEvent &event) {
             if (event.left_pressed) {
                 OnSpeedClick(1);
                 return true;
@@ -80,7 +78,7 @@ namespace towerforge::ui {
         speed_2x->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
         speed_2x->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.8f)));
         speed_2x->SetTextColor(UITheme::ToEngineColor(WHITE));
-        speed_2x->SetClickCallback([this](const engine::ui::MouseEvent& event) {
+        speed_2x->SetClickCallback([this](const engine::ui::MouseEvent &event) {
             if (event.left_pressed) {
                 OnSpeedClick(2);
                 return true;
@@ -97,7 +95,7 @@ namespace towerforge::ui {
         speed_4x->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
         speed_4x->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.8f)));
         speed_4x->SetTextColor(UITheme::ToEngineColor(WHITE));
-        speed_4x->SetClickCallback([this](const engine::ui::MouseEvent& event) {
+        speed_4x->SetClickCallback([this](const engine::ui::MouseEvent &event) {
             if (event.left_pressed) {
                 OnSpeedClick(4);
                 return true;
@@ -132,33 +130,21 @@ namespace towerforge::ui {
     }
 
     void SpeedControlPanel::Render() const {
-        if (main_panel_) {
-            main_panel_->Render();
-        }
+        if (!main_panel_) return;
+
+        main_panel_->Render();
     }
 
-    bool SpeedControlPanel::ProcessMouseEvent(const MouseEvent& event) {
-        if (main_panel_) {
-            // Convert towerforge MouseEvent to engine MouseEvent
-            engine::ui::MouseEvent engine_event;
-            engine_event.x = event.x;
-            engine_event.y = event.y;
-            engine_event.left_pressed = event.left_pressed;
-            engine_event.left_released = false;
-            engine_event.right_pressed = event.right_pressed;
-            engine_event.right_released = false;
-            
-            return main_panel_->ProcessMouseEvent(engine_event);
-        }
-        return false;
+    bool SpeedControlPanel::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
+        return main_panel_ ? main_panel_->ProcessMouseEvent(event) : false;
     }
 
-    void SpeedControlPanel::UpdateButtonStates() {
+    void SpeedControlPanel::UpdateButtonStates() const {
         if (!pause_button_) return;
-        
+
         // Update pause button color
         pause_button_->SetNormalColor(UITheme::ToEngineColor(is_paused_ ? RED : DARKGRAY));
-        
+
         // Update speed button colors
         speed_1x_button_->SetNormalColor(UITheme::ToEngineColor(
             (!is_paused_ && current_speed_ == 1) ? GREEN : DARKGRAY
@@ -182,5 +168,4 @@ namespace towerforge::ui {
             speed_callback_(speed, false);
         }
     }
-
 } // namespace towerforge::ui

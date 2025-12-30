@@ -36,7 +36,7 @@ namespace towerforge::ui {
          * @brief Process mouse events
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent &event);
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
         /**
          * @brief Check if mouse is over the panel

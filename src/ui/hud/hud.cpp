@@ -70,7 +70,7 @@ namespace towerforge::ui {
         // Update current info window and reposition on screen resize
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
-        std::visit([delta_time, screen_width, screen_height](auto& window) {
+        std::visit([delta_time, screen_width, screen_height](auto &window) {
             using T = std::decay_t<decltype(window)>;
             if constexpr (!std::is_same_v<T, std::monostate>) {
                 if (window) {
@@ -123,7 +123,7 @@ namespace towerforge::ui {
         window_manager_->Render();
 
         // Render current info window
-        std::visit([](const auto& window) {
+        std::visit([](const auto &window) {
             using T = std::decay_t<decltype(window)>;
             if constexpr (!std::is_same_v<T, std::monostate>) {
                 if (window && window->IsVisible()) {
@@ -169,42 +169,42 @@ namespace towerforge::ui {
     void HUD::ShowFacilityInfo(const FacilityInfo &info) const {
         // Create a new facility window
         auto window = std::make_unique<FacilityWindow>(info);
-        
+
         // Position at bottom center
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
         const float x = (screen_width - window->GetWidth()) / 2.0f;
-        const float y = screen_height - window->GetHeight() - 60.0f;  // 60px margin for action bar
+        const float y = screen_height - window->GetHeight() - 60.0f; // 60px margin for action bar
         window->SetPosition(x, y);
-        
+
         current_info_window_ = std::move(window);
     }
 
     void HUD::ShowPersonInfo(const PersonInfo &info) const {
         // Create a new person window
         auto window = std::make_unique<PersonWindow>(info);
-        
+
         // Position at bottom center
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
         const float x = (screen_width - window->GetWidth()) / 2.0f;
         const float y = screen_height - window->GetHeight() - 60.0f;
         window->SetPosition(x, y);
-        
+
         current_info_window_ = std::move(window);
     }
 
     void HUD::ShowElevatorInfo(const ElevatorInfo &info) const {
         // Create a new elevator window
         auto window = std::make_unique<ElevatorWindow>(info);
-        
+
         // Position at bottom center
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
         const float x = (screen_width - window->GetWidth()) / 2.0f;
         const float y = screen_height - window->GetHeight() - 60.0f;
         window->SetPosition(x, y);
-        
+
         current_info_window_ = std::move(window);
     }
 
@@ -238,68 +238,58 @@ namespace towerforge::ui {
     }
 
 
-    bool HUD::ProcessMouseEvent(const MouseEvent &event) {
+    bool HUD::ProcessMouseEvent(const MouseEvent &event) const {
+        engine::ui::MouseEvent engine_event;
+        engine_event.x = event.x;
+        engine_event.y = event.y;
+        engine_event.left_down = event.left_down;
+        engine_event.left_pressed = event.left_pressed;
+        engine_event.left_released = false; // Not available in towerforge MouseEvent
+        engine_event.right_down = event.right_down;
+        engine_event.right_pressed = event.right_pressed;
+        engine_event.right_released = false; // Not available in towerforge MouseEvent
+
         // Forward to current info window first (highest priority for close button)
         bool info_window_handled = false;
-        std::visit([&event, &info_window_handled](auto& window) {
+        std::visit([&engine_event, &info_window_handled](auto &window) {
             using T = std::decay_t<decltype(window)>;
             if constexpr (!std::is_same_v<T, std::monostate>) {
-                if (window && window->IsVisible()) {
-                    // Convert towerforge MouseEvent to engine MouseEvent
-                    engine::ui::MouseEvent engine_event;
-                    engine_event.x = event.x;
-                    engine_event.y = event.y;
-                    engine_event.left_pressed = event.left_pressed;
-                    engine_event.left_released = false;  // Not available in towerforge MouseEvent
-                    engine_event.right_pressed = event.right_pressed;
-                    engine_event.right_released = false;  // Not available in towerforge MouseEvent
-                    
-                    if (window->ProcessMouseEvent(engine_event)) {
-                        info_window_handled = true;
-                    }
+                if (window && window->IsVisible() &&
+                    window->ProcessMouseEvent(engine_event)) {
+                    info_window_handled = true;
                 }
             }
         }, current_info_window_);
-        
+
         if (info_window_handled) {
             return true;
         }
-        
+
         // Forward to action bar
-        if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
+        if (action_bar_ && action_bar_->ProcessMouseEvent(engine_event)) {
             return true;
         }
 
         // Forward to camera controls panel
-        if (camera_controls_panel_ && camera_controls_panel_->ProcessMouseEvent(event)) {
+        if (camera_controls_panel_ && camera_controls_panel_->ProcessMouseEvent(engine_event)) {
             return true;
         }
 
         // Forward to speed control panel
-        if (speed_control_panel_ && speed_control_panel_->ProcessMouseEvent(event)) {
+        if (speed_control_panel_ && speed_control_panel_->ProcessMouseEvent(engine_event)) {
             return true;
         }
 
         // Handle notification center clicks
-        if (notification_center_->IsVisible() && event.left_pressed) {
-            if (const_cast<NotificationCenter *>(notification_center_.get())->HandleClick(
+        if (notification_center_ && notification_center_->IsVisible() && event.left_pressed &&
+            notification_center_.get()->HandleClick(
                 static_cast<int>(event.x), static_cast<int>(event.y))) {
-                return true;
-            }
+            return true;
         }
 
         // Forward to top bar
-        if (top_bar_) {
-            engine::ui::MouseEvent engine_event;
-            engine_event.x = event.x;
-            engine_event.y = event.y;
-            engine_event.left_pressed = event.left_pressed;
-            engine_event.left_released = false;
-            engine_event.right_pressed = event.right_pressed;
-            engine_event.right_released = false;
-            if (top_bar_->ProcessMouseEvent(engine_event)) {
-                return true;
-            }
+        if (top_bar_ && top_bar_->ProcessMouseEvent(engine_event)) {
+            return true;
         }
 
         // Consume any other clicks on top bar

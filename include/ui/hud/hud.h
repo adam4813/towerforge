@@ -213,7 +213,7 @@ namespace towerforge::ui {
 	 * @param event Mouse event data
 	 * @return true if event was consumed by HUD
 	 */
-		bool ProcessMouseEvent(const MouseEvent &event);
+		bool ProcessMouseEvent(const MouseEvent &event) const;
 
 		/**
 	 * @brief Update tooltips based on mouse position

@@ -38,7 +38,7 @@ namespace towerforge::ui {
         /**
          * @brief Process mouse events (towerforge event type)
          */
-        bool ProcessMouseEvent(const MouseEvent &event);
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
         /**
          * @brief Set the game state reference for reading speed/pause state
@@ -74,7 +74,7 @@ namespace towerforge::ui {
 
         void BuildComponents();
 
-        void UpdateButtonStates();
+        void UpdateButtonStates() const;
 
         void OnPauseClick();
 
