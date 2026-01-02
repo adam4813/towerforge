@@ -130,6 +130,29 @@ Before completing any work:
 **Note**: Use `cli-native` presets (not `native`) to avoid conflicts with IDE builds.
 Build directory: `build-cli/cli-native/` (isolated from IDE's `build/native/`)
 
+#### Windows: Visual Studio Compiler Environment
+
+**When using MSVC (Visual Studio compiler)**, you must initialize the Visual Studio toolchain environment before building. Wrap build commands with `vcvars64.bat`:
+
+```powershell
+# PowerShell - wrap the entire command
+cmd /c '"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" && cmake --build --preset cli-native-debug 2>&1'
+
+# For tests
+cmd /c '"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" && ctest --preset cli-test-debug --output-on-failure 2>&1'
+```
+
+**How to detect MSVC**: Check the CMake output during configure - it will show the compiler path containing `MSVC` or `cl.exe`, e.g.:
+```
+Compiler found: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/.../bin/Hostx64/x64/cl.exe
+```
+
+**Why**: The `vcvars64.bat` script initializes environment variables that tell the compiler where to find the Windows SDK and standard library headers.
+
+**Alternative paths** (adjust for your VS version/edition):
+- VS 2022 Professional: `C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat`
+- VS 2019: `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat`
+
 ### Test Verification (REQUIRED)
 After successful build, run tests before completing work:
 
