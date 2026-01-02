@@ -1,19 +1,26 @@
 #include "ui/research_tree_menu.h"
 #include "ui/notification_center.h"
-#include "ui/help_system.h"
-#include <raylib.h>
+#include "ui/ui_theme.h"
+#include "ui/mouse_interface.h"
+#include "audio/audio_manager.h"
 #include <string>
+#include <sstream>
+#include <map>
+
+import engine;
 
 namespace towerforge::ui {
-
     ResearchTreeMenu::ResearchTreeMenu()
         : visible_(false)
           , animation_time_(0.0f)
-          , hovered_node_index_(-1)
+          , selected_node_index_(-1)
           , notification_center_(nullptr)
+          , tooltip_manager_(nullptr)
+          , last_screen_width_(0)
+          , last_screen_height_(0)
+          , tab_container_(nullptr)
+          , close_button_(nullptr)
           , pending_unlock_tree_(nullptr) {
-        
-        // Create unlock confirmation dialog
         unlock_confirmation_ = std::make_unique<ConfirmationDialog>(
             "Confirm Research Unlock",
             "Are you sure you want to unlock this research node?",
@@ -24,441 +31,496 @@ namespace towerforge::ui {
 
     ResearchTreeMenu::~ResearchTreeMenu() = default;
 
+    void ResearchTreeMenu::Initialize(const core::ResearchTree &research_tree) {
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
+
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+
+        // Calculate centered position
+        const float panel_x = static_cast<float>((screen_width - MENU_WIDTH) / 2);
+        const float panel_y = static_cast<float>((screen_height - MENU_HEIGHT) / 2);
+
+        // Create main panel with vertical layout
+        main_panel_ = std::make_unique<engine::ui::elements::Panel>();
+        main_panel_->SetRelativePosition(panel_x, panel_y);
+        main_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(MENU_HEIGHT));
+        main_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f)));
+        main_panel_->SetBorderColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        main_panel_->SetPadding(0);
+
+        // Create header container
+        auto header = engine::ui::ContainerBuilder()
+                .Size(MENU_WIDTH, HEADER_HEIGHT)
+                .Opacity(0)
+                .Layout(std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center))
+                .Padding(UITheme::PADDING_MEDIUM)
+                .Build();
+
+        // Title
+        auto title_text = std::make_unique<Text>(
+            0, 0,
+            "RESEARCH & UPGRADES",
+            UITheme::FONT_SIZE_TITLE,
+            UITheme::ToEngineColor(UITheme::PRIMARY)
+        );
+        header->AddChild(std::move(title_text));
+
+        // Stats row - Tower points, total earned, generation rate
+        std::stringstream stats_ss;
+        stats_ss << "Tower Points: " << research_tree.tower_points
+                << "  |  Total Earned: " << research_tree.total_points_earned
+                << "  |  " << static_cast<int>(research_tree.tower_points_per_hour) << " pts/hr";
+        auto stats_text = std::make_unique<Text>(
+            0, 0,
+            stats_ss.str(),
+            UITheme::FONT_SIZE_NORMAL,
+            UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+        );
+        header->AddChild(std::move(stats_text));
+
+        // Divider
+        auto divider = std::make_unique<Divider>();
+        divider->SetColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        divider->SetSize(MENU_WIDTH - UITheme::PADDING_LARGE * 2, 2);
+        header->AddChild(std::move(divider));
+
+        main_panel_->AddChild(std::move(header));
+
+        // Create tab container for research categories (narrower to make room for details panel)
+        constexpr float tab_content_height = static_cast<float>(MENU_HEIGHT - HEADER_HEIGHT - CLOSE_BUTTON_SIZE - 20);
+        tab_container_ = new TabContainer(
+            static_cast<float>(GRID_AREA_WIDTH),
+            tab_content_height
+        );
+        tab_container_->SetRelativePosition(0, HEADER_HEIGHT);
+        tab_container_->SetTabBarHeight(TAB_HEIGHT);
+        tab_container_->SetTabBarColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_DARK, 0.9f)));
+        tab_container_->SetActiveTabColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        tab_container_->SetInactiveTabColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.6f)));
+        tab_container_->SetTabTextColor(UITheme::ToEngineColor(UITheme::TEXT_PRIMARY));
+        tab_container_->SetContentBackgroundColor(UITheme::ToEngineColor(UITheme::BACKGROUND_PANEL));
+
+        // Group nodes by type for tabs
+        std::map<core::ResearchNodeType, std::vector<const core::ResearchNode *> > nodes_by_type;
+        for (const auto &node: research_tree.nodes) {
+            nodes_by_type[node.type].push_back(&node);
+        }
+
+        // Create tabs for each research type
+        const std::vector<std::pair<core::ResearchNodeType, std::string> > categories = {
+            {core::ResearchNodeType::ElevatorSpeed, "Elevator"},
+            {core::ResearchNodeType::IncomeBonus, "Income"},
+            {core::ResearchNodeType::SatisfactionBonus, "Satisfaction"},
+            {core::ResearchNodeType::ConstructionSpeed, "Construction"},
+            {core::ResearchNodeType::FacilityUnlock, "Facilities"},
+            {core::ResearchNodeType::CostReduction, "Costs"}
+        };
+
+        for (const auto &[type, name]: categories) {
+            auto it = nodes_by_type.find(type);
+            std::vector<const core::ResearchNode *> type_nodes;
+            if (it != nodes_by_type.end()) {
+                type_nodes = it->second;
+            }
+            auto content = CreateCategoryContent(type, type_nodes, GRID_AREA_WIDTH);
+            tab_container_->AddTab(name, std::move(content));
+        }
+
+        // Set tab changed callback
+        tab_container_->SetTabChangedCallback([this](size_t, const std::string &) {
+            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClick);
+            // Clear selection when switching tabs
+            if (details_panel_) {
+                details_panel_->Clear();
+            }
+        });
+
+        main_panel_->AddChild(std::unique_ptr<TabContainer>(tab_container_));
+
+        // Create details panel on the right side
+        constexpr float details_height = static_cast<float>(MENU_HEIGHT - HEADER_HEIGHT - 20);
+        details_panel_ = std::make_unique<ResearchDetailsPanel>(
+            static_cast<float>(DETAILS_PANEL_WIDTH - 10),
+            details_height - 10
+        );
+        details_panel_->Initialize();
+        details_panel_->SetUnlockCallback([this](const std::string &node_id) {
+            OnUnlockRequested(node_id);
+        });
+
+        // Position the panel
+        if (auto *panel = details_panel_->GetPanel()) {
+            panel->SetRelativePosition(
+                static_cast<float>(GRID_AREA_WIDTH + 5),
+                static_cast<float>(HEADER_HEIGHT + 5)
+            );
+        }
+        main_panel_->AddChild(details_panel_->TakePanel());
+
+        // Create close button
+        auto close_btn = std::make_unique<engine::ui::elements::Button>(
+            CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE,
+            "X",
+            UITheme::FONT_SIZE_MEDIUM
+        );
+        close_btn->SetRelativePosition(
+            static_cast<float>(MENU_WIDTH - CLOSE_BUTTON_SIZE - 10),
+            static_cast<float>(MENU_HEIGHT - CLOSE_BUTTON_SIZE - 10)
+        );
+        close_btn->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(RED, 0.6f)));
+        close_btn->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(RED, 0.8f)));
+        close_btn->SetBorderColor(UITheme::ToEngineColor(UITheme::BORDER_DEFAULT));
+        close_btn->SetTextColor(UITheme::ToEngineColor(WHITE));
+        close_btn->SetClickCallback([this](const engine::ui::MouseEvent &event) {
+            if (event.left_pressed) {
+                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClose);
+                visible_ = false;
+                return true;
+            }
+            return false;
+        });
+        close_button_ = close_btn.get();
+        main_panel_->AddChild(std::move(close_btn));
+
+        main_panel_->InvalidateComponents();
+        main_panel_->UpdateComponentsRecursive();
+
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+    }
+
+    std::unique_ptr<engine::ui::elements::Container> ResearchTreeMenu::CreateCategoryContent(
+        core::ResearchNodeType type,
+        const std::vector<const core::ResearchNode *> &nodes,
+        const int content_width) {
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
+
+        const float width = static_cast<float>(content_width);
+        const float height = static_cast<float>(MENU_HEIGHT - HEADER_HEIGHT - TAB_HEIGHT - CLOSE_BUTTON_SIZE - 30);
+
+        auto content = engine::ui::ContainerBuilder()
+                .Size(width, height)
+                .Fill()
+                .Layout(std::make_unique<GridLayout>(NODES_PER_ROW, GRID_PADDING, GRID_PADDING))
+                .Scrollable(ScrollDirection::Vertical)
+                .ClipChildren()
+                .Padding(GRID_PADDING)
+                .Build();
+
+        // Add node buttons for this category
+        for (const auto *node: nodes) {
+            // Skip hidden nodes
+            if (node->state == core::ResearchNodeState::Hidden) {
+                continue;
+            }
+
+            std::stringstream label;
+            label << node->GetDisplayIcon() << "\n" << node->name.substr(0, 10);
+            if (node->name.length() > 10) label << "...";
+            label << "\n" << node->cost << " pts";
+
+            auto button = std::make_unique<engine::ui::elements::Button>(
+                NODE_BUTTON_SIZE, NODE_BUTTON_SIZE,
+                label.str(),
+                UITheme::FONT_SIZE_SMALL
+            );
+
+            const Color bg_color = GetNodeStateColor(node->state);
+            const Color border_color = GetNodeBorderColor(node->state);
+
+            button->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(bg_color, 0.7f)));
+            button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(bg_color, 0.9f)));
+            button->SetPressedColor(UITheme::ToEngineColor(bg_color));
+            button->SetBorderColor(UITheme::ToEngineColor(border_color));
+            button->SetTextColor(UITheme::ToEngineColor(WHITE));
+
+            const std::string node_id = node->id;
+            button->SetClickCallback([this, node_id](const engine::ui::MouseEvent &event) {
+                if (event.left_pressed) {
+                    // Select the node and update the details panel
+                    if (pending_unlock_tree_ && details_panel_) {
+                        if (const auto *found_node = pending_unlock_tree_->FindNode(node_id)) {
+                            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClick);
+                            details_panel_->SetNode(found_node);
+                        }
+                    }
+                    return true;
+                }
+                return false;
+            });
+
+            // Add hover callback for details panel and tooltips
+            button->SetHoverCallback([this, node_id, btn_ptr = button.get()](const engine::ui::MouseEvent &) {
+                // Update the details panel
+                if (pending_unlock_tree_ && details_panel_) {
+                    if (const auto *found_node = pending_unlock_tree_->FindNode(node_id)) {
+                        details_panel_->SetNode(found_node);
+
+                        // Also show tooltip if manager is available
+                        if (tooltip_manager_) {
+                            const std::string tooltip_text = BuildNodeTooltip(*found_node);
+                            const auto bounds = btn_ptr->GetAbsoluteBounds();
+                            tooltip_manager_->ShowTooltip(
+                                Tooltip(tooltip_text),
+                                static_cast<int>(bounds.x),
+                                static_cast<int>(bounds.y),
+                                static_cast<int>(bounds.width),
+                                static_cast<int>(bounds.height)
+                            );
+                        }
+                    }
+                }
+                return true;
+            });
+
+            node_buttons_.push_back(button.get());
+            content->AddChild(std::move(button));
+        }
+
+        content->InvalidateComponentsRecursive();
+        content->UpdateComponentsRecursive();
+
+        return content;
+    }
+
+    void ResearchTreeMenu::OnUnlockRequested(const std::string &node_id) {
+        if (!pending_unlock_tree_) return;
+
+        if (const auto *found_node = pending_unlock_tree_->FindNode(node_id);
+            found_node && found_node->state == core::ResearchNodeState::Upgradable) {
+            pending_unlock_node_id_ = node_id;
+
+            std::string message = "Unlock '" + found_node->name + "' for " +
+                                  std::to_string(found_node->cost) + " tower points?";
+            unlock_confirmation_ = std::make_unique<ConfirmationDialog>(
+                "Confirm Research Unlock",
+                message,
+                "Unlock",
+                "Cancel"
+            );
+            unlock_confirmation_->SetConfirmCallback([this]() {
+                if (pending_unlock_tree_ && !pending_unlock_node_id_.empty()) {
+                    if (const bool unlocked = pending_unlock_tree_->UnlockNode(pending_unlock_node_id_);
+                        unlocked && notification_center_) {
+                        notification_center_->AddNotification(
+                            "Research Unlocked",
+                            "Successfully unlocked: " + pending_unlock_node_id_,
+                            NotificationType::Success,
+                            NotificationPriority::Medium,
+                            5.0f
+                        );
+                        // Update the details panel to reflect new state
+                        if (details_panel_) {
+                            if (const auto *updated_node = pending_unlock_tree_->FindNode(pending_unlock_node_id_)) {
+                                details_panel_->SetNode(updated_node);
+                            }
+                        }
+                    }
+                    pending_unlock_node_id_.clear();
+                }
+            });
+            unlock_confirmation_->Show();
+        }
+    }
+
+    void ResearchTreeMenu::Shutdown() {
+        node_buttons_.clear();
+        tab_container_ = nullptr;
+        close_button_ = nullptr;
+        details_panel_.reset();
+        main_panel_.reset();
+    }
+
+    void ResearchTreeMenu::UpdateLayout() {
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+
+        if (main_panel_) {
+            const float panel_x = static_cast<float>((screen_width - MENU_WIDTH) / 2);
+            const float panel_y = static_cast<float>((screen_height - MENU_HEIGHT) / 2);
+            main_panel_->SetRelativePosition(panel_x, panel_y);
+            main_panel_->InvalidateComponents();
+            main_panel_->UpdateComponentsRecursive();
+        }
+
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+    }
+
     void ResearchTreeMenu::Update(const float delta_time) {
         if (!visible_) return;
 
         animation_time_ += delta_time;
-        
+
+        // Check for window resize
+        const int screen_width = GetScreenWidth();
+        const int screen_height = GetScreenHeight();
+        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+            UpdateLayout();
+        }
+
         // Update confirmation dialog
         if (unlock_confirmation_) {
             unlock_confirmation_->Update(delta_time);
         }
+
+        if (main_panel_) {
+            main_panel_->UpdateComponentsRecursive(delta_time);
+        }
     }
 
-    void ResearchTreeMenu::Render(const towerforge::core::ResearchTree& research_tree) {
-        if (!visible_) return;
+    void ResearchTreeMenu::Render(const core::ResearchTree &research_tree) {
+        if (!visible_ || !main_panel_) return;
 
-        // Semi-transparent overlay
-        RenderOverlay();
+        // Store reference for click handlers
+        pending_unlock_tree_ = const_cast<core::ResearchTree *>(&research_tree);
 
-        // Main menu background
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        const int menu_x = (screen_width - MENU_WIDTH) / 2;
-        const int menu_y = (screen_height - MENU_HEIGHT) / 2;
+        RenderDimOverlay();
+        main_panel_->Render();
+        main_panel_->RenderComponentsRecursive();
 
-        // Dark background with border
-        DrawRectangle(menu_x, menu_y, MENU_WIDTH, MENU_HEIGHT, Color{20, 20, 30, 250});
-        DrawRectangleLines(menu_x, menu_y, MENU_WIDTH, MENU_HEIGHT, GOLD);
-
-        // Render header
-        RenderHeader(research_tree);
-
-        // Render tree grid
-        RenderTreeGrid(research_tree);
-
-        // Render details panel if node is hovered
-        if (hovered_node_index_ >= 0 &&
-            hovered_node_index_ < static_cast<int>(research_tree.nodes.size())) {
-            RenderNodeDetails(research_tree.nodes[hovered_node_index_]);
-        }
-        
         // Render confirmation dialog if visible
         if (unlock_confirmation_ && unlock_confirmation_->IsVisible()) {
             unlock_confirmation_->Render();
         }
     }
 
-    void ResearchTreeMenu::RenderOverlay() {
+    void ResearchTreeMenu::RenderDimOverlay() {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
-        DrawRectangle(0, 0, screen_width, screen_height, Color{0, 0, 0, 180});
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(0, 0, screen_width, screen_height),
+            UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f))
+        );
     }
 
-    void ResearchTreeMenu::RenderHeader(const towerforge::core::ResearchTree& research_tree) {
-        const int screen_width = GetScreenWidth();
-        const int menu_x = (screen_width - MENU_WIDTH) / 2;
-        const int menu_y = (GetScreenHeight() - MENU_HEIGHT) / 2;
+    bool ResearchTreeMenu::ProcessMouseEvent(const MouseEvent &event) const {
+        if (!visible_) return false;
 
-        // Title
-        const auto title = "RESEARCH/UPGRADE TREE";
-        const int title_width = MeasureText(title, 24);
-        DrawText(title, menu_x + (MENU_WIDTH - title_width) / 2, menu_y + 20, 24, GOLD);
-
-        // Tower Points display (changed from Research Points)
-        const std::string points_text = "Tower Points: " + std::to_string(research_tree.tower_points);
-        DrawText(points_text.c_str(), menu_x + 20, menu_y + 50, 16, WHITE);
-
-        // Total earned
-        const std::string total_text = "Total Earned: " + std::to_string(research_tree.total_points_earned);
-        DrawText(total_text.c_str(), menu_x + 250, menu_y + 50, 16, LIGHTGRAY);
-
-        // Generation rate display
-        const std::string rate_text = "Generation: " + std::to_string(static_cast<int>(research_tree.tower_points_per_hour)) + " pts/hr";
-        DrawText(rate_text.c_str(), menu_x + 450, menu_y + 50, 16, LIGHTGRAY);
-
-        // Management staff count
-        const std::string staff_text = "Management Staff: " + std::to_string(research_tree.management_staff_count);
-        DrawText(staff_text.c_str(), menu_x + 20, menu_y + 70, 14, LIGHTGRAY);
-
-        // Help icon button in top-right corner
-        const Rectangle help_icon_bounds = {
-            static_cast<float>(menu_x + MENU_WIDTH - 50),
-            static_cast<float>(menu_y + 10),
-            30.0f,
-            30.0f
-        };
-        HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
-
-        // Close hint
-        DrawText("Press ESC or R to close | F1 for help", menu_x + MENU_WIDTH - 300, menu_y + 50, 14, LIGHTGRAY);
-
-        // Separator line
-        DrawLine(menu_x + 10, menu_y + HEADER_HEIGHT,
-                 menu_x + MENU_WIDTH - 10, menu_y + HEADER_HEIGHT, GRAY);
-    }
-
-    void ResearchTreeMenu::RenderTreeGrid(const towerforge::core::ResearchTree& research_tree) {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        const int menu_x = (screen_width - MENU_WIDTH) / 2;
-        const int menu_y = (screen_height - MENU_HEIGHT) / 2;
-
-        // Get mouse position for hover detection
-        const int mouse_x = GetMouseX();
-        const int mouse_y = GetMouseY();
-        hovered_node_index_ = -1;
-
-        // Render nodes in grid
-        for (size_t i = 0; i < research_tree.nodes.size(); ++i) {
-            const auto& node = research_tree.nodes[i];
-
-            const int node_x = menu_x + GRID_START_X + node.grid_column * (NODE_SIZE + NODE_SPACING);
-            const int node_y = menu_y + GRID_START_Y + node.grid_row * (NODE_SIZE + NODE_SPACING);
-
-            // Check if mouse is over this node
-            const bool hovered = mouse_x >= node_x && mouse_x <= node_x + NODE_SIZE &&
-                            mouse_y >= node_y && mouse_y <= node_y + NODE_SIZE;
-
-            if (hovered) {
-                hovered_node_index_ = static_cast<int>(i);
-            }
-
-            RenderNode(node, node_x, node_y, hovered);
-        }
-
-        // Draw connections between nodes (prerequisites)
-        for (const auto& node : research_tree.nodes) {
-            if (node.prerequisites.empty()) continue;
-
-            const int node_x = menu_x + GRID_START_X + node.grid_column * (NODE_SIZE + NODE_SPACING) + NODE_SIZE / 2;
-            const int node_y = menu_y + GRID_START_Y + node.grid_row * (NODE_SIZE + NODE_SPACING) + NODE_SIZE / 2;
-
-            for (const auto& prereq_id : node.prerequisites) {
-                if (const auto* prereq = const_cast<towerforge::core::ResearchTree&>(research_tree).FindNode(prereq_id)) {
-                    const int prereq_x = menu_x + GRID_START_X + prereq->grid_column * (NODE_SIZE + NODE_SPACING) + NODE_SIZE / 2;
-                    const int prereq_y = menu_y + GRID_START_Y + prereq->grid_row * (NODE_SIZE + NODE_SPACING) + NODE_SIZE / 2;
-
-                    const Color line_color = prereq->state == towerforge::core::ResearchNodeState::Unlocked ? DARKGRAY : Color{60, 60, 60, 255};
-                    DrawLine(prereq_x, prereq_y, node_x, node_y, line_color);
-                }
-            }
-        }
-    }
-
-    void ResearchTreeMenu::RenderNode(const towerforge::core::ResearchNode& node, const int x, const int y, const bool hovered) {
-        // Background color based on state
-        Color bg_color;
-        Color border_color;
-
-        switch (node.state) {
-            case towerforge::core::ResearchNodeState::Hidden:
-                bg_color = Color{20, 20, 25, 255};
-                border_color = Color{40, 40, 45, 255};
-                break;
-            case towerforge::core::ResearchNodeState::Locked:
-                bg_color = Color{40, 40, 50, 255};
-                border_color = DARKGRAY;
-                break;
-            case towerforge::core::ResearchNodeState::Upgradable:
-                bg_color = Color{80, 60, 20, 255};
-                border_color = GOLD;
-                break;
-            case towerforge::core::ResearchNodeState::Unlocked:
-                bg_color = Color{20, 60, 40, 255};
-                border_color = LIME;
-                break;
-            default:
-                bg_color = DARKGRAY;
-                border_color = GRAY;
-                break;
-        }
-
-        // Highlight if hovered
-        if (hovered) {
-            DrawRectangle(x - 2, y - 2, NODE_SIZE + 4, NODE_SIZE + 4, YELLOW);
-        }
-
-        // Draw node background
-        DrawRectangle(x, y, NODE_SIZE, NODE_SIZE, bg_color);
-        DrawRectangleLines(x, y, NODE_SIZE, NODE_SIZE, border_color);
-
-        // Draw icon (larger emoji/symbol)
-        const std::string display_icon = node.GetDisplayIcon();
-        constexpr int icon_size = 32;
-        DrawText(display_icon.c_str(), x + (NODE_SIZE - icon_size) / 2, y + 15, icon_size, WHITE);
-
-        // Draw name (truncated if needed)
-        const char* name = node.name.c_str();
-        const int name_width = MeasureText(name, 12);
-        if (name_width > NODE_SIZE - 10) {
-            // Truncate name
-            const std::string short_name = node.name.substr(0, 8) + "...";
-            DrawText(short_name.c_str(), x + 5, y + NODE_SIZE - 30, 12, WHITE);
-        } else {
-            DrawText(name, x + (NODE_SIZE - name_width) / 2, y + NODE_SIZE - 30, 12, WHITE);
-        }
-
-        // Draw cost
-        const std::string cost_text = std::to_string(node.cost) + " pts";
-        const int cost_width = MeasureText(cost_text.c_str(), 10);
-        DrawText(cost_text.c_str(), x + (NODE_SIZE - cost_width) / 2, y + NODE_SIZE - 15, 10, LIGHTGRAY);
-    }
-
-    void ResearchTreeMenu::RenderNodeDetails(const towerforge::core::ResearchNode& node) {
-        int screen_width = GetScreenWidth();
-        int screen_height = GetScreenHeight();
-        int menu_x = (screen_width - MENU_WIDTH) / 2;
-        int menu_y = (screen_height - MENU_HEIGHT) / 2;
-
-        // Details panel on the right side
-        int panel_x = menu_x + MENU_WIDTH - DETAILS_PANEL_WIDTH - 10;
-        int panel_y = menu_y + HEADER_HEIGHT + 10;
-        int panel_height = MENU_HEIGHT - HEADER_HEIGHT - 20;
-
-        // Background
-        DrawRectangle(panel_x, panel_y, DETAILS_PANEL_WIDTH, panel_height, Color{30, 30, 40, 250});
-        DrawRectangleLines(panel_x, panel_y, DETAILS_PANEL_WIDTH, panel_height, GOLD);
-
-        int text_x = panel_x + 15;
-        int text_y = panel_y + 15;
-
-        // Name
-        DrawText(node.name.c_str(), text_x, text_y, 18, GOLD);
-        text_y += 30;
-
-        // State
-        std::string state_text = "Status: ";
-        state_text += node.GetStateString();
-        DrawText(state_text.c_str(), text_x, text_y, 14, WHITE);
-        text_y += 25;
-
-        // Cost
-        std::string cost_text = "Cost: " + std::to_string(node.cost) + " points";
-        DrawText(cost_text.c_str(), text_x, text_y, 14, WHITE);
-        text_y += 25;
-
-        // Description (word-wrapped)
-        if (!node.description.empty()) {
-            DrawText("Description:", text_x, text_y, 12, LIGHTGRAY);
-            text_y += 20;
-
-            // Simple word wrapping
-            std::string desc = node.description;
-            int max_width = DETAILS_PANEL_WIDTH - 30;
-            int line_height = 14;
-
-            size_t pos = 0;
-            while (pos < desc.length()) {
-                size_t end = desc.find(' ', pos + 1);
-                if (end == std::string::npos) end = desc.length();
-
-                std::string line = desc.substr(pos, end - pos);
-                int line_width = MeasureText(line.c_str(), 11);
-
-                if (line_width > max_width) {
-                    // Find last space that fits
-                    size_t last_space = pos;
-                    for (size_t i = pos; i < end; ++i) {
-                        std::string test = desc.substr(pos, i - pos);
-                        if (MeasureText(test.c_str(), 11) > max_width) {
-                            break;
-                        }
-                        if (desc[i] == ' ') last_space = i;
-                    }
-
-                    if (last_space > pos) {
-                        line = desc.substr(pos, last_space - pos);
-                        pos = last_space + 1;
-                    } else {
-                        pos = end;
-                    }
-                } else {
-                    pos = end + 1;
-                }
-
-                DrawText(line.c_str(), text_x, text_y, 11, WHITE);
-                text_y += line_height;
-            }
-
-            text_y += 10;
-        }
-
-        // Prerequisites
-        if (!node.prerequisites.empty()) {
-            DrawText("Requires:", text_x, text_y, 12, LIGHTGRAY);
-            text_y += 20;
-
-            for (const auto& prereq_id : node.prerequisites) {
-                std::string prereq_text = "- " + prereq_id;
-                DrawText(prereq_text.c_str(), text_x + 10, text_y, 11, GRAY);
-                text_y += 16;
-            }
-
-            text_y += 10;
-        }
-
-        // Conditional Prerequisites
-        bool has_conditional = node.min_star_rating > 0 || node.min_population > 0 || !node.required_facilities.empty();
-        if (has_conditional) {
-            DrawText("Unlock Conditions:", text_x, text_y, 12, LIGHTGRAY);
-            text_y += 20;
-
-            if (node.min_star_rating > 0) {
-                std::string star_text = "- Min. " + std::to_string(node.min_star_rating) + "-star rating";
-                DrawText(star_text.c_str(), text_x + 10, text_y, 11, GRAY);
-                text_y += 16;
-            }
-
-            if (node.min_population > 0) {
-                std::string pop_text = "- Min. " + std::to_string(node.min_population) + " population";
-                DrawText(pop_text.c_str(), text_x + 10, text_y, 11, GRAY);
-                text_y += 16;
-            }
-
-            for (const auto& facility : node.required_facilities) {
-                std::string facility_text = "- Build " + facility;
-                DrawText(facility_text.c_str(), text_x + 10, text_y, 11, GRAY);
-                text_y += 16;
-            }
-
-            text_y += 10;
-        }
-
-        // Effect description
-        if (node.effect_value != 0.0f || !node.effect_target.empty()) {
-            DrawText("Effect:", text_x, text_y, 12, LIGHTGRAY);
-            text_y += 20;
-
-            std::string effect_text;
-            switch (node.type) {
-                case towerforge::core::ResearchNodeType::ElevatorSpeed:
-                    effect_text = "+" + std::to_string(static_cast<int>(node.effect_value * 100)) + "% elevator speed";
-                    break;
-                case towerforge::core::ResearchNodeType::ElevatorCapacity:
-                    effect_text = "+" + std::to_string(static_cast<int>(node.effect_value)) + " capacity";
-                    break;
-                case towerforge::core::ResearchNodeType::IncomeBonus:
-                    effect_text = "+" + std::to_string(static_cast<int>(node.effect_value * 100)) + "% income";
-                    break;
-                case towerforge::core::ResearchNodeType::SatisfactionBonus:
-                    effect_text = "+" + std::to_string(static_cast<int>(node.effect_value)) + " satisfaction";
-                    break;
-                case towerforge::core::ResearchNodeType::ConstructionSpeed:
-                    effect_text = "+" + std::to_string(static_cast<int>(node.effect_value * 100)) + "% build speed";
-                    break;
-                case towerforge::core::ResearchNodeType::CostReduction:
-                    effect_text = "-" + std::to_string(static_cast<int>(node.effect_value * 100)) + "% costs";
-                    break;
-                case towerforge::core::ResearchNodeType::FacilityUnlock:
-                    effect_text = "Unlocks " + node.effect_target;
-                    break;
-            }
-
-            DrawText(effect_text.c_str(), text_x + 10, text_y, 11, LIME);
-            text_y += 16;
-        }
-
-        // Click hint
-        if (node.state == towerforge::core::ResearchNodeState::Upgradable) {
-            text_y = panel_y + panel_height - 40;
-            DrawText("Click to unlock!", text_x, text_y, 14, YELLOW);
-        }
-    }
-
-    bool ResearchTreeMenu::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked,
-                                       towerforge::core::ResearchTree& research_tree) const {
-        if (!visible_ || !clicked) return false;
-
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        const int menu_x = (screen_width - MENU_WIDTH) / 2;
-        const int menu_y = (screen_height - MENU_HEIGHT) / 2;
-
-        // Check if clicked on a node
-        for (size_t i = 0; i < research_tree.nodes.size(); ++i) {
-            const auto& node = research_tree.nodes[i];
-
-            const int node_x = menu_x + GRID_START_X + node.grid_column * (NODE_SIZE + NODE_SPACING);
-            const int node_y = menu_y + GRID_START_Y + node.grid_row * (NODE_SIZE + NODE_SPACING);
-
-            if (mouse_x >= node_x && mouse_x <= node_x + NODE_SIZE &&
-                mouse_y >= node_y && mouse_y <= node_y + NODE_SIZE) {
-
-                // Show confirmation for upgradable nodes
-                if (node.state == towerforge::core::ResearchNodeState::Upgradable) {
-                    pending_unlock_node_id_ = node.id;
-                    pending_unlock_tree_ = &research_tree;
-                    
-                    // Update dialog message with node details
-                    std::string message = "Unlock '" + node.name + "' for " + std::to_string(node.cost) + " tower points?";
-                    
-                    // Create new dialog with updated message
-                    unlock_confirmation_ = std::make_unique<ConfirmationDialog>(
-                        "Confirm Research Unlock",
-                        message,
-                        "Unlock",
-                        "Cancel"
-                    );
-                    
-                    // Set callback to actually perform unlock
-                    unlock_confirmation_->SetConfirmCallback([this]() {
-                        if (pending_unlock_tree_ && !pending_unlock_node_id_.empty()) {
-                            const bool unlocked = pending_unlock_tree_->UnlockNode(pending_unlock_node_id_);
-                            
-                            if (unlocked && notification_center_) {
-                                // Add notification for successful unlock
-                                notification_center_->AddNotification(
-                                    "Research Unlocked",
-                                    "Successfully unlocked: " + pending_unlock_node_id_,
-                                    NotificationType::Success,
-                                    NotificationPriority::Medium,
-                                    5.0f
-                                );
-                            }
-                            
-                            pending_unlock_node_id_.clear();
-                            pending_unlock_tree_ = nullptr;
-                        }
-                    });
-                    
-                    unlock_confirmation_->Show();
-                    return false;  // Don't unlock yet, wait for confirmation
-                }
-
-                return false;
-            }
-        }
-
-        return false;
-    }
-    
-    bool ResearchTreeMenu::ProcessMouseEvent(const MouseEvent& event) const {
         // If confirmation dialog is visible, route events to it first
         if (unlock_confirmation_ && unlock_confirmation_->IsVisible()) {
             return unlock_confirmation_->ProcessMouseEvent(event);
         }
+
+        if (main_panel_) {
+            const float wheel = GetMouseWheelMove();
+            return main_panel_->ProcessMouseEvent({
+                event.x,
+                event.y,
+                event.left_down,
+                event.right_down,
+                event.left_pressed,
+                event.right_pressed,
+                wheel
+            });
+        }
+
         return false;
     }
 
+    void ResearchTreeMenu::HandleKeyboard() {
+        // ESC or R to close
+        if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_R)) {
+            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClose);
+            visible_ = false;
+        }
+
+        // F1 for help
+        if (IsKeyPressed(KEY_F1)) {
+            // Help system integration would go here
+        }
+    }
+
+    void ResearchTreeMenu::RebuildUI(const core::ResearchTree &research_tree) {
+        Shutdown();
+        Initialize(research_tree);
+    }
+
+    Color ResearchTreeMenu::GetNodeStateColor(const core::ResearchNodeState state) {
+        switch (state) {
+            case core::ResearchNodeState::Hidden:
+                return Color{20, 20, 25, 255};
+            case core::ResearchNodeState::Locked:
+                return Color{60, 60, 70, 255};
+            case core::ResearchNodeState::Upgradable:
+                return Color{100, 80, 30, 255};
+            case core::ResearchNodeState::Unlocked:
+                return Color{30, 80, 50, 255};
+            default:
+                return DARKGRAY;
+        }
+    }
+
+    Color ResearchTreeMenu::GetNodeBorderColor(const core::ResearchNodeState state) {
+        switch (state) {
+            case core::ResearchNodeState::Hidden:
+                return Color{40, 40, 45, 255};
+            case core::ResearchNodeState::Locked:
+                return DARKGRAY;
+            case core::ResearchNodeState::Upgradable:
+                return GOLD;
+            case core::ResearchNodeState::Unlocked:
+                return LIME;
+            default:
+                return GRAY;
+        }
+    }
+
+    std::string ResearchTreeMenu::BuildNodeTooltip(const core::ResearchNode &node) {
+        std::stringstream ss;
+        ss << node.name << "\n";
+        ss << "Status: " << node.GetStateString() << "\n";
+        ss << "Cost: " << node.cost << " tower points\n";
+
+        if (!node.description.empty()) {
+            ss << "\n" << node.description << "\n";
+        }
+
+        if (!node.prerequisites.empty()) {
+            ss << "\nRequires: ";
+            for (size_t i = 0; i < node.prerequisites.size(); ++i) {
+                if (i > 0) ss << ", ";
+                ss << node.prerequisites[i];
+            }
+            ss << "\n";
+        }
+
+        // Effect description
+        if (node.effect_value != 0.0f || !node.effect_target.empty()) {
+            ss << "\nEffect: ";
+            switch (node.type) {
+                case core::ResearchNodeType::ElevatorSpeed:
+                    ss << "+" << static_cast<int>(node.effect_value * 100) << "% elevator speed";
+                    break;
+                case core::ResearchNodeType::ElevatorCapacity:
+                    ss << "+" << static_cast<int>(node.effect_value) << " capacity";
+                    break;
+                case core::ResearchNodeType::IncomeBonus:
+                    ss << "+" << static_cast<int>(node.effect_value * 100) << "% income";
+                    break;
+                case core::ResearchNodeType::SatisfactionBonus:
+                    ss << "+" << static_cast<int>(node.effect_value) << " satisfaction";
+                    break;
+                case core::ResearchNodeType::ConstructionSpeed:
+                    ss << "+" << static_cast<int>(node.effect_value * 100) << "% build speed";
+                    break;
+                case core::ResearchNodeType::CostReduction:
+                    ss << "-" << static_cast<int>(node.effect_value * 100) << "% costs";
+                    break;
+                case core::ResearchNodeType::FacilityUnlock:
+                    ss << "Unlocks " << node.effect_target;
+                    break;
+                default: ;
+            }
+        }
+
+        if (node.state == core::ResearchNodeState::Upgradable) {
+            ss << "\n\nClick to unlock!";
+        }
+
+        return ss.str();
+    }
 }

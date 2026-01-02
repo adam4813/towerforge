@@ -301,15 +301,18 @@ namespace towerforge::core {
 		pause_menu_->SetQuitConfirmationCallback([this]() {
 			game_->SetGameState(GameState::TitleScreen);
 		});
-		research_menu_ = std::make_unique<ResearchTreeMenu>();
 		mods_menu_ = std::make_unique<ModsMenu>();
 		mods_menu_->SetModManager(&ecs_world_->GetModManager());
 
 		// Connect tooltip manager from HUD to other UI components
 		build_menu_->SetTooltipManager(hud_->GetTooltipManager());
 
-		// Connect notification center to research menu
+		// Connect notification center and tooltip manager to research menu, then initialize
+		research_menu_ = std::make_unique<ResearchTreeMenu>();
 		research_menu_->SetNotificationCenter(hud_->GetNotificationCenter());
+		research_menu_->SetTooltipManager(hud_->GetTooltipManager());
+		ResearchTree &research_tree_init = ecs_world_->GetWorld().get_mut<ResearchTree>();
+		research_menu_->Initialize(research_tree_init);
 
 		// Create and initialize camera with default bounds
 		// The bounds will grow dynamically as the tower is built
@@ -543,6 +546,9 @@ namespace towerforge::core {
 		// Smart pointers automatically clean up when reset or go out of scope
 		placement_system_.reset();
 		camera_.reset();
+		if (research_menu_) {
+			research_menu_->Shutdown();
+		}
 		research_menu_.reset();
 		save_load_menu_.reset();
 		mods_menu_.reset();
@@ -558,46 +564,6 @@ namespace towerforge::core {
 	}
 
 	void InGameScene::Update(const float delta_time) {
-		// Handle F1 key to toggle help system
-		if (help_system_ != nullptr && IsKeyPressed(KEY_F1)) {
-			if (help_system_->IsVisible()) {
-				help_system_->Hide();
-			} else {
-				// Determine current context based on active UI
-				HelpContext context = HelpContext::MainGame;
-				if (is_paused_) {
-					context = HelpContext::PauseMenu;
-				} else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
-					context = HelpContext::ResearchTree;
-				} else if (mods_menu_ != nullptr && mods_menu_->IsVisible()) {
-					context = HelpContext::ModsMenu;
-				}
-				help_system_->Show(context);
-			}
-			return;
-		}
-
-		// Handle ESC key to close help, pause menu, or research menu
-		if (IsKeyPressed(KEY_ESCAPE)) {
-			if (help_system_ != nullptr && help_system_->IsVisible()) {
-				help_system_->Hide();
-			} else if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
-				save_load_menu_->Close();
-			} else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
-				research_menu_->SetVisible(false);
-			} else if (in_achievements_menu_) {
-				is_paused_ = false;
-				in_achievements_menu_ = false;
-				audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
-			} else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ &&
-			           !in_accessibility_settings_from_pause_ && !is_paused_) {
-				is_paused_ = true;
-				audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
-				game_state_.paused = true;
-			}
-			return;
-		}
-
 		// Handle R key to toggle research menu (only if not paused)
 		if (research_menu_ != nullptr && !is_paused_ && IsKeyPressed(KEY_R)) {
 			research_menu_->Toggle();
@@ -623,17 +589,12 @@ namespace towerforge::core {
 			}
 			elapsed_time_ += time_step_;
 			sim_time_ += time_step_ * game_state_.speed_multiplier;
-		}
 
-		// Update game state for HUD
-		game_state_.current_time = 8.5f + (sim_time_ / 3600.0f);
-		if (game_state_.current_time >= 24.0f) {
-			game_state_.current_time -= 24.0f;
-			game_state_.current_day++;
-		}
-
-		// Only update funds if not paused
-		if (!is_paused_) {
+			game_state_.current_time = 8.5f + (sim_time_ / 3600.0f);
+			if (game_state_.current_time >= 24.0f) {
+				game_state_.current_time -= 24.0f;
+				game_state_.current_day++;
+			}
 			game_state_.funds += (game_state_.income_rate / 3600.0f) * time_step_;
 		}
 
@@ -650,54 +611,39 @@ namespace towerforge::core {
 		hud_->SetGameState(game_state_);
 		hud_->Update(time_step_);
 
-		// Update build menu (for position updates)
-		if (build_menu_) {
-			build_menu_->Update(time_step_);
-		}
-
 		// Update help system
 		if (help_system_ != nullptr) {
 			help_system_->Update(delta_time);
 		}
 
-		// Handle research menu
-		if (research_menu_->IsVisible()) {
-			research_menu_->Update(time_step_);
-
-			// Handle mouse events for confirmation dialogs first
-			if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-				const MouseEvent mouse_event{
-					static_cast<float>(GetMouseX()),
-					static_cast<float>(GetMouseY()),
-					false, // left_down
-					false, // right_down
-					true, // left_pressed
-					false // right_pressed
-				};
-
-				// Check research menu confirmation dialogs
-				if (research_menu_->ProcessMouseEvent(mouse_event)) {
-					// Dialog consumed the event, don't process node clicks
-					// Apply vertical expansion upgrades after any unlock
-					ecs_world_->ApplyVerticalExpansionUpgrades();
-				} else {
-					// Normal node click handling
-					ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
-					const bool unlocked = research_menu_->HandleMouse(GetMouseX(), GetMouseY(),
-					                                                  true, // clicked
-					                                                  research_tree_ref);
-					// Note: unlock notification is now handled in ResearchTreeMenu via notification center
-
-					// Apply vertical expansion upgrades if anything was unlocked
-					if (unlocked) {
-						ecs_world_->ApplyVerticalExpansionUpgrades();
-					}
-				}
+		if (is_paused_) {
+			if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
+				save_load_menu_->Update(time_step_);
+			} else if (in_accessibility_settings_from_pause_) {
+				pause_accessibility_settings_menu_.Update(time_step_);
+			} else if (in_audio_settings_from_pause_) {
+				pause_audio_settings_menu_.Update(time_step_);
+			} else if (in_settings_from_pause_) {
+				pause_general_settings_menu_.Update(time_step_);
+			} else if (in_achievements_menu_) {
+				achievements_menu_.Update(time_step_);
+			} else {
+				pause_menu_->Update(time_step_);
 			}
 		}
 
 		// Check for achievements (only if not paused)
 		if (!is_paused_) {
+			// Handle research menu
+			if (research_menu_->IsVisible()) {
+				research_menu_->Update(time_step_);
+			}
+
+			// Update build menu (for position updates)
+			if (build_menu_) {
+				build_menu_->Update(time_step_);
+			}
+
 			const flecs::world &world = ecs_world_->GetWorld();
 			float total_income = 0.0f;
 			if (world.has<TowerEconomy>()) {
@@ -743,55 +689,7 @@ namespace towerforge::core {
 			}
 
 			achievements_menu_.SetGameStats(game_state_.population, total_income, floor_count, avg_satisfaction);
-		}
 
-		// Handle pause menu input
-		if (is_paused_) {
-			// Create mouse event for modern event API
-			const MouseEvent mouse_event(
-				static_cast<float>(GetMouseX()),
-				static_cast<float>(GetMouseY()),
-				IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-				IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-				IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-				IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-			);
-
-			if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
-				save_load_menu_->Update(time_step_);
-				save_load_menu_->ProcessMouseEvent(mouse_event);
-				save_load_menu_->HandleKeyboard();
-			} else if (in_accessibility_settings_from_pause_) {
-				pause_accessibility_settings_menu_.Update(time_step_);
-
-				pause_accessibility_settings_menu_.HandleKeyboard();
-				pause_accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
-			} else if (in_audio_settings_from_pause_) {
-				pause_audio_settings_menu_.Update(time_step_);
-
-				pause_audio_settings_menu_.HandleKeyboard();
-				pause_audio_settings_menu_.ProcessMouseEvent(mouse_event);
-			} else if (in_settings_from_pause_) {
-				pause_general_settings_menu_.Update(time_step_);
-
-				// General settings menu handles state changes via callbacks
-				pause_general_settings_menu_.HandleKeyboard();
-				pause_general_settings_menu_.ProcessMouseEvent(mouse_event);
-			} else if (in_achievements_menu_) {
-				achievements_menu_.Update(time_step_);
-				achievements_menu_.HandleKeyboard();
-				achievements_menu_.ProcessMouseEvent(mouse_event);
-			} else {
-				pause_menu_->Update(time_step_);
-				pause_menu_->HandleKeyboard();
-				pause_menu_->ProcessMouseEvent(mouse_event);
-			}
-		}
-
-		// Update placement system
-
-		// Handle keyboard shortcuts (only if not paused)
-		if (!is_paused_) {
 			placement_system_->Update(time_step_);
 			placement_system_->HandleKeyboard();
 
@@ -1073,18 +971,86 @@ namespace towerforge::core {
 		const int mouse_x = GetMouseX();
 		const int mouse_y = GetMouseY();
 
+		const MouseEvent mouse_event{
+			static_cast<float>(mouse_x),
+			static_cast<float>(mouse_y),
+			IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+			IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+			IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+			IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
+		};
+
 		// Handle help system mouse input first (if visible)
-		if (help_system_ != nullptr && help_system_->IsVisible()) {
-			const MouseEvent help_event(
-				static_cast<float>(mouse_x),
-				static_cast<float>(mouse_y),
-				IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-				IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-				IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-				IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-			);
-			help_system_->ProcessMouseEvent(help_event);
-			return; // Help system consumes all input when visible
+		if (help_system_) {
+			// Handle F1 key to toggle help system
+			if (IsKeyPressed(KEY_F1)) {
+				if (help_system_->IsVisible()) {
+					help_system_->Hide();
+				} else {
+					// Determine current context based on active UI
+					auto context = HelpContext::MainGame;
+					if (is_paused_) {
+						context = HelpContext::PauseMenu;
+					} else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
+						context = HelpContext::ResearchTree;
+					} else if (mods_menu_ != nullptr && mods_menu_->IsVisible()) {
+						context = HelpContext::ModsMenu;
+					}
+					help_system_->Show(context);
+				}
+				return;
+			}
+
+			if (help_system_->IsVisible()) {
+				if (IsKeyPressed(KEY_ESCAPE)) {
+					help_system_->Hide();
+				} else {
+					help_system_->ProcessMouseEvent(mouse_event);
+				}
+				return;
+			}
+		}
+
+		// Handle ESC key to close help, pause menu, or research menu
+		if (IsKeyPressed(KEY_ESCAPE)) {
+			if (help_system_ != nullptr && help_system_->IsVisible()) {
+				help_system_->Hide();
+			} else if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
+				save_load_menu_->Close();
+			} else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
+				research_menu_->SetVisible(false);
+			} else if (in_achievements_menu_) {
+				is_paused_ = false;
+				in_achievements_menu_ = false;
+				audio_manager_->PlaySFX(audio::AudioCue::MenuClose);
+			} else if (!in_settings_from_pause_ && !in_audio_settings_from_pause_ &&
+			           !in_accessibility_settings_from_pause_ && !is_paused_) {
+				is_paused_ = true;
+				audio_manager_->PlaySFX(audio::AudioCue::MenuOpen);
+				game_state_.paused = true;
+			}
+		}
+
+		if (is_paused_) {
+			if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
+				save_load_menu_->ProcessMouseEvent(mouse_event);
+				save_load_menu_->HandleKeyboard();
+			} else if (in_accessibility_settings_from_pause_) {
+				pause_accessibility_settings_menu_.HandleKeyboard();
+				pause_accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
+			} else if (in_audio_settings_from_pause_) {
+				pause_audio_settings_menu_.HandleKeyboard();
+				pause_audio_settings_menu_.ProcessMouseEvent(mouse_event);
+			} else if (in_settings_from_pause_) {
+				pause_general_settings_menu_.HandleKeyboard();
+				pause_general_settings_menu_.ProcessMouseEvent(mouse_event);
+			} else if (in_achievements_menu_) {
+				achievements_menu_.HandleKeyboard();
+				achievements_menu_.ProcessMouseEvent(mouse_event);
+			} else {
+				pause_menu_->HandleKeyboard();
+				pause_menu_->ProcessMouseEvent(mouse_event);
+			}
 		}
 
 		// Update HUD tooltips
@@ -1102,97 +1068,68 @@ namespace towerforge::core {
 			                                  cell_width_, cell_height_, game_state_.funds);
 		}
 
-		// Handle hover events for HUD (action bar button highlighting, etc.)
-		if (!is_paused_ && !research_menu_->IsVisible()) {
-			const MouseEvent hover_event{
-				static_cast<float>(mouse_x),
-				static_cast<float>(mouse_y),
-				IsMouseButtonDown(MOUSE_LEFT_BUTTON), // left_down
-				IsMouseButtonDown(MOUSE_RIGHT_BUTTON), // right_down
-				false, // left_pressed (hover only)
-				false // right_pressed (hover only)
-			};
-
-			// Send hover events to HUD for button highlighting
-			hud_->ProcessMouseEvent(hover_event);
-
-			// Send hover events to build menu if visible
-			if (build_menu_->IsVisible()) {
-				build_menu_->ProcessMouseEvent(hover_event);
-			}
+		// Handle mouse clicks (only if not paused and research menu not visible)
+		if (research_menu_->IsVisible() && research_menu_->ProcessMouseEvent(mouse_event)) {
+			ecs_world_->ApplyVerticalExpansionUpgrades();
+			return; // Research menu consumed the event
 		}
 
-		// Handle mouse clicks (only if not paused and research menu not visible)
-		if (!is_paused_ && !research_menu_->IsVisible() && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-			// Create mouse event for UI system
-			const MouseEvent mouse_event{
-				static_cast<float>(mouse_x),
-				static_cast<float>(mouse_y),
-				false, // left_down
-				false, // right_down
-				true, // left_pressed
-				false // right_pressed
-			};
+		// Check HUD first (action bar, camera controls, etc.)
+		if (hud_->ProcessMouseEvent(mouse_event)) {
+			return; // HUD consumed the event
+		}
 
-			// Check HUD first (action bar, camera controls, etc.)
-			if (hud_->ProcessMouseEvent(mouse_event)) {
-				return; // HUD consumed the event
-			}
+		// Check build menu if visible
+		if (build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(mouse_event)) {
+			return; // Build menu consumed the event
+		}
 
-			// Check build menu if visible
-			if (build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(mouse_event)) {
-				return; // Build menu consumed the event
-			}
+		// Check placement system confirmation dialogs
+		if (placement_system_->ProcessMouseEvent(mouse_event)) {
+			return; // Dialog consumed the event
+		}
 
-			// Check placement system confirmation dialogs
-			if (placement_system_->ProcessMouseEvent(mouse_event)) {
-				return; // Dialog consumed the event
-			}
+		auto &grid = ecs_world_->GetTowerGrid();
 
-			auto &grid = ecs_world_->GetTowerGrid();
-
-			// Check history panel first (if visible)
-			if (history_panel_ != nullptr && history_panel_->IsVisible() &&
-			    history_panel_->IsMouseOver(mouse_x, mouse_y)) {
-				const int steps = history_panel_->HandleClick(mouse_x, mouse_y);
-				if (steps > 0) {
-					// Undo 'steps' times
-					int success_count = 0;
-					for (int i = 0; i < steps; i++) {
-						if (placement_system_->Undo(game_state_.funds)) {
-							success_count++;
-						} else {
-							break;
-						}
-					}
-					if (success_count > 0) {
-						hud_->AddNotification(Notification::Type::Info,
-						                      TextFormat("Undid %d action(s)", success_count), 2.0f);
-					}
-				} else if (steps < 0) {
-					// Redo 'steps' times
-					int success_count = 0;
-					for (int i = 0; i < -steps; i++) {
-						if (placement_system_->Redo(game_state_.funds)) {
-							success_count++;
-						} else {
-							break;
-						}
-					}
-					if (success_count > 0) {
-						hud_->AddNotification(Notification::Type::Info,
-						                      TextFormat("Redid %d action(s)", success_count), 2.0f);
+		// Check history panel first (if visible)
+		if (history_panel_ != nullptr && history_panel_->IsVisible() &&
+		    history_panel_->IsMouseOver(mouse_x, mouse_y)) {
+			if (const int steps = history_panel_->HandleClick(mouse_x, mouse_y); steps > 0) {
+				// Undo 'steps' times
+				int success_count = 0;
+				for (int i = 0; i < steps; i++) {
+					if (placement_system_->Undo(game_state_.funds)) {
+						success_count++;
+					} else {
+						break;
 					}
 				}
-				return; // Don't process other clicks
+				if (success_count > 0) {
+					hud_->AddNotification(Notification::Type::Info,
+					                      TextFormat("Undid %d action(s)", success_count), 2.0f);
+				}
+			} else if (steps < 0) {
+				// Redo 'steps' times
+				int success_count = 0;
+				for (int i = 0; i < -steps; i++) {
+					if (placement_system_->Redo(game_state_.funds)) {
+						success_count++;
+					} else {
+						break;
+					}
+				}
+				if (success_count > 0) {
+					hud_->AddNotification(Notification::Type::Info,
+					                      TextFormat("Redid %d action(s)", success_count), 2.0f);
+				}
 			}
+			return; // Don't process other clicks
+		}
 
-			// BuildMenu now uses ProcessMouseEvent (already called above)
-			// Grid/placement click handling (HUD already checked via ProcessMouseEvent above)
-			// Convert screen coordinates to world coordinates for camera-transformed clicks
-			float world_x, world_y;
-			camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+		float world_x, world_y;
+		camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
 
+		if (mouse_event.left_pressed) {
 			const int cost_change = placement_system_->HandleClick(static_cast<int>(world_x),
 			                                                       static_cast<int>(world_y),
 			                                                       grid_offset_x_, grid_offset_y_, cell_width_,
@@ -1207,13 +1144,13 @@ namespace towerforge::core {
 
 					// TODO: Notify tutorial if active
 					/*if (tutorial_active_ && tutorial_manager_) {
-					    const int selected = build_menu_->GetSelectedFacility();
-					    if (selected >= 0) {
-					        const auto &facility_types = build_menu_->GetFacilityTypes();
-					        if (selected < static_cast<int>(facility_types.size())) {
-					            tutorial_manager_->OnFacilityPlaced(facility_types[selected].name);
-					        }
-					    }
+						const int selected = build_menu_->GetSelectedFacility();
+						if (selected >= 0) {
+							const auto &facility_types = build_menu_->GetFacilityTypes();
+							if (selected < static_cast<int>(facility_types.size())) {
+								tutorial_manager_->OnFacilityPlaced(facility_types[selected].name);
+							}
+						}
 					}*/
 				} else {
 					audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
@@ -1465,11 +1402,8 @@ namespace towerforge::core {
 			}
 		}
 
-		// Handle camera input (only if not paused and research menu not visible)
-		if (!is_paused_ && !research_menu_->IsVisible()) {
-			constexpr bool hud_handled_input = false;
-			camera_->HandleInput(hud_handled_input);
-		}
+		constexpr bool hud_handled_input = false;
+		camera_->HandleInput(hud_handled_input);
 	}
 
 	void InGameScene::CalculateTowerRating() {
