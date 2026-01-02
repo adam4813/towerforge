@@ -62,17 +62,17 @@ namespace towerforge::ui {
         main_panel_->SetPadding(0);
 
         // Create tab container for categories
-        tab_container_ = std::make_unique<TabContainer>(
+        auto tab_container = std::make_unique<TabContainer>(
             static_cast<float>(menu_width),
             static_cast<float>(MENU_HEIGHT - CLOSE_BUTTON_SIZE - 10)
         );
-        tab_container_->SetTabBarHeight(TAB_HEIGHT);
-        tab_container_->SetTabBarColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_DARK, 0.9f)));
-        tab_container_->SetActiveTabColor(UITheme::ToEngineColor(UITheme::PRIMARY));
-        tab_container_->SetInactiveTabColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.6f)));
-        tab_container_->SetTabTextColor(UITheme::ToEngineColor(UITheme::TEXT_PRIMARY));
-        tab_container_->SetContentBackgroundColor(UITheme::ToEngineColor(UITheme::BACKGROUND_PANEL));
-        tab_container_->AddComponent<ConstraintComponent>(Anchor::Fill());
+        tab_container->SetTabBarHeight(TAB_HEIGHT);
+        tab_container->SetTabBarColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_DARK, 0.9f)));
+        tab_container->SetActiveTabColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        tab_container->SetInactiveTabColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.6f)));
+        tab_container->SetTabTextColor(UITheme::ToEngineColor(UITheme::TEXT_PRIMARY));
+        tab_container->SetContentBackgroundColor(UITheme::ToEngineColor(UITheme::BACKGROUND_PANEL));
+        tab_container->AddComponent<ConstraintComponent>(Anchor::Fill());
 
         // Add tabs for each category with content
         const std::vector<std::pair<FacilityCategory, std::string> > categories = {
@@ -85,15 +85,16 @@ namespace towerforge::ui {
 
         for (const auto &[category, name]: categories) {
             auto content = CreateCategoryContent(category, menu_width);
-            tab_container_->AddTab(name, std::move(content));
+            tab_container->AddTab(name, std::move(content));
         }
 
         // Set tab changed callback
-        tab_container_->SetTabChangedCallback([this](size_t index, const std::string &) {
+        tab_container->SetTabChangedCallback([this](size_t index, const std::string &) {
             current_category_ = static_cast<FacilityCategory>(index);
             audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClick);
         });
-        main_panel_->AddChild(std::move(tab_container_));
+        tab_container_ = tab_container.get();
+        main_panel_->AddChild(std::move(tab_container));
 
         // Create close button
         auto close_btn = std::make_unique<engine::ui::elements::Button>(
@@ -142,7 +143,8 @@ namespace towerforge::ui {
         auto content = engine::ui::ContainerBuilder()
                 .Size(content_width, content_height)
                 .Fill()
-                .Layout(std::make_unique<GridLayout>(FACILITIES_PER_ROW, GRID_PADDING, GRID_PADDING))
+                .Layout(std::make_unique<GridLayout>(content_width / (100 + GRID_PADDING),
+                                                     GRID_PADDING, GRID_PADDING))
                 .Scrollable(ScrollDirection::Vertical)
                 .ClipChildren()
                 .Padding(GRID_PADDING)
@@ -182,22 +184,24 @@ namespace towerforge::ui {
                 });
 
                 // Add hover callback for tooltips
-                button->SetHoverCallback([this, facility_index, btn_ptr = button.get()](const engine::ui::MouseEvent &event) {
-                    if (tooltip_manager_ && facility_index >= 0 && facility_index < static_cast<int>(facility_types_.size())) {
-                        const auto& fac = facility_types_[facility_index];
-                        std::stringstream ss;
-                        ss << fac.name << "\nCost: $" << fac.cost << "\nWidth: " << fac.width << " cells";
-                        const auto bounds = btn_ptr->GetAbsoluteBounds();
-                        tooltip_manager_->ShowTooltip(
-                            Tooltip(ss.str()),
-                            static_cast<int>(bounds.x),
-                            static_cast<int>(bounds.y),
-                            static_cast<int>(bounds.width),
-                            static_cast<int>(bounds.height)
-                        );
-                    }
-                    return true;
-                });
+                button->SetHoverCallback(
+                    [this, facility_index, btn_ptr = button.get()](const engine::ui::MouseEvent &event) {
+                        if (tooltip_manager_ && facility_index >= 0 && facility_index < static_cast<int>(facility_types_
+                                .size())) {
+                            const auto &fac = facility_types_[facility_index];
+                            std::stringstream ss;
+                            ss << fac.name << "\nCost: $" << fac.cost << "\nWidth: " << fac.width << " cells";
+                            const auto bounds = btn_ptr->GetAbsoluteBounds();
+                            tooltip_manager_->ShowTooltip(
+                                Tooltip(ss.str()),
+                                static_cast<int>(bounds.x),
+                                static_cast<int>(bounds.y),
+                                static_cast<int>(bounds.width),
+                                static_cast<int>(bounds.height)
+                            );
+                        }
+                        return true;
+                    });
 
                 content->AddChild(std::move(button));
             }

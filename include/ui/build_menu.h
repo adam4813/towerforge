@@ -180,14 +180,13 @@ namespace towerforge::ui {
 
         // UI Components (engine types)
         std::unique_ptr<engine::ui::elements::Panel> main_panel_;
-        std::unique_ptr<engine::ui::elements::TabContainer> tab_container_;
         engine::ui::elements::Button *close_button_;
+        engine::ui::elements::TabContainer *tab_container_;
 
         // Layout constants
         static constexpr int MENU_HEIGHT = 300;
         static constexpr int TAB_HEIGHT = 40;
         static constexpr int FACILITY_BUTTON_SIZE = 100;
-        static constexpr int FACILITIES_PER_ROW = 6;
         static constexpr int VISIBLE_ROWS = 2;
         static constexpr int GRID_PADDING = 10;
         static constexpr int CLOSE_BUTTON_SIZE = 30;
