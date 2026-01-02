@@ -19,7 +19,6 @@ namespace towerforge::ui {
 	struct IncomeBreakdown;
 	struct ElevatorAnalytics;
 	struct PopulationBreakdown;
-	class PopulationAnalyticsOverlay;
 	class TopBar;
 	class StarRatingPanel;
 	class EndGameSummary;
