@@ -16,7 +16,6 @@ namespace towerforge::ui {
 	class ActionBar;
 	class SpeedControlPanel;
 	class CameraControlsPanel;
-	class Button;
 	struct IncomeBreakdown;
 	struct ElevatorAnalytics;
 	struct PopulationBreakdown;

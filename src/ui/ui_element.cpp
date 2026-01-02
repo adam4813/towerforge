@@ -162,12 +162,12 @@ namespace towerforge::ui {
             is_animating_ = false;
         }
     }
-    
+
     Rectangle Panel::GetAbsoluteBounds() const {
         // For panels, GetAbsoluteBounds returns the content area (with padding applied)
         // This ensures children are automatically positioned within the padded area
         Rectangle bounds = GetRelativeBounds();
-        
+
         // Apply padding to the bounds
         bounds.x += padding_;
         bounds.y += padding_;
@@ -185,7 +185,7 @@ namespace towerforge::ui {
 
         return bounds;
     }
-    
+
     Rectangle Panel::GetPanelBounds() const {
         // Get the panel's own bounds without padding (for rendering background/border)
         Rectangle bounds = GetRelativeBounds();
@@ -359,11 +359,10 @@ namespace towerforge::ui {
         if (!label_.empty()) {
             const int scaled_font_size = static_cast<int>(font_size_ * font_scale);
             int text_width = MeasureText(label_.c_str(), scaled_font_size);
-            
             // Truncate text if it doesn't fit in the button
             std::string display_label = label_;
             const float available_width = draw_bounds.width - 10; // 5px padding on each side
-            
+
             if (text_width > available_width) {
                 // Truncate and add ".." suffix
                 size_t len = label_.length();
@@ -373,7 +372,7 @@ namespace towerforge::ui {
                     text_width = MeasureText(display_label.c_str(), scaled_font_size);
                 }
             }
-            
+
             const int text_x = draw_bounds.x + (draw_bounds.width - text_width) / 2;
             const int text_y = draw_bounds.y + (draw_bounds.height - scaled_font_size) / 2;
             batch_renderer::adapter::DrawText(display_label.c_str(), text_x, text_y, scaled_font_size, text_col);
@@ -615,268 +614,17 @@ namespace towerforge::ui {
         }
     }
 
-    // Slider implementation
-    Slider::Slider(const float relative_x, const float relative_y, const float width, const float height,
-                   const float min_value, const float max_value, const std::string &label)
-        : UIElement(relative_x, relative_y, width, height)
-          , label_(label)
-          , min_value_(min_value)
-          , max_value_(max_value)
-          , value_(0.5f)
-          , is_dragging_(false)
-          , value_changed_callback_(nullptr) {
-    }
-
-    void Slider::SetValue(const float value) {
-        const float clamped = std::clamp(value, 0.0f, 1.0f);
-        if (value_ != clamped) {
-            value_ = clamped;
-            if (value_changed_callback_) {
-                const float actual_value = min_value_ + (max_value_ - min_value_) * value_;
-                value_changed_callback_(actual_value);
-            }
-        }
-    }
-
-    void Slider::Update(const float delta_time) {
-        // Handle dragging
-        if (is_dragging_ && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-            const Rectangle bounds = GetAbsoluteBounds();
-            const float bar_y = bounds.y + LABEL_HEIGHT + (height_ - LABEL_HEIGHT - BAR_HEIGHT) / 2;
-            const float bar_width = width_;
-
-            const float mouse_x = GetMouseX();
-            const float relative_pos = (mouse_x - bounds.x) / bar_width;
-            SetValue(std::clamp(relative_pos, 0.0f, 1.0f));
-        } else {
-            is_dragging_ = false;
-        }
-    }
-
-    bool Slider::OnHover(const MouseEvent &event) {
-        return false;
-    }
-
-    bool Slider::OnClick(const MouseEvent &event) {
-        if (!event.left_pressed) {
-            return false;
-        }
-
-        const Rectangle bounds = GetAbsoluteBounds();
-        const float bar_y = bounds.y + LABEL_HEIGHT + (height_ - LABEL_HEIGHT - BAR_HEIGHT) / 2;
-        const float bar_width = width_;
-
-        // Check if click is on the slider bar
-        if (event.y >= bar_y && event.y <= bar_y + BAR_HEIGHT) {
-            is_dragging_ = true;
-            const float relative_pos = (event.x - bounds.x) / bar_width;
-            SetValue(std::clamp(relative_pos, 0.0f, 1.0f));
-            return true;
-        }
-
-        return false;
-    }
-
-    bool Slider::HandleKeyboard() {
-        if (!is_focused_) {
-            return false;
-        }
-
-        float new_value = value_;
-        const float step = 0.05f; // 5% adjustment per keypress
-
-        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
-            new_value -= step;
-        } else if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
-            new_value += step;
-        } else {
-            return false;
-        }
-
-        SetValue(std::clamp(new_value, 0.0f, 1.0f));
-        return true;
-    }
-
-    void Slider::Render() const {
-        const Rectangle bounds = GetAbsoluteBounds();
-        const auto &accessibility = towerforge::core::AccessibilitySettings::GetInstance();
-        const bool high_contrast = accessibility.IsHighContrastEnabled();
-        const float font_scale = accessibility.GetFontScale();
-
-        // Determine colors based on state
-        const Color label_color = is_focused_ || is_hovered_
-                                      ? (high_contrast ? YELLOW : UITheme::PRIMARY)
-                                      : UITheme::TEXT_SECONDARY;
-        const Color bg_color = is_focused_ || is_hovered_
-                                   ? ColorAlpha(UITheme::PRIMARY, 0.2f)
-                                   : ColorAlpha(DARKGRAY, 0.3f);
-        const Color fill_color = is_focused_ || is_hovered_ ? (high_contrast ? YELLOW : UITheme::PRIMARY) : GRAY;
-        const Color thumb_color = is_focused_ || is_hovered_ ? (high_contrast ? YELLOW : UITheme::PRIMARY) : WHITE;
-
-        // Draw label
-        if (!label_.empty()) {
-            const int scaled_font_size = static_cast<int>(20 * font_scale);
-            batch_renderer::adapter::DrawText(label_.c_str(), bounds.x, bounds.y, scaled_font_size, label_color);
-        }
-
-        // Calculate bar position
-        const float bar_y = bounds.y + LABEL_HEIGHT + (height_ - LABEL_HEIGHT - BAR_HEIGHT) / 2;
-        const float bar_width = width_;
-
-        // Draw slider background
-        batch_renderer::adapter::DrawRectangle(bounds.x, bar_y, bar_width, BAR_HEIGHT, bg_color);
-
-        // Draw slider fill
-        const float fill_width = bar_width * value_;
-        batch_renderer::adapter::DrawRectangle(bounds.x, bar_y, fill_width, BAR_HEIGHT, fill_color);
-
-        // Draw slider thumb
-        const float thumb_x = bounds.x + fill_width;
-        batch_renderer::adapter::DrawCircle(thumb_x, bar_y + BAR_HEIGHT / 2, THUMB_RADIUS, thumb_color);
-
-        // Draw value percentage
-        const int percentage = static_cast<int>(value_ * 100);
-        const std::string value_text = std::to_string(percentage) + "%";
-        const int scaled_font_size = static_cast<int>(18 * font_scale);
-        const int text_width = MeasureText(value_text.c_str(), scaled_font_size);
-        batch_renderer::adapter::DrawText(value_text.c_str(), bounds.x + bar_width + 20,
-                                          bar_y + (BAR_HEIGHT - scaled_font_size) / 2,
-                                          scaled_font_size, label_color);
-
-        // Draw selection indicator if focused
-        if (is_focused_) {
-            const int indicator_font_size = static_cast<int>(24 * font_scale);
-            batch_renderer::adapter::DrawText(">", bounds.x - 25, bar_y + (BAR_HEIGHT - indicator_font_size) / 2,
-                                              indicator_font_size, high_contrast ? YELLOW : UITheme::PRIMARY);
-        }
-    }
-
-    // Checkbox implementation
-    Checkbox::Checkbox(const float relative_x, const float relative_y, const std::string &label)
-        : UIElement(relative_x, relative_y, 300, HEIGHT)
-          , label_(label)
-          , checked_(false)
-          , toggle_callback_(nullptr) {
-    }
-
-    void Checkbox::SetChecked(const bool checked) {
-        if (checked_ != checked) {
-            checked_ = checked;
-            if (toggle_callback_) {
-                toggle_callback_(checked_);
-            }
-        }
-    }
-
-    bool Checkbox::OnClick(const MouseEvent &event) {
-        if (!event.left_pressed) {
-            return false;
-        }
-
-        checked_ = !checked_;
-        if (toggle_callback_) {
-            toggle_callback_(checked_);
-        }
-        return true;
-    }
-
-    bool Checkbox::HandleKeyboard() {
-        if (!is_focused_) {
-            return false;
-        }
-
-        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
-            checked_ = !checked_;
-            if (toggle_callback_) {
-                toggle_callback_(checked_);
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    void Checkbox::Render() const {
-        const Rectangle bounds = GetAbsoluteBounds();
-        const auto &accessibility = towerforge::core::AccessibilitySettings::GetInstance();
-        const bool high_contrast = accessibility.IsHighContrastEnabled();
-        const float font_scale = accessibility.GetFontScale();
-
-        // Calculate checkbox position (vertically centered)
-        const float box_y = bounds.y + (HEIGHT - BOX_SIZE) / 2;
-
-        // Determine colors based on state
-        Color box_color = is_focused_ || is_hovered_ ? ColorAlpha(UITheme::PRIMARY, 0.3f) : ColorAlpha(DARKGRAY, 0.3f);
-        Color border_color = is_focused_ || is_hovered_ ? (high_contrast ? YELLOW : UITheme::PRIMARY) : GRAY;
-        Color label_color = is_focused_ || is_hovered_
-                                ? (high_contrast ? YELLOW : UITheme::PRIMARY)
-                                : UITheme::TEXT_SECONDARY;
-        const Color check_color = high_contrast ? YELLOW : UITheme::PRIMARY;
-
-        if (high_contrast) {
-            if (is_focused_ || is_hovered_) {
-                box_color = ColorAlpha(YELLOW, 0.3f);
-                border_color = YELLOW;
-                label_color = YELLOW;
-            } else {
-                box_color = ColorAlpha(WHITE, 0.2f);
-                border_color = WHITE;
-                label_color = WHITE;
-            }
-        }
-
-        // Draw checkbox box
-        batch_renderer::adapter::DrawRectangle(bounds.x, box_y, BOX_SIZE, BOX_SIZE, box_color);
-        const float border_thickness = (is_focused_ || is_hovered_) ? 3.0f : 2.0f;
-        batch_renderer::adapter::DrawRectangleLinesEx(
-            Rectangle{bounds.x, box_y, static_cast<float>(BOX_SIZE), static_cast<float>(BOX_SIZE)},
-            border_thickness, border_color);
-
-        // Draw checkmark if checked
-        if (checked_) {
-            const float check_x1 = bounds.x + BOX_SIZE * 0.25f;
-            const float check_y1 = box_y + BOX_SIZE * 0.5f;
-            const float check_x2 = bounds.x + BOX_SIZE * 0.45f;
-            const float check_y2 = box_y + BOX_SIZE * 0.75f;
-            const float check_x3 = bounds.x + BOX_SIZE * 0.75f;
-            const float check_y3 = box_y + BOX_SIZE * 0.25f;
-
-            const Vector2 check_start = {check_x1, check_y1};
-            const Vector2 check_mid = {check_x2, check_y2};
-            const Vector2 check_end = {check_x3, check_y3};
-
-            batch_renderer::adapter::DrawLineEx(check_start, check_mid, 3, check_color);
-            batch_renderer::adapter::DrawLineEx(check_mid, check_end, 3, check_color);
-        }
-
-        // Draw label
-        if (!label_.empty()) {
-            const int scaled_font_size = static_cast<int>(20 * font_scale);
-            const float label_x = bounds.x + BOX_SIZE + LABEL_SPACING;
-            const float label_y = bounds.y + (HEIGHT - scaled_font_size) / 2;
-            batch_renderer::adapter::DrawText(label_.c_str(), label_x, label_y, scaled_font_size, label_color);
-        }
-
-        // Draw selection indicator if focused
-        if (is_focused_) {
-            const int indicator_font_size = static_cast<int>(24 * font_scale);
-            batch_renderer::adapter::DrawText(">", bounds.x - 25, box_y + (BOX_SIZE - indicator_font_size) / 2,
-                                              indicator_font_size, high_contrast ? YELLOW : UITheme::PRIMARY);
-        }
-    }
-
     // ====================
     // Label Implementation
     // ====================
 
-    Label::Label(const float relative_x, const float relative_y, const std::string& text,
+    Label::Label(const float relative_x, const float relative_y, const std::string &text,
                  const int font_size, const Color color, const Alignment alignment)
-        : UIElement(relative_x, relative_y, 0, 0)  // Width/height calculated from text
-        , text_(text)
-        , font_size_(font_size)
-        , color_(color)
-        , alignment_(alignment) {
-        
+        : UIElement(relative_x, relative_y, 0, 0) // Width/height calculated from text
+          , text_(text)
+          , font_size_(font_size)
+          , color_(color)
+          , alignment_(alignment) {
         // Calculate size based on text
         const int text_width = MeasureText(text.c_str(), font_size);
         width_ = static_cast<float>(text_width);
@@ -885,10 +633,10 @@ namespace towerforge::ui {
 
     void Label::Render() const {
         const Rectangle bounds = GetAbsoluteBounds();
-        
+
         float render_x = bounds.x;
         const int text_width = MeasureText(text_.c_str(), font_size_);
-        
+
         // Apply alignment
         switch (alignment_) {
             case Alignment::Center:
@@ -901,21 +649,20 @@ namespace towerforge::ui {
             default:
                 break;
         }
-        
-        batch_renderer::adapter::DrawText(text_.c_str(), 
-                                         static_cast<int>(render_x), 
-                                         static_cast<int>(bounds.y), 
-                                         font_size_, 
-                                         color_);
+
+        batch_renderer::adapter::DrawText(text_.c_str(),
+                                          static_cast<int>(render_x),
+                                          static_cast<int>(bounds.y),
+                                          font_size_,
+                                          color_);
     }
 
-    void Label::SetText(const std::string& text) {
+    void Label::SetText(const std::string &text) {
         text_ = text;
-        
+
         // Update size based on new text
         const int text_width = MeasureText(text.c_str(), font_size_);
         width_ = static_cast<float>(text_width);
         height_ = static_cast<float>(font_size_);
     }
-
 }

@@ -14,7 +14,6 @@ namespace towerforge::core {
 namespace towerforge::ui {
     // Forward declarations
     class Panel;
-    class Button;
     struct MouseEvent;
 
     /**
