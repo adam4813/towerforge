@@ -275,7 +275,7 @@ namespace towerforge::core {
 		build_menu_->Initialize();
 		pause_menu_ = std::make_unique<PauseMenu>();
 		pause_menu_->Initialize();
-		pause_menu_->SetOptionCallback([this](PauseMenuOption option) {
+		pause_menu_->SetOptionCallback([this](const PauseMenuOption option) {
 			switch (option) {
 				case PauseMenuOption::Resume:
 					is_paused_ = false;
@@ -319,8 +319,8 @@ namespace towerforge::core {
 		camera_ = std::make_unique<rendering::Camera>();
 
 		// Initialize with a reasonable default size (slightly larger than screen)
-		const float default_width = 1200.0f;
-		const float default_height = 800.0f;
+		constexpr float default_width = 1200.0f;
+		constexpr float default_height = 800.0f;
 
 		camera_->Initialize(800, 600, default_width, default_height);
 
@@ -339,8 +339,7 @@ namespace towerforge::core {
 
 		// Set up action bar callback
 		hud_->SetActionBarCallback([this](int action) {
-			const auto actionEnum = static_cast<ActionBar::Action>(action);
-			switch (actionEnum) {
+			switch (static_cast<ActionBar::Action>(action)) {
 				case ActionBar::Action::Build:
 					// Toggle build menu visibility
 					build_menu_->SetVisible(!build_menu_->IsVisible());
@@ -382,7 +381,7 @@ namespace towerforge::core {
 
 		// Set up speed control callback
 		if (auto *speed_panel = hud_->GetSpeedControlPanel()) {
-			speed_panel->SetSpeedCallback([this](int speed, bool paused) {
+			speed_panel->SetSpeedCallback([this](const int speed, const bool paused) {
 				game_state_.speed_multiplier = speed;
 				game_state_.paused = paused;
 				is_paused_ = paused;
@@ -392,7 +391,7 @@ namespace towerforge::core {
 		// Set up camera controls panel
 		if (auto *camera_panel = hud_->GetCameraControlsPanel()) {
 			camera_panel->SetZoomRange(rendering::Camera::MIN_ZOOM, rendering::Camera::MAX_ZOOM);
-			camera_panel->SetZoomCallback([this](float zoom) {
+			camera_panel->SetZoomCallback([this](const float zoom) {
 				if (camera_) {
 					camera_->SetTargetZoom(zoom);
 				}
@@ -404,8 +403,7 @@ namespace towerforge::core {
 		hud_->AddNotification(Notification::Type::Info, "Click entities to view details", 8.0f);
 
 		// Add notifications directly to notification center with clickable callbacks
-		auto *nc = hud_->GetNotificationCenter();
-		if (nc) {
+		if (auto *nc = hud_->GetNotificationCenter()) {
 			// Welcome notification
 			nc->AddNotification(
 				"Welcome to TowerForge",
@@ -452,10 +450,14 @@ namespace towerforge::core {
 
 		// Create facilities
 		std::cout << "  Creating facilities..." << std::endl;
-		auto grid_lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0, 0, "MainLobby");
-		auto grid_office1 = facility_mgr.CreateFacility(BuildingComponent::Type::Office, 1, 2, 0, "Office_Floor_1");
-		auto residential1 = facility_mgr.CreateFacility(BuildingComponent::Type::Residential, 2, 5, 0, "Condo_Floor_2");
-		auto shop1 = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1, 0, "Shop_Floor_3");
+		[[maybe_unused]] auto grid_lobby = facility_mgr.CreateFacility(BuildingComponent::Type::Lobby, 0, 0, 0,
+		                                                               "MainLobby");
+		[[maybe_unused]] auto grid_office1 = facility_mgr.CreateFacility(
+			BuildingComponent::Type::Office, 1, 2, 0, "Office_Floor_1");
+		[[maybe_unused]] auto residential1 = facility_mgr.CreateFacility(
+			BuildingComponent::Type::Residential, 2, 5, 0, "Condo_Floor_2");
+		[[maybe_unused]] auto shop1 = facility_mgr.CreateFacility(BuildingComponent::Type::RetailShop, 3, 1, 0,
+		                                                          "Shop_Floor_3");
 
 		std::cout << "  Created 4 facilities (Lobby, Office, Residential, RetailShop)" << std::endl;
 
@@ -537,8 +539,7 @@ namespace towerforge::core {
 		// Perform final autosave before cleanup
 		if (save_load_manager_ && save_load_manager_->IsAutosaveEnabled() && ecs_world_) {
 			std::cout << "Performing final autosave before exit..." << std::endl;
-			const auto result = save_load_manager_->Autosave(*ecs_world_);
-			if (result.success) {
+			if (const auto result = save_load_manager_->Autosave(*ecs_world_); result.success) {
 				std::cout << "Final autosave completed successfully" << std::endl;
 			}
 		}
@@ -564,21 +565,6 @@ namespace towerforge::core {
 	}
 
 	void InGameScene::Update(const float delta_time) {
-		// Handle R key to toggle research menu (only if not paused)
-		if (research_menu_ != nullptr && !is_paused_ && IsKeyPressed(KEY_R)) {
-			research_menu_->Toggle();
-		}
-
-		// Handle N key to toggle notification center
-		if (IsKeyPressed(KEY_N)) {
-			hud_->ToggleNotificationCenter();
-		}
-
-		// Handle H key to toggle history panel (only if not paused)
-		if (history_panel_ != nullptr && !is_paused_ && IsKeyPressed(KEY_H)) {
-			history_panel_->ToggleVisible();
-		}
-
 		// Only update simulation if not paused
 		if (!is_paused_) {
 			save_load_manager_->UpdateAutosave(time_step_, *ecs_world_);
@@ -668,8 +654,7 @@ namespace towerforge::core {
 							hud_->AddNotification(Notification::Type::Success, message, 5.0f);
 
 							// Also add to notification center with clickable callback
-							auto *nc = hud_->GetNotificationCenter();
-							if (nc) {
+							if (auto *nc = hud_->GetNotificationCenter()) {
 								nc->AddNotification(
 									achievement.name,
 									achievement.description,
@@ -691,7 +676,6 @@ namespace towerforge::core {
 			achievements_menu_.SetGameStats(game_state_.population, total_income, floor_count, avg_satisfaction);
 
 			placement_system_->Update(time_step_);
-			placement_system_->HandleKeyboard();
 
 			// Check for pending demolish from confirmation dialog
 			const int pending_change = placement_system_->GetPendingFundsChange();
@@ -790,14 +774,14 @@ namespace towerforge::core {
 		// Draw elevator cars
 		const auto car_query = ecs_world_->GetWorld().query<const ElevatorCar>();
 		car_query.each([&](flecs::entity e, const ElevatorCar &car) {
-			const auto shaft_entity = ecs_world_->GetWorld().entity(car.shaft_entity_id);
-			if (shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
+			if (const auto shaft_entity = ecs_world_->GetWorld().entity(car.shaft_entity_id);
+				shaft_entity.is_valid() && shaft_entity.has<ElevatorShaft>()) {
 				const ElevatorShaft &shaft = shaft_entity.ensure<ElevatorShaft>();
 
 				const int x = grid_offset_x_ + shaft.column * cell_width_;
 				const int y = FloorToScreenY(static_cast<int>(car.current_floor));
 
-				Color car_color;
+				Color car_color = WHITE;
 				switch (car.state) {
 					case ElevatorState::Idle:
 						car_color = GRAY;
@@ -844,8 +828,8 @@ namespace towerforge::core {
 			} else {
 				// Visitors are orange/yellow
 				if (e.has<VisitorInfo>()) {
-					const VisitorInfo &visitor = e.ensure<VisitorInfo>();
-					if (visitor.activity == VisitorActivity::Leaving) {
+					if (const VisitorInfo &visitor = e.ensure<VisitorInfo>();
+						visitor.activity == VisitorActivity::Leaving) {
 						person_color = GRAY;
 					} else if (visitor.activity == VisitorActivity::Shopping) {
 						person_color = GOLD;
@@ -955,7 +939,7 @@ namespace towerforge::core {
 
 		// Render research menu overlay if visible
 		if (research_menu_->IsVisible()) {
-			ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
+			const ResearchTree &research_tree_ref = ecs_world_->GetWorld().get_mut<ResearchTree>();
 			research_menu_->Render(research_tree_ref);
 		}
 
@@ -1032,7 +1016,7 @@ namespace towerforge::core {
 		}
 
 		if (is_paused_) {
-			if (save_load_menu_ != nullptr && save_load_menu_->IsOpen()) {
+			if (save_load_menu_ && save_load_menu_->IsOpen()) {
 				save_load_menu_->ProcessMouseEvent(mouse_event);
 				save_load_menu_->HandleKeyboard();
 			} else if (in_accessibility_settings_from_pause_) {
@@ -1047,10 +1031,25 @@ namespace towerforge::core {
 			} else if (in_achievements_menu_) {
 				achievements_menu_.HandleKeyboard();
 				achievements_menu_.ProcessMouseEvent(mouse_event);
-			} else {
+			} else if (pause_menu_) {
 				pause_menu_->HandleKeyboard();
 				pause_menu_->ProcessMouseEvent(mouse_event);
 			}
+		}
+
+		// Handle R key to toggle research menu (only if not paused)
+		if (research_menu_ && IsKeyPressed(KEY_R)) {
+			research_menu_->Toggle();
+		}
+
+		// Handle N key to toggle notification center
+		if (hud_ && IsKeyPressed(KEY_N)) {
+			hud_->ToggleNotificationCenter();
+		}
+
+		// Handle H key to toggle history panel (only if not paused)
+		if (history_panel_ && IsKeyPressed(KEY_H)) {
+			history_panel_->ToggleVisible();
 		}
 
 		// Update HUD tooltips
@@ -1060,7 +1059,7 @@ namespace towerforge::core {
 		build_menu_->UpdateTooltips(mouse_x, mouse_y, game_state_.funds);
 
 		// Update tooltips for placement system (if not paused and not in research menu)
-		if (!is_paused_ && !research_menu_->IsVisible()) {
+		if (research_menu_ && !research_menu_->IsVisible()) {
 			float world_x, world_y;
 			camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
 			placement_system_->UpdateTooltips(static_cast<int>(world_x), static_cast<int>(world_y),
@@ -1069,30 +1068,31 @@ namespace towerforge::core {
 		}
 
 		// Handle mouse clicks (only if not paused and research menu not visible)
-		if (research_menu_->IsVisible() && research_menu_->ProcessMouseEvent(mouse_event)) {
+		if (research_menu_ && research_menu_->IsVisible() && research_menu_->ProcessMouseEvent(mouse_event)) {
 			ecs_world_->ApplyVerticalExpansionUpgrades();
 			return; // Research menu consumed the event
 		}
 
 		// Check HUD first (action bar, camera controls, etc.)
-		if (hud_->ProcessMouseEvent(mouse_event)) {
+		if (hud_ && hud_->ProcessMouseEvent(mouse_event)) {
 			return; // HUD consumed the event
 		}
 
 		// Check build menu if visible
-		if (build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(mouse_event)) {
+		if (build_menu_ && build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(mouse_event)) {
 			return; // Build menu consumed the event
 		}
 
 		// Check placement system confirmation dialogs
-		if (placement_system_->ProcessMouseEvent(mouse_event)) {
+		if (placement_system_ && placement_system_->HandleKeyboard() || placement_system_->ProcessMouseEvent(
+			    mouse_event)) {
 			return; // Dialog consumed the event
 		}
 
 		auto &grid = ecs_world_->GetTowerGrid();
 
 		// Check history panel first (if visible)
-		if (history_panel_ != nullptr && history_panel_->IsVisible() &&
+		if (history_panel_ && history_panel_->IsVisible() &&
 		    history_panel_->IsMouseOver(mouse_x, mouse_y)) {
 			if (const int steps = history_panel_->HandleClick(mouse_x, mouse_y); steps > 0) {
 				// Undo 'steps' times
@@ -1129,7 +1129,7 @@ namespace towerforge::core {
 		float world_x, world_y;
 		camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
 
-		if (mouse_event.left_pressed) {
+		if (mouse_event.left_pressed && placement_system_) {
 			const int cost_change = placement_system_->HandleClick(static_cast<int>(world_x),
 			                                                       static_cast<int>(world_y),
 			                                                       grid_offset_x_, grid_offset_y_, cell_width_,
@@ -1468,8 +1468,8 @@ namespace towerforge::core {
 		});
 
 		// Convert map to vector and calculate averages
-		for (auto &pair: revenue_map) {
-			auto &type_revenue = pair.second;
+		for (auto &val: revenue_map | std::views::values) {
+			auto &type_revenue = val;
 
 			// Average occupancy across all facilities of this type
 			if (type_revenue.facility_count > 0) {
@@ -1484,21 +1484,20 @@ namespace towerforge::core {
 		breakdown.net_hourly_profit = breakdown.total_hourly_revenue - breakdown.total_operating_costs;
 
 		// Sort by revenue (highest first)
-		std::sort(breakdown.revenues.begin(), breakdown.revenues.end(),
-		          [](const auto &a, const auto &b) {
-			          return a.hourly_revenue > b.hourly_revenue;
-		          });
+		std::ranges::sort(breakdown.revenues,
+		                  [](const auto &a, const auto &b) {
+			                  return a.hourly_revenue > b.hourly_revenue;
+		                  });
 
 		return breakdown;
 	}
 
 	PopulationBreakdown InGameScene::CollectPopulationAnalytics() const {
-		PopulationBreakdown breakdown;
-
 		if (!ecs_world_) {
-			return breakdown;
+			return {};
 		}
 
+		PopulationBreakdown breakdown;
 		// Count employees and visitors
 		ecs_world_->GetWorld().each([&](flecs::entity e, const Person &person) {
 			breakdown.total_population++;
