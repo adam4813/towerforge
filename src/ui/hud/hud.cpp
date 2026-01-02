@@ -51,11 +51,12 @@ namespace towerforge::ui {
         top_bar_->Initialize();
 
         star_rating_panel_ = std::make_unique<StarRatingPanel>();
-        star_rating_panel_->Initialize();
         star_rating_panel_->SetGameState(&game_state_);
+        star_rating_panel_->Initialize();
 
         end_game_summary_ = std::make_unique<EndGameSummary>();
         end_game_summary_->SetGameState(&game_state_);
+        end_game_summary_->Initialize();
     }
 
     HUD::~HUD() = default;
@@ -157,7 +158,7 @@ namespace towerforge::ui {
         }
 
         // Render end-game summary if max stars achieved
-        if (end_game_summary_) {
+        if (end_game_summary_ && end_game_summary_->ShouldShow()) {
             end_game_summary_->Render();
         }
     }
