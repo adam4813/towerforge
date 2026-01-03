@@ -138,15 +138,8 @@ namespace towerforge::ui {
 		}
 	}
 
-	bool GeneralSettingsMenu::ProcessMouseEvent(const MouseEvent &event) const {
-		return settings_panel_->ProcessMouseEvent({
-			event.x,
-			event.y,
-			event.left_down,
-			event.right_down,
-			event.left_pressed,
-			event.right_pressed
-		});
+	bool GeneralSettingsMenu::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
+		return settings_panel_->ProcessMouseEvent(event);
 	}
 
 	void GeneralSettingsMenu::Shutdown() {

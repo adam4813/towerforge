@@ -212,6 +212,16 @@ namespace towerforge::core {
 			// Update and render active scene
 			if (active_scene_) {
 				active_scene_->Update(delta_time);
+				active_scene_->HandleMouseEvent({
+					static_cast<float>(GetMouseX()),
+					static_cast<float>(GetMouseY()),
+					IsMouseButtonDown(MOUSE_LEFT_BUTTON),
+					IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
+					IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
+					IsMouseButtonPressed(MOUSE_RIGHT_BUTTON),
+					GetMouseWheelMove(),
+					GetMouseWheelMove()
+				});
 
 				renderer_.BeginFrame();
 				renderer_.Clear(DARKGRAY);

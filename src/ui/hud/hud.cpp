@@ -240,25 +240,14 @@ namespace towerforge::ui {
                                               NotificationPriority::Medium, duration);
     }
 
-
-    bool HUD::ProcessMouseEvent(const MouseEvent &event) const {
-        engine::ui::MouseEvent engine_event;
-        engine_event.x = event.x;
-        engine_event.y = event.y;
-        engine_event.left_down = event.left_down;
-        engine_event.left_pressed = event.left_pressed;
-        engine_event.left_released = false; // Not available in towerforge MouseEvent
-        engine_event.right_down = event.right_down;
-        engine_event.right_pressed = event.right_pressed;
-        engine_event.right_released = false; // Not available in towerforge MouseEvent
-
+    bool HUD::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
         // Forward to current info window first (highest priority for close button)
         bool info_window_handled = false;
-        std::visit([&engine_event, &info_window_handled](auto &window) {
+        std::visit([&event, &info_window_handled](auto &window) {
             using T = std::decay_t<decltype(window)>;
             if constexpr (!std::is_same_v<T, std::monostate>) {
                 if (window && window->IsVisible() &&
-                    window->ProcessMouseEvent(engine_event)) {
+                    window->ProcessMouseEvent(event)) {
                     info_window_handled = true;
                 }
             }
@@ -269,17 +258,17 @@ namespace towerforge::ui {
         }
 
         // Forward to action bar
-        if (action_bar_ && action_bar_->ProcessMouseEvent(engine_event)) {
+        if (action_bar_ && action_bar_->ProcessMouseEvent(event)) {
             return true;
         }
 
         // Forward to camera controls panel
-        if (camera_controls_panel_ && camera_controls_panel_->ProcessMouseEvent(engine_event)) {
+        if (camera_controls_panel_ && camera_controls_panel_->ProcessMouseEvent(event)) {
             return true;
         }
 
         // Forward to speed control panel
-        if (speed_control_panel_ && speed_control_panel_->ProcessMouseEvent(engine_event)) {
+        if (speed_control_panel_ && speed_control_panel_->ProcessMouseEvent(event)) {
             return true;
         }
 
@@ -291,7 +280,7 @@ namespace towerforge::ui {
         }
 
         // Forward to top bar
-        if (top_bar_ && top_bar_->ProcessMouseEvent(engine_event)) {
+        if (top_bar_ && top_bar_->ProcessMouseEvent(event)) {
             return true;
         }
 

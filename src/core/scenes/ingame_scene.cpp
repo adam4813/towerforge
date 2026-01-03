@@ -695,8 +695,6 @@ namespace towerforge::core {
 				last_screen_height = screen_height;
 			}
 		}
-
-		HandleInput();
 	}
 
 	void InGameScene::Render() {
@@ -940,28 +938,18 @@ namespace towerforge::core {
 		engine::ui::BatchRenderer::EndFrame();
 	}
 
-	void InGameScene::HandleInput() {
+	void InGameScene::HandleMouseEvent(const engine::ui::MouseEvent &event) {
 		// Update tooltips for mouse position (even when paused, for UI tooltips)
 		const int mouse_x = GetMouseX();
 		const int mouse_y = GetMouseY();
 
 		const MouseEvent mouse_event{
-			static_cast<float>(mouse_x),
-			static_cast<float>(mouse_y),
-			IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-			IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-			IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-			IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-		};
-		const float wheel = GetMouseWheelMove();
-		const engine::ui::MouseEvent engine_event{
-			mouse_event.x,
-			mouse_event.y,
-			mouse_event.left_down,
-			mouse_event.right_down,
-			mouse_event.left_pressed,
-			mouse_event.right_pressed,
-			wheel
+			event.x,
+			event.y,
+			event.left_down,
+			event.right_down,
+			event.left_pressed,
+			event.right_pressed,
 		};
 
 		// Handle help system mouse input first (if visible)
@@ -1017,23 +1005,23 @@ namespace towerforge::core {
 
 		if (is_paused_) {
 			if (save_load_menu_ && save_load_menu_->IsOpen()) {
-				save_load_menu_->ProcessMouseEvent(mouse_event);
+				save_load_menu_->ProcessMouseEvent(event);
 				save_load_menu_->HandleKeyboard();
 			} else if (in_accessibility_settings_from_pause_) {
 				pause_accessibility_settings_menu_.HandleKeyboard();
-				pause_accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
+				pause_accessibility_settings_menu_.ProcessMouseEvent(event);
 			} else if (in_audio_settings_from_pause_) {
 				pause_audio_settings_menu_.HandleKeyboard();
-				pause_audio_settings_menu_.ProcessMouseEvent(mouse_event);
+				pause_audio_settings_menu_.ProcessMouseEvent(event);
 			} else if (in_settings_from_pause_) {
 				pause_general_settings_menu_.HandleKeyboard();
-				pause_general_settings_menu_.ProcessMouseEvent(mouse_event);
+				pause_general_settings_menu_.ProcessMouseEvent(event);
 			} else if (in_achievements_menu_) {
 				achievements_menu_.HandleKeyboard();
-				achievements_menu_.ProcessMouseEvent(mouse_event);
+				achievements_menu_.ProcessMouseEvent(event);
 			} else if (pause_menu_) {
 				pause_menu_->HandleKeyboard();
-				pause_menu_->ProcessMouseEvent(mouse_event);
+				pause_menu_->ProcessMouseEvent(event);
 			}
 		}
 
@@ -1068,18 +1056,18 @@ namespace towerforge::core {
 		}
 
 		// Handle mouse clicks (only if not paused and research menu not visible)
-		if (research_menu_ && research_menu_->IsVisible() && research_menu_->ProcessMouseEvent(engine_event)) {
+		if (research_menu_ && research_menu_->IsVisible() && research_menu_->ProcessMouseEvent(event)) {
 			ecs_world_->ApplyVerticalExpansionUpgrades();
 			return; // Research menu consumed the event
 		}
 
 		// Check HUD first (action bar, camera controls, etc.)
-		if (hud_ && hud_->ProcessMouseEvent(mouse_event)) {
+		if (hud_ && hud_->ProcessMouseEvent(event)) {
 			return; // HUD consumed the event
 		}
 
 		// Check build menu if visible
-		if (build_menu_ && build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(mouse_event)) {
+		if (build_menu_ && build_menu_->IsVisible() && build_menu_->ProcessMouseEvent(event)) {
 			return; // Build menu consumed the event
 		}
 

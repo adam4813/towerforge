@@ -32,7 +32,6 @@ namespace towerforge::core {
 
     void AchievementsScene::Update(const float delta_time) {
         achievements_menu_.Update(delta_time);
-        HandleInput();
     }
 
     void AchievementsScene::Render() {
@@ -43,17 +42,8 @@ namespace towerforge::core {
         engine::ui::BatchRenderer::EndFrame();
     }
 
-    void AchievementsScene::HandleInput() {
-        const MouseEvent mouse_event(
-            static_cast<float>(GetMouseX()),
-            static_cast<float>(GetMouseY()),
-            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-        );
-
+    void AchievementsScene::HandleMouseEvent(const engine::ui::MouseEvent &event) {
         achievements_menu_.HandleKeyboard();
-        achievements_menu_.ProcessMouseEvent(mouse_event);
+        achievements_menu_.ProcessMouseEvent(event);
     }
 }

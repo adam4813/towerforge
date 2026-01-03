@@ -6,9 +6,9 @@
 #include <functional>
 #include <variant>
 
-namespace towerforge::ui {
-	struct MouseEvent;
+import engine;
 
+namespace towerforge::ui {
 	// Forward declarations
 	class UIWindowManager;
 	class TooltipManager;
@@ -151,9 +151,9 @@ namespace towerforge::ui {
  */
 	class HUD {
 	public:
-	/**
-		 * @brief Callback type for action bar actions
-		 */
+		/**
+			 * @brief Callback type for action bar actions
+			 */
 		using ActionBarCallback = std::function<void(int action)>;
 		using DemolishFacilityCallback = std::function<void()>;
 
@@ -213,7 +213,7 @@ namespace towerforge::ui {
 	 * @param event Mouse event data
 	 * @return true if event was consumed by HUD
 	 */
-		bool ProcessMouseEvent(const MouseEvent &event) const;
+		bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
 		/**
 	 * @brief Update tooltips based on mouse position

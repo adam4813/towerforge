@@ -10,7 +10,6 @@ import engine;
 namespace towerforge::ui {
     // Forward declarations
     class TooltipManager;
-    struct MouseEvent;
 
     /**
      * @brief Facility categories for organized building menu
@@ -148,7 +147,7 @@ namespace towerforge::ui {
         /**
          * @brief Handle mouse events
          */
-        bool ProcessMouseEvent(const MouseEvent &event) const;
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
     private:
         void UpdateLayout();

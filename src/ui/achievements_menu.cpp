@@ -293,17 +293,8 @@ namespace towerforge::ui {
         return ss.str();
     }
 
-    bool AchievementsMenu::ProcessMouseEvent(const MouseEvent &event) const {
-        const float wheel = GetMouseWheelMove();
-        return main_panel_->ProcessMouseEvent({
-            event.x,
-            event.y,
-            event.left_down,
-            event.right_down,
-            event.left_pressed,
-            event.right_pressed,
-            wheel
-        });
+    bool AchievementsMenu::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
+        return main_panel_->ProcessMouseEvent(event);
     }
 
     void AchievementsMenu::HandleKeyboard() const {

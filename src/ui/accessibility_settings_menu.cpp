@@ -223,16 +223,9 @@ namespace towerforge::ui {
                                               UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f)));
     }
 
-    bool AccessibilitySettingsMenu::ProcessMouseEvent(const MouseEvent &event) const {
+    bool AccessibilitySettingsMenu::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
         // Process through panel (handles all children)
-        return settings_panel_->ProcessMouseEvent({
-            event.x,
-            event.y,
-            event.left_down,
-            event.right_down,
-            event.left_pressed,
-            event.right_pressed
-        });
+        return settings_panel_->ProcessMouseEvent(event);
     }
 
     void AccessibilitySettingsMenu::HandleKeyboard() const {

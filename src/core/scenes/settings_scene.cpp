@@ -67,7 +67,6 @@ namespace towerforge::core {
         } else {
             general_settings_menu_.Update(delta_time);
         }
-        HandleInput();
     }
 
     void SettingsScene::Render() {
@@ -84,25 +83,16 @@ namespace towerforge::core {
         engine::ui::BatchRenderer::EndFrame();
     }
 
-    void SettingsScene::HandleInput() {
-        const MouseEvent mouse_event(
-            static_cast<float>(GetMouseX()),
-            static_cast<float>(GetMouseY()),
-            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-        );
-
+    void SettingsScene::HandleMouseEvent(const engine::ui::MouseEvent &event) {
         if (in_accessibility_settings_) {
             accessibility_settings_menu_.HandleKeyboard();
-            accessibility_settings_menu_.ProcessMouseEvent(mouse_event);
+            accessibility_settings_menu_.ProcessMouseEvent(event);
         } else if (in_audio_settings_) {
             audio_settings_menu_.HandleKeyboard();
-            audio_settings_menu_.ProcessMouseEvent(mouse_event);
+            audio_settings_menu_.ProcessMouseEvent(event);
         } else {
             general_settings_menu_.HandleKeyboard();
-            general_settings_menu_.ProcessMouseEvent(mouse_event);
+            general_settings_menu_.ProcessMouseEvent(event);
         }
     }
 }

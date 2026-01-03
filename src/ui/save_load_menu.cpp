@@ -4,7 +4,6 @@
 #include <algorithm>
 
 namespace towerforge::ui {
-
     SaveLoadMenu::SaveLoadMenu()
         : state_(SaveLoadMenuState::Closed),
           is_save_mode_(false),
@@ -33,11 +32,11 @@ namespace towerforge::ui {
         last_action_ = SaveLoadAction::Cancel;
     }
 
-    void SaveLoadMenu::SetSaveLoadManager(towerforge::core::SaveLoadManager* manager) {
+    void SaveLoadMenu::SetSaveLoadManager(towerforge::core::SaveLoadManager *manager) {
         save_load_manager_ = manager;
     }
 
-    void SaveLoadMenu::SetError(const std::string& message) {
+    void SaveLoadMenu::SetError(const std::string &message) {
         error_message_ = message;
         state_ = SaveLoadMenuState::Error;
     }
@@ -61,7 +60,7 @@ namespace towerforge::ui {
             slots_ = save_load_manager_->GetSaveSlots();
 
             // Sort by date (most recent first)
-            std::sort(slots_.begin(), slots_.end(), [](const auto& a, const auto& b) {
+            std::sort(slots_.begin(), slots_.end(), [](const auto &a, const auto &b) {
                 return a.save_date > b.save_date;
             });
         }
@@ -116,7 +115,7 @@ namespace towerforge::ui {
         }
     }
 
-    bool SaveLoadMenu::ProcessMouseEvent(const MouseEvent& event) const {
+    bool SaveLoadMenu::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
         if (state_ == SaveLoadMenuState::Closed) {
             return false;
         }
@@ -124,19 +123,6 @@ namespace towerforge::ui {
         // Handle based on current state
         // This will be expanded with button click detection
         return false;
-    }
-
-    void SaveLoadMenu::HandleMouse(int mouse_x, int mouse_y, bool clicked) const {
-        // Legacy wrapper - delegates to modern API
-        const MouseEvent event(
-            static_cast<float>(mouse_x),
-            static_cast<float>(mouse_y),
-            false,
-            false,
-            clicked,
-            false
-        );
-        ProcessMouseEvent(event);
     }
 
     void SaveLoadMenu::Render() const {
@@ -159,7 +145,7 @@ namespace towerforge::ui {
         DrawRectangleLines(menu_x, menu_y, MENU_WIDTH, MENU_HEIGHT, WHITE);
 
         // Draw header
-        const char* title = is_save_mode_ ? "SAVE GAME" : "LOAD GAME";
+        const char *title = is_save_mode_ ? "SAVE GAME" : "LOAD GAME";
         DrawText(title, menu_x + 20, menu_y + 15, 24, WHITE);
         DrawLine(menu_x, menu_y + HEADER_HEIGHT, menu_x + MENU_WIDTH, menu_y + HEADER_HEIGHT, WHITE);
 
@@ -191,9 +177,9 @@ namespace towerforge::ui {
         list_y += 25;
 
         // Draw slots
-        const int slot_count = std::min(static_cast<int>(slots_.size()), 5);  // Show max 5 slots
+        const int slot_count = std::min(static_cast<int>(slots_.size()), 5); // Show max 5 slots
         for (int i = 0; i < slot_count; i++) {
-            const auto& slot = slots_[i];
+            const auto &slot = slots_[i];
             const int slot_y = list_y + i * (SLOT_HEIGHT + SLOT_SPACING);
 
             const Color bg_color = i == selected_slot_index_ ? GRAY : DARKGRAY;
@@ -243,7 +229,7 @@ namespace towerforge::ui {
         int button_x = menu_x + 20;
 
         // Save/Load button
-        const char* main_action = is_save_mode_ ? "Save" : "Load";
+        const char *main_action = is_save_mode_ ? "Save" : "Load";
         const bool can_act = selected_slot_index_ >= 0;
 
         Color button_color = can_act ? DARKGREEN : DARKGRAY;
@@ -320,7 +306,7 @@ namespace towerforge::ui {
         DrawRectangle(dialog_x, dialog_y, dialog_width, dialog_height, DARKGRAY);
         DrawRectangleLines(dialog_x, dialog_y, dialog_width, dialog_height, WHITE);
 
-        const char* message;
+        const char *message;
         if (state_ == SaveLoadMenuState::ConfirmDelete) {
             message = "Delete this save file?";
         } else {
@@ -399,7 +385,7 @@ namespace towerforge::ui {
         DrawText("ERROR", dialog_x + 180, dialog_y + 20, 24, RED);
 
         // Word wrap the error message
-        const char* msg = error_message_.c_str();
+        const char *msg = error_message_.c_str();
         DrawText(msg, dialog_x + 30, dialog_y + 70, 16, WHITE);
 
         // OK button
@@ -409,5 +395,4 @@ namespace towerforge::ui {
         DrawRectangleLines(ok_x, ok_y, 100, 35, WHITE);
         DrawText("OK", ok_x + 37, ok_y + 10, 16, WHITE);
     }
-
 }

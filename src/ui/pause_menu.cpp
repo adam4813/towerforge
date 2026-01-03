@@ -411,21 +411,13 @@ namespace towerforge::ui {
         }
     }
 
-    bool PauseMenu::ProcessMouseEvent(const MouseEvent &event) const {
-        const auto mouse_event = engine::ui::MouseEvent{
-            event.x,
-            event.y,
-            event.left_down,
-            event.right_down,
-            event.left_pressed,
-            event.right_pressed
-        };
-        if (show_quit_confirmation_ && confirmation_panel_->ProcessMouseEvent(mouse_event)) {
+    bool PauseMenu::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
+        if (show_quit_confirmation_ && confirmation_panel_->ProcessMouseEvent(event)) {
             return true;
         }
 
         if (pause_panel_) {
-            return pause_panel_->ProcessMouseEvent(mouse_event);
+            return pause_panel_->ProcessMouseEvent(event);
         }
 
         return false;

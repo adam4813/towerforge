@@ -9,8 +9,6 @@
 import engine;
 
 namespace towerforge::ui {
-    struct MouseEvent;
-
     /**
      * @brief Achievements menu for displaying unlocked and locked achievements
      * 
@@ -52,7 +50,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent &event) const;
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
         /**
          * @brief Handle keyboard input for menu navigation
@@ -94,7 +92,7 @@ namespace towerforge::ui {
          * @return Unique pointer to the constructed container
          */
         std::unique_ptr<engine::ui::elements::Container> CreateAchievementItem(
-            const towerforge::core::Achievement& achievement,
+            const towerforge::core::Achievement &achievement,
             bool is_unlocked,
             float item_width) const;
 
