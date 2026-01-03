@@ -1,5 +1,6 @@
 #include "ui/help_system.h"
-#include "ui/mouse_interface.h"
+#include "ui/ui_theme.h"
+#include "audio/audio_manager.h"
 #include <cmath>
 #include <algorithm>
 
@@ -10,13 +11,19 @@ namespace towerforge::ui {
         : visible_(false)
           , current_context_(HelpContext::MainGame)
           , animation_time_(0.0f)
-          , scroll_offset_(0.0f)
-          , max_scroll_(0.0f) {
+          , last_screen_width_(0)
+          , last_screen_height_(0)
+          , title_text_(nullptr)
+          , content_container_(nullptr) {
     }
 
     HelpSystem::~HelpSystem() = default;
 
     void HelpSystem::Initialize() {
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
+
+        // Initialize help content
         InitializeMainGameHelp();
         InitializeBuildMenuHelp();
         InitializeResearchTreeHelp();
@@ -27,31 +34,252 @@ namespace towerforge::ui {
         InitializePauseMenuHelp();
         InitializeHistoryHelp();
         InitializeNotificationsHelp();
+
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        // Create main panel
+        const int panel_x = (screen_width - OVERLAY_WIDTH) / 2;
+        const int panel_y = (screen_height - OVERLAY_HEIGHT) / 2;
+
+        main_panel_ = std::make_unique<Panel>();
+        main_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+        main_panel_->SetSize(static_cast<float>(OVERLAY_WIDTH), static_cast<float>(OVERLAY_HEIGHT));
+        main_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f)));
+        main_panel_->SetBorderColor(UITheme::ToEngineColor(UITheme::INFO));
+        main_panel_->SetPadding(static_cast<float>(UITheme::PADDING_LARGE));
+        main_panel_->AddComponent<LayoutComponent>(
+            std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center)
+        );
+
+        // Add title
+        auto title = std::make_unique<Text>(
+            0, 0,
+            "Help",
+            UITheme::FONT_SIZE_TITLE,
+            UITheme::ToEngineColor(UITheme::INFO)
+        );
+        title_text_ = title.get();
+        main_panel_->AddChild(std::move(title));
+
+        // Add divider
+        auto divider = std::make_unique<Divider>();
+        divider->SetColor(UITheme::ToEngineColor(UITheme::INFO));
+        divider->SetSize(OVERLAY_WIDTH - UITheme::PADDING_LARGE * 2, 2);
+        main_panel_->AddChild(std::move(divider));
+
+        // Add instructions
+        auto instructions = std::make_unique<Text>(
+            0, 0,
+            "Press F1 or ESC to close",
+            UITheme::FONT_SIZE_SMALL,
+            UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+        );
+        main_panel_->AddChild(std::move(instructions));
+
+        // Create scrollable content container
+        constexpr float content_width = OVERLAY_WIDTH - UITheme::PADDING_LARGE * 2;
+        constexpr float content_height = OVERLAY_HEIGHT - HEADER_HEIGHT - 100;
+
+        auto content = engine::ui::ContainerBuilder()
+                .Size(content_width, content_height)
+                .Layout<VerticalLayout>(UITheme::PADDING_MEDIUM, Alignment::Start)
+                .Scrollable(ScrollDirection::Vertical)
+                .Padding(UITheme::PADDING_SMALL)
+                .ClipChildren()
+                .Build();
+
+        content_container_ = content.get();
+        main_panel_->AddChild(std::move(content));
+
+        // Add close button
+        auto close_button = std::make_unique<Button>(
+            UITheme::BUTTON_WIDTH_MEDIUM,
+            UITheme::BUTTON_HEIGHT_MEDIUM,
+            "Close",
+            UITheme::FONT_SIZE_NORMAL
+        );
+        close_button->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
+        close_button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
+        close_button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+        close_button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::INFO, 0.3f)));
+        close_button->SetClickCallback([this](const engine::ui::MouseEvent &event) {
+            if (event.left_pressed) {
+                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClose);
+                Hide();
+                return true;
+            }
+            return false;
+        });
+        main_panel_->AddChild(std::move(close_button));
+
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+
+        UpdateLayout();
+    }
+
+    void HelpSystem::UpdateLayout() {
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        if (main_panel_) {
+            const int panel_x = (screen_width - OVERLAY_WIDTH) / 2;
+            const int panel_y = (screen_height - OVERLAY_HEIGHT) / 2;
+            main_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+            main_panel_->InvalidateComponents();
+            main_panel_->UpdateComponentsRecursive();
+        }
+
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+    }
+
+    void HelpSystem::RebuildContent() {
+        if (!content_container_) return;
+
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
+
+        content_container_->ClearChildren();
+
+        const auto &topics = help_content_[current_context_];
+        constexpr float topic_width = OVERLAY_WIDTH - UITheme::PADDING_LARGE * 4;
+
+        for (const auto &topic: topics) {
+            // Create container for each topic with proper spacing
+            auto topic_container = engine::ui::ContainerBuilder()
+                    .Size(topic_width, 200) // Give reasonable height for content
+                    .Layout<VerticalLayout>(8.0f, Alignment::Start)
+                    .Opacity(0)
+                    .Padding(UITheme::PADDING_SMALL)
+                    .Build();
+
+            // Topic title
+            auto title = std::make_unique<Text>(
+                0, 0,
+                topic.title,
+                UITheme::FONT_SIZE_MEDIUM,
+                UITheme::ToEngineColor(UITheme::PRIMARY)
+            );
+            topic_container->AddChild(std::move(title));
+
+            // Topic content
+            auto content_text = std::make_unique<Text>(
+                0, 0,
+                topic.content,
+                UITheme::FONT_SIZE_SMALL,
+                UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+            );
+            topic_container->AddChild(std::move(content_text));
+
+            // Tips
+            if (!topic.tips.empty()) {
+                // Add spacer before tips
+                auto spacer = std::make_unique<Container>();
+                spacer->SetSize(topic_width, 5);
+                topic_container->AddChild(std::move(spacer));
+
+                auto tips_header = std::make_unique<Text>(
+                    0, 0,
+                    "Quick Tips:",
+                    UITheme::FONT_SIZE_SMALL,
+                    UITheme::ToEngineColor(UITheme::INFO)
+                );
+                topic_container->AddChild(std::move(tips_header));
+
+                for (const auto &tip: topic.tips) {
+                    auto tip_text = std::make_unique<Text>(
+                        0, 0,
+                        "• " + tip,
+                        UITheme::FONT_SIZE_SMALL,
+                        UITheme::ToEngineColor(UITheme::TEXT_PRIMARY)
+                    );
+                    topic_container->AddChild(std::move(tip_text));
+                }
+            }
+
+            content_container_->AddChild(std::move(topic_container));
+
+            // Add divider between topics
+            auto topic_divider = std::make_unique<Divider>();
+            topic_divider->SetColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BORDER_SUBTLE, 0.5f)));
+            topic_divider->SetSize(topic_width - UITheme::PADDING_LARGE, 1);
+            content_container_->AddChild(std::move(topic_divider));
+        }
+
+        content_container_->InvalidateComponents();
+        content_container_->UpdateComponentsRecursive();
+
+        // Update scroll component content size
+        if (auto *scroll = content_container_->GetComponent<ScrollComponent>()) {
+            scroll->CalculateContentSizeFromChildren();
+        }
+    }
+
+    std::string HelpSystem::GetContextName(HelpContext context) const {
+        switch (context) {
+            case HelpContext::MainGame: return "Gameplay Help";
+            case HelpContext::BuildMenu: return "Building Help";
+            case HelpContext::ResearchTree: return "Research Tree Help";
+            case HelpContext::ModsMenu: return "Mods Help";
+            case HelpContext::StaffManagement: return "Staff Management Help";
+            case HelpContext::Settings: return "Settings Help";
+            case HelpContext::Tutorial: return "Tutorial Help";
+            case HelpContext::PauseMenu: return "Pause Menu Help";
+            case HelpContext::History: return "History Help";
+            case HelpContext::Notifications: return "Notifications Help";
+            default: return "Help";
+        }
     }
 
     void HelpSystem::Update(const float delta_time) {
-        if (visible_) {
-            animation_time_ += delta_time;
+        if (!visible_ || !main_panel_) return;
+
+        animation_time_ += delta_time;
+
+        // Check for window resize
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+            UpdateLayout();
         }
     }
 
     void HelpSystem::Render() {
-        if (!visible_) return;
+        if (!visible_ || !main_panel_) return;
 
-        RenderOverlay();
-        RenderHeader();
-        RenderContent();
-        RenderCloseButton();
-        if (max_scroll_ > 0) {
-            RenderScrollbar();
-        }
+        RenderDimOverlay();
+        main_panel_->Render();
+    }
+
+    void HelpSystem::RenderDimOverlay() const {
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(0, 0, screen_width, screen_height),
+            UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f))
+        );
     }
 
     void HelpSystem::Show(const HelpContext context) {
         current_context_ = context;
         visible_ = true;
         animation_time_ = 0.0f;
-        scroll_offset_ = 0.0f;
+
+        // Update title
+        if (title_text_) {
+            title_text_->SetText(GetContextName(context));
+        }
+
+        // Rebuild content for new context
+        RebuildContent();
     }
 
     void HelpSystem::Hide() {
@@ -59,289 +287,43 @@ namespace towerforge::ui {
     }
 
     void HelpSystem::Toggle() {
-        visible_ = !visible_;
         if (visible_) {
-            animation_time_ = 0.0f;
-            scroll_offset_ = 0.0f;
+            Hide();
+        } else {
+            Show(current_context_);
         }
     }
 
-    bool HelpSystem::ProcessMouseEvent(const MouseEvent &event) {
-        // Delegate to legacy implementation for now (HelpSystem uses manual collision)
-        return HandleMouse(static_cast<int>(event.x), static_cast<int>(event.y), event.left_pressed);
-    }
+    bool HelpSystem::ProcessMouseEvent(const engine::ui::MouseEvent &event) {
+        if (!visible_ || !main_panel_) return false;
 
-    bool HelpSystem::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
-        if (!visible_) return false;
-
-        std::uint32_t screen_width;
-        std::uint32_t screen_height;
-        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
-
-        const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
-        const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
-
-        // Check if click is outside overlay (close help)
-        if (clicked) {
-            if (mouse_x < overlay_x || mouse_x > overlay_x + OVERLAY_WIDTH ||
-                mouse_y < overlay_y || mouse_y > overlay_y + OVERLAY_HEIGHT) {
-                Hide();
-                return true;
-            }
-
-            // Check close button
-            const int close_x = overlay_x + OVERLAY_WIDTH - CLOSE_BUTTON_SIZE - 10;
-            const int close_y = overlay_y + 10;
-            if (mouse_x >= close_x && mouse_x <= close_x + CLOSE_BUTTON_SIZE &&
-                mouse_y >= close_y && mouse_y <= close_y + CLOSE_BUTTON_SIZE) {
+        // Check for click outside panel to close
+        if (event.left_pressed) {
+            auto bounds = main_panel_->GetAbsoluteBounds();
+            if (event.x < bounds.x || event.x > bounds.x + bounds.width ||
+                event.y < bounds.y || event.y > bounds.y + bounds.height) {
+                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClose);
                 Hide();
                 return true;
             }
         }
 
-        // Handle scrolling
-        const float wheel = GetMouseWheelMove();
-        if (wheel != 0.0f) {
-            scroll_offset_ -= wheel * 30.0f;
-            scroll_offset_ = std::clamp(scroll_offset_, 0.0f, max_scroll_);
+        return main_panel_->ProcessMouseEvent(event);
+    }
+
+    void HelpSystem::HandleKeyboard() {
+        if (!visible_) return;
+
+        if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_F1)) {
+            audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClose);
+            Hide();
         }
-
-        return true; // Consume all mouse events when help is visible
     }
 
-    bool HelpSystem::IsMouseOverHelpIcon(const Rectangle &bounds) {
-        const int mouse_x = GetMouseX();
-        const int mouse_y = GetMouseY();
-        return CheckCollisionPointRec({static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, bounds);
-    }
-
-    bool HelpSystem::RenderHelpIcon(const Rectangle &bounds, const int mouse_x, const int mouse_y) {
-        const bool hovered = CheckCollisionPointRec({static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, bounds);
-
-        // Draw circle background
-        const Color bg_color = hovered ? ColorAlpha(SKYBLUE, 0.6f) : ColorAlpha(DARKBLUE, 0.4f);
-        DrawCircle(
-            static_cast<int>(bounds.x + bounds.width / 2),
-            static_cast<int>(bounds.y + bounds.height / 2),
-            bounds.width / 2,
-            bg_color
-        );
-
-        // Draw border
-        const Color border_color = hovered ? SKYBLUE : BLUE;
-        DrawCircleLines(
-            static_cast<int>(bounds.x + bounds.width / 2),
-            static_cast<int>(bounds.y + bounds.height / 2),
-            bounds.width / 2,
-            border_color
-        );
-
-        // Draw "?" text
-        const char *text = "?";
-        const int text_size = static_cast<int>(bounds.width * 0.7f);
-        const int text_width = MeasureText(text, text_size);
-        DrawText(
-            text,
-            static_cast<int>(bounds.x + (bounds.width - text_width) / 2),
-            static_cast<int>(bounds.y + (bounds.height - text_size) / 2),
-            text_size,
-            WHITE
-        );
-
-        return hovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
-    }
-
-    void HelpSystem::RenderOverlay() const {
-        std::uint32_t screen_width;
-        std::uint32_t screen_height;
-        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
-
-        const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
-        const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
-
-        // Draw dim background over entire screen
-        DrawRectangle(0, 0, screen_width, screen_height, ColorAlpha(BLACK, 0.5f));
-
-        // Draw main help window
-        DrawRectangle(overlay_x, overlay_y, OVERLAY_WIDTH, OVERLAY_HEIGHT, ColorAlpha(BLACK, 0.95f));
-
-        // Draw border with subtle glow effect
-        const float pulse = static_cast<float>(sin(animation_time_ * 2.0) * 0.1 + 0.9);
-        DrawRectangleLines(overlay_x, overlay_y, OVERLAY_WIDTH, OVERLAY_HEIGHT, ColorAlpha(SKYBLUE, pulse));
-        DrawRectangleLines(overlay_x + 1, overlay_y + 1, OVERLAY_WIDTH - 2, OVERLAY_HEIGHT - 2,
-                           ColorAlpha(SKYBLUE, pulse * 0.5f));
-    }
-
-    void HelpSystem::RenderHeader() const {
-        std::uint32_t screen_width;
-        std::uint32_t screen_height;
-        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
-
-        const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
-        const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
-
-        // Draw header background
-        DrawRectangle(overlay_x, overlay_y, OVERLAY_WIDTH, HEADER_HEIGHT, ColorAlpha(SKYBLUE, 0.2f));
-        DrawLine(overlay_x, overlay_y + HEADER_HEIGHT, overlay_x + OVERLAY_WIDTH, overlay_y + HEADER_HEIGHT, SKYBLUE);
-
-        // Get context name
-        std::string context_name;
-        switch (current_context_) {
-            case HelpContext::MainGame: context_name = "Gameplay Help";
-                break;
-            case HelpContext::BuildMenu: context_name = "Building Help";
-                break;
-            case HelpContext::ResearchTree: context_name = "Research Tree Help";
-                break;
-            case HelpContext::ModsMenu: context_name = "Mods Help";
-                break;
-            case HelpContext::StaffManagement: context_name = "Staff Management Help";
-                break;
-            case HelpContext::Settings: context_name = "Settings Help";
-                break;
-            case HelpContext::Tutorial: context_name = "Tutorial Help";
-                break;
-            case HelpContext::PauseMenu: context_name = "Pause Menu Help";
-                break;
-            case HelpContext::History: context_name = "History Help";
-                break;
-            case HelpContext::Notifications: context_name = "Notifications Help";
-                break;
-        }
-
-        // Draw title
-        constexpr int title_font_size = 24;
-        const int title_width = MeasureText(context_name.c_str(), title_font_size);
-        DrawText(context_name.c_str(), overlay_x + (OVERLAY_WIDTH - title_width) / 2,
-                 overlay_y + (HEADER_HEIGHT - title_font_size) / 2, title_font_size, SKYBLUE);
-
-        // Draw "Press F1 or ESC to close" hint
-        const char *hint = "Press F1 or ESC to close";
-        constexpr int hint_size = 12;
-        DrawText(hint, overlay_x + PADDING, overlay_y + OVERLAY_HEIGHT - 20, hint_size, GRAY);
-    }
-
-    void HelpSystem::RenderContent() {
-        std::uint32_t screen_width;
-        std::uint32_t screen_height;
-        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
-
-        const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
-        const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
-
-        const int content_x = overlay_x + PADDING;
-        const int content_y = overlay_y + HEADER_HEIGHT + PADDING;
-        const int content_width = OVERLAY_WIDTH - PADDING * 2 - SCROLLBAR_WIDTH - 5;
-        const int content_height = OVERLAY_HEIGHT - HEADER_HEIGHT - PADDING * 2 - 30;
-
-        // Enable scissor mode for scrolling
-        BeginScissorMode(content_x, content_y, content_width, content_height);
-
-        int y_offset = content_y - static_cast<int>(scroll_offset_);
-
-        // Get help topics for current context
-        const auto &topics = help_content_[current_context_];
-
-        for (const auto &topic: topics) {
-            // Draw topic title
-            constexpr int title_size = 18;
-            DrawText(topic.title.c_str(), content_x, y_offset, title_size, GOLD);
-            y_offset += title_size + 10;
-
-            // Draw topic content (word wrap)
-            const int max_chars_per_line = content_width / 8; // Approximate
-            std::string wrapped_content = topic.content;
-
-            // Simple word wrapping
-            size_t line_start = 0;
-            while (line_start < wrapped_content.length()) {
-                size_t line_end = line_start + max_chars_per_line;
-                if (line_end >= wrapped_content.length()) {
-                    line_end = wrapped_content.length();
-                } else {
-                    // Find last space before max width
-                    size_t last_space = wrapped_content.rfind(' ', line_end);
-                    if (last_space != std::string::npos && last_space > line_start) {
-                        line_end = last_space;
-                    }
-                }
-
-                const std::string line = wrapped_content.substr(line_start, line_end - line_start);
-                DrawText(line.c_str(), content_x + 10, y_offset, 14, LIGHTGRAY);
-                y_offset += 18;
-                line_start = line_end + 1;
-            }
-
-            y_offset += 5;
-
-            // Draw tips if available
-            if (!topic.tips.empty()) {
-                DrawText("Quick Tips:", content_x + 10, y_offset, 14, SKYBLUE);
-                y_offset += 18;
-
-                for (const auto &tip: topic.tips) {
-                    const std::string bullet = "• " + tip;
-                    DrawText(bullet.c_str(), content_x + 20, y_offset, 13, WHITE);
-                    y_offset += 16;
-                }
-            }
-
-            y_offset += 15; // Space between topics
-        }
-
-        EndScissorMode();
-
-        // Calculate max scroll
-        const int total_content_height = y_offset - (content_y - static_cast<int>(scroll_offset_));
-        max_scroll_ = std::max(0.0f, static_cast<float>(total_content_height - content_height));
-    }
-
-    void HelpSystem::RenderCloseButton() const {
-        std::uint32_t screen_width;
-        std::uint32_t screen_height;
-        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
-
-        const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
-        const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
-
-        const int close_x = overlay_x + OVERLAY_WIDTH - CLOSE_BUTTON_SIZE - 10;
-        const int close_y = overlay_y + 10;
-
-        const int mouse_x = GetMouseX();
-        const int mouse_y = GetMouseY();
-        const bool hovered = mouse_x >= close_x && mouse_x <= close_x + CLOSE_BUTTON_SIZE &&
-                             mouse_y >= close_y && mouse_y <= close_y + CLOSE_BUTTON_SIZE;
-
-        const Color bg_color = hovered ? ColorAlpha(RED, 0.5f) : ColorAlpha(DARKGRAY, 0.3f);
-        DrawRectangle(close_x, close_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, bg_color);
-        DrawRectangleLines(close_x, close_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, hovered ? RED : GRAY);
-        DrawText("X", close_x + 5, close_y + 2, 14, WHITE);
-    }
-
-    void HelpSystem::RenderScrollbar() const {
-        if (max_scroll_ <= 0) return;
-
-        std::uint32_t screen_width;
-        std::uint32_t screen_height;
-        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
-
-        const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
-        const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
-
-        const int scrollbar_x = overlay_x + OVERLAY_WIDTH - SCROLLBAR_WIDTH - PADDING;
-        const int scrollbar_y = overlay_y + HEADER_HEIGHT + PADDING;
-        const int scrollbar_height = OVERLAY_HEIGHT - HEADER_HEIGHT - PADDING * 2 - 30;
-
-        // Draw scrollbar track
-        DrawRectangle(scrollbar_x, scrollbar_y, SCROLLBAR_WIDTH, scrollbar_height, ColorAlpha(DARKGRAY, 0.3f));
-
-        // Draw scrollbar thumb
-        const float scroll_ratio = scroll_offset_ / max_scroll_;
-        const float thumb_height_ratio = static_cast<float>(scrollbar_height) / (scrollbar_height + max_scroll_);
-        const int thumb_height = std::max(20, static_cast<int>(scrollbar_height * thumb_height_ratio));
-        const int thumb_y = scrollbar_y + static_cast<int>(scroll_ratio * (scrollbar_height - thumb_height));
-
-        DrawRectangle(scrollbar_x, thumb_y, SCROLLBAR_WIDTH, thumb_height, ColorAlpha(SKYBLUE, 0.7f));
+    void HelpSystem::Shutdown() {
+        title_text_ = nullptr;
+        content_container_ = nullptr;
+        main_panel_.reset();
     }
 
     void HelpSystem::InitializeMainGameHelp() {

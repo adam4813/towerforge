@@ -561,6 +561,9 @@ namespace towerforge::core {
 		hud_.reset();
 		save_load_manager_.reset();
 		ecs_world_.reset();
+		if (help_system_) {
+			help_system_->Shutdown();
+		}
 		help_system_.reset();
 		history_panel_.reset();
 
@@ -968,18 +971,8 @@ namespace towerforge::core {
 			}
 
 			if (help_system_->IsVisible()) {
-				if (IsKeyPressed(KEY_ESCAPE)) {
-					help_system_->Hide();
-				} else {
-					help_system_->ProcessMouseEvent({
-						event.x,
-						event.y,
-						event.left_down,
-						event.right_down,
-						event.left_pressed,
-						event.right_pressed,
-					});
-				}
+				help_system_->HandleKeyboard();
+				help_system_->ProcessMouseEvent(event);
 				return;
 			}
 		}

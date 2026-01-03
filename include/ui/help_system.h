@@ -1,30 +1,27 @@
 #pragma once
 
-#include <raylib.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <memory>
 
+import engine;
+
 namespace towerforge::ui {
-
-    // Forward declaration
-    struct MouseEvent;
-
     /**
      * @brief Help context enumeration - determines which help content to show
      */
     enum class HelpContext {
-        MainGame,           // General gameplay
-        BuildMenu,          // Building and placement
-        ResearchTree,       // Research and upgrades
-        ModsMenu,           // Mod management
-        StaffManagement,    // Staff hiring and management
-        Settings,           // Settings screens
-        Tutorial,           // Tutorial mode
-        PauseMenu,          // Pause menu
-        History,            // History/undo panel
-        Notifications       // Notification center
+        MainGame, // General gameplay
+        BuildMenu, // Building and placement
+        ResearchTree, // Research and upgrades
+        ModsMenu, // Mod management
+        StaffManagement, // Staff hiring and management
+        Settings, // Settings screens
+        Tutorial, // Tutorial mode
+        PauseMenu, // Pause menu
+        History, // History/undo panel
+        Notifications // Notification center
     };
 
     /**
@@ -33,22 +30,25 @@ namespace towerforge::ui {
     struct HelpTopic {
         std::string title;
         std::string content;
-        std::vector<std::string> tips;  // Optional quick tips
-        
+        std::vector<std::string> tips; // Optional quick tips
+
         HelpTopic() = default;
-        HelpTopic(const std::string& t, const std::string& c, const std::vector<std::string>& tips_list = {})
-            : title(t), content(c), tips(tips_list) {}
+
+        HelpTopic(const std::string &t, const std::string &c, const std::vector<std::string> &tips_list = {})
+            : title(t), content(c), tips(tips_list) {
+        }
     };
 
     /**
      * @brief Contextual help system - displays help overlays and quick reference
-     * 
+     *
      * Provides context-sensitive help accessible via F1 key or help icons.
      * Shows relevant mechanics and controls based on current screen/menu.
      */
     class HelpSystem {
     public:
         HelpSystem();
+
         ~HelpSystem();
 
         /**
@@ -104,69 +104,66 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent& event);
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event);
 
         /**
-         * @brief Handle mouse input
-         * @param mouse_x Mouse X position
-         * @param mouse_y Mouse Y position
-         * @param clicked Whether mouse was clicked
-         * @return True if input was handled
-         * @deprecated Use ProcessMouseEvent instead
+         * @brief Handle keyboard input
          */
-        bool HandleMouse(int mouse_x, int mouse_y, bool clicked);
+        void HandleKeyboard();
 
         /**
-         * @brief Check if mouse is over help icon button
-         * @param bounds Button bounds to check
-         * @return True if mouse is over the help icon
+         * @brief Shutdown and cleanup UI resources
          */
-        static bool IsMouseOverHelpIcon(const Rectangle& bounds);
-
-        /**
-         * @brief Render a help icon button
-         * @param bounds Button bounds
-         * @param mouse_x Mouse X position
-         * @param mouse_y Mouse Y position
-         * @return True if button was clicked
-         */
-        static bool RenderHelpIcon(const Rectangle& bounds, int mouse_x, int mouse_y);
+        void Shutdown();
 
     private:
-        void RenderOverlay() const;
-        void RenderHeader() const;
-        void RenderContent();
-        void RenderCloseButton() const;
-        void RenderScrollbar() const;
+        void RenderDimOverlay() const;
+
+        void UpdateLayout();
+
+        void RebuildContent();
 
         void InitializeMainGameHelp();
+
         void InitializeBuildMenuHelp();
+
         void InitializeResearchTreeHelp();
+
         void InitializeModsMenuHelp();
+
         void InitializeStaffManagementHelp();
+
         void InitializeSettingsHelp();
+
         void InitializeTutorialHelp();
+
         void InitializePauseMenuHelp();
+
         void InitializeHistoryHelp();
+
         void InitializeNotificationsHelp();
+
+        std::string GetContextName(HelpContext context) const;
 
         bool visible_;
         HelpContext current_context_;
         float animation_time_;
-        float scroll_offset_;
-        float max_scroll_;
+        std::uint32_t last_screen_width_;
+        std::uint32_t last_screen_height_;
 
         // Help content organized by context
-        std::unordered_map<HelpContext, std::vector<HelpTopic>> help_content_;
+        std::unordered_map<HelpContext, std::vector<HelpTopic> > help_content_;
+
+        // Engine UI elements
+        std::unique_ptr<engine::ui::elements::Panel> main_panel_;
+        engine::ui::elements::Text *title_text_;
+        engine::ui::elements::Container *content_container_;
 
         // UI layout constants
         static constexpr int OVERLAY_WIDTH = 700;
         static constexpr int OVERLAY_HEIGHT = 550;
-        static constexpr int HEADER_HEIGHT = 50;
+        static constexpr int HEADER_HEIGHT = 60;
         static constexpr int PADDING = 20;
-        static constexpr int CLOSE_BUTTON_SIZE = 20;
-        static constexpr int SCROLLBAR_WIDTH = 10;
-        static constexpr int HELP_ICON_SIZE = 24;
+        static constexpr int TOPIC_SPACING = 15;
     };
-
 }

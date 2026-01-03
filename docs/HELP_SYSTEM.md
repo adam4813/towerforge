@@ -2,12 +2,15 @@
 
 ## Overview
 
-The help system provides context-sensitive assistance to players through an in-game overlay accessible via the F1 key or help icon buttons. It automatically detects the current game context and displays relevant help topics.
+The help system provides context-sensitive assistance to players through an in-game overlay accessible via the F1 key or
+help icon buttons. It automatically detects the current game context and displays relevant help topics.
 
 ## Features
 
 ### 1. Context Detection
+
 The help system automatically detects which screen or menu is active:
+
 - **Main Game**: General gameplay mechanics and controls
 - **Build Menu**: Facility placement and construction
 - **Research Tree**: Research mechanics and tower points
@@ -20,6 +23,7 @@ The help system automatically detects which screen or menu is active:
 - **Notification Center**: Notification management
 
 ### 2. Accessibility
+
 - **F1 Key**: Press F1 to open help for the current context
 - **ESC Key**: Close help overlay
 - **Help Icons**: Clickable "?" icons in menus (research tree, build menu)
@@ -29,6 +33,7 @@ The help system automatically detects which screen or menu is active:
 ### 3. Help Content Structure
 
 Each context contains multiple help topics with:
+
 - **Title**: Topic heading
 - **Content**: Detailed explanation with word wrapping
 - **Quick Tips**: Bulleted list of actionable tips (optional)
@@ -38,9 +43,11 @@ Each context contains multiple help topics with:
 ### Core Classes
 
 #### `HelpSystem` Class
+
 Location: `include/ui/help_system.h`, `src/ui/help_system.cpp`
 
 **Key Methods:**
+
 - `Initialize()`: Load help content for all contexts
 - `Show(HelpContext)`: Display help for specific context
 - `Hide()`: Close help overlay
@@ -48,9 +55,9 @@ Location: `include/ui/help_system.h`, `src/ui/help_system.cpp`
 - `Update(delta_time)`: Update animations
 - `Render()`: Draw help overlay
 - `HandleMouse(x, y, clicked)`: Process mouse input
-- `RenderHelpIcon(bounds, x, y)`: Static method to render help icons
 
 **Key Members:**
+
 - `help_content_`: Map of contexts to help topics
 - `current_context_`: Active help context
 - `scroll_offset_`: Current scroll position
@@ -59,9 +66,11 @@ Location: `include/ui/help_system.h`, `src/ui/help_system.cpp`
 ### Integration Points
 
 #### Game Class Integration
+
 Location: `src/core/game.cpp`
 
 **Initialization:**
+
 ```cpp
 // In InitializeGameSystems()
 help_system_ = new HelpSystem();
@@ -69,6 +78,7 @@ help_system_->Initialize();
 ```
 
 **Input Handling:**
+
 ```cpp
 // F1 key toggles help
 if (help_system_ != nullptr && IsKeyPressed(KEY_F1)) {
@@ -86,6 +96,7 @@ if (IsKeyPressed(KEY_ESCAPE)) {
 ```
 
 **Rendering:**
+
 ```cpp
 // Render help last (on top of everything)
 if (help_system_ != nullptr && help_system_->IsVisible()) {
@@ -93,29 +104,10 @@ if (help_system_ != nullptr && help_system_->IsVisible()) {
 }
 ```
 
-#### Menu Integration
-
-**Research Tree Menu:**
-```cpp
-#include "ui/help_system.h"
-
-// In RenderHeader()
-const Rectangle help_icon_bounds = { /* position */ };
-HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
-```
-
-**Build Menu:**
-```cpp
-#include "ui/help_system.h"
-
-// In Render()
-const Rectangle help_icon_bounds = { /* position */ };
-HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
-```
-
 ### Visual Design
 
 #### Help Overlay Layout
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ [Context Name]                           [X]    │ ← Header (50px)
@@ -141,6 +133,7 @@ HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
 ```
 
 #### Help Icon Design
+
 ```
 ┌───┐
 │ ? │  ← Blue circle with "?" text
@@ -151,22 +144,26 @@ HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
 ### Help Content Examples
 
 #### Main Gameplay Help
+
 - **Welcome to TowerForge**: Introduction to game mechanics
 - **Basic Controls**: Keyboard shortcuts and mouse controls
 - **Managing Your Tower**: Rating system and tenant satisfaction
 
 #### Build Menu Help
+
 - **Building Facilities**: How to place facilities
 - **Floor Management**: Adding floors and basements
 - **Undo and Redo**: Using history functionality
 
 #### Research Tree Help
+
 - **Research System**: Unlocking upgrades
 - **Earning Research Points**: Milestone achievements
 
 ## User Experience Flow
 
 ### Opening Help
+
 1. User presses F1 or clicks help icon
 2. System detects current context
 3. Help overlay appears with fade-in animation
@@ -174,11 +171,13 @@ HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
 5. User can scroll to read all content
 
 ### Navigating Help
+
 1. Mouse wheel scrolls through content
 2. ESC or click outside closes help
 3. Visual feedback on hover/click
 
 ### Context Switching
+
 1. User closes help
 2. Opens different menu (e.g., research tree)
 3. Presses F1 again
@@ -189,6 +188,7 @@ HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
 ### Adding New Help Topics
 
 1. **Define Context** (if new):
+
 ```cpp
 // In help_system.h
 enum class HelpContext {
@@ -198,6 +198,7 @@ enum class HelpContext {
 ```
 
 2. **Create Initialization Method**:
+
 ```cpp
 // In help_system.cpp
 void HelpSystem::InitializeNewContextHelp() {
@@ -217,6 +218,7 @@ void HelpSystem::InitializeNewContextHelp() {
 ```
 
 3. **Call in Initialize()**:
+
 ```cpp
 void HelpSystem::Initialize() {
     // ... existing initializations
@@ -224,36 +226,10 @@ void HelpSystem::Initialize() {
 }
 ```
 
-### Adding Help Icons to Menus
-
-1. **Include Header**:
-```cpp
-#include "ui/help_system.h"
-```
-
-2. **Render Icon**:
-```cpp
-const Rectangle help_icon_bounds = {
-    x_position,      // X coordinate
-    y_position,      // Y coordinate
-    20.0f,          // Width
-    20.0f           // Height
-};
-HelpSystem::RenderHelpIcon(help_icon_bounds, GetMouseX(), GetMouseY());
-```
-
-3. **Handle Clicks** (in game input handler):
-```cpp
-// Check if help icon was clicked
-if (HelpSystem::IsMouseOverHelpIcon(help_icon_bounds) && 
-    IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-    help_system_->Show(HelpContext::YourContext);
-}
-```
-
 ## Testing
 
 ### Manual Testing Checklist
+
 - [ ] F1 opens help in main game
 - [ ] F1 opens research help in research tree
 - [ ] F1 opens build help when build menu is focused
@@ -267,6 +243,7 @@ if (HelpSystem::IsMouseOverHelpIcon(help_icon_bounds) &&
 - [ ] Scrollbar appears for long content
 
 ### Known Limitations
+
 - Help content is currently hardcoded (could be externalized to JSON/XML)
 - No search functionality within help
 - No hyperlinks between help topics
@@ -275,6 +252,7 @@ if (HelpSystem::IsMouseOverHelpIcon(help_icon_bounds) &&
 ## Future Enhancements
 
 ### Potential Improvements
+
 1. **Interactive Tutorials**: Link help topics to interactive tutorials
 2. **Video/GIF Support**: Embed demonstrations
 3. **Search Functionality**: Search across all help content
@@ -285,6 +263,7 @@ if (HelpSystem::IsMouseOverHelpIcon(help_icon_bounds) &&
 8. **Tooltips Integration**: Show abbreviated help as tooltips
 
 ### Performance Considerations
+
 - Help system only updates when visible
 - Content is pre-loaded during initialization
 - Rendering is optimized with scissor mode for scrolling
@@ -292,14 +271,15 @@ if (HelpSystem::IsMouseOverHelpIcon(help_icon_bounds) &&
 
 ## Keyboard Shortcuts Reference
 
-| Key | Action |
-|-----|--------|
-| F1 | Toggle help overlay (context-sensitive) |
-| ESC | Close help overlay |
-| Mouse Wheel | Scroll help content |
-| Click Outside | Close help overlay |
+| Key           | Action                                  |
+|---------------|-----------------------------------------|
+| F1            | Toggle help overlay (context-sensitive) |
+| ESC           | Close help overlay                      |
+| Mouse Wheel   | Scroll help content                     |
+| Click Outside | Close help overlay                      |
 
 ## Related Documentation
+
 - [Tutorial System](TUTORIAL_IMPLEMENTATION.md)
 - [Tooltip System](TOOLTIP_SYSTEM.md)
 - [UI Element System](ui_element_system.md)
@@ -308,6 +288,7 @@ if (HelpSystem::IsMouseOverHelpIcon(help_icon_bounds) &&
 ## Change Log
 
 ### Version 1.0 (Initial Implementation)
+
 - Context-sensitive help system
 - F1 key support
 - Help icons in menus
