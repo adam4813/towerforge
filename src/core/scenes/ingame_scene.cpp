@@ -953,6 +953,16 @@ namespace towerforge::core {
 			IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
 			IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
 		};
+		const float wheel = GetMouseWheelMove();
+		const engine::ui::MouseEvent engine_event{
+			mouse_event.x,
+			mouse_event.y,
+			mouse_event.left_down,
+			mouse_event.right_down,
+			mouse_event.left_pressed,
+			mouse_event.right_pressed,
+			wheel
+		};
 
 		// Handle help system mouse input first (if visible)
 		if (help_system_) {
@@ -1058,7 +1068,7 @@ namespace towerforge::core {
 		}
 
 		// Handle mouse clicks (only if not paused and research menu not visible)
-		if (research_menu_ && research_menu_->IsVisible() && research_menu_->ProcessMouseEvent(mouse_event)) {
+		if (research_menu_ && research_menu_->IsVisible() && research_menu_->ProcessMouseEvent(engine_event)) {
 			ecs_world_->ApplyVerticalExpansionUpgrades();
 			return; // Research menu consumed the event
 		}

@@ -1,7 +1,6 @@
 #include "ui/research_tree_menu.h"
 #include "ui/notification_center.h"
 #include "ui/ui_theme.h"
-#include "ui/mouse_interface.h"
 #include "audio/audio_manager.h"
 #include <string>
 #include <sstream>
@@ -395,27 +394,16 @@ namespace towerforge::ui {
         );
     }
 
-    bool ResearchTreeMenu::ProcessMouseEvent(const MouseEvent &event) const {
+    bool ResearchTreeMenu::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
         if (!visible_) return false;
-
-        const float wheel = GetMouseWheelMove();
-        const engine::ui::MouseEvent engine_event{
-            event.x,
-            event.y,
-            event.left_down,
-            event.right_down,
-            event.left_pressed,
-            event.right_pressed,
-            wheel
-        };
 
         // If confirmation dialog is visible, route events to it first
         if (unlock_confirmation_ && unlock_confirmation_->IsVisible()) {
-            return unlock_confirmation_->ProcessMouseEvent(engine_event);
+            return unlock_confirmation_->ProcessMouseEvent(event);
         }
 
         if (main_panel_) {
-            return main_panel_->ProcessMouseEvent(engine_event);
+            return main_panel_->ProcessMouseEvent(event);
         }
 
         return false;

@@ -1,11 +1,9 @@
 #pragma once
 
-#include <raylib.h>
 #include <string>
 #include <vector>
 #include <memory>
 #include "core/components.hpp"
-#include "ui/ui_element.h"
 #include "ui/tooltip.h"
 #include "ui/research_details_panel.h"
 #include "ui/engine_confirmation_dialog.h"
@@ -89,7 +87,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent &event) const;
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
         /**
          * @brief Handle keyboard input
