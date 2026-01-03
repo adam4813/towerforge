@@ -956,16 +956,17 @@ namespace towerforge::core {
 				if (help_system_->IsVisible()) {
 					help_system_->Hide();
 				} else {
-					// Determine current context based on active UI
-					auto context = HelpContext::MainGame;
-					if (is_paused_) {
-						context = HelpContext::PauseMenu;
+					// Show appropriate help category based on current context
+					// Check most specific contexts first
+					if (mods_menu_ != nullptr && mods_menu_->IsVisible()) {
+						help_system_->ShowCategory("Mods");
 					} else if (research_menu_ != nullptr && research_menu_->IsVisible()) {
-						context = HelpContext::ResearchTree;
-					} else if (mods_menu_ != nullptr && mods_menu_->IsVisible()) {
-						context = HelpContext::ModsMenu;
+						help_system_->ShowCategory("Research");
+					} else if (is_paused_) {
+						help_system_->ShowCategory("Settings");
+					} else {
+						help_system_->Show();
 					}
-					help_system_->Show(context);
 				}
 				return;
 			}

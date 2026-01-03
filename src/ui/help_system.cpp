@@ -9,11 +9,11 @@ import engine;
 namespace towerforge::ui {
     HelpSystem::HelpSystem()
         : visible_(false)
-          , current_context_(HelpContext::MainGame)
           , animation_time_(0.0f)
           , last_screen_width_(0)
           , last_screen_height_(0)
           , title_text_(nullptr)
+          , nav_container_(nullptr)
           , content_container_(nullptr) {
     }
 
@@ -23,32 +23,23 @@ namespace towerforge::ui {
         using namespace engine::ui::components;
         using namespace engine::ui::elements;
 
-        // Initialize help content
-        InitializeMainGameHelp();
-        InitializeBuildMenuHelp();
-        InitializeResearchTreeHelp();
-        InitializeModsMenuHelp();
-        InitializeStaffManagementHelp();
-        InitializeSettingsHelp();
-        InitializeTutorialHelp();
-        InitializePauseMenuHelp();
-        InitializeHistoryHelp();
-        InitializeNotificationsHelp();
+        // Initialize default help topics
+        InitializeDefaultTopics();
 
         std::uint32_t screen_width;
         std::uint32_t screen_height;
         engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Create main panel
-        const int panel_x = (screen_width - OVERLAY_WIDTH) / 2;
-        const int panel_y = (screen_height - OVERLAY_HEIGHT) / 2;
+        const int panel_x = std::max(0, static_cast<int>(screen_width - OVERLAY_WIDTH) / 2);
+        const int panel_y = std::max(0, static_cast<int>(screen_height - OVERLAY_HEIGHT) / 2);
 
         main_panel_ = std::make_unique<Panel>();
         main_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
         main_panel_->SetSize(static_cast<float>(OVERLAY_WIDTH), static_cast<float>(OVERLAY_HEIGHT));
         main_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f)));
         main_panel_->SetBorderColor(UITheme::ToEngineColor(UITheme::INFO));
-        main_panel_->SetPadding(static_cast<float>(UITheme::PADDING_LARGE));
+        main_panel_->SetPadding(static_cast<float>(PADDING));
         main_panel_->AddComponent<LayoutComponent>(
             std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center)
         );
@@ -63,12 +54,6 @@ namespace towerforge::ui {
         title_text_ = title.get();
         main_panel_->AddChild(std::move(title));
 
-        // Add divider
-        auto divider = std::make_unique<Divider>();
-        divider->SetColor(UITheme::ToEngineColor(UITheme::INFO));
-        divider->SetSize(OVERLAY_WIDTH - UITheme::PADDING_LARGE * 2, 2);
-        main_panel_->AddChild(std::move(divider));
-
         // Add instructions
         auto instructions = std::make_unique<Text>(
             0, 0,
@@ -78,20 +63,49 @@ namespace towerforge::ui {
         );
         main_panel_->AddChild(std::move(instructions));
 
-        // Create scrollable content container
-        constexpr float content_width = OVERLAY_WIDTH - UITheme::PADDING_LARGE * 2;
-        constexpr float content_height = OVERLAY_HEIGHT - HEADER_HEIGHT - 100;
+        // Add divider
+        auto divider = std::make_unique<Divider>();
+        divider->SetColor(UITheme::ToEngineColor(UITheme::INFO));
+        divider->SetSize(OVERLAY_WIDTH - PADDING * 2, 2);
+        main_panel_->AddChild(std::move(divider));
+
+        // Create horizontal container for nav + content
+        constexpr float body_width = OVERLAY_WIDTH - PADDING * 2;
+        constexpr float body_height = OVERLAY_HEIGHT - HEADER_HEIGHT - 100;
+
+        auto body_container = engine::ui::ContainerBuilder()
+                .Size(body_width, body_height)
+                .Layout<HorizontalLayout>(static_cast<float>(UITheme::MARGIN_SMALL), Alignment::Start)
+                .Build();
+
+        // Navigation sidebar (scrollable list of topics)
+        auto nav = engine::ui::ContainerBuilder()
+                .Size(static_cast<float>(NAV_WIDTH), body_height)
+                .Layout<VerticalLayout>(4.0f, Alignment::Start)
+                .Scrollable(ScrollDirection::Vertical)
+                .ClipChildren()
+                .Padding(static_cast<float>(UITheme::PADDING_SMALL))
+                .Build();
+
+        nav->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_DARK, 0.5f)));
+        nav_container_ = nav.get();
+        body_container->AddChild(std::move(nav));
+
+        // Content area (scrollable topic content)
+        constexpr float content_width = body_width - NAV_WIDTH - UITheme::MARGIN_SMALL;
 
         auto content = engine::ui::ContainerBuilder()
-                .Size(content_width, content_height)
-                .Layout<VerticalLayout>(UITheme::PADDING_MEDIUM, Alignment::Start)
+                .Size(content_width, body_height)
+                .Layout<VerticalLayout>(static_cast<float>(UITheme::PADDING_MEDIUM), Alignment::Start)
                 .Scrollable(ScrollDirection::Vertical)
-                .Padding(UITheme::PADDING_SMALL)
                 .ClipChildren()
+                .Padding(static_cast<float>(UITheme::PADDING_MEDIUM))
                 .Build();
 
         content_container_ = content.get();
-        main_panel_->AddChild(std::move(content));
+        body_container->AddChild(std::move(content));
+
+        main_panel_->AddChild(std::move(body_container));
 
         // Add close button
         auto close_button = std::make_unique<Button>(
@@ -126,8 +140,8 @@ namespace towerforge::ui {
         engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         if (main_panel_) {
-            const int panel_x = (screen_width - OVERLAY_WIDTH) / 2;
-            const int panel_y = (screen_height - OVERLAY_HEIGHT) / 2;
+            const int panel_x = std::max(0, static_cast<int>(screen_width - OVERLAY_WIDTH) / 2);
+            const int panel_y = std::max(0, static_cast<int>(screen_height - OVERLAY_HEIGHT) / 2);
             main_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
             main_panel_->InvalidateComponents();
             main_panel_->UpdateComponentsRecursive();
@@ -135,6 +149,145 @@ namespace towerforge::ui {
 
         last_screen_width_ = screen_width;
         last_screen_height_ = screen_height;
+    }
+
+    // === Topic Registration API ===
+
+    bool HelpSystem::RegisterTopic(const HelpTopic& topic) {
+        if (topics_.contains(topic.id)) {
+            return false;
+        }
+        topics_[topic.id] = topic;
+        
+        // Add category to order list if new
+        if (std::find(category_order_.begin(), category_order_.end(), topic.category) == category_order_.end()) {
+            category_order_.push_back(topic.category);
+        }
+        
+        return true;
+    }
+
+    void HelpSystem::RegisterTopics(const std::vector<HelpTopic>& topics) {
+        for (const auto& topic : topics) {
+            RegisterTopic(topic);
+        }
+    }
+
+    bool HelpSystem::RemoveTopic(const std::string& id) {
+        return topics_.erase(id) > 0;
+    }
+
+    bool HelpSystem::UpdateTopic(const HelpTopic& topic) {
+        auto it = topics_.find(topic.id);
+        if (it == topics_.end()) {
+            return false;
+        }
+        it->second = topic;
+        return true;
+    }
+
+    bool HelpSystem::HasTopic(const std::string& id) const {
+        return topics_.contains(id);
+    }
+
+    const HelpTopic* HelpSystem::GetTopic(const std::string& id) const {
+        auto it = topics_.find(id);
+        return it != topics_.end() ? &it->second : nullptr;
+    }
+
+    std::vector<std::string> HelpSystem::GetCategories() const {
+        return category_order_;
+    }
+
+    std::vector<const HelpTopic*> HelpSystem::GetTopicsInCategory(const std::string& category) const {
+        std::vector<const HelpTopic*> result;
+        for (const auto& [id, topic] : topics_) {
+            if (topic.category == category) {
+                result.push_back(&topic);
+            }
+        }
+        // Sort by sort_order
+        std::sort(result.begin(), result.end(), [](const HelpTopic* a, const HelpTopic* b) {
+            return a->sort_order < b->sort_order;
+        });
+        return result;
+    }
+
+    void HelpSystem::RebuildNavigation() {
+        if (!nav_container_) return;
+
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
+
+        nav_container_->ClearChildren();
+        nav_buttons_.clear();
+
+        constexpr float button_width = NAV_WIDTH - UITheme::PADDING_MEDIUM;
+        constexpr float button_height = 28.0f;
+
+        for (const auto& category : category_order_) {
+            // Category header
+            auto cat_header = std::make_unique<Text>(
+                0, 0,
+                category,
+                UITheme::FONT_SIZE_SMALL,
+                UITheme::ToEngineColor(UITheme::INFO)
+            );
+            nav_container_->AddChild(std::move(cat_header));
+
+            // Topics in this category
+            auto topics_in_cat = GetTopicsInCategory(category);
+            for (const auto* topic : topics_in_cat) {
+                if (!topic->show_in_navigation) continue;
+
+                const bool is_selected = (topic->id == current_topic_id_);
+
+                auto btn = std::make_unique<Button>(
+                    button_width,
+                    button_height,
+                    topic->title,
+                    UITheme::FONT_SIZE_SMALL
+                );
+
+                if (is_selected) {
+                    // Highlight selected button
+                    btn->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.4f)));
+                    btn->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.5f)));
+                    btn->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_PRIMARY));
+                    btn->SetBorderColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+                } else {
+                    btn->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BUTTON_BACKGROUND, 0.5f)));
+                    btn->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
+                    btn->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
+                    btn->SetBorderColor(UITheme::ToEngineColor(UITheme::BORDER_SUBTLE));
+                }
+
+                std::string topic_id = topic->id;
+                btn->SetClickCallback([this, topic_id](const engine::ui::MouseEvent& event) {
+                    if (event.left_pressed) {
+                        audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClick);
+                        SelectTopic(topic_id);
+                        return true;
+                    }
+                    return false;
+                });
+
+                nav_buttons_.push_back(btn.get());
+                nav_container_->AddChild(std::move(btn));
+            }
+
+            // Spacer between categories
+            auto spacer = std::make_unique<Container>();
+            spacer->SetSize(button_width, 8);
+            nav_container_->AddChild(std::move(spacer));
+        }
+
+        nav_container_->InvalidateComponents();
+        nav_container_->UpdateComponentsRecursive();
+
+        if (auto* scroll = nav_container_->GetComponent<ScrollComponent>()) {
+            scroll->CalculateContentSizeFromChildren();
+        }
     }
 
     void HelpSystem::RebuildContent() {
@@ -145,94 +298,79 @@ namespace towerforge::ui {
 
         content_container_->ClearChildren();
 
-        const auto &topics = help_content_[current_context_];
-        constexpr float topic_width = OVERLAY_WIDTH - UITheme::PADDING_LARGE * 4;
+        const HelpTopic* topic = GetTopic(current_topic_id_);
+        if (!topic) return;
 
-        for (const auto &topic: topics) {
-            // Create container for each topic with proper spacing
-            auto topic_container = engine::ui::ContainerBuilder()
-                    .Size(topic_width, 200) // Give reasonable height for content
-                    .Layout<VerticalLayout>(8.0f, Alignment::Start)
-                    .Opacity(0)
-                    .Padding(UITheme::PADDING_SMALL)
-                    .Build();
+        constexpr float content_width = OVERLAY_WIDTH - NAV_WIDTH - PADDING * 3;
 
-            // Topic title
-            auto title = std::make_unique<Text>(
+        // Topic title
+        auto title = std::make_unique<Text>(
+            0, 0,
+            topic->title,
+            UITheme::FONT_SIZE_MEDIUM,
+            UITheme::ToEngineColor(UITheme::PRIMARY)
+        );
+        content_container_->AddChild(std::move(title));
+
+        // Divider
+        auto divider = std::make_unique<Divider>();
+        divider->SetColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        divider->SetSize(content_width - UITheme::PADDING_LARGE, 1);
+        content_container_->AddChild(std::move(divider));
+
+        // Topic content
+        auto content_text = std::make_unique<Text>(
+            0, 0,
+            topic->content,
+            UITheme::FONT_SIZE_SMALL,
+            UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+        );
+        content_container_->AddChild(std::move(content_text));
+
+        // Tips
+        if (!topic->tips.empty()) {
+            auto spacer = std::make_unique<Container>();
+            spacer->SetSize(content_width, 10);
+            content_container_->AddChild(std::move(spacer));
+
+            auto tips_header = std::make_unique<Text>(
                 0, 0,
-                topic.title,
-                UITheme::FONT_SIZE_MEDIUM,
-                UITheme::ToEngineColor(UITheme::PRIMARY)
-            );
-            topic_container->AddChild(std::move(title));
-
-            // Topic content
-            auto content_text = std::make_unique<Text>(
-                0, 0,
-                topic.content,
+                "Quick Tips:",
                 UITheme::FONT_SIZE_SMALL,
-                UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+                UITheme::ToEngineColor(UITheme::INFO)
             );
-            topic_container->AddChild(std::move(content_text));
+            content_container_->AddChild(std::move(tips_header));
 
-            // Tips
-            if (!topic.tips.empty()) {
-                // Add spacer before tips
-                auto spacer = std::make_unique<Container>();
-                spacer->SetSize(topic_width, 5);
-                topic_container->AddChild(std::move(spacer));
-
-                auto tips_header = std::make_unique<Text>(
+            for (const auto& tip : topic->tips) {
+                auto tip_text = std::make_unique<Text>(
                     0, 0,
-                    "Quick Tips:",
+                    "• " + tip,
                     UITheme::FONT_SIZE_SMALL,
-                    UITheme::ToEngineColor(UITheme::INFO)
+                    UITheme::ToEngineColor(UITheme::TEXT_PRIMARY)
                 );
-                topic_container->AddChild(std::move(tips_header));
-
-                for (const auto &tip: topic.tips) {
-                    auto tip_text = std::make_unique<Text>(
-                        0, 0,
-                        "• " + tip,
-                        UITheme::FONT_SIZE_SMALL,
-                        UITheme::ToEngineColor(UITheme::TEXT_PRIMARY)
-                    );
-                    topic_container->AddChild(std::move(tip_text));
-                }
+                content_container_->AddChild(std::move(tip_text));
             }
-
-            content_container_->AddChild(std::move(topic_container));
-
-            // Add divider between topics
-            auto topic_divider = std::make_unique<Divider>();
-            topic_divider->SetColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BORDER_SUBTLE, 0.5f)));
-            topic_divider->SetSize(topic_width - UITheme::PADDING_LARGE, 1);
-            content_container_->AddChild(std::move(topic_divider));
         }
 
         content_container_->InvalidateComponents();
         content_container_->UpdateComponentsRecursive();
 
-        // Update scroll component content size
-        if (auto *scroll = content_container_->GetComponent<ScrollComponent>()) {
+        if (auto* scroll = content_container_->GetComponent<ScrollComponent>()) {
             scroll->CalculateContentSizeFromChildren();
         }
     }
 
-    std::string HelpSystem::GetContextName(HelpContext context) const {
-        switch (context) {
-            case HelpContext::MainGame: return "Gameplay Help";
-            case HelpContext::BuildMenu: return "Building Help";
-            case HelpContext::ResearchTree: return "Research Tree Help";
-            case HelpContext::ModsMenu: return "Mods Help";
-            case HelpContext::StaffManagement: return "Staff Management Help";
-            case HelpContext::Settings: return "Settings Help";
-            case HelpContext::Tutorial: return "Tutorial Help";
-            case HelpContext::PauseMenu: return "Pause Menu Help";
-            case HelpContext::History: return "History Help";
-            case HelpContext::Notifications: return "Notifications Help";
-            default: return "Help";
+    void HelpSystem::SelectTopic(const std::string& topic_id) {
+        if (!HasTopic(topic_id)) return;
+        
+        current_topic_id_ = topic_id;
+        const auto* topic = GetTopic(topic_id);
+        if (topic) {
+            current_category_ = topic->category;
         }
+        
+        RebuildNavigation();
+        RebuildContent();
     }
 
     void HelpSystem::Update(const float delta_time) {
@@ -268,18 +406,42 @@ namespace towerforge::ui {
         );
     }
 
-    void HelpSystem::Show(const HelpContext context) {
-        current_context_ = context;
+    void HelpSystem::Show() {
         visible_ = true;
         animation_time_ = 0.0f;
 
-        // Update title
-        if (title_text_) {
-            title_text_->SetText(GetContextName(context));
+        // Select first topic if none selected
+        if (current_topic_id_.empty() && !topics_.empty()) {
+            // Get first topic from first category
+            if (!category_order_.empty()) {
+                auto topics_in_cat = GetTopicsInCategory(category_order_[0]);
+                if (!topics_in_cat.empty()) {
+                    SelectTopic(topics_in_cat[0]->id);
+                }
+            }
+        } else {
+            RebuildContent();
         }
 
-        // Rebuild content for new context
-        RebuildContent();
+        RebuildNavigation();
+        UpdateLayout();
+    }
+
+    void HelpSystem::ShowTopic(const std::string& topic_id) {
+        visible_ = true;
+        animation_time_ = 0.0f;
+        SelectTopic(topic_id);
+        RebuildNavigation();
+        UpdateLayout();
+    }
+
+    void HelpSystem::ShowCategory(const std::string& category) {
+        auto topics_in_cat = GetTopicsInCategory(category);
+        if (!topics_in_cat.empty()) {
+            ShowTopic(topics_in_cat[0]->id);
+        } else {
+            Show();
+        }
     }
 
     void HelpSystem::Hide() {
@@ -290,7 +452,7 @@ namespace towerforge::ui {
         if (visible_) {
             Hide();
         } else {
-            Show(current_context_);
+            Show();
         }
     }
 
@@ -322,252 +484,108 @@ namespace towerforge::ui {
 
     void HelpSystem::Shutdown() {
         title_text_ = nullptr;
+        nav_container_ = nullptr;
         content_container_ = nullptr;
+        nav_buttons_.clear();
         main_panel_.reset();
     }
 
-    void HelpSystem::InitializeMainGameHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "Welcome to TowerForge",
+    void HelpSystem::InitializeDefaultTopics() {
+        // Getting Started
+        RegisterTopic({
+            "welcome", "Getting Started", "Welcome to TowerForge",
             "Build and manage your own skyscraper! Place facilities, manage tenants, hire staff, and grow your tower to achieve a 5-star rating.",
-            std::vector<std::string>{
-                "Start by building a lobby on the ground floor",
-                "Add businesses and shops to generate income",
-                "Build residential condos to attract permanent tenants",
-                "Use elevators and stairs to transport people between floors"
-            }
-        );
+            {"Start by building a lobby on the ground floor", "Add businesses and shops to generate income", "Build residential condos to attract permanent tenants", "Use elevators and stairs to transport people between floors"},
+            true, 0
+        });
 
-        topics.emplace_back(
-            "Basic Controls",
+        RegisterTopic({
+            "controls", "Getting Started", "Basic Controls",
             "ESC - Pause menu | F1 - Toggle help | R - Research tree | N - Notifications | H - History panel | Mouse wheel - Zoom camera | Arrow keys - Pan camera",
-            std::vector<std::string>{
-                "Click on facilities or people to view detailed information",
-                "Left-click to select and place facilities from the build menu",
-                "Right-click to cancel placement mode"
-            }
-        );
+            {"Click on facilities or people to view detailed information", "Left-click to select and place facilities from the build menu", "Right-click to cancel placement mode"},
+            true, 1
+        });
 
-        topics.emplace_back(
-            "Managing Your Tower",
+        RegisterTopic({
+            "management", "Getting Started", "Managing Your Tower",
             "Monitor your funds, population, and tower rating. Keep tenants satisfied by providing services, maintaining cleanliness, and ensuring good elevator coverage. Hire staff to clean facilities and perform maintenance.",
-            std::vector<std::string>{
-                "Watch your funds - don't overspend on construction",
-                "Balance income from businesses with maintenance costs",
-                "Higher satisfaction leads to better ratings and more tenants"
-            }
-        );
+            {"Watch your funds - don't overspend on construction", "Balance income from businesses with maintenance costs", "Higher satisfaction leads to better ratings and more tenants"},
+            true, 2
+        });
 
-        help_content_[HelpContext::MainGame] = topics;
-    }
-
-    void HelpSystem::InitializeBuildMenuHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "Building Facilities",
+        // Building
+        RegisterTopic({
+            "facilities", "Building", "Building Facilities",
             "Select a facility from the build menu and click on the grid to place it. Each facility has a cost, size, and specific purpose. Make sure you have enough funds before building.",
-            std::vector<std::string>{
-                "Lobby - Required on ground floor, serves as entrance",
-                "Office - Generates income from business tenants",
-                "Retail Shop - Generates income and provides shopping for visitors",
-                "Condo - Houses permanent residents",
-                "Elevator - Transports people vertically (connects multiple floors)",
-                "Stairs - Basic vertical transport (cheaper than elevators)"
-            }
-        );
+            {"Lobby - Required on ground floor, serves as entrance", "Office - Generates income from business tenants", "Retail Shop - Generates income and provides shopping", "Condo - Houses permanent residents", "Elevator - Transports people vertically", "Stairs - Basic vertical transport (cheaper than elevators)"},
+            true, 0
+        });
 
-        topics.emplace_back(
-            "Floor Management",
+        RegisterTopic({
+            "floors", "Building", "Floor Management",
             "Use the Add Floor and Add Basement buttons to expand your tower vertically. Each new floor costs money based on the tower width. Build floors strategically to accommodate new facilities.",
-            std::vector<std::string>{
-                "Ground floor (Floor 0) is where you start",
-                "Basements go below ground (negative floor numbers)",
-                "Larger towers cost more per floor"
-            }
-        );
+            {"Ground floor (Floor 0) is where you start", "Basements go below ground (negative floor numbers)", "Larger towers cost more per floor"},
+            true, 1
+        });
 
-        topics.emplace_back(
-            "Undo and Redo",
+        RegisterTopic({
+            "undo-redo", "Building", "Undo and Redo",
             "Made a mistake? Use the Undo button to reverse your last placement. Redo allows you to reapply undone actions. Note: undoing returns a portion of the facility cost.",
-            std::vector<std::string>{
-                "Keyboard shortcuts: Ctrl+Z for undo, Ctrl+Y for redo",
-                "Undo history is preserved as long as you don't close the game",
-                "Some actions cannot be undone once time has passed"
-            }
-        );
+            {"Keyboard shortcuts: Ctrl+Z for undo, Ctrl+Y for redo", "Undo history is preserved as long as you don't close the game", "Some actions cannot be undone once time has passed"},
+            true, 2
+        });
 
-        help_content_[HelpContext::BuildMenu] = topics;
-    }
-
-    void HelpSystem::InitializeResearchTreeHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "Research System",
+        // Research
+        RegisterTopic({
+            "research-system", "Research", "Research System",
             "Unlock new facilities, upgrades, and bonuses by spending research points. Research points are earned by reaching milestones and progressing through the game. Each research node has prerequisites that must be unlocked first.",
-            std::vector<std::string>{
-                "Click on a node to see its details and unlock cost",
-                "Locked nodes show what you need to unlock them",
-                "Some research unlocks new facility types",
-                "Other research provides passive bonuses (e.g., reduced costs, higher satisfaction)"
-            }
-        );
+            {"Click on a node to see its details and unlock cost", "Locked nodes show what you need to unlock them", "Some research unlocks new facility types", "Other research provides passive bonuses"},
+            true, 0
+        });
 
-        topics.emplace_back(
-            "Earning Research Points",
+        RegisterTopic({
+            "earning-research", "Research", "Earning Research Points",
             "Research points are awarded when you achieve specific milestones: reaching new star ratings, hitting population targets, or completing special challenges. Plan your research path carefully!",
-            std::vector<std::string>{
-                "Early game: focus on unlocking essential facilities",
-                "Mid game: invest in economic bonuses to increase income",
-                "Late game: unlock prestige upgrades for maximum efficiency"
-            }
-        );
+            {"Early game: focus on unlocking essential facilities", "Mid game: invest in economic bonuses to increase income", "Late game: unlock prestige upgrades for maximum efficiency"},
+            true, 1
+        });
 
-        help_content_[HelpContext::ResearchTree] = topics;
-    }
+        // Staff
+        RegisterTopic({
+            "hiring-staff", "Staff", "Hiring Staff",
+            "Staff members perform essential maintenance tasks to keep your tower running smoothly. Janitors clean facilities, maintenance workers repair equipment, and security guards ensure safety.",
+            {"Janitor - Cleans facilities to maintain satisfaction", "Maintenance - Repairs equipment and prevents breakdowns", "Security - Reduces crime and improves tenant safety", "Concierge - Improves lobby service and first impressions"},
+            true, 0
+        });
 
-    void HelpSystem::InitializeModsMenuHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "Mod Support",
-            "TowerForge supports Lua-based mods that can add new facilities, modify game mechanics, or introduce custom content. Browse installed mods, enable or disable them, and view mod details.",
-            std::vector<std::string>{
-                "Place mod files in the 'mods' directory",
-                "Enable mods by clicking the checkbox next to each mod",
-                "Some mods may require a game restart to take effect",
-                "Check mod descriptions for compatibility information"
-            }
-        );
-
-        topics.emplace_back(
-            "Creating Mods",
-            "Create your own mods using Lua scripting. Mods can register new facility types, modify economic formulas, add custom events, and more. See the modding documentation for API details.",
-            std::vector<std::string>{
-                "Start with the example mods in the 'mods' folder",
-                "Use the mod manager to test your changes",
-                "Join the community to share your creations"
-            }
-        );
-
-        help_content_[HelpContext::ModsMenu] = topics;
-    }
-
-    void HelpSystem::InitializeStaffManagementHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "Hiring Staff",
-            "Staff members perform essential maintenance tasks to keep your tower running smoothly. Janitors clean facilities, maintenance workers repair equipment, and security guards ensure safety. Each staff member works specific shifts and has associated costs.",
-            std::vector<std::string>{
-                "Janitor - Cleans facilities to maintain satisfaction",
-                "Maintenance - Repairs equipment and prevents breakdowns",
-                "Security - Reduces crime and improves tenant safety",
-                "Concierge - Improves lobby service and first impressions"
-            }
-        );
-
-        topics.emplace_back(
-            "Staff Efficiency",
+        RegisterTopic({
+            "staff-efficiency", "Staff", "Staff Efficiency",
             "Staff members work during assigned shifts (e.g., 9 AM - 5 PM). They prioritize facilities based on need - for example, janitors clean dirtier facilities first. Hire enough staff to cover all floors and shifts.",
-            std::vector<std::string>{
-                "Watch for low cleanliness or maintenance warnings",
-                "Add staff if facilities are not being serviced in time",
-                "Balance staff costs with the benefits they provide"
-            }
-        );
+            {"Watch for low cleanliness or maintenance warnings", "Add staff if facilities are not being serviced in time", "Balance staff costs with the benefits they provide"},
+            true, 1
+        });
 
-        help_content_[HelpContext::StaffManagement] = topics;
-    }
+        // Mods
+        RegisterTopic({
+            "mod-support", "Mods", "Mod Support",
+            "TowerForge supports Lua-based mods that can add new facilities, modify game mechanics, or introduce custom content. Browse installed mods, enable or disable them, and view mod details.",
+            {"Place mod files in the 'mods' directory", "Enable mods by clicking the checkbox next to each mod", "Some mods may require a game restart to take effect", "Check mod descriptions for compatibility information"},
+            true, 0
+        });
 
-    void HelpSystem::InitializeSettingsHelp() {
-        std::vector<HelpTopic> topics;
+        RegisterTopic({
+            "creating-mods", "Mods", "Creating Mods",
+            "Create your own mods using Lua scripting. Mods can register new facility types, modify economic formulas, add custom events, and more. See the modding documentation for API details.",
+            {"Start with the example mods in the 'mods' folder", "Use the mod manager to test your changes", "Join the community to share your creations"},
+            true, 1
+        });
 
-        topics.emplace_back(
-            "Game Settings",
+        // Settings
+        RegisterTopic({
+            "game-settings", "Settings", "Game Settings",
             "Customize your gameplay experience through various settings. Adjust audio levels, change display options, configure controls, and enable accessibility features.",
-            std::vector<std::string>{
-                "Audio - Control master volume, music, and sound effects",
-                "Display - Adjust resolution, fullscreen mode, and graphics quality",
-                "Accessibility - Enable colorblind modes, text scaling, and UI simplification",
-                "Gameplay - Modify difficulty, autosave frequency, and simulation speed"
-            }
-        );
-
-        topics.emplace_back(
-            "Saving Settings",
-            "All settings changes are saved automatically. Your preferences persist across game sessions. You can reset to defaults at any time from the settings menu.",
-            std::vector<std::string>{}
-        );
-
-        help_content_[HelpContext::Settings] = topics;
-    }
-
-    void HelpSystem::InitializeTutorialHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "Tutorial Mode",
-            "The tutorial guides you through building your first tower. Follow the step-by-step instructions to learn the basics of facility placement, management, and progression.",
-            std::vector<std::string>{
-                "You can skip the tutorial at any time",
-                "Tutorial progress is tracked - you can resume later",
-                "Completing the tutorial unlocks a small bonus"
-            }
-        );
-
-        help_content_[HelpContext::Tutorial] = topics;
-    }
-
-    void HelpSystem::InitializePauseMenuHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "Pause Menu",
-            "Access game options, save/load your progress, view achievements, and return to the main menu. The game is paused while this menu is open.",
-            std::vector<std::string>{
-                "Save often to avoid losing progress",
-                "Use quick save (F5) to save without opening the menu",
-                "Settings changes take effect immediately"
-            }
-        );
-
-        help_content_[HelpContext::PauseMenu] = topics;
-    }
-
-    void HelpSystem::InitializeHistoryHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "History Panel",
-            "The history panel shows recent actions you've taken (facility placements, demolitions, etc.). Click on an entry to quickly undo or redo that action.",
-            std::vector<std::string>{
-                "Press H to toggle the history panel",
-                "Hover over entries to see action details",
-                "Click to undo/redo specific actions in bulk"
-            }
-        );
-
-        help_content_[HelpContext::History] = topics;
-    }
-
-    void HelpSystem::InitializeNotificationsHelp() {
-        std::vector<HelpTopic> topics;
-
-        topics.emplace_back(
-            "Notification Center",
-            "View important alerts, achievements, and game events. Notifications are categorized by priority and can be clicked for more details or to take action.",
-            std::vector<std::string>{
-                "Press N to toggle the notification center",
-                "Red notifications indicate critical issues (fires, low funds)",
-                "Green notifications indicate positive events (achievements, milestones)",
-                "Click on notifications to dismiss them or take action"
-            }
-        );
-
-        help_content_[HelpContext::Notifications] = topics;
+            {"Audio - Control master volume, music, and sound effects", "Display - Adjust resolution, fullscreen mode, and graphics quality", "Accessibility - Enable colorblind modes, text scaling, and UI simplification", "Gameplay - Modify difficulty, autosave frequency, and simulation speed"},
+            true, 0
+        });
     }
 }
