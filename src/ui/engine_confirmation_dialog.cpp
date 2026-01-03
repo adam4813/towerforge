@@ -1,7 +1,6 @@
 #include "ui/engine_confirmation_dialog.h"
 #include "ui/ui_theme.h"
 #include "audio/audio_manager.h"
-#include <raylib.h>
 
 import engine;
 
@@ -31,8 +30,10 @@ namespace towerforge::ui {
         using namespace engine::ui::components;
         using namespace engine::ui::elements;
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Calculate centered position
         const float panel_x = static_cast<float>((screen_width - DIALOG_WIDTH) / 2);

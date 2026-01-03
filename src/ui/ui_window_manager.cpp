@@ -1,35 +1,37 @@
 #include "ui/ui_window_manager.h"
 #include "ui/mouse_interface.h"
-#include <raylib.h>
+
+import engine;
 
 namespace towerforge::ui {
-
     UIWindowManager::UIWindowManager()
         : next_z_order_(0)
-        , is_info_window_(false)
-        , last_screen_width_(0)
-        , last_screen_height_(0) {
+          , is_info_window_(false)
+          , last_screen_width_(0)
+          , last_screen_height_(0) {
     }
 
     void UIWindowManager::Update(const float delta_time) {
-        const int current_width = GetScreenWidth();
-        const int current_height = GetScreenHeight();
-        
+        std::uint32_t current_width;
+        std::uint32_t current_height;
+
+        engine::rendering::GetRenderer().GetFramebufferSize(current_width, current_height);
+
         // Check if screen was resized
         if (current_width != last_screen_width_ || current_height != last_screen_height_) {
             last_screen_width_ = current_width;
             last_screen_height_ = current_height;
-            
+
             // Reposition info windows
             if (is_info_window_ && !windows_.empty()) {
-                for (const auto& window : windows_) {
+                for (const auto &window: windows_) {
                     CalculateInfoWindowPosition(window.get());
                 }
             }
         }
-        
+
         // Update all windows
-        for (const auto& window : windows_) {
+        for (const auto &window: windows_) {
             window->Update(delta_time);
         }
     }
@@ -57,9 +59,9 @@ namespace towerforge::ui {
     int UIWindowManager::AddInfoWindow(std::unique_ptr<UIWindow> window) {
         // Single-window modal system: close any existing windows first
         Clear();
-        
+
         is_info_window_ = true;
-        
+
         const int window_id = window->GetId();
 
         // Set close callback
@@ -81,23 +83,23 @@ namespace towerforge::ui {
 
     int UIWindowManager::AddAnalyticsWindow(std::unique_ptr<UIWindow> window) {
         const std::string title = window->GetTitle();
-        
+
         // Check if a window with this title already exists
-        for (const auto& existing : windows_) {
+        for (const auto &existing: windows_) {
             if (existing->GetTitle() == title) {
                 // Window already open, bring to front
                 BringToFront(existing->GetId());
                 return existing->GetId();
             }
         }
-        
+
         // No existing window, add as normal window
         return AddWindow(std::move(window));
     }
 
     void UIWindowManager::RemoveWindow(int window_id) {
         std::erase_if(windows_,
-                      [window_id](const std::unique_ptr<UIWindow>& window) {
+                      [window_id](const std::unique_ptr<UIWindow> &window) {
                           return window->GetId() == window_id;
                       });
 
@@ -113,20 +115,20 @@ namespace towerforge::ui {
 
     void UIWindowManager::Render() const {
         // Sort windows by z-order (lower values first)
-        std::vector<UIWindow*> sorted_windows;
+        std::vector<UIWindow *> sorted_windows;
         sorted_windows.reserve(windows_.size());
 
-        for (const auto& window : windows_) {
+        for (const auto &window: windows_) {
             sorted_windows.push_back(window.get());
         }
 
         std::sort(sorted_windows.begin(), sorted_windows.end(),
-                  [](const UIWindow* a, const UIWindow* b) {
+                  [](const UIWindow *a, const UIWindow *b) {
                       return a->GetZOrder() < b->GetZOrder();
                   });
 
         // Render windows in z-order
-        for (UIWindow* window : sorted_windows) {
+        for (UIWindow *window: sorted_windows) {
             window->Render();
         }
     }
@@ -134,22 +136,22 @@ namespace towerforge::ui {
     bool UIWindowManager::HandleClick(const int mouse_x, const int mouse_y) {
         // Create mouse event
         const MouseEvent event(static_cast<float>(mouse_x), static_cast<float>(mouse_y),
-                              false, false, true, false);
-        
+                               false, false, true, false);
+
         // Check windows in reverse z-order (top windows first)
-        std::vector<UIWindow*> sorted_windows;
+        std::vector<UIWindow *> sorted_windows;
         sorted_windows.reserve(windows_.size());
 
-        for (const auto& window : windows_) {
+        for (const auto &window: windows_) {
             sorted_windows.push_back(window.get());
         }
 
         std::ranges::sort(sorted_windows,
-                          [](const UIWindow* a, const UIWindow* b) {
+                          [](const UIWindow *a, const UIWindow *b) {
                               return a->GetZOrder() > b->GetZOrder();
                           });
 
-        for (UIWindow* window : sorted_windows) {
+        for (UIWindow *window: sorted_windows) {
             if (window->Contains(static_cast<float>(mouse_x), static_cast<float>(mouse_y))) {
                 // Process mouse event (handles close button + children)
                 if (window->ProcessMouseEvent(event)) {
@@ -166,8 +168,8 @@ namespace towerforge::ui {
         return false;
     }
 
-    UIWindow* UIWindowManager::GetWindow(const int window_id) const {
-        for (const auto& window : windows_) {
+    UIWindow *UIWindowManager::GetWindow(const int window_id) const {
+        for (const auto &window: windows_) {
             if (window->GetId() == window_id) {
                 return window.get();
             }
@@ -176,7 +178,7 @@ namespace towerforge::ui {
     }
 
     void UIWindowManager::BringToFront(const int window_id) {
-        UIWindow* target_window = GetWindow(window_id);
+        UIWindow *target_window = GetWindow(window_id);
         if (!target_window) return;
 
         // Set this window's z-order to be the highest
@@ -186,7 +188,7 @@ namespace towerforge::ui {
         UpdateZOrders();
     }
 
-    void UIWindowManager::CalculateWindowPosition(UIWindow* window) const {
+    void UIWindowManager::CalculateWindowPosition(UIWindow *window) const {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
 
@@ -197,10 +199,10 @@ namespace towerforge::ui {
         // If there are existing windows, cascade the new window
         if (!windows_.empty()) {
             // Find the topmost window
-            const UIWindow* top_window = nullptr;
+            const UIWindow *top_window = nullptr;
             int max_z = -1;
 
-            for (const auto& w : windows_) {
+            for (const auto &w: windows_) {
                 if (w->GetZOrder() > max_z) {
                     max_z = w->GetZOrder();
                     top_window = w.get();
@@ -226,13 +228,13 @@ namespace towerforge::ui {
         window->SetWindowPosition(static_cast<float>(default_x), static_cast<float>(default_y));
     }
 
-    void UIWindowManager::CalculateInfoWindowPosition(UIWindow* window) const {
+    void UIWindowManager::CalculateInfoWindowPosition(UIWindow *window) const {
         const int screen_width = GetScreenWidth();
         const int screen_height = GetScreenHeight();
 
         // Center horizontally
         const int x = (screen_width - static_cast<int>(window->GetAbsoluteBounds().width)) / 2;
-        
+
         // Position at bottom with margin for action bar
         const int y = screen_height - static_cast<int>(window->GetAbsoluteBounds().height) - BOTTOM_MARGIN;
 
@@ -241,15 +243,15 @@ namespace towerforge::ui {
 
     void UIWindowManager::UpdateZOrders() {
         // Compact z-orders to prevent overflow
-        std::vector<UIWindow*> sorted_windows;
+        std::vector<UIWindow *> sorted_windows;
         sorted_windows.reserve(windows_.size());
 
-        for (const auto& window : windows_) {
+        for (const auto &window: windows_) {
             sorted_windows.push_back(window.get());
         }
 
         std::ranges::sort(sorted_windows,
-                          [](const UIWindow* a, const UIWindow* b) {
+                          [](const UIWindow *a, const UIWindow *b) {
                               return a->GetZOrder() < b->GetZOrder();
                           });
 
@@ -259,5 +261,4 @@ namespace towerforge::ui {
 
         next_z_order_ = static_cast<int>(sorted_windows.size());
     }
-
 }

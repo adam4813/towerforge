@@ -1,9 +1,7 @@
 #include "core/scenes/achievements_scene.hpp"
 #include "core/game.h"
 #include "ui/achievements_menu.h"
-#include "ui/mouse_interface.h"
 #include "audio/audio_manager.h"
-#include <raylib.h>
 
 using namespace towerforge::ui;
 using namespace towerforge::audio;

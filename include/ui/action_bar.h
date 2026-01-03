@@ -1,6 +1,5 @@
 #pragma once
 
-#include <raylib.h>
 #include <vector>
 #include <string>
 #include <functional>
@@ -95,7 +94,10 @@ namespace towerforge::ui {
     public:
         // Calculate the total width needed for the action bar based on screen width
         static int CalculateBarWidth() {
-            const int screen_width = GetScreenWidth();
+            std::uint32_t screen_width;
+            std::uint32_t screen_height;
+            engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
             const int max_bar_width = static_cast<int>(screen_width * MAX_BAR_WIDTH_PERCENT);
 
             // Calculate button width that fits within max bar width
@@ -113,7 +115,9 @@ namespace towerforge::ui {
 
         // Calculate individual button width based on screen width
         static int CalculateButtonWidth() {
-            const int screen_width = GetScreenWidth();
+            std::uint32_t screen_width;
+            std::uint32_t screen_height;
+            engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
             const int max_bar_width = static_cast<int>(screen_width * MAX_BAR_WIDTH_PERCENT);
 
             constexpr int num_buttons = 6;

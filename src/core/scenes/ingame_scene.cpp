@@ -3,8 +3,6 @@
 #include <iostream>
 
 #include "core/game.h"
-#include <raylib.h>
-
 #include "ui/hud/hud.h"
 #include "ui/action_bar.h"
 #include "ui/notification_center.h"
@@ -170,8 +168,9 @@ namespace towerforge::core {
 
 		// Create and initialize the ECS world with screen-based grid dimensions
 		// Get current screen dimensions (800x600 by default from Initialize)
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 		ecs_world_ = std::make_unique<ECSWorld>(screen_width, screen_height, cell_width_, cell_height_);
 		ecs_world_->Initialize();
 
@@ -685,8 +684,10 @@ namespace towerforge::core {
 			camera_->Update(time_step_);
 
 			// Update camera screen size on window resize
-			const int screen_width = GetScreenWidth();
-			const int screen_height = GetScreenHeight();
+			std::uint32_t screen_width;
+			std::uint32_t screen_height;
+			engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
 			static int last_screen_width = screen_width;
 			static int last_screen_height = screen_height;
 			if (screen_width != last_screen_width || screen_height != last_screen_height) {
