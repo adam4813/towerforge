@@ -3,8 +3,7 @@
 #include <raylib.h>
 
 namespace towerforge::core {
-
-    CreditsScene::CreditsScene(Game* game)
+    CreditsScene::CreditsScene(Game *game)
         : GameScene(game) {
     }
 
@@ -17,7 +16,6 @@ namespace towerforge::core {
     }
 
     void CreditsScene::Update(const float delta_time) {
-        HandleInput();
     }
 
     void CreditsScene::Render() {
@@ -52,10 +50,9 @@ namespace towerforge::core {
                  y, 16, GRAY);
     }
 
-    void CreditsScene::HandleInput() {
+    void CreditsScene::HandleMouseEvent(const engine::ui::MouseEvent &event) {
         if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
             game_->SetGameState(GameState::TitleScreen);
         }
     }
-
 }

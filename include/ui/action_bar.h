@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mouse_interface.h"
+#include <raylib.h>
 #include <vector>
 #include <string>
 #include <functional>

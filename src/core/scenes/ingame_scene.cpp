@@ -939,19 +939,6 @@ namespace towerforge::core {
 	}
 
 	void InGameScene::HandleMouseEvent(const engine::ui::MouseEvent &event) {
-		// Update tooltips for mouse position (even when paused, for UI tooltips)
-		const int mouse_x = GetMouseX();
-		const int mouse_y = GetMouseY();
-
-		const MouseEvent mouse_event{
-			event.x,
-			event.y,
-			event.left_down,
-			event.right_down,
-			event.left_pressed,
-			event.right_pressed,
-		};
-
 		// Handle help system mouse input first (if visible)
 		if (help_system_) {
 			// Handle F1 key to toggle help system
@@ -977,7 +964,14 @@ namespace towerforge::core {
 				if (IsKeyPressed(KEY_ESCAPE)) {
 					help_system_->Hide();
 				} else {
-					help_system_->ProcessMouseEvent(mouse_event);
+					help_system_->ProcessMouseEvent({
+						event.x,
+						event.y,
+						event.left_down,
+						event.right_down,
+						event.left_pressed,
+						event.right_pressed,
+					});
 				}
 				return;
 			}
@@ -1041,15 +1035,15 @@ namespace towerforge::core {
 		}
 
 		// Update HUD tooltips
-		hud_->UpdateTooltips(mouse_x, mouse_y);
+		hud_->UpdateTooltips(event.x, event.y);
 
 		// Update build menu tooltips
-		build_menu_->UpdateTooltips(mouse_x, mouse_y, game_state_.funds);
+		build_menu_->UpdateTooltips(event.x, event.y, game_state_.funds);
 
 		// Update tooltips for placement system (if not paused and not in research menu)
 		if (research_menu_ && !research_menu_->IsVisible()) {
 			float world_x, world_y;
-			camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+			camera_->ScreenToWorld(event.x, event.y, world_x, world_y);
 			placement_system_->UpdateTooltips(static_cast<int>(world_x), static_cast<int>(world_y),
 			                                  grid_offset_x_, grid_offset_y_,
 			                                  cell_width_, cell_height_, game_state_.funds);
@@ -1080,8 +1074,8 @@ namespace towerforge::core {
 
 		// Check history panel first (if visible)
 		if (history_panel_ && history_panel_->IsVisible() &&
-		    history_panel_->IsMouseOver(mouse_x, mouse_y)) {
-			if (const int steps = history_panel_->HandleClick(mouse_x, mouse_y); steps > 0) {
+		    history_panel_->IsMouseOver(event.x, event.y)) {
+			if (const int steps = history_panel_->HandleClick(event.x, event.y); steps > 0) {
 				// Undo 'steps' times
 				int success_count = 0;
 				for (int i = 0; i < steps; i++) {
@@ -1114,9 +1108,9 @@ namespace towerforge::core {
 		}
 
 		float world_x, world_y;
-		camera_->ScreenToWorld(mouse_x, mouse_y, world_x, world_y);
+		camera_->ScreenToWorld(event.x, event.y, world_x, world_y);
 
-		if (mouse_event.left_pressed && placement_system_) {
+		if (event.left_pressed && placement_system_) {
 			const int cost_change = placement_system_->HandleClick(static_cast<int>(world_x),
 			                                                       static_cast<int>(world_y),
 			                                                       grid_offset_x_, grid_offset_y_, cell_width_,

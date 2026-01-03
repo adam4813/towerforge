@@ -32,7 +32,6 @@ namespace towerforge::core {
 
     void TitleScene::Update(const float delta_time) {
         main_menu_.Update(delta_time);
-        HandleInput();
     }
 
     void TitleScene::Render() {
@@ -41,17 +40,8 @@ namespace towerforge::core {
         engine::ui::BatchRenderer::EndFrame();
     }
 
-    void TitleScene::HandleInput() {
+    void TitleScene::HandleMouseEvent(const engine::ui::MouseEvent &event) {
         main_menu_.HandleKeyboard();
-
-        const MouseEvent mouse_event(
-            static_cast<float>(GetMouseX()),
-            static_cast<float>(GetMouseY()),
-            IsMouseButtonDown(MOUSE_LEFT_BUTTON),
-            IsMouseButtonDown(MOUSE_RIGHT_BUTTON),
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON),
-            IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)
-        );
-        main_menu_.ProcessMouseEvent(mouse_event);
+        main_menu_.ProcessMouseEvent(event);
     }
 }

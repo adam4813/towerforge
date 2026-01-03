@@ -12,9 +12,6 @@ namespace towerforge::core {
 }
 
 namespace towerforge::ui {
-    // Forward declarations
-    struct MouseEvent;
-
     /**
      * @brief Main menu class for the title screen
      * 
@@ -51,7 +48,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if event was consumed
          */
-        bool ProcessMouseEvent(const MouseEvent &event) const;
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
         /**
          * @brief Handle keyboard input for menu navigation

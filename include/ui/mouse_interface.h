@@ -1,27 +1,25 @@
 #pragma once
 
-#include <raylib.h>
-
 namespace towerforge::ui {
-
     /**
      * @brief Mouse event data structure
      * 
      * Contains information about a mouse event (position, button state, etc.)
      */
     struct MouseEvent {
-        float x;           // Mouse X position in screen coordinates
-        float y;           // Mouse Y position in screen coordinates
-        bool left_down;    // Left mouse button is down
-        bool right_down;   // Right mouse button is down
+        float x; // Mouse X position in screen coordinates
+        float y; // Mouse Y position in screen coordinates
+        bool left_down; // Left mouse button is down
+        bool right_down; // Right mouse button is down
         bool left_pressed; // Left mouse button was just pressed this frame
-        bool right_pressed;// Right mouse button was just pressed this frame
-        
+        bool right_pressed; // Right mouse button was just pressed this frame
+
         MouseEvent(const float x = 0.0f, const float y = 0.0f,
                    const bool left_down = false, const bool right_down = false,
                    const bool left_pressed = false, const bool right_pressed = false)
             : x(x), y(y), left_down(left_down), right_down(right_down),
-              left_pressed(left_pressed), right_pressed(right_pressed) {}
+              left_pressed(left_pressed), right_pressed(right_pressed) {
+        }
     };
 
     /**
@@ -44,7 +42,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if the event was consumed (stops propagation to siblings), false otherwise
          */
-        virtual bool OnHover(const MouseEvent& event) { return false; }
+        virtual bool OnHover(const MouseEvent &event) { return false; }
 
         /**
          * @brief Handle mouse click event
@@ -55,7 +53,7 @@ namespace towerforge::ui {
          * @param event Mouse event data
          * @return true if the event was consumed (stops propagation to siblings), false otherwise
          */
-        virtual bool OnClick(const MouseEvent& event) { return false; }
+        virtual bool OnClick(const MouseEvent &event) { return false; }
 
         /**
          * @brief Check if the element contains a point
@@ -76,7 +74,6 @@ namespace towerforge::ui {
         virtual bool IsHovered() const { return is_hovered_; }
 
     protected:
-        bool is_hovered_ = false;  // Tracks current hover state
+        bool is_hovered_ = false; // Tracks current hover state
     };
-
 }
