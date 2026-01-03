@@ -155,6 +155,7 @@ namespace towerforge::ui {
 		 * @brief Callback type for action bar actions
 		 */
 		using ActionBarCallback = std::function<void(int action)>;
+		using DemolishFacilityCallback = std::function<void(FacilityInfo info)>;
 
 		HUD();
 
@@ -179,7 +180,8 @@ namespace towerforge::ui {
 		/**
 	 * @brief Show facility info window (creates or updates)
 	 */
-		void ShowFacilityInfo(const FacilityInfo &info) const;
+		void ShowFacilityInfo(const FacilityInfo &info,
+		                      const DemolishFacilityCallback &demolish_facility_callback) const;
 
 		/**
 	 * @brief Show person info window (creates or updates)

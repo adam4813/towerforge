@@ -167,9 +167,13 @@ namespace towerforge::ui {
         game_state_ = state;
     }
 
-    void HUD::ShowFacilityInfo(const FacilityInfo &info) const {
+    void HUD::ShowFacilityInfo(const FacilityInfo &info,
+                               const DemolishFacilityCallback &demolish_facility_callback) const {
         // Create a new facility window
         auto window = std::make_unique<FacilityWindow>(info);
+        window->SetDemolishFacilityCallback([demolish_facility_callback, fi = info] {
+            demolish_facility_callback(fi);
+        });
 
         // Position at bottom center
         const int screen_width = GetScreenWidth();

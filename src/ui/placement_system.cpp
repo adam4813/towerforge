@@ -7,10 +7,7 @@
 #include "ui/tooltip.h"
 
 namespace towerforge::ui {
-
-    PlacementSystem::PlacementSystem(towerforge::core::TowerGrid& grid,
-                                     towerforge::core::FacilityManager& facility_mgr,
-                                     BuildMenu& build_menu)
+    PlacementSystem::PlacementSystem(core::TowerGrid &grid, core::FacilityManager &facility_mgr, BuildMenu &build_menu)
         : grid_(grid)
           , facility_mgr_(facility_mgr)
           , build_menu_(build_menu)
@@ -19,21 +16,21 @@ namespace towerforge::ui {
           , hover_floor_(-1)
           , hover_column_(-1)
           , hover_valid_(false)
-          , command_history_(50)  // Max 50 actions in history
+          , command_history_(50) // Max 50 actions in history
           , tooltip_manager_(nullptr)
           , pending_demolish_floor_(-1)
           , pending_demolish_column_(-1)
           , pending_demolish_funds_(0.0f)
           , pending_funds_change_(0) {
-        
         // Create demolish confirmation dialog
-        demolish_confirmation_ = std::make_unique<ConfirmationDialog>(
+        demolish_confirmation_ = std::make_unique<EngineConfirmationDialog>(
             "Confirm Demolish",
             "Are you sure you want to demolish this facility? You will receive 50% of the original cost as a refund.",
             "Demolish",
             "Cancel"
         );
-        
+        demolish_confirmation_->Initialize();
+
         // Set up the confirmation callback to actually perform demolish
         demolish_confirmation_->SetConfirmCallback([this]() {
             if (pending_demolish_floor_ >= 0 && pending_demolish_column_ >= 0) {
@@ -62,14 +59,15 @@ namespace towerforge::ui {
                 ++it;
             }
         }
-        
+
         // Update confirmation dialog
         if (demolish_confirmation_) {
             demolish_confirmation_->Update(delta_time);
         }
     }
 
-    void PlacementSystem::Render(const int grid_offset_x, const int grid_offset_y, const int cell_width, const int cell_height) {
+    void PlacementSystem::Render(const int grid_offset_x, const int grid_offset_y, const int cell_width,
+                                 const int cell_height) {
         // Get mouse position and convert to world coordinates if camera is set
         int mouse_x = GetMouseX();
         int mouse_y = GetMouseY();
@@ -94,8 +92,8 @@ namespace towerforge::ui {
             } else {
                 const int selected = build_menu_.GetSelectedFacility();
                 if (selected >= 0) {
-                    const auto& types = build_menu_.GetFacilityTypes();
-                    const auto& facility_type = types[selected];
+                    const auto &types = build_menu_.GetFacilityTypes();
+                    const auto &facility_type = types[selected];
 
                     // Check if placement is valid (will be checked with funds in HandleClick)
                     hover_valid_ = grid_.IsSpaceAvailable(floor, column, facility_type.width);
@@ -139,8 +137,8 @@ namespace towerforge::ui {
                     }
                 }
             } else if (selected >= 0) {
-                const auto& types = build_menu_.GetFacilityTypes();
-                const auto& facility_type = types[selected];
+                const auto &types = build_menu_.GetFacilityTypes();
+                const auto &facility_type = types[selected];
 
                 // Draw ghost preview
                 const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
@@ -167,7 +165,7 @@ namespace towerforge::ui {
 
         // Render construction progress
         const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
-        for (const auto& construction : constructions_in_progress_) {
+        for (const auto &construction: constructions_in_progress_) {
             const int x = grid_offset_x + construction.column * cell_width;
             const int y = ground_floor_screen_y - (construction.floor * cell_height);
 
@@ -189,7 +187,14 @@ namespace towerforge::ui {
             DrawText(TextFormat("Building... %d%%", static_cast<int>(construction.GetProgress() * 100)),
                      x + 5, y + 5, 10, WHITE);
         }
-        
+
+        // Render confirmation dialog if visible
+        if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
+            demolish_confirmation_->Render();
+        }
+    }
+
+    void PlacementSystem::Render() const {
         // Render confirmation dialog if visible
         if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
             demolish_confirmation_->Render();
@@ -212,14 +217,14 @@ namespace towerforge::ui {
                 pending_demolish_floor_ = floor;
                 pending_demolish_column_ = column;
                 pending_demolish_funds_ = current_funds;
-                
+
                 // Get facility info for dialog message
                 const int facility_id = grid_.GetFacilityAt(floor, column);
                 const auto facility_type = facility_mgr_.GetFacilityType(facility_id);
-                const std::string facility_name = towerforge::core::FacilityManager::GetTypeName(facility_type);
-                
+                const std::string facility_name = core::FacilityManager::GetTypeName(facility_type);
+
                 demolish_confirmation_->Show();
-                
+
                 return 0; // Don't apply funds change yet, wait for confirmation
             }
         } else {
@@ -232,19 +237,34 @@ namespace towerforge::ui {
 
         return 0;
     }
-    
-    bool PlacementSystem::ProcessMouseEvent(const MouseEvent& event) const {
+
+    bool PlacementSystem::ProcessMouseEvent(const MouseEvent &event) const {
         // If confirmation dialog is visible, route events to it first
         if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
-            return demolish_confirmation_->ProcessMouseEvent(event);
+            const engine::ui::MouseEvent engine_event{
+                event.x,
+                event.y,
+                event.left_down,
+                event.right_down,
+                event.left_pressed,
+                event.right_pressed,
+            };
+            return demolish_confirmation_->ProcessMouseEvent(engine_event);
         }
         return false;
     }
-    
+
     int PlacementSystem::GetPendingFundsChange() {
         const int change = pending_funds_change_;
-        pending_funds_change_ = 0;  // Reset after reading
+        pending_funds_change_ = 0; // Reset after reading
         return change;
+    }
+
+    void PlacementSystem::ShowDemolishConfirmation(const int clicked_floor, const int clicked_column, const int cost) {
+        demolish_confirmation_->Show();
+        pending_demolish_floor_ = clicked_floor;
+        pending_demolish_column_ = clicked_column;
+        pending_demolish_funds_ = static_cast<float>(cost);
     }
 
     bool PlacementSystem::HandleKeyboard() {
@@ -282,29 +302,23 @@ namespace towerforge::ui {
             }
         }
 
-        // D for demolish
-        if (IsKeyPressed(KEY_D)) {
-            demolish_mode_ = !demolish_mode_;
-            build_menu_.ClearSelection();
-            return true;
-        }
-
         // Ctrl+Z for undo
         if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Z)) {
             // Note: funds adjustment handled by the game logic
-            return true;  // Signal that undo was requested
+            return true; // Signal that undo was requested
         }
 
         // Ctrl+Y for redo
         if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Y)) {
             // Note: funds adjustment handled by the game logic
-            return true;  // Signal that redo was requested
+            return true; // Signal that redo was requested
         }
 
         return false;
     }
 
-    void PlacementSystem::UpdateTooltips(const int mouse_x, const int mouse_y, const int grid_offset_x, const int grid_offset_y,
+    void PlacementSystem::UpdateTooltips(const int mouse_x, const int mouse_y, const int grid_offset_x,
+                                         const int grid_offset_y,
                                          const int cell_width, const int cell_height, const float current_funds) const {
         if (!tooltip_manager_) {
             return;
@@ -326,7 +340,7 @@ namespace towerforge::ui {
                 // Check if there's a facility to demolish
                 if (const auto facility_id = grid_.GetFacilityAt(grid_y, grid_x); facility_id >= 0) {
                     const auto buildingType = facility_mgr_.GetFacilityType(facility_id);
-                    const auto name = towerforge::core::FacilityManager::GetTypeName(buildingType);
+                    const auto name = core::FacilityManager::GetTypeName(buildingType);
                     tooltip_text << "Demolish " << name << "\n";
                 } else {
                     tooltip_text << "No facility to demolish";
@@ -334,7 +348,7 @@ namespace towerforge::ui {
             } else {
                 if (const int selected = build_menu_.GetSelectedFacility();
                     selected >= 0 && selected < static_cast<int>(build_menu_.GetFacilityTypes().size())) {
-                    const auto& facility = build_menu_.GetFacilityTypes()[selected];
+                    const auto &facility = build_menu_.GetFacilityTypes()[selected];
 
                     tooltip_text << "Place " << facility.name << "\n";
                     tooltip_text << "Cost: $" << facility.cost << "\n";
@@ -373,11 +387,11 @@ namespace towerforge::ui {
         tooltip_manager_->HideTooltip();
     }
 
-    bool PlacementSystem::Undo(float& funds) {
+    bool PlacementSystem::Undo(float &funds) {
         return command_history_.Undo(funds);
     }
 
-    bool PlacementSystem::Redo(float& funds) {
+    bool PlacementSystem::Redo(float &funds) {
         return command_history_.Redo(funds);
     }
 
@@ -392,11 +406,11 @@ namespace towerforge::ui {
     bool PlacementSystem::MouseToGrid(const int mouse_x, const int mouse_y,
                                       const int grid_offset_x, const int grid_offset_y,
                                       const int cell_width, const int cell_height,
-                                      int& out_floor, int& out_column) const {
+                                      int &out_floor, int &out_column) const {
         // Convert mouse position to grid coordinates with inverted Y axis
         // Ground floor (0) is at center, floors build upward (decreasing Y)
         const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
-        
+
         const int rel_x = mouse_x - grid_offset_x;
         const int rel_y = mouse_y - ground_floor_screen_y;
 
@@ -434,13 +448,13 @@ namespace towerforge::ui {
         return true;
     }
 
-    bool PlacementSystem::PlaceFacility(int floor, int column, const int facility_type_index, float& funds) {
-        const auto& types = build_menu_.GetFacilityTypes();
+    bool PlacementSystem::PlaceFacility(int floor, int column, const int facility_type_index, float &funds) {
+        const auto &types = build_menu_.GetFacilityTypes();
         if (facility_type_index < 0 || facility_type_index >= static_cast<int>(types.size())) {
             return false;
         }
 
-        const auto& facility_type = types[facility_type_index];
+        const auto &facility_type = types[facility_type_index];
 
         // Calculate total cost including floor building
         const int floor_build_cost = facility_mgr_.CalculateFloorBuildCost(floor, column, facility_type.width);
@@ -464,7 +478,7 @@ namespace towerforge::ui {
         const auto bc_type = GetFacilityType(facility_type_index);
 
         // Create command
-        auto command = std::make_unique<towerforge::core::PlaceFacilityCommand>(
+        auto command = std::make_unique<core::PlaceFacilityCommand>(
             facility_mgr_, grid_, bc_type, floor, column, facility_type.width, total_cost
         );
 
@@ -475,9 +489,9 @@ namespace towerforge::ui {
 
         // Add to construction queue
         // Get the entity ID from the last undo entry
-        const auto& undo_stack = command_history_.GetUndoStack();
+        const auto &undo_stack = command_history_.GetUndoStack();
         if (!undo_stack.empty()) {
-            const auto* place_cmd = dynamic_cast<towerforge::core::PlaceFacilityCommand*>(
+            const auto *place_cmd = dynamic_cast<core::PlaceFacilityCommand *>(
                 undo_stack.back().command.get()
             );
             if (place_cmd) {
@@ -491,13 +505,13 @@ namespace towerforge::ui {
         return true;
     }
 
-    bool PlacementSystem::DemolishFacility(const int floor, const int column, float& funds) {
+    bool PlacementSystem::DemolishFacility(const int floor, const int column, float &funds) {
         if (!grid_.IsOccupied(floor, column)) {
             return false;
         }
 
         // Create demolish command
-        auto command = std::make_unique<towerforge::core::DemolishFacilityCommand>(
+        auto command = std::make_unique<core::DemolishFacilityCommand>(
             facility_mgr_, grid_, floor, column, RECOVERY_PERCENTAGE
         );
 
@@ -509,7 +523,9 @@ namespace towerforge::ui {
         // Build times in seconds (real-time)
         // Lobby: 10s, Office: 15s, Restaurant: 20s, Shop: 15s, Hotel: 25s
         // Gym: 18s, Arcade: 16s, Theater: 22s, Conference: 20s, Flagship: 28s, Elevator: 12s
-        static constexpr float build_times[] = {10.0f, 15.0f, 20.0f, 15.0f, 25.0f, 18.0f, 16.0f, 22.0f, 20.0f, 28.0f, 12.0f};
+        static constexpr float build_times[] = {
+            10.0f, 15.0f, 20.0f, 15.0f, 25.0f, 18.0f, 16.0f, 22.0f, 20.0f, 28.0f, 12.0f
+        };
 
         if (facility_type_index >= 0 && facility_type_index < 11) {
             return build_times[facility_type_index];
@@ -518,7 +534,7 @@ namespace towerforge::ui {
         return 10.0f; // Default
     }
 
-    towerforge::core::BuildingComponent::Type PlacementSystem::GetFacilityType(const int facility_type_index) {
+    core::BuildingComponent::Type PlacementSystem::GetFacilityType(const int facility_type_index) {
         // Map build menu index to BuildingComponent::Type
         // Based on BuildMenu initialization order:
         // 0: Lobby, 1: Office, 2: Restaurant, 3: Shop (RetailShop), 4: Hotel,
@@ -526,19 +542,18 @@ namespace towerforge::ui {
         // 9: Flagship (FlagshipStore), 10: Elevator
 
         switch (facility_type_index) {
-            case 0: return towerforge::core::BuildingComponent::Type::Lobby;
-            case 1: return towerforge::core::BuildingComponent::Type::Office;
-            case 2: return towerforge::core::BuildingComponent::Type::Restaurant;
-            case 3: return towerforge::core::BuildingComponent::Type::RetailShop;
-            case 4: return towerforge::core::BuildingComponent::Type::Hotel;
-            case 5: return towerforge::core::BuildingComponent::Type::Gym;
-            case 6: return towerforge::core::BuildingComponent::Type::Arcade;
-            case 7: return towerforge::core::BuildingComponent::Type::Theater;
-            case 8: return towerforge::core::BuildingComponent::Type::ConferenceHall;
-            case 9: return towerforge::core::BuildingComponent::Type::FlagshipStore;
-            case 10: return towerforge::core::BuildingComponent::Type::Elevator;
-            default: return towerforge::core::BuildingComponent::Type::Office;
+            case 0: return core::BuildingComponent::Type::Lobby;
+            case 1: return core::BuildingComponent::Type::Office;
+            case 2: return core::BuildingComponent::Type::Restaurant;
+            case 3: return core::BuildingComponent::Type::RetailShop;
+            case 4: return core::BuildingComponent::Type::Hotel;
+            case 5: return core::BuildingComponent::Type::Gym;
+            case 6: return core::BuildingComponent::Type::Arcade;
+            case 7: return core::BuildingComponent::Type::Theater;
+            case 8: return core::BuildingComponent::Type::ConferenceHall;
+            case 9: return core::BuildingComponent::Type::FlagshipStore;
+            case 10: return core::BuildingComponent::Type::Elevator;
+            default: return core::BuildingComponent::Type::Office;
         }
     }
-
 }

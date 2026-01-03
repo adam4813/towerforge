@@ -858,6 +858,7 @@ namespace towerforge::core {
 		hud_->Render();
 		build_menu_->Render(placement_system_->CanUndo(), placement_system_->CanRedo(),
 		                    placement_system_->IsDemolishMode());
+		placement_system_->Render();
 
 		// Render history panel (if visible)
 		if (history_panel_ != nullptr) {
@@ -1394,7 +1395,19 @@ namespace towerforge::core {
 									}
 								}
 
-								hud_->ShowFacilityInfo(info);
+								auto types = build_menu_->GetFacilityTypes();
+								auto facility_type_it = std::ranges::find_if(types, [&](const FacilityType &ft) {
+									return ft.name == info.type;
+								});
+
+								auto cost = facility_type_it != types.end() ? facility_type_it->cost : 0;
+
+								hud_->ShowFacilityInfo(
+									info, [this, cost, clicked_floor, clicked_column](
+								[[maybe_unused]] FacilityInfo fi) {
+										placement_system_->ShowDemolishConfirmation(
+											clicked_floor, clicked_column, cost);
+									});
 							}
 						}
 					}

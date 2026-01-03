@@ -32,6 +32,7 @@ set(SOURCE_FILES
     src/ui/save_load_menu.cpp
     src/ui/research_tree_menu.cpp
     src/ui/research_details_panel.cpp
+    src/ui/engine_confirmation_dialog.cpp
     src/ui/achievements_menu.cpp
     src/ui/general_settings_menu.cpp
     src/ui/audio_settings_menu.cpp

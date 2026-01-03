@@ -187,6 +187,13 @@ namespace towerforge::ui {
         auto demolish = std::make_unique<engine::ui::elements::Button>(100, 25, "[Demolish]", LABEL_FONT_SIZE);
         demolish->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
         demolish->SetTextColor(UITheme::ToEngineColor(RED));
+        demolish->SetClickCallback([this](const engine::ui::MouseEvent &) {
+            if (demolish_facility_callback_) {
+                demolish_facility_callback_();
+                return true;
+            }
+            return false;
+        });
         demolish_button_ = demolish.get();
         button_row1->AddChild(std::move(demolish));
 

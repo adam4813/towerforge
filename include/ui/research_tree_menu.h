@@ -1,5 +1,6 @@
 #pragma once
 
+#include <raylib.h>
 #include <string>
 #include <vector>
 #include <memory>
@@ -7,6 +8,7 @@
 #include "ui/ui_element.h"
 #include "ui/tooltip.h"
 #include "ui/research_details_panel.h"
+#include "ui/engine_confirmation_dialog.h"
 
 import engine;
 
@@ -160,7 +162,7 @@ namespace towerforge::ui {
         std::unique_ptr<ResearchDetailsPanel> details_panel_;
 
         // Confirmation dialog for research unlocks
-        std::unique_ptr<ConfirmationDialog> unlock_confirmation_;
+        std::unique_ptr<EngineConfirmationDialog> unlock_confirmation_;
         std::string pending_unlock_node_id_;
         core::ResearchTree *pending_unlock_tree_;
 

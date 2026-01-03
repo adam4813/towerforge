@@ -21,12 +21,7 @@ namespace towerforge::ui {
           , tab_container_(nullptr)
           , close_button_(nullptr)
           , pending_unlock_tree_(nullptr) {
-        unlock_confirmation_ = std::make_unique<ConfirmationDialog>(
-            "Confirm Research Unlock",
-            "Are you sure you want to unlock this research node?",
-            "Unlock",
-            "Cancel"
-        );
+        // Dialog will be created on-demand when unlock is requested
     }
 
     ResearchTreeMenu::~ResearchTreeMenu() = default;
@@ -199,7 +194,7 @@ namespace towerforge::ui {
         using namespace engine::ui::elements;
 
         const float width = static_cast<float>(content_width);
-        const float height = static_cast<float>(MENU_HEIGHT - HEADER_HEIGHT - TAB_HEIGHT - CLOSE_BUTTON_SIZE - 30);
+        constexpr float height = static_cast<float>(MENU_HEIGHT - HEADER_HEIGHT - TAB_HEIGHT - CLOSE_BUTTON_SIZE - 30);
 
         auto content = engine::ui::ContainerBuilder()
                 .Size(width, height)
@@ -295,12 +290,14 @@ namespace towerforge::ui {
 
             std::string message = "Unlock '" + found_node->name + "' for " +
                                   std::to_string(found_node->cost) + " tower points?";
-            unlock_confirmation_ = std::make_unique<ConfirmationDialog>(
+
+            unlock_confirmation_ = std::make_unique<EngineConfirmationDialog>(
                 "Confirm Research Unlock",
                 message,
                 "Unlock",
                 "Cancel"
             );
+            unlock_confirmation_->Initialize();
             unlock_confirmation_->SetConfirmCallback([this]() {
                 if (pending_unlock_tree_ && !pending_unlock_node_id_.empty()) {
                     if (const bool unlocked = pending_unlock_tree_->UnlockNode(pending_unlock_node_id_);
@@ -331,6 +328,7 @@ namespace towerforge::ui {
         tab_container_ = nullptr;
         close_button_ = nullptr;
         details_panel_.reset();
+        unlock_confirmation_.reset();
         main_panel_.reset();
     }
 
@@ -400,22 +398,24 @@ namespace towerforge::ui {
     bool ResearchTreeMenu::ProcessMouseEvent(const MouseEvent &event) const {
         if (!visible_) return false;
 
+        const float wheel = GetMouseWheelMove();
+        const engine::ui::MouseEvent engine_event{
+            event.x,
+            event.y,
+            event.left_down,
+            event.right_down,
+            event.left_pressed,
+            event.right_pressed,
+            wheel
+        };
+
         // If confirmation dialog is visible, route events to it first
         if (unlock_confirmation_ && unlock_confirmation_->IsVisible()) {
-            return unlock_confirmation_->ProcessMouseEvent(event);
+            return unlock_confirmation_->ProcessMouseEvent(engine_event);
         }
 
         if (main_panel_) {
-            const float wheel = GetMouseWheelMove();
-            return main_panel_->ProcessMouseEvent({
-                event.x,
-                event.y,
-                event.left_down,
-                event.right_down,
-                event.left_pressed,
-                event.right_pressed,
-                wheel
-            });
+            return main_panel_->ProcessMouseEvent(engine_event);
         }
 
         return false;
