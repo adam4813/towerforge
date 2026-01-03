@@ -1,207 +1,391 @@
 #include "ui/mods_menu.h"
-#include <raylib.h>
+#include "ui/ui_theme.h"
+#include "audio/audio_manager.h"
 #include <algorithm>
+#include <sstream>
 
 import engine;
 
 namespace towerforge::ui {
     ModsMenu::ModsMenu()
-        : visible_(false), mod_manager_(nullptr), selected_mod_index_(-1), scroll_offset_(0.0f) {
+        : visible_(false)
+          , mod_manager_(nullptr)
+          , selected_mod_index_(-1)
+          , last_screen_width_(0)
+          , last_screen_height_(0)
+          , last_mods_count_(0)
+          , mods_list_container_(nullptr) {
     }
 
     ModsMenu::~ModsMenu() = default;
 
-    void ModsMenu::SetModManager(towerforge::core::LuaModManager *mod_manager) {
+    void ModsMenu::SetModManager(core::LuaModManager *mod_manager) {
         mod_manager_ = mod_manager;
     }
 
     void ModsMenu::Show() {
         visible_ = true;
         selected_mod_index_ = -1;
-        scroll_offset_ = 0.0f;
+        RebuildModsList();
     }
 
     void ModsMenu::Hide() {
         visible_ = false;
     }
 
-    void ModsMenu::Render() {
-        if (!visible_ || !mod_manager_) {
-            return;
-        }
+    void ModsMenu::Initialize() {
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
 
         std::uint32_t screen_width;
         std::uint32_t screen_height;
         engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
-        // Semi-transparent overlay
-        DrawRectangle(0, 0, screen_width, screen_height, Color{0, 0, 0, 180});
+        // Create main panel with vertical layout
+        const int panel_x = (screen_width - MENU_WIDTH) / 2;
+        const int panel_y = (screen_height - MENU_HEIGHT) / 2;
 
-        // Menu dimensions
-        const int menu_width = std::min(800, static_cast<int>(screen_width) - 100);
-        const int menu_height = std::min(600, static_cast<int>(screen_height) - 100);
-        const int menu_x = (screen_width - menu_width) / 2;
-        const int menu_y = (screen_height - menu_height) / 2;
+        main_panel_ = std::make_unique<Panel>();
+        main_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+        main_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(MENU_HEIGHT));
+        main_panel_->SetBackgroundColor(UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f)));
+        main_panel_->SetBorderColor(UITheme::ToEngineColor(UITheme::BORDER_ACCENT));
+        main_panel_->SetPadding(static_cast<float>(UITheme::PADDING_LARGE));
+        main_panel_->AddComponent<LayoutComponent>(
+            std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center)
+        );
 
-        // Menu background
-        DrawRectangle(menu_x, menu_y, menu_width, menu_height, Color{40, 40, 50, 255});
-        DrawRectangleLines(menu_x, menu_y, menu_width, menu_height, Color{100, 100, 120, 255});
+        // Add title
+        auto title = std::make_unique<Text>(
+            0, 0,
+            "Mods Manager",
+            UITheme::FONT_SIZE_TITLE,
+            UITheme::ToEngineColor(UITheme::PRIMARY)
+        );
+        main_panel_->AddChild(std::move(title));
 
-        // Title
-        const auto title = "Mods Manager";
-        constexpr int title_size = 28;
-        const int title_width = MeasureText(title, title_size);
-        DrawText(title, menu_x + (menu_width - title_width) / 2, menu_y + 20, title_size, GOLD);
+        // Add divider
+        auto divider = std::make_unique<Divider>();
+        divider->SetColor(UITheme::ToEngineColor(UITheme::PRIMARY));
+        divider->SetSize(MENU_WIDTH - UITheme::PADDING_LARGE * 2, 2);
+        main_panel_->AddChild(std::move(divider));
 
-        // Instructions
-        const auto instructions = "Press ESC to close";
-        constexpr int inst_size = 14;
-        DrawText(instructions, menu_x + 20, menu_y + menu_height - 30, inst_size, LIGHTGRAY);
+        // Add instructions text
+        auto instructions = std::make_unique<Text>(
+            0, 0,
+            "Click mods to toggle | ESC to close",
+            UITheme::FONT_SIZE_SMALL,
+            UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+        );
+        main_panel_->AddChild(std::move(instructions));
 
-        // Get mods list
+        // Create scrollable container for mods list
+        constexpr float list_width = MENU_WIDTH - UITheme::PADDING_LARGE * 2;
+        constexpr float list_height = MENU_HEIGHT - HEADER_HEIGHT - 100;
+
+        auto list_container = engine::ui::ContainerBuilder()
+                .Size(list_width, list_height)
+                .Layout<VerticalLayout>(MOD_ITEM_SPACING, Alignment::Center)
+                .Scrollable(ScrollDirection::Vertical)
+                .Padding(UITheme::PADDING_LARGE)
+                .ClipChildren()
+                .Build();
+
+        mods_list_container_ = list_container.get();
+        main_panel_->AddChild(std::move(list_container));
+
+        // Add back button
+        auto back_button = std::make_unique<Button>(
+            UITheme::BUTTON_WIDTH_MEDIUM,
+            UITheme::BUTTON_HEIGHT_MEDIUM,
+            "Back",
+            UITheme::FONT_SIZE_NORMAL
+        );
+        back_button->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
+        back_button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
+        back_button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+        back_button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
+        back_button->SetClickCallback([this](const engine::ui::MouseEvent &event) {
+            if (event.left_pressed) {
+                audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuClose);
+                Hide();
+                return true;
+            }
+            return false;
+        });
+        main_panel_->AddChild(std::move(back_button));
+
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+
+        UpdateLayout();
+    }
+
+    void ModsMenu::UpdateLayout() {
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        if (main_panel_) {
+            const int panel_x = (screen_width - MENU_WIDTH) / 2;
+            const int panel_y = (screen_height - MENU_HEIGHT) / 2;
+            main_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
+            main_panel_->InvalidateComponents();
+            main_panel_->UpdateComponentsRecursive();
+        }
+
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
+    }
+
+    void ModsMenu::RebuildModsList() {
+        if (!mods_list_container_ || !mod_manager_) {
+            return;
+        }
+
+        using namespace engine::ui::components;
+        using namespace engine::ui::elements;
+
+        // Clear existing mod buttons
+        mod_buttons_.clear();
+        mods_list_container_->ClearChildren();
+
         const auto &mods = mod_manager_->GetLoadedMods();
+        last_mods_count_ = mods.size();
 
         if (mods.empty()) {
-            // No mods loaded
-            const auto no_mods_msg = "No mods found in the mods/ directory";
-            const int msg_width = MeasureText(no_mods_msg, 18);
-            DrawText(no_mods_msg, menu_x + (menu_width - msg_width) / 2,
-                     menu_y + menu_height / 2, 18, GRAY);
+            // Show "no mods" message
+            auto no_mods_text = std::make_unique<Text>(
+                0, 0,
+                "No mods found in the mods/ directory",
+                UITheme::FONT_SIZE_MEDIUM,
+                UITheme::ToEngineColor(UITheme::TEXT_SECONDARY)
+            );
+            mods_list_container_->AddChild(std::move(no_mods_text));
 
-            const auto help_msg = "Place .lua mod files in the mods/ folder";
-            const int help_width = MeasureText(help_msg, 14);
-            DrawText(help_msg, menu_x + (menu_width - help_width) / 2,
-                     menu_y + menu_height / 2 + 30, 14, DARKGRAY);
+            auto help_text = std::make_unique<Text>(
+                0, 0,
+                "Place .lua mod files in the mods/ folder",
+                UITheme::FONT_SIZE_SMALL,
+                UITheme::ToEngineColor(UITheme::TEXT_DISABLED)
+            );
+            mods_list_container_->AddChild(std::move(help_text));
         } else {
-            // Display mods list
-            const int list_y = menu_y + 70;
-            const int list_height = menu_height - 120;
-            constexpr int item_height = 120;
-            const int visible_items = list_height / item_height;
+            // Create a button for each mod
+            constexpr float item_width = MENU_WIDTH - UITheme::PADDING_LARGE * 4;
 
-            // Header
-            DrawText("Loaded Mods:", menu_x + 20, menu_y + 60, 18, WHITE);
-
-            char count_str[64];
-            snprintf(count_str, sizeof(count_str), "Total: %d", static_cast<int>(mods.size()));
-            DrawText(count_str, menu_x + menu_width - 120, menu_y + 60, 16, LIGHTGRAY);
-
-            // Scroll handling
-            const int max_scroll = std::max(0, static_cast<int>(mods.size()) - visible_items);
-            if (const float wheel = GetMouseWheelMove(); wheel != 0.0f) {
-                scroll_offset_ -= wheel;
-                scroll_offset_ = std::max(0.0f, std::min(static_cast<float>(max_scroll), scroll_offset_));
-            }
-
-            const int start_index = static_cast<int>(scroll_offset_);
-            const int end_index = std::min(start_index + visible_items + 1, static_cast<int>(mods.size()));
-
-            // Render mods
-            for (int i = start_index; i < end_index; ++i) {
+            for (std::size_t i = 0; i < mods.size(); ++i) {
                 const auto &mod = mods[i];
-                const int y = list_y + (i - start_index) * item_height;
 
-                // Mod item background
-                Color bg_color = (i % 2 == 0) ? Color{50, 50, 60, 255} : Color{45, 45, 55, 255};
-                if (i == selected_mod_index_) {
-                    bg_color = Color{60, 60, 80, 255};
+                // Build the button label with mod info
+                std::ostringstream label;
+                label << mod.name;
+                if (!mod.version.empty()) {
+                    label << " v" << mod.version;
                 }
-
-                DrawRectangle(menu_x + 20, y, menu_width - 40, item_height - 10, bg_color);
-                DrawRectangleLines(menu_x + 20, y, menu_width - 40, item_height - 10,
-                                   Color{80, 80, 100, 255});
-
-                const int text_x = menu_x + 35;
-                int text_y = y + 10;
-
-                // Mod name
-                DrawText(mod.name.c_str(), text_x, text_y, 20,
-                         mod.loaded_successfully ? WHITE : RED);
-
-                text_y += 25;
-
-                // Version and author
-                if (!mod.version.empty() || !mod.author.empty()) {
-                    char info[256];
-                    if (!mod.version.empty() && !mod.author.empty()) {
-                        snprintf(info, sizeof(info), "v%s by %s",
-                                 mod.version.c_str(), mod.author.c_str());
-                    } else if (!mod.version.empty()) {
-                        snprintf(info, sizeof(info), "v%s", mod.version.c_str());
-                    } else {
-                        snprintf(info, sizeof(info), "by %s", mod.author.c_str());
-                    }
-                    DrawText(info, text_x, text_y, 14, GRAY);
-                    text_y += 18;
+                if (!mod.author.empty()) {
+                    label << " by " << mod.author;
                 }
+                label << "\n";
 
-                // Description
                 if (!mod.description.empty()) {
-                    // Truncate if too long
                     std::string desc = mod.description;
-                    if (desc.length() > 80) {
-                        desc = desc.substr(0, 77) + "...";
+                    if (desc.length() > 60) {
+                        desc = desc.substr(0, 57) + "...";
                     }
-                    DrawText(desc.c_str(), text_x, text_y, 12, LIGHTGRAY);
-                    text_y += 16;
+                    label << desc << "\n";
                 }
 
-                // Status
                 if (mod.loaded_successfully) {
-                    const char *status = mod.enabled ? "Enabled" : "Disabled";
-                    const Color status_color = mod.enabled ? GREEN : ORANGE;
-                    DrawText(status, text_x, text_y, 14, status_color);
-
-                    // Click to toggle
-                    const auto hint = "(Click to toggle)";
-                    DrawText(hint, text_x + 100, text_y, 12, DARKGRAY);
-
-                    // Handle click
-                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                        if (const auto [mouse_x, mouse_y] = GetMousePosition();
-                            mouse_x >= menu_x + 20 && mouse_x <= menu_x + menu_width - 20 &&
-                            mouse_y >= y && mouse_y <= y + item_height - 10) {
-                            // Toggle mod
-                            if (mod.enabled) {
-                                mod_manager_->DisableMod(mod.id);
-                            } else {
-                                mod_manager_->EnableMod(mod.id);
-                            }
+                    label << (mod.enabled ? "[Enabled]" : "[Disabled]");
+                } else {
+                    label << "[Failed to load]";
+                    if (!mod.error_message.empty()) {
+                        std::string error = mod.error_message;
+                        if (error.length() > 40) {
+                            error = error.substr(0, 37) + "...";
                         }
+                        label << " - " << error;
+                    }
+                }
+
+                auto button = std::make_unique<Button>(
+                    item_width,
+                    MOD_ITEM_HEIGHT,
+                    label.str(),
+                    UITheme::FONT_SIZE_SMALL
+                );
+
+                // Set colors based on mod state
+                if (mod.loaded_successfully) {
+                    if (mod.enabled) {
+                        button->SetBorderColor(UITheme::ToEngineColor(UITheme::SUCCESS));
+                        button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_PRIMARY));
+                    } else {
+                        button->SetBorderColor(UITheme::ToEngineColor(UITheme::WARNING));
+                        button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
                     }
                 } else {
-                    DrawText("Failed to load", text_x, text_y, 14, RED);
-
-                    // Show error message if available
-                    if (!mod.error_message.empty()) {
-                        std::string error = "Error: " + mod.error_message;
-                        if (error.length() > 60) {
-                            error = error.substr(0, 57) + "...";
-                        }
-                        DrawText(error.c_str(), text_x + 120, text_y, 11, MAROON);
-                    }
+                    button->SetBorderColor(UITheme::ToEngineColor(UITheme::ERROR));
+                    button->SetTextColor(UITheme::ToEngineColor(UITheme::ERROR));
                 }
-            }
 
-            // Scroll indicator
-            if (max_scroll > 0) {
-                const int scrollbar_x = menu_x + menu_width - 25;
-                const int scrollbar_y = list_y;
-                const int scrollbar_height = list_height;
+                button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+                button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.3f)));
 
-                DrawRectangle(scrollbar_x, scrollbar_y, 10, scrollbar_height, Color{30, 30, 40, 255});
+                // Set click callback to toggle mod
+                const std::string mod_id = mod.id;
+                const bool is_enabled = mod.enabled;
+                const bool loaded_ok = mod.loaded_successfully;
 
-                const float thumb_height = (static_cast<float>(visible_items) / mods.size()) * scrollbar_height;
-                const float thumb_y = scrollbar_y + (scroll_offset_ / max_scroll) * (scrollbar_height - thumb_height);
+                button->SetClickCallback([this, mod_id, is_enabled, loaded_ok](const engine::ui::MouseEvent &event) {
+                    if (event.left_pressed && loaded_ok) {
+                        audio::AudioManager::GetInstance().PlaySFX(audio::AudioCue::MenuConfirm);
+                        if (is_enabled) {
+                            mod_manager_->DisableMod(mod_id);
+                        } else {
+                            mod_manager_->EnableMod(mod_id);
+                        }
+                        RebuildModsList();
+                        return true;
+                    }
+                    return false;
+                });
 
-                DrawRectangle(scrollbar_x, static_cast<int>(thumb_y), 10,
-                              static_cast<int>(thumb_height), Color{100, 100, 120, 255});
+                // Set hover callback
+                button->SetHoverCallback([this, idx = i, this_button = button.get()](const engine::ui::MouseEvent &) {
+                    // Update selection visual
+                    if (selected_mod_index_ >= 0 && selected_mod_index_ < static_cast<int>(mod_buttons_.size())) {
+                        auto *old_button = mod_buttons_[selected_mod_index_];
+                        old_button->SetNormalColor(UITheme::ToEngineColor(UITheme::BUTTON_BACKGROUND));
+                    }
+
+                    selected_mod_index_ = static_cast<int>(idx);
+                    this_button->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(UITheme::PRIMARY, 0.2f)));
+                    return true;
+                });
+
+                mod_buttons_.push_back(button.get());
+                mods_list_container_->AddChild(std::move(button));
             }
         }
 
-        // Handle ESC to close
+        mods_list_container_->InvalidateComponents();
+        mods_list_container_->UpdateComponentsRecursive();
+
+        // Update scroll component content size
+        if (auto *scroll = mods_list_container_->GetComponent<ScrollComponent>()) {
+            scroll->CalculateContentSizeFromChildren();
+        }
+    }
+
+    void ModsMenu::Update(const float delta_time) {
+        if (!visible_ || !main_panel_) {
+            return;
+        }
+
+        // Check for window resize
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
+            UpdateLayout();
+        }
+
+        // Check if mods list changed
+        if (mod_manager_) {
+            const auto &mods = mod_manager_->GetLoadedMods();
+            if (mods.size() != last_mods_count_) {
+                RebuildModsList();
+            }
+        }
+    }
+
+    void ModsMenu::Render() const {
+        if (!visible_ || !main_panel_) {
+            return;
+        }
+
+        RenderDimOverlay();
+        main_panel_->Render();
+    }
+
+    void ModsMenu::RenderDimOverlay() {
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(0, 0, screen_width, screen_height),
+            UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f))
+        );
+    }
+
+    bool ModsMenu::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
+        if (!visible_ || !main_panel_) {
+            return false;
+        }
+        return main_panel_->ProcessMouseEvent(event);
+    }
+
+    void ModsMenu::HandleKeyboard() {
+        if (!visible_) {
+            return;
+        }
+
+        // Navigate up
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            if (!mod_buttons_.empty()) {
+                int new_selection = selected_mod_index_ - 1;
+                if (new_selection < 0) {
+                    new_selection = static_cast<int>(mod_buttons_.size()) - 1;
+                }
+                if (new_selection >= 0 && new_selection < static_cast<int>(mod_buttons_.size())) {
+                    auto *button = mod_buttons_[new_selection];
+                    auto bounds = button->GetAbsoluteBounds();
+                    button->OnHover({(bounds.x), (bounds.y)});
+                }
+            }
+        }
+
+        // Navigate down
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            if (!mod_buttons_.empty()) {
+                int new_selection = selected_mod_index_ + 1;
+                if (new_selection >= static_cast<int>(mod_buttons_.size())) {
+                    new_selection = 0;
+                }
+                if (new_selection >= 0 && new_selection < static_cast<int>(mod_buttons_.size())) {
+                    auto *button = mod_buttons_[new_selection];
+                    auto bounds = button->GetAbsoluteBounds();
+                    button->OnHover({(bounds.x), (bounds.y)});
+                }
+            }
+        }
+
+        // Toggle mod with Enter/Space
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+            if (selected_mod_index_ >= 0 && selected_mod_index_ < static_cast<int>(mod_buttons_.size())) {
+                auto *button = mod_buttons_[selected_mod_index_];
+                const auto bounds = button->GetAbsoluteBounds();
+                engine::ui::MouseEvent click_event{};
+                click_event.x = bounds.x + 1;
+                click_event.y = bounds.y + 1;
+                click_event.left_pressed = true;
+                button->OnClick(click_event);
+            }
+        }
+
+        // ESC to close
         if (IsKeyPressed(KEY_ESCAPE)) {
             Hide();
         }
+    }
+
+    void ModsMenu::Shutdown() {
+        mod_buttons_.clear();
+        mods_list_container_ = nullptr;
+        main_panel_.reset();
     }
 }

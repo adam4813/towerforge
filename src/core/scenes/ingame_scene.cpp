@@ -302,6 +302,7 @@ namespace towerforge::core {
 		});
 		mods_menu_ = std::make_unique<ModsMenu>();
 		mods_menu_->SetModManager(&ecs_world_->GetModManager());
+		mods_menu_->Initialize();
 
 		// Connect tooltip manager from HUD to other UI components
 		build_menu_->SetTooltipManager(hud_->GetTooltipManager());
@@ -551,6 +552,9 @@ namespace towerforge::core {
 		}
 		research_menu_.reset();
 		save_load_menu_.reset();
+		if (mods_menu_) {
+			mods_menu_->Shutdown();
+		}
 		mods_menu_.reset();
 		pause_menu_.reset();
 		build_menu_.reset();
@@ -610,6 +614,8 @@ namespace towerforge::core {
 				pause_audio_settings_menu_.Update(time_step_);
 			} else if (in_settings_from_pause_) {
 				pause_general_settings_menu_.Update(time_step_);
+			} else if (mods_menu_->IsVisible()) {
+				mods_menu_->Update(time_step_);
 			} else if (in_achievements_menu_) {
 				achievements_menu_.Update(time_step_);
 			} else {
@@ -1014,6 +1020,9 @@ namespace towerforge::core {
 			} else if (in_achievements_menu_) {
 				achievements_menu_.HandleKeyboard();
 				achievements_menu_.ProcessMouseEvent(event);
+			} else if (mods_menu_->IsVisible()) {
+				mods_menu_->HandleKeyboard();
+				mods_menu_->ProcessMouseEvent(event);
 			} else if (pause_menu_) {
 				pause_menu_->HandleKeyboard();
 				pause_menu_->ProcessMouseEvent(event);

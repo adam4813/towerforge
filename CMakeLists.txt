@@ -63,6 +63,14 @@ target_link_libraries(towerforge PRIVATE raylib glfw towerforge_core citrus-engi
 # Setup asset handling
 setup_asset_preload(towerforge "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 
+# Copy mods folder to build directory
+add_custom_command(TARGET towerforge POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/mods"
+    "$<TARGET_FILE_DIR:towerforge>/mods"
+    COMMENT "Copying mods folder to build directory"
+)
+
 # Install target
 install(TARGETS towerforge RUNTIME DESTINATION bin)
 
@@ -70,6 +78,10 @@ if (NOT EMSCRIPTEN)
     install(
         DIRECTORY assets/
         DESTINATION bin/assets
+        PATTERN "*")
+    install(
+        DIRECTORY mods/
+        DESTINATION bin/mods
         PATTERN "*")
 endif ()
 
