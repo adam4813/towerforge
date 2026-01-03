@@ -43,7 +43,6 @@ set(SOURCE_FILES
     src/ui/ui_window_manager.cpp
     src/ui/window_chrome.cpp
     src/ui/info_windows.cpp
-    src/ui/section_header.cpp
     src/ui/analytics_overlay.cpp
     src/ui/tooltip.cpp
     src/ui/notification_center.cpp
