@@ -23,21 +23,28 @@ namespace towerforge::ui {
           , last_screen_width_(0)
           , last_screen_height_(0) {
         // Initialize facility types with costs, properties, and categories
-        facility_types_.emplace_back("Lobby", "L", 1000, 10, GOLD, FacilityCategory::Core);
-        facility_types_.emplace_back("Elevator", "E", 15000, 2, GRAY, FacilityCategory::Core);
+        facility_types_.emplace_back("Lobby", "L", 1000, 10, UITheme::ToEngineColor(GOLD), FacilityCategory::Core);
+        facility_types_.emplace_back("Elevator", "E", 15000, 2, UITheme::ToEngineColor(GRAY), FacilityCategory::Core);
 
-        facility_types_.emplace_back("Shop", "S", 6000, 4, GREEN, FacilityCategory::Commercial);
-        facility_types_.emplace_back("Restaurant", "R", 8000, 6, RED, FacilityCategory::Commercial);
+        facility_types_.emplace_back("Shop", "S", 6000, 4, UITheme::ToEngineColor(GREEN), FacilityCategory::Commercial);
+        facility_types_.emplace_back("Restaurant", "R", 8000, 6, UITheme::ToEngineColor(RED),
+                                     FacilityCategory::Commercial);
 
-        facility_types_.emplace_back("Hotel", "H", 12000, 10, PURPLE, FacilityCategory::Residential);
+        facility_types_.emplace_back("Hotel", "H", 12000, 10, UITheme::ToEngineColor(PURPLE),
+                                     FacilityCategory::Residential);
 
-        facility_types_.emplace_back("Gym", "G", 10000, 7, ORANGE, FacilityCategory::Entertainment);
-        facility_types_.emplace_back("Arcade", "A", 9000, 5, MAGENTA, FacilityCategory::Entertainment);
-        facility_types_.emplace_back("Theater", "T", 15000, 8, VIOLET, FacilityCategory::Entertainment);
+        facility_types_.emplace_back("Gym", "G", 10000, 7, UITheme::ToEngineColor(ORANGE),
+                                     FacilityCategory::Entertainment);
+        facility_types_.emplace_back("Arcade", "A", 9000, 5, UITheme::ToEngineColor(MAGENTA),
+                                     FacilityCategory::Entertainment);
+        facility_types_.emplace_back("Theater", "T", 15000, 8, UITheme::ToEngineColor(VIOLET),
+                                     FacilityCategory::Entertainment);
 
-        facility_types_.emplace_back("Office", "O", 5000, 8, SKYBLUE, FacilityCategory::Professional);
-        facility_types_.emplace_back("Conference", "C", 13000, 9, SKYBLUE, FacilityCategory::Professional);
-        facility_types_.emplace_back("Flagship", "F", 18000, 12, Color{0, 206, 209, 255},
+        facility_types_.emplace_back("Office", "O", 5000, 8, UITheme::ToEngineColor(SKYBLUE),
+                                     FacilityCategory::Professional);
+        facility_types_.emplace_back("Conference", "C", 13000, 9, UITheme::ToEngineColor(SKYBLUE),
+                                     FacilityCategory::Professional);
+        facility_types_.emplace_back("Flagship", "F", 18000, 12, engine::ui::Color{0, 206.F / 255.F, 209.F / 255.F},
                                      FacilityCategory::Professional);
     }
 
@@ -164,9 +171,9 @@ namespace towerforge::ui {
                     UITheme::FONT_SIZE_SMALL
                 );
 
-                button->SetNormalColor(UITheme::ToEngineColor(ColorAlpha(facility.color, 0.6f)));
-                button->SetHoverColor(UITheme::ToEngineColor(ColorAlpha(facility.color, 0.8f)));
-                button->SetPressedColor(UITheme::ToEngineColor(facility.color));
+                button->SetNormalColor(engine::ui::Color::Alpha(facility.color, 0.6f));
+                button->SetHoverColor(engine::ui::Color::Alpha(facility.color, 0.8f));
+                button->SetPressedColor(facility.color);
                 button->SetBorderColor(UITheme::ToEngineColor(UITheme::BORDER_DEFAULT));
                 button->SetTextColor(UITheme::ToEngineColor(WHITE));
 

@@ -1,8 +1,8 @@
 #include "ui/tutorial_manager.h"
 #include <cmath>
+#include <raylib.h>
 
 namespace towerforge::ui {
-
     TutorialManager::TutorialManager()
         : current_step_(TutorialStep::BuildLobby)
           , animation_time_(0.0f)
@@ -104,7 +104,7 @@ namespace towerforge::ui {
         const int current = static_cast<int>(current_step_);
 
         const std::string progress_text = "[Progress: " + std::to_string(current + 1) + "/" +
-                                    std::to_string(total_steps) + "]";
+                                          std::to_string(total_steps) + "]";
         constexpr int progress_font_size = 16;
         const int progress_width = MeasureText(progress_text.c_str(), progress_font_size);
         const int progress_x = overlay_x + (OVERLAY_WIDTH - progress_width) / 2;
@@ -120,8 +120,8 @@ namespace towerforge::ui {
         DrawRectangle(bar_x, bar_y, bar_width, bar_height, ColorAlpha(DARKGRAY, 0.5f));
 
         // Progress fill
-        const float progress = (float)(current + 1) / (float)total_steps;
-        const int fill_width = (int)(bar_width * progress);
+        const float progress = (float) (current + 1) / (float) total_steps;
+        const int fill_width = (int) (bar_width * progress);
         DrawRectangle(bar_x, bar_y, fill_width, bar_height, GOLD);
 
         // Border
@@ -196,7 +196,7 @@ namespace towerforge::ui {
         return false;
     }
 
-    void TutorialManager::OnFacilityPlaced(const std::string& facility_type) {
+    void TutorialManager::OnFacilityPlaced(const std::string &facility_type) {
         bool should_advance = false;
 
         switch (current_step_) {
@@ -266,7 +266,7 @@ namespace towerforge::ui {
         }
     }
 
-    bool TutorialManager::IsFacilityAllowed(const std::string& facility_type) const {
+    bool TutorialManager::IsFacilityAllowed(const std::string &facility_type) const {
         const std::string required = GetRequiredFacility();
         if (required.empty()) {
             return true; // Tutorial complete, allow all
@@ -338,5 +338,4 @@ namespace towerforge::ui {
         current++;
         current_step_ = static_cast<TutorialStep>(current);
     }
-
 }

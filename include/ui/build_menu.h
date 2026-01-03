@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <raylib.h>
 #include <string>
 #include <vector>
 #include <memory>
@@ -32,10 +31,10 @@ namespace towerforge::ui {
         std::string icon;
         int cost;
         int width;
-        Color color;
+        engine::ui::Color color;
         FacilityCategory category;
 
-        FacilityType(const std::string &n, const std::string &i, const int c, const int w, const Color col,
+        FacilityType(const std::string &n, const std::string &i, const int c, const int w, const engine::ui::Color col,
                      const FacilityCategory cat)
             : name(n), icon(i), cost(c), width(w), color(col), category(cat) {
         }
