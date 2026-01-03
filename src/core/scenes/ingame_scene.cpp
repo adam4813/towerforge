@@ -677,15 +677,6 @@ namespace towerforge::core {
 
 			placement_system_->Update(time_step_);
 
-			// Check for pending demolish from confirmation dialog
-			const int pending_change = placement_system_->GetPendingFundsChange();
-			if (pending_change != 0) {
-				game_state_.funds += pending_change;
-				audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
-				hud_->AddNotification(Notification::Type::Info,
-				                      TextFormat("Facility demolished! Refund: $%d", pending_change), 3.0f);
-			}
-
 			// Update history panel with current command history
 			if (history_panel_ != nullptr && history_panel_->IsVisible()) {
 				history_panel_->UpdateFromHistory(placement_system_->GetCommandHistory());
@@ -856,9 +847,7 @@ namespace towerforge::core {
 		engine::ui::BatchRenderer::BeginFrame();
 		// Render HUD and menus
 		hud_->Render();
-		build_menu_->Render(placement_system_->CanUndo(), placement_system_->CanRedo(),
-		                    placement_system_->IsDemolishMode());
-		placement_system_->Render();
+		build_menu_->Render(placement_system_->CanUndo(), placement_system_->CanRedo());
 
 		// Render history panel (if visible)
 		if (history_panel_ != nullptr) {
@@ -1084,10 +1073,9 @@ namespace towerforge::core {
 			return; // Build menu consumed the event
 		}
 
-		// Check placement system confirmation dialogs
-		if (placement_system_ && placement_system_->HandleKeyboard() || placement_system_->ProcessMouseEvent(
-			    mouse_event)) {
-			return; // Dialog consumed the event
+		// Check placement system keyboard shortcuts
+		if (placement_system_ && placement_system_->HandleKeyboard()) {
+			return;
 		}
 
 		auto &grid = ecs_world_->GetTowerGrid();
@@ -1160,11 +1148,10 @@ namespace towerforge::core {
 				}
 			} else {
 				// Check if placement was attempted but failed
-				const int selected = build_menu_->GetSelectedFacility();
-				if (selected >= 0 && !placement_system_->IsDemolishMode()) {
+				if (const int selected = build_menu_->GetSelectedFacility(); selected >= 0) {
 					// Placement was attempted but failed - provide feedback
-					const auto &facility_types = build_menu_->GetFacilityTypes();
-					if (selected < static_cast<int>(facility_types.size())) {
+					if (const auto &facility_types = build_menu_->GetFacilityTypes();
+						selected < static_cast<int>(facility_types.size())) {
 						const auto &facility_type = facility_types[selected];
 
 						// Check specific reason for failure
@@ -1395,18 +1382,19 @@ namespace towerforge::core {
 									}
 								}
 
-								auto types = build_menu_->GetFacilityTypes();
-								auto facility_type_it = std::ranges::find_if(types, [&](const FacilityType &ft) {
-									return ft.name == info.type;
-								});
-
-								auto cost = facility_type_it != types.end() ? facility_type_it->cost : 0;
-
 								hud_->ShowFacilityInfo(
-									info, [this, cost, clicked_floor, clicked_column](
-								[[maybe_unused]] FacilityInfo fi) {
-										placement_system_->ShowDemolishConfirmation(
-											clicked_floor, clicked_column, cost);
+									info, [this, clicked_floor, clicked_column]() {
+										// Execute demolish and apply funds change
+										float funds = game_state_.funds;
+										const float funds_before = funds;
+										if (placement_system_->ExecuteDemolish(clicked_floor, clicked_column, funds)) {
+											const int refund = static_cast<int>(funds - funds_before);
+											game_state_.funds = funds;
+											audio_manager_->PlaySFX(audio::AudioCue::FacilityDemolish);
+											hud_->AddNotification(Notification::Type::Info,
+											                      TextFormat("Facility demolished! Refund: $%d",
+											                                 refund), 3.0f);
+										}
 									});
 							}
 						}

@@ -72,9 +72,8 @@ namespace towerforge::ui {
          * @brief Render the build menu
          * @param can_undo Whether undo is available
          * @param can_redo Whether redo is available
-         * @param demolish_mode Whether demolish mode is active
          */
-        void Render(bool can_undo = false, bool can_redo = false, bool demolish_mode = false) const;
+        void Render(bool can_undo = false, bool can_redo = false) const;
 
         /**
          * @brief Get the currently selected facility type

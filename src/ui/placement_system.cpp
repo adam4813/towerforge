@@ -12,37 +12,11 @@ namespace towerforge::ui {
           , facility_mgr_(facility_mgr)
           , build_menu_(build_menu)
           , camera_(nullptr)
-          , demolish_mode_(false)
           , hover_floor_(-1)
           , hover_column_(-1)
           , hover_valid_(false)
           , command_history_(50) // Max 50 actions in history
-          , tooltip_manager_(nullptr)
-          , pending_demolish_floor_(-1)
-          , pending_demolish_column_(-1)
-          , pending_demolish_funds_(0.0f)
-          , pending_funds_change_(0) {
-        // Create demolish confirmation dialog
-        demolish_confirmation_ = std::make_unique<EngineConfirmationDialog>(
-            "Confirm Demolish",
-            "Are you sure you want to demolish this facility? You will receive 50% of the original cost as a refund.",
-            "Demolish",
-            "Cancel"
-        );
-        demolish_confirmation_->Initialize();
-
-        // Set up the confirmation callback to actually perform demolish
-        demolish_confirmation_->SetConfirmCallback([this]() {
-            if (pending_demolish_floor_ >= 0 && pending_demolish_column_ >= 0) {
-                float funds = pending_demolish_funds_;
-                const float funds_before = funds;
-                if (DemolishFacility(pending_demolish_floor_, pending_demolish_column_, funds)) {
-                    pending_funds_change_ = static_cast<int>(funds - funds_before);
-                }
-                pending_demolish_floor_ = -1;
-                pending_demolish_column_ = -1;
-            }
-        });
+          , tooltip_manager_(nullptr) {
     }
 
     PlacementSystem::~PlacementSystem() = default;
@@ -58,11 +32,6 @@ namespace towerforge::ui {
             } else {
                 ++it;
             }
-        }
-
-        // Update confirmation dialog
-        if (demolish_confirmation_) {
-            demolish_confirmation_->Update(delta_time);
         }
     }
 
@@ -85,21 +54,15 @@ namespace towerforge::ui {
             hover_floor_ = floor;
             hover_column_ = column;
 
-            // Determine hover validity
-            if (demolish_mode_) {
-                // Valid if there's a facility to demolish
-                hover_valid_ = grid_.IsOccupied(floor, column);
-            } else {
-                const int selected = build_menu_.GetSelectedFacility();
-                if (selected >= 0) {
-                    const auto &types = build_menu_.GetFacilityTypes();
-                    const auto &facility_type = types[selected];
 
-                    // Check if placement is valid (will be checked with funds in HandleClick)
-                    hover_valid_ = grid_.IsSpaceAvailable(floor, column, facility_type.width);
-                } else {
-                    hover_valid_ = false;
-                }
+            if (const int selected = build_menu_.GetSelectedFacility(); selected >= 0) {
+                const auto &types = build_menu_.GetFacilityTypes();
+                const auto &facility_type = types[selected];
+
+                // Check if placement is valid (will be checked with funds in HandleClick)
+                hover_valid_ = grid_.IsSpaceAvailable(floor, column, facility_type.width);
+            } else {
+                hover_valid_ = false;
             }
         } else {
             hover_floor_ = -1;
@@ -108,60 +71,33 @@ namespace towerforge::ui {
         }
 
         // Render placement preview
-        if (hover_floor_ >= 0 && hover_column_ >= 0) {
-            const int selected = build_menu_.GetSelectedFacility();
+        if (const int selected = build_menu_.GetSelectedFacility();
+            selected >= 0 && hover_floor_ >= 0 && hover_column_ >= 0) {
+            const auto &types = build_menu_.GetFacilityTypes();
+            const auto &facility_type = types[selected];
 
-            if (demolish_mode_) {
-                // Red highlight for demolish
-                if (hover_valid_) {
-                    const int facility_id = grid_.GetFacilityAt(hover_floor_, hover_column_);
-                    if (facility_id >= 0) {
-                        // Find the full width of the facility
-                        int start_col = hover_column_;
-                        while (start_col > 0 && grid_.GetFacilityAt(hover_floor_, start_col - 1) == facility_id) {
-                            start_col--;
-                        }
-                        int end_col = hover_column_;
-                        while (end_col < grid_.GetColumnCount() - 1 &&
-                               grid_.GetFacilityAt(hover_floor_, end_col + 1) == facility_id) {
-                            end_col++;
-                        }
-                        const int width = end_col - start_col + 1;
+            // Draw ghost preview
+            const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
+            const int x = grid_offset_x + hover_column_ * cell_width;
+            const int y = ground_floor_screen_y - (hover_floor_ * cell_height);
 
-                        // Draw red outline around facility to demolish
-                        const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
-                        const int x = grid_offset_x + start_col * cell_width;
-                        const int y = ground_floor_screen_y - (hover_floor_ * cell_height);
-                        DrawRectangle(x, y, width * cell_width, cell_height, ColorAlpha(RED, 0.3f));
-                        DrawRectangleLines(x, y, width * cell_width, cell_height, RED);
-                    }
-                }
-            } else if (selected >= 0) {
-                const auto &types = build_menu_.GetFacilityTypes();
-                const auto &facility_type = types[selected];
+            const Color preview_color = hover_valid_ ? ColorAlpha(GREEN, 0.3f) : ColorAlpha(RED, 0.3f);
+            const Color outline_color = hover_valid_ ? GREEN : RED;
 
-                // Draw ghost preview
-                const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
-                const int x = grid_offset_x + hover_column_ * cell_width;
-                const int y = ground_floor_screen_y - (hover_floor_ * cell_height);
+            DrawRectangle(x, y, facility_type.width * cell_width, cell_height, preview_color);
+            DrawRectangleLines(x, y, facility_type.width * cell_width, cell_height, outline_color);
 
-                const Color preview_color = hover_valid_ ? ColorAlpha(GREEN, 0.3f) : ColorAlpha(RED, 0.3f);
-                const Color outline_color = hover_valid_ ? GREEN : RED;
+            // Draw icon
+            DrawText(facility_type.icon.c_str(), x + 5, y + 5, 20, WHITE);
 
-                DrawRectangle(x, y, facility_type.width * cell_width, cell_height, preview_color);
-                DrawRectangleLines(x, y, facility_type.width * cell_width, cell_height, outline_color);
-
-                // Draw icon
-                DrawText(facility_type.icon.c_str(), x + 5, y + 5, 20, WHITE);
-
-                // Draw cost indicator
-                if (hover_valid_) {
-                    DrawText(TextFormat("$%d", facility_type.cost), x + 5, y + cell_height - 20, 12, GREEN);
-                } else {
-                    DrawText("INVALID", x + 5, y + cell_height - 20, 12, RED);
-                }
+            // Draw cost indicator
+            if (hover_valid_) {
+                DrawText(TextFormat("$%d", facility_type.cost), x + 5, y + cell_height - 20, 12, GREEN);
+            } else {
+                DrawText("INVALID", x + 5, y + cell_height - 20, 12, RED);
             }
         }
+
 
         // Render construction progress
         const int ground_floor_screen_y = grid_offset_y + (grid_.GetFloorCount() / 2) * cell_height;
@@ -187,18 +123,6 @@ namespace towerforge::ui {
             DrawText(TextFormat("Building... %d%%", static_cast<int>(construction.GetProgress() * 100)),
                      x + 5, y + 5, 10, WHITE);
         }
-
-        // Render confirmation dialog if visible
-        if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
-            demolish_confirmation_->Render();
-        }
-    }
-
-    void PlacementSystem::Render() const {
-        // Render confirmation dialog if visible
-        if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
-            demolish_confirmation_->Render();
-        }
     }
 
     int PlacementSystem::HandleClick(const int mouse_x, const int mouse_y,
@@ -211,97 +135,21 @@ namespace towerforge::ui {
             return 0;
         }
 
-        if (demolish_mode_) {
-            // Show confirmation dialog for demolish
-            if (grid_.IsOccupied(floor, column)) {
-                pending_demolish_floor_ = floor;
-                pending_demolish_column_ = column;
-                pending_demolish_funds_ = current_funds;
-
-                // Get facility info for dialog message
-                const int facility_id = grid_.GetFacilityAt(floor, column);
-                const auto facility_type = facility_mgr_.GetFacilityType(facility_id);
-                const std::string facility_name = core::FacilityManager::GetTypeName(facility_type);
-
-                demolish_confirmation_->Show();
-
-                return 0; // Don't apply funds change yet, wait for confirmation
-            }
-        } else {
-            if (const int selected = build_menu_.GetSelectedFacility(); selected >= 0) {
-                if (float funds = current_funds; PlaceFacility(floor, column, selected, funds)) {
-                    return static_cast<int>(funds - current_funds); // Negative (cost)
-                }
+        if (const int selected = build_menu_.GetSelectedFacility(); selected >= 0) {
+            if (float funds = current_funds; PlaceFacility(floor, column, selected, funds)) {
+                return static_cast<int>(funds - current_funds); // Negative (cost)
             }
         }
+
 
         return 0;
     }
 
-    bool PlacementSystem::ProcessMouseEvent(const MouseEvent &event) const {
-        // If confirmation dialog is visible, route events to it first
-        if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
-            const engine::ui::MouseEvent engine_event{
-                event.x,
-                event.y,
-                event.left_down,
-                event.right_down,
-                event.left_pressed,
-                event.right_pressed,
-            };
-            return demolish_confirmation_->ProcessMouseEvent(engine_event);
-        }
-        return false;
-    }
-
-    int PlacementSystem::GetPendingFundsChange() {
-        const int change = pending_funds_change_;
-        pending_funds_change_ = 0; // Reset after reading
-        return change;
-    }
-
-    void PlacementSystem::ShowDemolishConfirmation(const int clicked_floor, const int clicked_column, const int cost) {
-        demolish_confirmation_->Show();
-        pending_demolish_floor_ = clicked_floor;
-        pending_demolish_column_ = clicked_column;
-        pending_demolish_funds_ = static_cast<float>(cost);
+    bool PlacementSystem::ExecuteDemolish(const int floor, const int column, float &funds) {
+        return DemolishFacility(floor, column, funds);
     }
 
     bool PlacementSystem::HandleKeyboard() {
-        // Keyboard shortcuts
-        // 1-5 for facility types
-        if (IsKeyPressed(KEY_ONE)) {
-            if (build_menu_.GetFacilityTypes().size() > 0) {
-                demolish_mode_ = false;
-                // Select index 0 (Lobby)
-                return true;
-            }
-        } else if (IsKeyPressed(KEY_TWO)) {
-            if (build_menu_.GetFacilityTypes().size() > 1) {
-                demolish_mode_ = false;
-                // Select index 1 (Office)
-                return true;
-            }
-        } else if (IsKeyPressed(KEY_THREE)) {
-            if (build_menu_.GetFacilityTypes().size() > 2) {
-                demolish_mode_ = false;
-                // Select index 2
-                return true;
-            }
-        } else if (IsKeyPressed(KEY_FOUR)) {
-            if (build_menu_.GetFacilityTypes().size() > 3) {
-                demolish_mode_ = false;
-                // Select index 3
-                return true;
-            }
-        } else if (IsKeyPressed(KEY_FIVE)) {
-            if (build_menu_.GetFacilityTypes().size() > 4) {
-                demolish_mode_ = false;
-                // Select index 4
-                return true;
-            }
-        }
-
         // Ctrl+Z for undo
         if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Z)) {
             // Note: funds adjustment handled by the game logic
@@ -336,46 +184,36 @@ namespace towerforge::ui {
 
             std::stringstream tooltip_text;
 
-            if (demolish_mode_) {
-                // Check if there's a facility to demolish
-                if (const auto facility_id = grid_.GetFacilityAt(grid_y, grid_x); facility_id >= 0) {
-                    const auto buildingType = facility_mgr_.GetFacilityType(facility_id);
-                    const auto name = core::FacilityManager::GetTypeName(buildingType);
-                    tooltip_text << "Demolish " << name << "\n";
-                } else {
-                    tooltip_text << "No facility to demolish";
+            if (const int selected = build_menu_.GetSelectedFacility();
+                selected >= 0 && selected < static_cast<int>(build_menu_.GetFacilityTypes().size())) {
+                const auto &facility = build_menu_.GetFacilityTypes()[selected];
+
+                tooltip_text << "Place " << facility.name << "\n";
+                tooltip_text << "Cost: $" << facility.cost << "\n";
+                tooltip_text << "Floor: " << grid_y << ", Column: " << grid_x;
+
+                // Check if placement is valid
+                if (const bool can_afford = current_funds >= facility.cost; !can_afford) {
+                    tooltip_text << "\n[INSUFFICIENT FUNDS]";
+                }
+
+                // Check if space is available
+                bool space_available = true;
+                for (int i = 0; i < facility.width; i++) {
+                    if (grid_x + i >= grid_.GetColumnCount() || grid_.IsOccupied(grid_y, grid_x + i)) {
+                        space_available = false;
+                        break;
+                    }
+                }
+
+                if (!space_available) {
+                    tooltip_text << "\n[SPACE NOT AVAILABLE]";
                 }
             } else {
-                if (const int selected = build_menu_.GetSelectedFacility();
-                    selected >= 0 && selected < static_cast<int>(build_menu_.GetFacilityTypes().size())) {
-                    const auto &facility = build_menu_.GetFacilityTypes()[selected];
-
-                    tooltip_text << "Place " << facility.name << "\n";
-                    tooltip_text << "Cost: $" << facility.cost << "\n";
-                    tooltip_text << "Floor: " << grid_y << ", Column: " << grid_x;
-
-                    // Check if placement is valid
-                    if (const bool can_afford = current_funds >= facility.cost; !can_afford) {
-                        tooltip_text << "\n[INSUFFICIENT FUNDS]";
-                    }
-
-                    // Check if space is available
-                    bool space_available = true;
-                    for (int i = 0; i < facility.width; i++) {
-                        if (grid_x + i >= grid_.GetColumnCount() || grid_.IsOccupied(grid_y, grid_x + i)) {
-                            space_available = false;
-                            break;
-                        }
-                    }
-
-                    if (!space_available) {
-                        tooltip_text << "\n[SPACE NOT AVAILABLE]";
-                    }
-                } else {
-                    tooltip_text << "Floor: " << grid_y << ", Column: " << grid_x << "\n";
-                    tooltip_text << "Select a facility to build";
-                }
+                tooltip_text << "Floor: " << grid_y << ", Column: " << grid_x << "\n";
+                tooltip_text << "Select a facility to build";
             }
+
 
             if (!tooltip_text.str().empty()) {
                 const Tooltip tooltip(tooltip_text.str());
@@ -489,8 +327,7 @@ namespace towerforge::ui {
 
         // Add to construction queue
         // Get the entity ID from the last undo entry
-        const auto &undo_stack = command_history_.GetUndoStack();
-        if (!undo_stack.empty()) {
+        if (const auto &undo_stack = command_history_.GetUndoStack(); !undo_stack.empty()) {
             const auto *place_cmd = dynamic_cast<core::PlaceFacilityCommand *>(
                 undo_stack.back().command.get()
             );
@@ -535,12 +372,6 @@ namespace towerforge::ui {
     }
 
     core::BuildingComponent::Type PlacementSystem::GetFacilityType(const int facility_type_index) {
-        // Map build menu index to BuildingComponent::Type
-        // Based on BuildMenu initialization order:
-        // 0: Lobby, 1: Office, 2: Restaurant, 3: Shop (RetailShop), 4: Hotel,
-        // 5: Gym, 6: Arcade, 7: Theater, 8: Conference (ConferenceHall),
-        // 9: Flagship (FlagshipStore), 10: Elevator
-
         switch (facility_type_index) {
             case 0: return core::BuildingComponent::Type::Lobby;
             case 1: return core::BuildingComponent::Type::Office;

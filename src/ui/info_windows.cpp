@@ -116,6 +116,24 @@ namespace towerforge::ui {
         : info_(info) {
         BuildComponents();
         UpdateComponentValues();
+
+        // Create demolish confirmation dialog
+        demolish_confirmation_ = std::make_unique<EngineConfirmationDialog>(
+            "Confirm Demolish",
+            "Are you sure you want to demolish this facility? You will receive 50% of the original cost as a refund.",
+            "Demolish",
+            "Cancel"
+        );
+        demolish_confirmation_->Initialize();
+        demolish_confirmation_->SetConfirmCallback([this]() {
+            if (demolish_facility_callback_) {
+                demolish_facility_callback_();
+            }
+            visible_ = false;
+            if (close_callback_) {
+                close_callback_();
+            }
+        });
     }
 
     void FacilityWindow::BuildComponents() {
@@ -188,8 +206,8 @@ namespace towerforge::ui {
         demolish->SetNormalColor(UITheme::ToEngineColor(DARKGRAY));
         demolish->SetTextColor(UITheme::ToEngineColor(RED));
         demolish->SetClickCallback([this](const engine::ui::MouseEvent &) {
-            if (demolish_facility_callback_) {
-                demolish_facility_callback_();
+            if (demolish_confirmation_) {
+                demolish_confirmation_->Show();
                 return true;
             }
             return false;
@@ -223,11 +241,14 @@ namespace towerforge::ui {
         UpdateComponentValues();
     }
 
-    void FacilityWindow::Update(float /*delta_time*/) {
-        // No animation needed currently
+    void FacilityWindow::Update(const float delta_time) const {
+        // Update confirmation dialog if visible
+        if (demolish_confirmation_) {
+            demolish_confirmation_->Update(delta_time);
+        }
     }
 
-    void FacilityWindow::UpdateComponentValues() {
+    void FacilityWindow::UpdateComponentValues() const {
         // Update occupancy
         occupancy_value_->SetText(
             std::to_string(info_.occupancy) + "/" + std::to_string(info_.max_occupancy)
@@ -319,10 +340,22 @@ namespace towerforge::ui {
     void FacilityWindow::Render() const {
         if (!visible_ || !main_panel_) return;
         main_panel_->Render();
+
+        // Render confirmation dialog on top if visible
+        if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
+            demolish_confirmation_->Render();
+        }
     }
 
-    bool FacilityWindow::ProcessMouseEvent(const engine::ui::MouseEvent &event) {
-        if (!visible_ || !main_panel_) return false;
+    bool FacilityWindow::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
+        if (!visible_) return false;
+
+        // Confirmation dialog takes priority
+        if (demolish_confirmation_ && demolish_confirmation_->IsVisible()) {
+            return demolish_confirmation_->ProcessMouseEvent(event);
+        }
+
+        if (!main_panel_) return false;
         return main_panel_->ProcessMouseEvent(event);
     }
 

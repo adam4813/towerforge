@@ -2,6 +2,7 @@
 
 #include "hud/hud.h"
 #include "ui/ui_theme.h"
+#include "ui/engine_confirmation_dialog.h"
 #include <sstream>
 #include <iomanip>
 #include <memory>
@@ -17,17 +18,17 @@ namespace towerforge::ui {
     class FacilityWindow {
     public:
         using CloseCallback = std::function<void()>;
-        using ShowDemolishFacilityConfirmationCallback = std::function<void()>;
+        using DemolishFacilityCallback = std::function<void()>;
 
         FacilityWindow(const FacilityInfo &info);
 
         void Render() const;
 
-        void Update(float delta_time);
+        void Update(float delta_time) const;
 
         void Update(const FacilityInfo &info);
 
-        bool ProcessMouseEvent(const engine::ui::MouseEvent &event);
+        bool ProcessMouseEvent(const engine::ui::MouseEvent &event) const;
 
         void SetPosition(float x, float y);
 
@@ -41,16 +42,17 @@ namespace towerforge::ui {
 
         float GetHeight() const;
 
-        void SetDemolishFacilityCallback(const ShowDemolishFacilityConfirmationCallback &demolish_facility_callback) {
+        void SetDemolishFacilityCallback(const DemolishFacilityCallback &demolish_facility_callback) {
             demolish_facility_callback_ = demolish_facility_callback;
         }
 
     private:
         FacilityInfo info_;
         std::unique_ptr<engine::ui::elements::Panel> main_panel_;
+        std::unique_ptr<EngineConfirmationDialog> demolish_confirmation_;
         bool visible_ = true;
         CloseCallback close_callback_;
-        ShowDemolishFacilityConfirmationCallback demolish_facility_callback_;
+        DemolishFacilityCallback demolish_facility_callback_;
 
         // Raw pointers to text elements for updates
         engine::ui::elements::Text *title_text_ = nullptr;
@@ -70,7 +72,7 @@ namespace towerforge::ui {
 
         void BuildComponents();
 
-        void UpdateComponentValues();
+        void UpdateComponentValues() const;
 
         static std::string GetSatisfactionEmoji(float satisfaction);
     };

@@ -8,7 +8,6 @@
 #include "core/command_history.hpp"
 #include "ui/build_menu.h"
 #include "ui/ui_element.h"
-#include "ui/engine_confirmation_dialog.h"
 
 // Forward declaration
 namespace towerforge::rendering {
@@ -50,8 +49,8 @@ namespace towerforge::ui {
 */
    class PlacementSystem {
    public:
-      PlacementSystem(towerforge::core::TowerGrid &grid,
-                      towerforge::core::FacilityManager &facility_mgr,
+      PlacementSystem(core::TowerGrid &grid,
+                      core::FacilityManager &facility_mgr,
                       BuildMenu &build_menu);
 
       ~PlacementSystem();
@@ -71,8 +70,6 @@ namespace towerforge::ui {
    */
       void Render(int grid_offset_x, int grid_offset_y, int cell_width, int cell_height);
 
-      void Render() const;
-
       /**
    * @brief Handle mouse click for placement/demolition
    * @param mouse_x Mouse X position
@@ -90,27 +87,10 @@ namespace towerforge::ui {
                       float current_funds);
 
       /**
-   * @brief Process mouse events for confirmation dialogs
-   * @param event Mouse event data
-   * @return true if event was consumed
-   */
-      bool ProcessMouseEvent(const MouseEvent &event) const;
-
-      /**
    * @brief Handle keyboard shortcuts
    * @return true if a shortcut was handled
    */
       bool HandleKeyboard();
-
-      /**
-   * @brief Set demolish mode
-   */
-      void SetDemolishMode(const bool enabled) { demolish_mode_ = enabled; }
-
-      /**
-   * @brief Check if in demolish mode
-   */
-      bool IsDemolishMode() const { return demolish_mode_; }
 
       /**
    * @brief Undo last action
@@ -139,7 +119,7 @@ namespace towerforge::ui {
       /**
    * @brief Get the command history
    */
-      const towerforge::core::CommandHistory &GetCommandHistory() const { return command_history_; }
+      const core::CommandHistory &GetCommandHistory() const { return command_history_; }
 
       /**
    * @brief Set the camera for coordinate transformation
@@ -165,19 +145,13 @@ namespace towerforge::ui {
       void SetTooltipManager(TooltipManager *tooltip_manager) { tooltip_manager_ = tooltip_manager; }
 
       /**
-   * @brief Check if a confirmation dialog is currently showing
-   */
-      bool HasPendingConfirmation() const {
-         return demolish_confirmation_ && demolish_confirmation_->IsVisible();
-      }
-
-      /**
-       * @brief Get pending funds change from confirmed demolish
-       * @return Funds change (positive for refund) or 0
+       * @brief Execute demolish at specified location
+       * @param floor Floor of facility to demolish
+       * @param column Column of facility to demolish
+       * @param funds Current funds (will be updated with refund)
+       * @return true if demolish was successful
        */
-      int GetPendingFundsChange();
-
-      void ShowDemolishConfirmation(int clicked_floor, int clicked_column, int cost);
+      bool ExecuteDemolish(int floor, int column, float &funds);
 
    private:
       /**
@@ -211,28 +185,20 @@ namespace towerforge::ui {
       /**
    * @brief Map facility type index to BuildingComponent::Type
    */
-      static towerforge::core::BuildingComponent::Type GetFacilityType(int facility_type_index);
+      static core::BuildingComponent::Type GetFacilityType(int facility_type_index);
 
-      towerforge::core::TowerGrid &grid_;
-      towerforge::core::FacilityManager &facility_mgr_;
+      core::TowerGrid &grid_;
+      core::FacilityManager &facility_mgr_;
       BuildMenu &build_menu_;
       rendering::Camera *camera_;
 
-      bool demolish_mode_;
       int hover_floor_;
       int hover_column_;
       bool hover_valid_;
 
       std::vector<ConstructionState> constructions_in_progress_;
-      towerforge::core::CommandHistory command_history_;
+      core::CommandHistory command_history_;
       TooltipManager *tooltip_manager_;
-
-      // Confirmation dialog for destructive actions
-      std::unique_ptr<EngineConfirmationDialog> demolish_confirmation_;
-      int pending_demolish_floor_;
-      int pending_demolish_column_;
-      float pending_demolish_funds_;
-      int pending_funds_change_; // Stores the result of confirmed demolish
 
       static constexpr float RECOVERY_PERCENTAGE = 0.5f; // 50% recovery on demolish
    };

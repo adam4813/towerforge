@@ -151,11 +151,11 @@ namespace towerforge::ui {
  */
 	class HUD {
 	public:
-		/**
+	/**
 		 * @brief Callback type for action bar actions
 		 */
 		using ActionBarCallback = std::function<void(int action)>;
-		using DemolishFacilityCallback = std::function<void(FacilityInfo info)>;
+		using DemolishFacilityCallback = std::function<void()>;
 
 		HUD();
 

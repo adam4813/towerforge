@@ -267,7 +267,7 @@ namespace towerforge::ui {
         });
     }
 
-    void BuildMenu::Render(bool can_undo, bool can_redo, bool demolish_mode) const {
+    void BuildMenu::Render(bool can_undo, bool can_redo) const {
         if (!visible_ || !main_panel_) return;
 
         main_panel_->Render();
