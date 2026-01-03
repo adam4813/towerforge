@@ -165,8 +165,10 @@ namespace towerforge::ui {
         animation_time_ += delta_time;
 
         // Check for screen resize
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
             UpdateLayout();
         }
@@ -179,8 +181,9 @@ namespace towerforge::ui {
     void EngineConfirmationDialog::UpdateLayout() {
         if (!panel_) return;
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         const float panel_x = static_cast<float>((screen_width - DIALOG_WIDTH) / 2);
         const float panel_y = static_cast<float>((screen_height - DIALOG_HEIGHT) / 2);
@@ -197,8 +200,10 @@ namespace towerforge::ui {
         if (!visible_ || !panel_) return;
 
         // Draw dim overlay behind dialog
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         engine::ui::BatchRenderer::SubmitQuad(
             engine::ui::Rectangle(0, 0, screen_width, screen_height),
             UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f))

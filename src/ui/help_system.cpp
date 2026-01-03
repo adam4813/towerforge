@@ -3,14 +3,15 @@
 #include <cmath>
 #include <algorithm>
 
-namespace towerforge::ui {
+import engine;
 
+namespace towerforge::ui {
     HelpSystem::HelpSystem()
         : visible_(false)
-        , current_context_(HelpContext::MainGame)
-        , animation_time_(0.0f)
-        , scroll_offset_(0.0f)
-        , max_scroll_(0.0f) {
+          , current_context_(HelpContext::MainGame)
+          , animation_time_(0.0f)
+          , scroll_offset_(0.0f)
+          , max_scroll_(0.0f) {
     }
 
     HelpSystem::~HelpSystem() = default;
@@ -65,7 +66,7 @@ namespace towerforge::ui {
         }
     }
 
-    bool HelpSystem::ProcessMouseEvent(const MouseEvent& event) {
+    bool HelpSystem::ProcessMouseEvent(const MouseEvent &event) {
         // Delegate to legacy implementation for now (HelpSystem uses manual collision)
         return HandleMouse(static_cast<int>(event.x), static_cast<int>(event.y), event.left_pressed);
     }
@@ -73,8 +74,10 @@ namespace towerforge::ui {
     bool HelpSystem::HandleMouse(const int mouse_x, const int mouse_y, const bool clicked) {
         if (!visible_) return false;
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
 
@@ -103,18 +106,18 @@ namespace towerforge::ui {
             scroll_offset_ = std::clamp(scroll_offset_, 0.0f, max_scroll_);
         }
 
-        return true;  // Consume all mouse events when help is visible
+        return true; // Consume all mouse events when help is visible
     }
 
-    bool HelpSystem::IsMouseOverHelpIcon(const Rectangle& bounds) {
+    bool HelpSystem::IsMouseOverHelpIcon(const Rectangle &bounds) {
         const int mouse_x = GetMouseX();
         const int mouse_y = GetMouseY();
         return CheckCollisionPointRec({static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, bounds);
     }
 
-    bool HelpSystem::RenderHelpIcon(const Rectangle& bounds, const int mouse_x, const int mouse_y) {
+    bool HelpSystem::RenderHelpIcon(const Rectangle &bounds, const int mouse_x, const int mouse_y) {
         const bool hovered = CheckCollisionPointRec({static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, bounds);
-        
+
         // Draw circle background
         const Color bg_color = hovered ? ColorAlpha(SKYBLUE, 0.6f) : ColorAlpha(DARKBLUE, 0.4f);
         DrawCircle(
@@ -123,7 +126,7 @@ namespace towerforge::ui {
             bounds.width / 2,
             bg_color
         );
-        
+
         // Draw border
         const Color border_color = hovered ? SKYBLUE : BLUE;
         DrawCircleLines(
@@ -132,9 +135,9 @@ namespace towerforge::ui {
             bounds.width / 2,
             border_color
         );
-        
+
         // Draw "?" text
-        const char* text = "?";
+        const char *text = "?";
         const int text_size = static_cast<int>(bounds.width * 0.7f);
         const int text_width = MeasureText(text, text_size);
         DrawText(
@@ -144,13 +147,15 @@ namespace towerforge::ui {
             text_size,
             WHITE
         );
-        
+
         return hovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
     }
 
     void HelpSystem::RenderOverlay() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
 
@@ -159,16 +164,19 @@ namespace towerforge::ui {
 
         // Draw main help window
         DrawRectangle(overlay_x, overlay_y, OVERLAY_WIDTH, OVERLAY_HEIGHT, ColorAlpha(BLACK, 0.95f));
-        
+
         // Draw border with subtle glow effect
         const float pulse = static_cast<float>(sin(animation_time_ * 2.0) * 0.1 + 0.9);
         DrawRectangleLines(overlay_x, overlay_y, OVERLAY_WIDTH, OVERLAY_HEIGHT, ColorAlpha(SKYBLUE, pulse));
-        DrawRectangleLines(overlay_x + 1, overlay_y + 1, OVERLAY_WIDTH - 2, OVERLAY_HEIGHT - 2, ColorAlpha(SKYBLUE, pulse * 0.5f));
+        DrawRectangleLines(overlay_x + 1, overlay_y + 1, OVERLAY_WIDTH - 2, OVERLAY_HEIGHT - 2,
+                           ColorAlpha(SKYBLUE, pulse * 0.5f));
     }
 
     void HelpSystem::RenderHeader() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
 
@@ -179,33 +187,45 @@ namespace towerforge::ui {
         // Get context name
         std::string context_name;
         switch (current_context_) {
-            case HelpContext::MainGame: context_name = "Gameplay Help"; break;
-            case HelpContext::BuildMenu: context_name = "Building Help"; break;
-            case HelpContext::ResearchTree: context_name = "Research Tree Help"; break;
-            case HelpContext::ModsMenu: context_name = "Mods Help"; break;
-            case HelpContext::StaffManagement: context_name = "Staff Management Help"; break;
-            case HelpContext::Settings: context_name = "Settings Help"; break;
-            case HelpContext::Tutorial: context_name = "Tutorial Help"; break;
-            case HelpContext::PauseMenu: context_name = "Pause Menu Help"; break;
-            case HelpContext::History: context_name = "History Help"; break;
-            case HelpContext::Notifications: context_name = "Notifications Help"; break;
+            case HelpContext::MainGame: context_name = "Gameplay Help";
+                break;
+            case HelpContext::BuildMenu: context_name = "Building Help";
+                break;
+            case HelpContext::ResearchTree: context_name = "Research Tree Help";
+                break;
+            case HelpContext::ModsMenu: context_name = "Mods Help";
+                break;
+            case HelpContext::StaffManagement: context_name = "Staff Management Help";
+                break;
+            case HelpContext::Settings: context_name = "Settings Help";
+                break;
+            case HelpContext::Tutorial: context_name = "Tutorial Help";
+                break;
+            case HelpContext::PauseMenu: context_name = "Pause Menu Help";
+                break;
+            case HelpContext::History: context_name = "History Help";
+                break;
+            case HelpContext::Notifications: context_name = "Notifications Help";
+                break;
         }
 
         // Draw title
         constexpr int title_font_size = 24;
         const int title_width = MeasureText(context_name.c_str(), title_font_size);
-        DrawText(context_name.c_str(), overlay_x + (OVERLAY_WIDTH - title_width) / 2, 
+        DrawText(context_name.c_str(), overlay_x + (OVERLAY_WIDTH - title_width) / 2,
                  overlay_y + (HEADER_HEIGHT - title_font_size) / 2, title_font_size, SKYBLUE);
 
         // Draw "Press F1 or ESC to close" hint
-        const char* hint = "Press F1 or ESC to close";
+        const char *hint = "Press F1 or ESC to close";
         constexpr int hint_size = 12;
         DrawText(hint, overlay_x + PADDING, overlay_y + OVERLAY_HEIGHT - 20, hint_size, GRAY);
     }
 
     void HelpSystem::RenderContent() {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
 
@@ -220,18 +240,18 @@ namespace towerforge::ui {
         int y_offset = content_y - static_cast<int>(scroll_offset_);
 
         // Get help topics for current context
-        const auto& topics = help_content_[current_context_];
+        const auto &topics = help_content_[current_context_];
 
-        for (const auto& topic : topics) {
+        for (const auto &topic: topics) {
             // Draw topic title
             constexpr int title_size = 18;
             DrawText(topic.title.c_str(), content_x, y_offset, title_size, GOLD);
             y_offset += title_size + 10;
 
             // Draw topic content (word wrap)
-            const int max_chars_per_line = content_width / 8;  // Approximate
+            const int max_chars_per_line = content_width / 8; // Approximate
             std::string wrapped_content = topic.content;
-            
+
             // Simple word wrapping
             size_t line_start = 0;
             while (line_start < wrapped_content.length()) {
@@ -245,7 +265,7 @@ namespace towerforge::ui {
                         line_end = last_space;
                     }
                 }
-                
+
                 const std::string line = wrapped_content.substr(line_start, line_end - line_start);
                 DrawText(line.c_str(), content_x + 10, y_offset, 14, LIGHTGRAY);
                 y_offset += 18;
@@ -259,14 +279,14 @@ namespace towerforge::ui {
                 DrawText("Quick Tips:", content_x + 10, y_offset, 14, SKYBLUE);
                 y_offset += 18;
 
-                for (const auto& tip : topic.tips) {
+                for (const auto &tip: topic.tips) {
                     const std::string bullet = "• " + tip;
                     DrawText(bullet.c_str(), content_x + 20, y_offset, 13, WHITE);
                     y_offset += 16;
                 }
             }
 
-            y_offset += 15;  // Space between topics
+            y_offset += 15; // Space between topics
         }
 
         EndScissorMode();
@@ -277,8 +297,10 @@ namespace towerforge::ui {
     }
 
     void HelpSystem::RenderCloseButton() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
 
@@ -288,7 +310,7 @@ namespace towerforge::ui {
         const int mouse_x = GetMouseX();
         const int mouse_y = GetMouseY();
         const bool hovered = mouse_x >= close_x && mouse_x <= close_x + CLOSE_BUTTON_SIZE &&
-                           mouse_y >= close_y && mouse_y <= close_y + CLOSE_BUTTON_SIZE;
+                             mouse_y >= close_y && mouse_y <= close_y + CLOSE_BUTTON_SIZE;
 
         const Color bg_color = hovered ? ColorAlpha(RED, 0.5f) : ColorAlpha(DARKGRAY, 0.3f);
         DrawRectangle(close_x, close_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, bg_color);
@@ -299,8 +321,10 @@ namespace towerforge::ui {
     void HelpSystem::RenderScrollbar() const {
         if (max_scroll_ <= 0) return;
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         const int overlay_y = (screen_height - OVERLAY_HEIGHT) / 2;
 
@@ -564,5 +588,4 @@ namespace towerforge::ui {
 
         help_content_[HelpContext::Notifications] = topics;
     }
-
 }

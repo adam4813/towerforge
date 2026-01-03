@@ -69,8 +69,10 @@ namespace towerforge::ui {
         window_manager_->Update(delta_time);
 
         // Update current info window and reposition on screen resize
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         std::visit([delta_time, screen_width, screen_height](auto &window) {
             using T = std::decay_t<decltype(window)>;
             if constexpr (!std::is_same_v<T, std::monostate>) {
@@ -174,8 +176,10 @@ namespace towerforge::ui {
         window->SetDemolishFacilityCallback(demolish_facility_callback);
 
         // Position at bottom center
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const float x = (screen_width - window->GetWidth()) / 2.0f;
         const float y = screen_height - window->GetHeight() - 60.0f; // 60px margin for action bar
         window->SetPosition(x, y);
@@ -188,8 +192,9 @@ namespace towerforge::ui {
         auto window = std::make_unique<PersonWindow>(info);
 
         // Position at bottom center
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
         const float x = (screen_width - window->GetWidth()) / 2.0f;
         const float y = screen_height - window->GetHeight() - 60.0f;
         window->SetPosition(x, y);
@@ -202,8 +207,10 @@ namespace towerforge::ui {
         auto window = std::make_unique<ElevatorWindow>(info);
 
         // Position at bottom center
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const float x = (screen_width - window->GetWidth()) / 2.0f;
         const float y = screen_height - window->GetHeight() - 60.0f;
         window->SetPosition(x, y);
@@ -301,8 +308,9 @@ namespace towerforge::ui {
         // Update tooltip manager
         tooltip_manager_->Update(mouse_x, mouse_y);
 
-        int screen_width = GetScreenWidth();
-        int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Check top bar elements
         if (mouse_y <= TOP_BAR_HEIGHT) {

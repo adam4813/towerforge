@@ -54,9 +54,10 @@ namespace towerforge::ui {
         using namespace engine::ui::components;
         using namespace engine::ui::elements;
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        const int menu_width = ActionBar::CalculateBarWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+ const int menu_width = ActionBar::CalculateBarWidth();
         const float x = static_cast<float>((screen_width - menu_width) / 2);
         const float y = static_cast<float>(screen_height - MENU_HEIGHT - 60);
 
@@ -221,8 +222,10 @@ namespace towerforge::ui {
     }
 
     void BuildMenu::UpdateLayout() {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int menu_width = ActionBar::CalculateBarWidth();
         const float x = static_cast<float>((screen_width - menu_width) / 2);
         const float y = static_cast<float>(screen_height - MENU_HEIGHT - 60);
@@ -248,8 +251,9 @@ namespace towerforge::ui {
     void BuildMenu::Update(const float delta_time) {
         if (!visible_ || !main_panel_) return;
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Check for window resize
         if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {

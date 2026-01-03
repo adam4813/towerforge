@@ -2,6 +2,8 @@
 #include <cmath>
 #include <raylib.h>
 
+import engine;
+
 namespace towerforge::ui {
     TutorialManager::TutorialManager()
         : current_step_(TutorialStep::BuildLobby)
@@ -41,8 +43,9 @@ namespace towerforge::ui {
     }
 
     void TutorialManager::RenderOverlay() const {
-        const int screen_width = GetScreenWidth();
-        int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Draw semi-transparent overlay at top
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
@@ -61,7 +64,10 @@ namespace towerforge::ui {
     }
 
     void TutorialManager::RenderStepInfo() const {
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         constexpr int overlay_y = 20;
 
@@ -96,7 +102,10 @@ namespace towerforge::ui {
     }
 
     void TutorialManager::RenderProgress() {
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         constexpr int overlay_y = 20;
 
@@ -129,7 +138,10 @@ namespace towerforge::ui {
     }
 
     void TutorialManager::RenderButtons() {
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         constexpr int overlay_y = 20;
 
@@ -159,7 +171,10 @@ namespace towerforge::ui {
 
     bool TutorialManager::HandleInput() {
         // Check skip button click
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int overlay_x = (screen_width - OVERLAY_WIDTH) / 2;
         constexpr int overlay_y = 20;
         const int skip_x = overlay_x + OVERLAY_WIDTH - BUTTON_WIDTH - 20;

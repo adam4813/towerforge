@@ -38,8 +38,10 @@ namespace towerforge::ui {
         settings_panel_ = std::make_unique<engine::ui::elements::Panel>();
         settings_panel_->SetSize(static_cast<float>(MENU_WIDTH), static_cast<float>(MENU_HEIGHT));
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int panel_x = (screen_width - MENU_WIDTH) / 2;
         const int panel_y = (screen_height - MENU_HEIGHT) / 2;
         settings_panel_->SetRelativePosition(static_cast<float>(panel_x), static_cast<float>(panel_y));
@@ -151,8 +153,11 @@ namespace towerforge::ui {
     }
 
     void AccessibilitySettingsMenu::UpdateLayout() {
-        last_screen_width_ = GetScreenWidth();
-        last_screen_height_ = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
 
         if (!settings_panel_) {
             return;
@@ -171,8 +176,10 @@ namespace towerforge::ui {
         animation_time_ += delta_time;
 
         // Check for window resize
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
             UpdateLayout();
         }
@@ -217,8 +224,10 @@ namespace towerforge::ui {
 
     void AccessibilitySettingsMenu::RenderDimOverlay() {
         // Dim the background
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         engine::ui::BatchRenderer::SubmitQuad(engine::ui::Rectangle(0, 0, screen_width, screen_height),
                                               UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f)));
     }

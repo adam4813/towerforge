@@ -37,8 +37,9 @@ namespace towerforge::ui {
     void AudioSettingsMenu::Initialize() {
         using namespace engine::ui::components;
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Create main panel with vertical layout
         const int panel_x = (screen_width - MENU_WIDTH) / 2;
@@ -228,8 +229,11 @@ namespace towerforge::ui {
     }
 
     void AudioSettingsMenu::UpdateLayout() {
-        last_screen_width_ = GetScreenWidth();
-        last_screen_height_ = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+        last_screen_width_ = screen_width;
+        last_screen_height_ = screen_height;
 
         if (settings_panel_ == nullptr) {
             return;
@@ -247,8 +251,10 @@ namespace towerforge::ui {
         animation_time_ += delta_time;
 
         // Check for window resize
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
             UpdateLayout();
         }
@@ -274,8 +280,10 @@ namespace towerforge::ui {
 
     void AudioSettingsMenu::RenderDimOverlay() {
         // Dim the background
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         engine::ui::BatchRenderer::SubmitQuad(engine::ui::Rectangle(0, 0, screen_width, screen_height),
                                               UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f)));
     }

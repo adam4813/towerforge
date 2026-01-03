@@ -10,16 +10,19 @@ namespace towerforge::ui {
 
     void EndGameSummary::Update(float delta_time) {
         // Check for window resize
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
             UpdateLayout();
         }
     }
 
     void EndGameSummary::UpdateLayout() {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         if (summary_panel_ != nullptr) {
             // Center the panel
@@ -52,8 +55,10 @@ namespace towerforge::ui {
 
     void EndGameSummary::RenderDimOverlay() {
         // Dim the background
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         engine::ui::BatchRenderer::SubmitQuad(engine::ui::Rectangle(0, 0, screen_width, screen_height),
                                               UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f)));
     }
@@ -63,9 +68,9 @@ namespace towerforge::ui {
 
         using namespace engine::ui::components;
         using namespace engine::ui::elements;
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         const int panel_x = (screen_width - BOX_WIDTH) / 2;
         const int panel_y = (screen_height - BOX_HEIGHT) / 2;

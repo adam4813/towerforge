@@ -21,7 +21,10 @@ namespace towerforge::ui {
 
         const int speed_width = CalculateWidth();
         const int speed_height = CalculateHeight();
-        const int screen_height = GetScreenHeight();
+
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         main_panel_ = std::make_unique<Panel>();
         main_panel_->SetSize(static_cast<float>(speed_width), static_cast<float>(speed_height));
@@ -113,7 +116,10 @@ namespace towerforge::ui {
         if (!main_panel_) return;
 
         // Update position and size on resize
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int speed_width = CalculateWidth();
         const int speed_height = CalculateHeight();
         main_panel_->SetRelativePosition(10, static_cast<float>(screen_height - speed_height - 10));

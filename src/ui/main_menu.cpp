@@ -31,8 +31,10 @@ namespace towerforge::ui {
 	}
 
 	void MainMenu::UpdateLayout() {
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
 
 		if (main_panel_ != nullptr) {
 			main_panel_->SetSize(static_cast<float>(screen_width), static_cast<float>(screen_height));
@@ -49,8 +51,10 @@ namespace towerforge::ui {
 		animation_time_ += delta_time;
 
 		// Check for window resize and update layout if needed
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
 		if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
 			UpdateLayout();
 		}
@@ -81,8 +85,10 @@ namespace towerforge::ui {
 		ClearBackground(UITheme::BACKGROUND_DARK);
 
 		// Draw subtle grid pattern in background
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
 		for (int i = 0; i < screen_height; i += 40) {
 			batch_renderer::adapter::DrawLine(0, i, screen_width, i, UITheme::DECORATIVE_GRID);
 		}
@@ -159,8 +165,12 @@ namespace towerforge::ui {
 		using namespace engine::ui::components;
 		using namespace engine::ui::elements;
 
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
 		main_panel_ = std::make_unique<engine::ui::elements::Panel>();
-		main_panel_->SetSize(static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()));
+		main_panel_->SetSize(screen_width, screen_height);
 		main_panel_->SetOpacity(0);
 		main_panel_->SetPadding(64.0f);
 		main_panel_->AddComponent<LayoutComponent>(

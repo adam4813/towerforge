@@ -6,9 +6,8 @@
 import engine;
 
 namespace towerforge::ui {
-
     // Tooltip implementation
-    Tooltip::Tooltip(const std::string& text)
+    Tooltip::Tooltip(const std::string &text)
         : static_text_(text)
           , text_generator_(nullptr)
           , is_dynamic_(false)
@@ -16,7 +15,7 @@ namespace towerforge::ui {
     }
 
     Tooltip::Tooltip(const std::function<std::string()> &text_generator)
-          : text_generator_(text_generator)
+        : text_generator_(text_generator)
           , is_dynamic_(true)
           , visible_(true) {
     }
@@ -86,14 +85,15 @@ namespace towerforge::ui {
         RenderTooltipBox(text, render_x, render_y);
     }
 
-    void TooltipManager::ShowTooltip(const Tooltip& tooltip, const int x, const int y, const int width, const int height) {
+    void TooltipManager::ShowTooltip(const Tooltip &tooltip, const int x, const int y, const int width,
+                                     const int height) {
         current_tooltip_ = std::make_unique<Tooltip>(tooltip);
         tooltip_x_ = x;
         tooltip_y_ = y;
         element_width_ = width;
         element_height_ = height;
         hover_time_ = 0.0f;
-        is_visible_ = false;  // Will become visible after hover delay
+        is_visible_ = false; // Will become visible after hover delay
     }
 
     void TooltipManager::HideTooltip() {
@@ -102,7 +102,8 @@ namespace towerforge::ui {
         is_visible_ = false;
     }
 
-    bool TooltipManager::IsHovering(const int mouse_x, const int mouse_y, const int x, const int y, const int width, const int height) {
+    bool TooltipManager::IsHovering(const int mouse_x, const int mouse_y, const int x, const int y, const int width,
+                                    const int height) {
         return mouse_x >= x && mouse_x <= x + width &&
                mouse_y >= y && mouse_y <= y + height;
     }
@@ -111,7 +112,7 @@ namespace towerforge::ui {
         return CheckCollisionPointRec({static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, rect);
     }
 
-    void TooltipManager::RenderTooltipBox(const std::string& text, int x, int y) const {
+    void TooltipManager::RenderTooltipBox(const std::string &text, int x, int y) const {
         // Word wrap the text
         std::vector<std::string> lines;
         std::istringstream iss(text);
@@ -142,7 +143,7 @@ namespace towerforge::ui {
 
         // Calculate tooltip dimensions
         int max_line_width = 0;
-        for (const auto& line : lines) {
+        for (const auto &line: lines) {
             int line_width = MeasureText(line.c_str(), TOOLTIP_FONT_SIZE);
             max_line_width = std::max(max_line_width, line_width);
         }
@@ -152,8 +153,9 @@ namespace towerforge::ui {
         const int tooltip_height = static_cast<int>(lines.size()) * line_height + TOOLTIP_PADDING * 2;
 
         // Adjust position to stay on screen
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         if (x + tooltip_width > screen_width) {
             x = screen_width - tooltip_width - 5;
@@ -163,7 +165,7 @@ namespace towerforge::ui {
         }
 
         if (y + tooltip_height > screen_height) {
-            y = tooltip_y_ - tooltip_height - TOOLTIP_OFFSET_Y;  // Show above element
+            y = tooltip_y_ - tooltip_height - TOOLTIP_OFFSET_Y; // Show above element
         }
         if (y < 5) {
             y = 5;
@@ -171,22 +173,21 @@ namespace towerforge::ui {
 
         // Draw background using engine BatchRenderer
         engine::ui::BatchRenderer::SubmitQuad(
-            engine::ui::Rectangle(static_cast<float>(x), static_cast<float>(y), 
+            engine::ui::Rectangle(static_cast<float>(x), static_cast<float>(y),
                                   static_cast<float>(tooltip_width), static_cast<float>(tooltip_height)),
             UITheme::ToEngineColor(ColorAlpha(BLACK, 0.95f))
         );
-        
+
         // Draw border
         DrawRectangleLines(x, y, tooltip_width, tooltip_height, UITheme::PRIMARY);
 
         // Draw text using engine BatchRenderer
         int text_y = y + TOOLTIP_PADDING;
-        for (const auto& line : lines) {
-            engine::ui::BatchRenderer::SubmitText(line, static_cast<float>(x + TOOLTIP_PADDING), 
-                                                  static_cast<float>(text_y), TOOLTIP_FONT_SIZE, 
+        for (const auto &line: lines) {
+            engine::ui::BatchRenderer::SubmitText(line, static_cast<float>(x + TOOLTIP_PADDING),
+                                                  static_cast<float>(text_y), TOOLTIP_FONT_SIZE,
                                                   UITheme::ToEngineColor(WHITE));
             text_y += line_height;
         }
     }
-
 }

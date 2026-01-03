@@ -189,8 +189,9 @@ namespace towerforge::ui {
     }
 
     void UIWindowManager::CalculateWindowPosition(UIWindow *window) const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Default position: right side of screen
         int default_x = screen_width - static_cast<int>(window->GetAbsoluteBounds().width) - INITIAL_X_OFFSET;
@@ -229,8 +230,9 @@ namespace towerforge::ui {
     }
 
     void UIWindowManager::CalculateInfoWindowPosition(UIWindow *window) const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Center horizontally
         const int x = (screen_width - static_cast<int>(window->GetAbsoluteBounds().width)) / 2;

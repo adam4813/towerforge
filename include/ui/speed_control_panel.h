@@ -83,7 +83,9 @@ namespace towerforge::ui {
     public:
         // Calculate responsive width
         static int CalculateWidth() {
-            const int screen_width = GetScreenWidth();
+            std::uint32_t screen_width;
+            std::uint32_t screen_height;
+            engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
             const int max_width = static_cast<int>(screen_width * MAX_WIDTH_PERCENT);
             return std::clamp(std::min(BASE_WIDTH, max_width), MIN_WIDTH, BASE_WIDTH);
         }

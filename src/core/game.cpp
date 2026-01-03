@@ -97,6 +97,9 @@ namespace towerforge::core {
 
 		std::cout << "User preferences applied to all systems" << std::endl;
 
+
+		SetExitKey(0);
+
 		return true;
 	}
 
@@ -196,16 +199,18 @@ namespace towerforge::core {
 			// Update audio system
 			audio_manager_->Update(delta_time);
 
-			static float last_window_width = static_cast<float>(GetScreenWidth());
-			static float last_window_height = static_cast<float>(GetScreenHeight());
-			if (last_window_width != static_cast<float>(GetScreenWidth()) ||
-			    last_window_height != static_cast<float>(GetScreenHeight())) {
-				const float window_width = static_cast<float>(GetScreenWidth());
-				const float window_height = static_cast<float>(GetScreenHeight());
+
+			std::uint32_t screen_width;
+			std::uint32_t screen_height;
+			engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+			static std::uint32_t last_window_width = screen_width;
+			static std::uint32_t last_window_height = screen_height;
+			if (last_window_width != screen_width || last_window_height != screen_height) {
 				const auto renderer = &engine::rendering::GetRenderer();
-				renderer->SetWindowSize(static_cast<uint32_t>(window_width), static_cast<uint32_t>(window_height));
-				last_window_width = window_width;
-				last_window_height = window_height;
+				renderer->SetWindowSize(screen_width, screen_height);
+				last_window_width = screen_width;
+				last_window_height = screen_height;
 			}
 			//engine.Update(delta_time);
 

@@ -7,11 +7,10 @@
 import engine;
 
 namespace towerforge::ui {
-
     StarRatingPanel::StarRatingPanel()
         : game_state_(nullptr)
-        , last_screen_width_(0)
-        , last_screen_height_(0) {
+          , last_screen_width_(0)
+          , last_screen_height_(0) {
     }
 
     void StarRatingPanel::Initialize() {
@@ -28,8 +27,9 @@ namespace towerforge::ui {
     }
 
     void StarRatingPanel::Update(float delta_time) {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
             UpdateLayout();
@@ -39,8 +39,10 @@ namespace towerforge::ui {
     void StarRatingPanel::UpdateLayout() {
         if (!panel_) return;
 
-        const int screen_width = GetScreenWidth();
-        constexpr int top_bar_height = 40;  // TopBar::HEIGHT
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+        constexpr int top_bar_height = 40; // TopBar::HEIGHT
 
         panel_->SetRelativePosition(
             static_cast<float>(screen_width - WIDTH - 10),
@@ -48,7 +50,7 @@ namespace towerforge::ui {
         );
 
         last_screen_width_ = screen_width;
-        last_screen_height_ = GetScreenHeight();
+        last_screen_height_ = screen_height;
     }
 
     void StarRatingPanel::Render() const {
@@ -67,7 +69,7 @@ namespace towerforge::ui {
         int x = panel_x + PADDING;
         int y = panel_y + PADDING;
 
-        const auto& rating = game_state_->rating;
+        const auto &rating = game_state_->rating;
 
         // Title with stars
         std::string stars_display;
@@ -79,52 +81,52 @@ namespace towerforge::ui {
             }
         }
 
-        engine::ui::BatchRenderer::SubmitText(stars_display, static_cast<float>(x), static_cast<float>(y), 
+        engine::ui::BatchRenderer::SubmitText(stars_display, static_cast<float>(x), static_cast<float>(y),
                                               20, UITheme::ToEngineColor(GOLD));
-        engine::ui::BatchRenderer::SubmitText("Tower Rating", static_cast<float>(x + 110), static_cast<float>(y + 2), 
+        engine::ui::BatchRenderer::SubmitText("Tower Rating", static_cast<float>(x + 110), static_cast<float>(y + 2),
                                               16, UITheme::ToEngineColor(WHITE));
         y += 30;
 
         // Satisfaction
         std::stringstream sat_ss;
         sat_ss << "Satisfaction: " << std::fixed << std::setprecision(0)
-               << rating.average_satisfaction << "%";
-        engine::ui::BatchRenderer::SubmitText(sat_ss.str(), static_cast<float>(x), static_cast<float>(y), 
+                << rating.average_satisfaction << "%";
+        engine::ui::BatchRenderer::SubmitText(sat_ss.str(), static_cast<float>(x), static_cast<float>(y),
                                               14, UITheme::ToEngineColor(LIGHTGRAY));
         y += 20;
 
         // Tenants
         std::stringstream tenants_ss;
         tenants_ss << "Tenants: " << rating.total_tenants;
-        engine::ui::BatchRenderer::SubmitText(tenants_ss.str(), static_cast<float>(x), static_cast<float>(y), 
+        engine::ui::BatchRenderer::SubmitText(tenants_ss.str(), static_cast<float>(x), static_cast<float>(y),
                                               14, UITheme::ToEngineColor(LIGHTGRAY));
         y += 20;
 
         // Floors
         std::stringstream floors_ss;
         floors_ss << "Floors: " << rating.total_floors;
-        engine::ui::BatchRenderer::SubmitText(floors_ss.str(), static_cast<float>(x), static_cast<float>(y), 
+        engine::ui::BatchRenderer::SubmitText(floors_ss.str(), static_cast<float>(x), static_cast<float>(y),
                                               14, UITheme::ToEngineColor(LIGHTGRAY));
         y += 20;
 
         // Income
         std::stringstream income_ss;
         income_ss << "Income: $" << std::fixed << std::setprecision(0)
-                  << rating.hourly_income << "/hr";
-        engine::ui::BatchRenderer::SubmitText(income_ss.str(), static_cast<float>(x), static_cast<float>(y), 
+                << rating.hourly_income << "/hr";
+        engine::ui::BatchRenderer::SubmitText(income_ss.str(), static_cast<float>(x), static_cast<float>(y),
                                               14, UITheme::ToEngineColor(GREEN));
         y += 25;
 
         // Next milestone (only if not at max stars)
         if (rating.stars < 5) {
             engine::ui::BatchRenderer::SubmitQuad(
-                engine::ui::Rectangle(static_cast<float>(panel_x + 5), static_cast<float>(y), 
+                engine::ui::Rectangle(static_cast<float>(panel_x + 5), static_cast<float>(y),
                                       static_cast<float>(WIDTH - 10), 1.0f),
                 UITheme::ToEngineColor(DARKGRAY)
             );
             y += 10;
 
-            engine::ui::BatchRenderer::SubmitText("Next star:", static_cast<float>(x), static_cast<float>(y), 
+            engine::ui::BatchRenderer::SubmitText("Next star:", static_cast<float>(x), static_cast<float>(y),
                                                   14, UITheme::ToEngineColor(YELLOW));
             y += 20;
 
@@ -133,7 +135,7 @@ namespace towerforge::ui {
                 if (const int needed = rating.next_star_tenants - rating.total_tenants; needed > 0) {
                     std::stringstream next_ss;
                     next_ss << "  +" << needed << " tenants";
-                    engine::ui::BatchRenderer::SubmitText(next_ss.str(), static_cast<float>(x), static_cast<float>(y), 
+                    engine::ui::BatchRenderer::SubmitText(next_ss.str(), static_cast<float>(x), static_cast<float>(y),
                                                           12, UITheme::ToEngineColor(GRAY));
                     y += 18;
                 }
@@ -145,18 +147,18 @@ namespace towerforge::ui {
                     std::stringstream next_ss;
                     next_ss << "  " << std::fixed << std::setprecision(0)
                             << needed << "% satisfaction";
-                    engine::ui::BatchRenderer::SubmitText(next_ss.str(), static_cast<float>(x), static_cast<float>(y), 
+                    engine::ui::BatchRenderer::SubmitText(next_ss.str(), static_cast<float>(x), static_cast<float>(y),
                                                           12, UITheme::ToEngineColor(GRAY));
                 }
             }
         } else {
             engine::ui::BatchRenderer::SubmitQuad(
-                engine::ui::Rectangle(static_cast<float>(panel_x + 5), static_cast<float>(y), 
+                engine::ui::Rectangle(static_cast<float>(panel_x + 5), static_cast<float>(y),
                                       static_cast<float>(WIDTH - 10), 1.0f),
                 UITheme::ToEngineColor(GOLD)
             );
             y += 10;
-            engine::ui::BatchRenderer::SubmitText("MAX RATING!", static_cast<float>(x + 45), static_cast<float>(y), 
+            engine::ui::BatchRenderer::SubmitText("MAX RATING!", static_cast<float>(x + 45), static_cast<float>(y),
                                                   16, UITheme::ToEngineColor(GOLD));
         }
     }
@@ -164,5 +166,4 @@ namespace towerforge::ui {
     bool StarRatingPanel::IsMaxRating() const {
         return game_state_ && game_state_->rating.stars >= 5;
     }
-
 } // namespace towerforge::ui

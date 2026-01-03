@@ -21,7 +21,10 @@ namespace towerforge::core {
     void CreditsScene::Render() {
         ClearBackground(Color{20, 20, 30, 255});
 
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         int y = 100;
 
         DrawText("CREDITS", (screen_width - MeasureText("CREDITS", 40)) / 2, y, 40, GOLD);

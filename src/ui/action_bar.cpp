@@ -11,8 +11,10 @@ namespace towerforge::ui {
         using namespace engine::ui::components;
         using namespace engine::ui::elements;
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int bar_width = CalculateBarWidth();
         const int bar_x = (screen_width - bar_width) / 2;
 
@@ -79,8 +81,9 @@ namespace towerforge::ui {
     }
 
     void ActionBar::Update(const float delta_time) {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Check for window resize
         if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
@@ -91,8 +94,10 @@ namespace towerforge::ui {
     }
 
     void ActionBar::UpdateLayout() {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int bar_width = CalculateBarWidth();
         const int bar_x = (screen_width - bar_width) / 2;
 

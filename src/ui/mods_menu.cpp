@@ -2,15 +2,16 @@
 #include <raylib.h>
 #include <algorithm>
 
-namespace towerforge::ui {
+import engine;
 
+namespace towerforge::ui {
     ModsMenu::ModsMenu()
         : visible_(false), mod_manager_(nullptr), selected_mod_index_(-1), scroll_offset_(0.0f) {
     }
 
     ModsMenu::~ModsMenu() = default;
 
-    void ModsMenu::SetModManager(towerforge::core::LuaModManager* mod_manager) {
+    void ModsMenu::SetModManager(towerforge::core::LuaModManager *mod_manager) {
         mod_manager_ = mod_manager;
     }
 
@@ -29,15 +30,16 @@ namespace towerforge::ui {
             return;
         }
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Semi-transparent overlay
         DrawRectangle(0, 0, screen_width, screen_height, Color{0, 0, 0, 180});
 
         // Menu dimensions
-        const int menu_width = std::min(800, screen_width - 100);
-        const int menu_height = std::min(600, screen_height - 100);
+        const int menu_width = std::min(800, static_cast<int>(screen_width) - 100);
+        const int menu_height = std::min(600, static_cast<int>(screen_height) - 100);
         const int menu_x = (screen_width - menu_width) / 2;
         const int menu_y = (screen_height - menu_height) / 2;
 
@@ -57,7 +59,7 @@ namespace towerforge::ui {
         DrawText(instructions, menu_x + 20, menu_y + menu_height - 30, inst_size, LIGHTGRAY);
 
         // Get mods list
-        const auto& mods = mod_manager_->GetLoadedMods();
+        const auto &mods = mod_manager_->GetLoadedMods();
 
         if (mods.empty()) {
             // No mods loaded
@@ -96,7 +98,7 @@ namespace towerforge::ui {
 
             // Render mods
             for (int i = start_index; i < end_index; ++i) {
-                const auto& mod = mods[i];
+                const auto &mod = mods[i];
                 const int y = list_y + (i - start_index) * item_height;
 
                 // Mod item background
@@ -146,7 +148,7 @@ namespace towerforge::ui {
 
                 // Status
                 if (mod.loaded_successfully) {
-                    const char* status = mod.enabled ? "Enabled" : "Disabled";
+                    const char *status = mod.enabled ? "Enabled" : "Disabled";
                     const Color status_color = mod.enabled ? GREEN : ORANGE;
                     DrawText(status, text_x, text_y, 14, status_color);
 
@@ -202,5 +204,4 @@ namespace towerforge::ui {
             Hide();
         }
     }
-
 }

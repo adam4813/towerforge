@@ -3,26 +3,27 @@
 #include <algorithm>
 #include "ui/batch_renderer/batch_renderer.h"
 
-namespace towerforge::ui::batch_renderer {
+import engine;
 
+namespace towerforge::ui::batch_renderer {
     struct BatchRenderer::BatchState {
         // Current batch buffers
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
         std::unordered_map<uint32_t, int> texture_slots;
-        
+
         // Scissor stack
         std::vector<ScissorRect> scissor_stack;
         ScissorRect current_scissor;
-        
+
         // Stats
         size_t draw_call_count = 0;
         bool initialized = false;
         bool in_frame = false;
-        
+
         // White pixel texture for untextured draws
         uint32_t white_texture_id = 0;
-        
+
         BatchState() {
             vertices.reserve(INITIAL_VERTEX_CAPACITY);
             indices.reserve(INITIAL_INDEX_CAPACITY);
@@ -34,12 +35,12 @@ namespace towerforge::ui::batch_renderer {
     void BatchRenderer::Initialize() {
         if (!state_) {
             state_ = std::make_unique<BatchState>();
-            
+
             // Create 1x1 white texture for untextured draws
             Image white_img = GenImageColor(1, 1, WHITE);
             Texture2D white_tex = LoadTextureFromImage(white_img);
             UnloadImage(white_img);
-            
+
             state_->white_texture_id = white_tex.id;
             state_->initialized = true;
         }
@@ -58,59 +59,61 @@ namespace towerforge::ui::batch_renderer {
         if (!state_ || !state_->initialized) {
             Initialize();
         }
-        
+
         state_->vertices.clear();
         state_->indices.clear();
         state_->texture_slots.clear();
         state_->scissor_stack.clear();
         state_->draw_call_count = 0;
         state_->in_frame = true;
-        
+
         // Initialize scissor to full screen
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
-        state_->current_scissor = ScissorRect(0, 0, 
-            static_cast<float>(screen_width), 
-            static_cast<float>(screen_height));
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        state_->current_scissor = ScissorRect(0, 0,
+                                              static_cast<float>(screen_width),
+                                              static_cast<float>(screen_height));
     }
 
     void BatchRenderer::EndFrame() {
         if (!state_ || !state_->in_frame) return;
-        
+
         // Flush any remaining batched draws
         if (!state_->vertices.empty()) {
             FlushBatch();
         }
-        
+
         state_->in_frame = false;
     }
 
-    void BatchRenderer::PushScissor(const ScissorRect& scissor) {
+    void BatchRenderer::PushScissor(const ScissorRect &scissor) {
         if (!state_) return;
-        
+
         // Intersect with current scissor
         ScissorRect new_scissor = state_->current_scissor.Intersect(scissor);
-        
+
         // If scissor changed, flush current batch
         if (new_scissor != state_->current_scissor && !state_->vertices.empty()) {
             FlushBatch();
         }
-        
+
         state_->scissor_stack.push_back(state_->current_scissor);
         state_->current_scissor = new_scissor;
     }
 
     void BatchRenderer::PopScissor() {
         if (!state_ || state_->scissor_stack.empty()) return;
-        
+
         ScissorRect previous = state_->scissor_stack.back();
         state_->scissor_stack.pop_back();
-        
+
         // If scissor changed, flush current batch
         if (previous != state_->current_scissor && !state_->vertices.empty()) {
             FlushBatch();
         }
-        
+
         state_->current_scissor = previous;
     }
 
@@ -119,53 +122,53 @@ namespace towerforge::ui::batch_renderer {
     }
 
     void BatchRenderer::SubmitQuad(
-        const Rectangle& rect,
-        const Color& color,
-        const std::optional<Rectangle>& uv_coords,
+        const Rectangle &rect,
+        const Color &color,
+        const std::optional<Rectangle> &uv_coords,
         uint32_t texture_id
     ) {
         if (!state_) return;
-        
+
         // Use white texture if none specified
         if (texture_id == 0) {
             texture_id = state_->white_texture_id;
         }
-        
+
         // Check if we need to flush
         if (ShouldFlush(texture_id)) {
             FlushBatch();
         }
-        
+
         // Get texture slot
         const int tex_slot = GetOrAddTextureSlot(texture_id);
         const uint32_t packed_color = ColorToRGBA(color);
-        
+
         // UV coordinates (default to full texture)
         float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
         if (uv_coords.has_value()) {
-            const Rectangle& uv = uv_coords.value();
+            const Rectangle &uv = uv_coords.value();
             u0 = uv.x;
             v0 = uv.y;
             u1 = uv.x + uv.width;
             v1 = uv.y + uv.height;
         }
-        
+
         // Quad vertices (top-left origin)
 
         const float x0 = rect.x;
         const float y0 = rect.y + rect.height; // Note: y-axis inverted
         const float x1 = rect.x + rect.width;
         const float y1 = rect.y;
-        
+
         PushQuadVertices(
-            x0, y0, u0, v0,  // Top-left
-            x1, y0, u1, v0,  // Top-right
-            x1, y1, u1, v1,  // Bottom-right
-            x0, y1, u0, v1,  // Bottom-left
+            x0, y0, u0, v0, // Top-left
+            x1, y0, u1, v0, // Top-right
+            x1, y1, u1, v1, // Bottom-right
+            x0, y1, u0, v1, // Bottom-left
             packed_color,
             static_cast<float>(tex_slot)
         );
-        
+
         const uint32_t base = static_cast<uint32_t>(state_->vertices.size()) - 4;
         PushQuadIndices(base);
     }
@@ -174,22 +177,22 @@ namespace towerforge::ui::batch_renderer {
         const float x0, const float y0,
         const float x1, const float y1,
         const float thickness,
-        const Color& color,
+        const Color &color,
         uint32_t texture_id
     ) {
         if (!state_) return;
-        
+
         // Tessellate line as quad (2 triangles)
         const float dx = x1 - x0;
         const float dy = y1 - y0;
         const float len = std::sqrt(dx * dx + dy * dy);
-        
+
         if (len < 0.001f) return; // Degenerate line
-        
+
         // Perpendicular vector (normalized, scaled by half thickness)
         const float nx = -dy / len * (thickness * 0.5f);
         const float ny = dx / len * (thickness * 0.5f);
-        
+
         // Quad corners
         const float xa = x0 + nx;
         const float ya = y0 + ny;
@@ -199,19 +202,19 @@ namespace towerforge::ui::batch_renderer {
         const float yc = y1 - ny;
         const float xd = x1 + nx;
         const float yd = y1 + ny;
-        
+
         // Use white texture
         if (texture_id == 0) {
             texture_id = state_->white_texture_id;
         }
-        
+
         if (ShouldFlush(texture_id)) {
             FlushBatch();
         }
-        
+
         const int tex_slot = GetOrAddTextureSlot(texture_id);
         const uint32_t packed_color = ColorToRGBA(color);
-        
+
         PushQuadVertices(
             xa, ya, 0.0f, 0.0f,
             xd, yd, 1.0f, 0.0f,
@@ -220,7 +223,7 @@ namespace towerforge::ui::batch_renderer {
             packed_color,
             static_cast<float>(tex_slot)
         );
-        
+
         const uint32_t base = static_cast<uint32_t>(state_->vertices.size()) - 4;
         PushQuadIndices(base);
     }
@@ -229,25 +232,25 @@ namespace towerforge::ui::batch_renderer {
         float center_x,
         float center_y,
         const float radius,
-        const Color& color,
+        const Color &color,
         const int segments
     ) {
         if (!state_ || segments < 3) return;
-        
+
         const uint32_t texture_id = state_->white_texture_id;
-        
+
         if (ShouldFlush(texture_id)) {
             FlushBatch();
         }
-        
+
         const int tex_slot = GetOrAddTextureSlot(texture_id);
         const uint32_t packed_color = ColorToRGBA(color);
         const auto tex_index = static_cast<float>(tex_slot);
-        
+
         // Center vertex
         const auto center_idx = static_cast<uint32_t>(state_->vertices.size());
         state_->vertices.emplace_back(center_x, center_y, 0.5f, 0.5f, packed_color, tex_index);
-        
+
         // Perimeter vertices (triangle fan)
         const float angle_step = 2.0f * PI / static_cast<float>(segments);
         for (int i = 0; i <= segments; ++i) {
@@ -256,7 +259,7 @@ namespace towerforge::ui::batch_renderer {
             const float y = center_y + std::sin(angle) * radius;
             state_->vertices.emplace_back(x, y, 0.5f, 0.5f, packed_color, tex_index);
         }
-        
+
         // Indices (triangle fan)
         for (int i = 0; i < segments; ++i) {
             state_->indices.push_back(center_idx);
@@ -266,74 +269,74 @@ namespace towerforge::ui::batch_renderer {
     }
 
     void BatchRenderer::SubmitRoundedRect(
-        const Rectangle& rect,
+        const Rectangle &rect,
         float corner_radius,
-        const Color& color,
+        const Color &color,
         const int corner_segments
     ) {
         if (!state_ || corner_segments < 1) return;
-        
+
         // Clamp corner radius
         const float max_radius = std::min(rect.width, rect.height) * 0.5f;
         corner_radius = std::min(corner_radius, max_radius);
-        
+
         if (corner_radius < 0.1f) {
             // Degenerate to normal quad
             SubmitQuad(rect, color);
             return;
         }
-        
+
         const uint32_t texture_id = state_->white_texture_id;
-        
+
         if (ShouldFlush(texture_id)) {
             FlushBatch();
         }
-        
+
         const int tex_slot = GetOrAddTextureSlot(texture_id);
         const uint32_t packed_color = ColorToRGBA(color);
         const auto tex_index = static_cast<float>(tex_slot);
-        
+
         // Center rectangle (non-rounded part)
         const float inner_x = rect.x + corner_radius;
         const float inner_y = rect.y + corner_radius;
         const float inner_w = rect.width - 2 * corner_radius;
         const float inner_h = rect.height - 2 * corner_radius;
-        
+
         // Center quad
         if (inner_w > 0 && inner_h > 0) {
             SubmitQuad(Rectangle{inner_x, inner_y, inner_w, inner_h}, color);
         }
-        
+
         // Four edge rectangles
         SubmitQuad(Rectangle{inner_x, rect.y, inner_w, corner_radius}, color); // Top
         SubmitQuad(Rectangle{inner_x, rect.y + rect.height - corner_radius, inner_w, corner_radius}, color); // Bottom
         SubmitQuad(Rectangle{rect.x, inner_y, corner_radius, inner_h}, color); // Left
         SubmitQuad(Rectangle{rect.x + rect.width - corner_radius, inner_y, corner_radius, inner_h}, color); // Right
-        
+
         // Four rounded corners (quarter circles)
         const Vector2 corners[4] = {
-            {inner_x, inner_y},                                       // Top-left
-            {inner_x + inner_w, inner_y},                             // Top-right
-            {inner_x + inner_w, inner_y + inner_h},                   // Bottom-right
-            {inner_x, inner_y + inner_h}                              // Bottom-left
+            {inner_x, inner_y}, // Top-left
+            {inner_x + inner_w, inner_y}, // Top-right
+            {inner_x + inner_w, inner_y + inner_h}, // Bottom-right
+            {inner_x, inner_y + inner_h} // Bottom-left
         };
 
         constexpr float angle_offsets[4] = {PI, PI * 0.5f, 0.0f, PI * 1.5f};
-        
+
         for (int c = 0; c < 4; ++c) {
             const auto center_idx = static_cast<uint32_t>(state_->vertices.size());
             state_->vertices.emplace_back(corners[c].x, corners[c].y, 0.5f, 0.5f, packed_color, tex_index);
-            
+
             const float angle_start = angle_offsets[c];
             const float angle_step = (PI * 0.5f) / static_cast<float>(corner_segments);
-            
+
             for (int i = 0; i <= corner_segments; ++i) {
                 const float angle = angle_start + static_cast<float>(i) * angle_step;
                 const float x = corners[c].x + std::cos(angle) * corner_radius;
                 const float y = corners[c].y + std::sin(angle) * corner_radius;
                 state_->vertices.emplace_back(x, y, 0.5f, 0.5f, packed_color, tex_index);
             }
-            
+
             for (int i = 0; i < corner_segments; ++i) {
                 state_->indices.push_back(center_idx);
                 state_->indices.push_back(center_idx + 1 + i);
@@ -343,39 +346,39 @@ namespace towerforge::ui::batch_renderer {
     }
 
     void BatchRenderer::SubmitText(
-        const std::string& text,
+        const std::string &text,
         const float x,
         const float y,
         const int font_size,
-        const Color& color
+        const Color &color
     ) {
         if (!state_ || text.empty()) return;
-        
+
         // Flush current batch before native text draw
         if (!state_->vertices.empty()) {
             FlushBatch();
         }
-        
+
         // Use native Raylib text rendering (already optimized)
         DrawText(text.c_str(), static_cast<int>(x), static_cast<int>(y), font_size, color);
-        
+
         // Count as 1 draw call
         state_->draw_call_count++;
     }
 
     void BatchRenderer::SubmitTextRect(
-        const Rectangle& rect,
-        const std::string& text,
+        const Rectangle &rect,
+        const std::string &text,
         const int font_size,
-        const Color& color
+        const Color &color
     ) {
         if (!state_ || text.empty()) return;
-        
+
         // Flush and set scissor for text clipping
         if (!state_->vertices.empty()) {
             FlushBatch();
         }
-        
+
         // Apply scissor
         BeginScissorMode(
             static_cast<int>(rect.x),
@@ -383,11 +386,11 @@ namespace towerforge::ui::batch_renderer {
             static_cast<int>(rect.width),
             static_cast<int>(rect.height)
         );
-        
+
         DrawText(text.c_str(), static_cast<int>(rect.x), static_cast<int>(rect.y), font_size, color);
-        
+
         EndScissorMode();
-        
+
         state_->draw_call_count++;
     }
 
@@ -435,7 +438,7 @@ namespace towerforge::ui::batch_renderer {
         state_->indices.push_back(base_vertex + 0);
         state_->indices.push_back(base_vertex + 1);
         state_->indices.push_back(base_vertex + 2);
-        
+
         state_->indices.push_back(base_vertex + 2);
         state_->indices.push_back(base_vertex + 3);
         state_->indices.push_back(base_vertex + 0);
@@ -443,14 +446,14 @@ namespace towerforge::ui::batch_renderer {
 
     bool BatchRenderer::ShouldFlush(const uint32_t texture_id) {
         if (!state_) return false;
-        
+
         // Check if adding this texture would exceed limit
         if (state_->texture_slots.find(texture_id) == state_->texture_slots.end()) {
             if (state_->texture_slots.size() >= MAX_TEXTURE_SLOTS) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -459,7 +462,7 @@ namespace towerforge::ui::batch_renderer {
         if (it != state_->texture_slots.end()) {
             return it->second;
         }
-        
+
         const int slot = static_cast<int>(state_->texture_slots.size());
         state_->texture_slots[texture_id] = slot;
         return slot;
@@ -467,7 +470,7 @@ namespace towerforge::ui::batch_renderer {
 
     void BatchRenderer::FlushBatch() {
         if (!state_ || state_->vertices.empty()) return;
-        
+
         // Apply scissor if active
         const bool use_scissor = state_->current_scissor.IsValid();
         if (use_scissor) {
@@ -478,23 +481,23 @@ namespace towerforge::ui::batch_renderer {
                 static_cast<int>(state_->current_scissor.height)
             );
         }
-        
+
         // Use Raylib's internal mesh rendering
         // For simplicity, we'll use DrawTriangleStrip or manual vertex submission
         // In a real implementation, you'd upload to VBO/IBO and use glDrawElements
-        
+
         // Draw triangles using indices
         for (size_t i = 0; i < state_->indices.size(); i += 3) {
             if (i + 2 >= state_->indices.size()) break;
-            
-            const Vertex& v0 = state_->vertices[state_->indices[i + 0]];
-            const Vertex& v1 = state_->vertices[state_->indices[i + 1]];
-            const Vertex& v2 = state_->vertices[state_->indices[i + 2]];
-            
+
+            const Vertex &v0 = state_->vertices[state_->indices[i + 0]];
+            const Vertex &v1 = state_->vertices[state_->indices[i + 1]];
+            const Vertex &v2 = state_->vertices[state_->indices[i + 2]];
+
             const Color c0 = RGBAToColor(v0.color);
             const Color c1 = RGBAToColor(v1.color);
             const Color c2 = RGBAToColor(v2.color);
-            
+
             // Use Raylib's immediate mode (simplified)
             DrawTriangle(
                 Vector2{v0.x, v0.y},
@@ -503,23 +506,22 @@ namespace towerforge::ui::batch_renderer {
                 c0 // Simplified: use first vertex color
             );
         }
-        
+
         if (use_scissor) {
             EndScissorMode();
         }
-        
+
         state_->draw_call_count++;
-        
+
         // Clear batch for next submission
         StartNewBatch();
     }
 
     void BatchRenderer::StartNewBatch() {
         if (!state_) return;
-        
+
         state_->vertices.clear();
         state_->indices.clear();
         state_->texture_slots.clear();
     }
-
 } // namespace towerforge::ui::batch_renderer

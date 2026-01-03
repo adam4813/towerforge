@@ -30,8 +30,9 @@ namespace towerforge::ui {
 	}
 
 	void GeneralSettingsMenu::UpdateLayout() {
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
 		if (settings_panel_ != nullptr) {
 			// Center the panel
@@ -53,8 +54,10 @@ namespace towerforge::ui {
 		animation_time_ += delta_time;
 
 		// Check for window resize
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
 		if (screen_width != last_screen_width_ || screen_height != last_screen_height_) {
 			UpdateLayout();
 		}
@@ -75,8 +78,10 @@ namespace towerforge::ui {
 
 	void GeneralSettingsMenu::RenderDimOverlay() {
 		// Dim the background
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
 		engine::ui::BatchRenderer::SubmitQuad(engine::ui::Rectangle(0, 0, screen_width, screen_height),
 		                                      UITheme::ToEngineColor(ColorAlpha(BLACK, 0.7f)));
 	}
@@ -151,8 +156,10 @@ namespace towerforge::ui {
 		using namespace engine::ui::components;
 		using namespace engine::ui::elements;
 
-		const int screen_width = GetScreenWidth();
-		const int screen_height = GetScreenHeight();
+		std::uint32_t screen_width;
+		std::uint32_t screen_height;
+		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
 
 		// Create main panel with vertical layout
 		const int panel_x = (screen_width - MENU_WIDTH) / 2;

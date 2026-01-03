@@ -5,14 +5,14 @@
 #include <iomanip>
 #include <ctime>
 
-namespace towerforge::ui {
+import engine;
 
+namespace towerforge::ui {
     HistoryPanel::HistoryPanel()
         : visible_(false)
-        , scroll_offset_(0)
-        , hovered_index_(-1)
-        , visible_items_count_(0) {
-        
+          , scroll_offset_(0)
+          , hovered_index_(-1)
+          , visible_items_count_(0) {
         // Position in top-right corner
         panel_bounds_ = {
             static_cast<float>(GetScreenWidth() - PANEL_WIDTH - 10),
@@ -36,29 +36,33 @@ namespace towerforge::ui {
             return;
         }
 
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         // Update panel position in case screen size changed
-        panel_bounds_.x = static_cast<float>(GetScreenWidth() - PANEL_WIDTH - 10);
+        panel_bounds_.x = static_cast<float>(screen_width - PANEL_WIDTH - 10);
 
         // Draw semi-transparent background
         DrawRectangleRec(panel_bounds_, ColorAlpha(BLACK, 0.85f));
         DrawRectangleLinesEx(panel_bounds_, 2, GOLD);
 
         // Draw header
-        DrawText("Action History", 
-                 static_cast<int>(panel_bounds_.x + PADDING), 
-                 static_cast<int>(panel_bounds_.y + PADDING), 
+        DrawText("Action History",
+                 static_cast<int>(panel_bounds_.x + PADDING),
+                 static_cast<int>(panel_bounds_.y + PADDING),
                  16, GOLD);
 
         // Draw help text
-        DrawText("Click to undo/redo", 
-                 static_cast<int>(panel_bounds_.x + PADDING), 
-                 static_cast<int>(panel_bounds_.y + PADDING + 16), 
+        DrawText("Click to undo/redo",
+                 static_cast<int>(panel_bounds_.x + PADDING),
+                 static_cast<int>(panel_bounds_.y + PADDING + 16),
                  10, GRAY);
 
         if (entries_.empty()) {
-            DrawText("No actions yet", 
-                     static_cast<int>(content_bounds_.x + PADDING), 
-                     static_cast<int>(content_bounds_.y + 20), 
+            DrawText("No actions yet",
+                     static_cast<int>(content_bounds_.x + PADDING),
+                     static_cast<int>(content_bounds_.y + 20),
                      12, GRAY);
             return;
         }
@@ -74,8 +78,8 @@ namespace towerforge::ui {
         const int end_index = std::min(static_cast<int>(entries_.size()), start_index + visible_items_count_);
 
         for (int i = start_index; i < end_index; i++) {
-            const auto& entry = entries_[i];
-            
+            const auto &entry = entries_[i];
+
             const Rectangle item_bounds = {
                 content_bounds_.x,
                 static_cast<float>(y_offset),
@@ -92,9 +96,9 @@ namespace towerforge::ui {
             // Draw separator line
             if (i > start_index) {
                 DrawLine(
-                    static_cast<int>(item_bounds.x), 
+                    static_cast<int>(item_bounds.x),
                     static_cast<int>(item_bounds.y),
-                    static_cast<int>(item_bounds.x + item_bounds.width), 
+                    static_cast<int>(item_bounds.x + item_bounds.width),
                     static_cast<int>(item_bounds.y),
                     ColorAlpha(GRAY, 0.5f)
                 );
@@ -104,15 +108,15 @@ namespace towerforge::ui {
             const Color action_color = entry.is_redo ? ColorAlpha(SKYBLUE, 0.7f) : WHITE;
 
             // Draw description
-            DrawText(entry.description.c_str(), 
-                     static_cast<int>(item_bounds.x + 5), 
-                     static_cast<int>(item_bounds.y + 5), 
+            DrawText(entry.description.c_str(),
+                     static_cast<int>(item_bounds.x + 5),
+                     static_cast<int>(item_bounds.y + 5),
                      11, action_color);
 
             // Draw timestamp
-            DrawText(entry.time_str.c_str(), 
-                     static_cast<int>(item_bounds.x + 5), 
-                     static_cast<int>(item_bounds.y + 20), 
+            DrawText(entry.time_str.c_str(),
+                     static_cast<int>(item_bounds.x + 5),
+                     static_cast<int>(item_bounds.y + 20),
                      9, GRAY);
 
             // Draw cost change
@@ -123,17 +127,17 @@ namespace towerforge::ui {
             } else {
                 cost_ss << "-$" << -entry.cost_change;
             }
-            DrawText(cost_ss.str().c_str(), 
-                     static_cast<int>(item_bounds.x + 5), 
-                     static_cast<int>(item_bounds.y + 33), 
+            DrawText(cost_ss.str().c_str(),
+                     static_cast<int>(item_bounds.x + 5),
+                     static_cast<int>(item_bounds.y + 33),
                      10, cost_color);
 
             // Draw redo/undo indicator
-            const char* status = entry.is_redo ? "[Can Redo]" : "[Can Undo]";
+            const char *status = entry.is_redo ? "[Can Redo]" : "[Can Undo]";
             const int status_width = MeasureText(status, 9);
-            DrawText(status, 
-                     static_cast<int>(item_bounds.x + item_bounds.width - status_width - 5), 
-                     static_cast<int>(item_bounds.y + 5), 
+            DrawText(status,
+                     static_cast<int>(item_bounds.x + item_bounds.width - status_width - 5),
+                     static_cast<int>(item_bounds.y + 5),
                      9, entry.is_redo ? SKYBLUE : GOLD);
 
             y_offset += ITEM_HEIGHT;
@@ -141,9 +145,11 @@ namespace towerforge::ui {
 
         // Draw scroll indicator if needed
         if (static_cast<int>(entries_.size()) > visible_items_count_) {
-            const float scroll_bar_height = (static_cast<float>(visible_items_count_) / entries_.size()) * content_bounds_.height;
-            const float scroll_bar_y = content_bounds_.y + (static_cast<float>(scroll_offset_) / entries_.size()) * content_bounds_.height;
-            
+            const float scroll_bar_height = (static_cast<float>(visible_items_count_) / entries_.size()) *
+                                            content_bounds_.height;
+            const float scroll_bar_y = content_bounds_.y + (static_cast<float>(scroll_offset_) / entries_.size()) *
+                                       content_bounds_.height;
+
             DrawRectangle(
                 static_cast<int>(panel_bounds_.x + panel_bounds_.width - 8),
                 static_cast<int>(scroll_bar_y),
@@ -160,9 +166,9 @@ namespace towerforge::ui {
         }
 
         // Check if click is within content bounds
-        if (mouse_x < content_bounds_.x || 
+        if (mouse_x < content_bounds_.x ||
             mouse_x > content_bounds_.x + content_bounds_.width ||
-            mouse_y < content_bounds_.y || 
+            mouse_y < content_bounds_.y ||
             mouse_y > content_bounds_.y + content_bounds_.height) {
             return 0;
         }
@@ -195,7 +201,7 @@ namespace towerforge::ui {
                 if (!entries_[i].is_redo) break;
                 steps_from_end++;
                 if (i == clicked_index) {
-                    return -steps_from_end;  // Negative for redo
+                    return -steps_from_end; // Negative for redo
                 }
             }
         } else {
@@ -205,17 +211,17 @@ namespace towerforge::ui {
                 if (entries_[i].is_redo) break;
                 steps_from_top++;
             }
-            return steps_from_top;  // Positive for undo
+            return steps_from_top; // Positive for undo
         }
 
         return 0;
     }
 
-    void HistoryPanel::UpdateFromHistory(const towerforge::core::CommandHistory& history) {
+    void HistoryPanel::UpdateFromHistory(const towerforge::core::CommandHistory &history) {
         entries_.clear();
 
         // Add undo stack entries (in reverse order, most recent first)
-        const auto& undo_stack = history.GetUndoStack();
+        const auto &undo_stack = history.GetUndoStack();
         for (auto it = undo_stack.rbegin(); it != undo_stack.rend(); ++it) {
             // Format timestamp
             auto time_t = std::chrono::system_clock::to_time_t(it->timestamp);
@@ -227,12 +233,12 @@ namespace towerforge::ui {
                 it->description,
                 time_ss.str(),
                 it->cost_change,
-                false  // Not redo
+                false // Not redo
             );
         }
 
         // Add redo stack entries (in order, oldest first)
-        const auto& redo_stack = history.GetRedoStack();
+        const auto &redo_stack = history.GetRedoStack();
         for (auto it = redo_stack.rbegin(); it != redo_stack.rend(); ++it) {
             auto time_t = std::chrono::system_clock::to_time_t(it->timestamp);
             std::tm tm = *std::localtime(&time_t);
@@ -243,7 +249,7 @@ namespace towerforge::ui {
                 it->description,
                 time_ss.str(),
                 it->cost_change,
-                true  // Is redo
+                true // Is redo
             );
         }
 
@@ -262,21 +268,21 @@ namespace towerforge::ui {
     }
 
     bool HistoryPanel::IsMouseOver(const int mouse_x, const int mouse_y) const {
-        return visible_ && 
+        return visible_ &&
                CheckCollisionPointRec(
-                   Vector2{static_cast<float>(mouse_x), static_cast<float>(mouse_y)}, 
+                   Vector2{static_cast<float>(mouse_x), static_cast<float>(mouse_y)},
                    panel_bounds_
                );
     }
 
-    bool HistoryPanel::ProcessMouseEvent(const MouseEvent& event) {
+    bool HistoryPanel::ProcessMouseEvent(const MouseEvent &event) {
         if (!event.left_pressed) {
-            return false;  // Only handle clicks
+            return false; // Only handle clicks
         }
 
         // Delegate to legacy HandleClick for now
         // TODO: Refactor to use callback pattern instead of return value
         const int steps = HandleClick(static_cast<int>(event.x), static_cast<int>(event.y));
-        return steps != 0;  // Return true if an action was triggered
+        return steps != 0; // Return true if an action was triggered
     }
 }

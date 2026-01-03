@@ -137,7 +137,10 @@ namespace towerforge::ui {
     }
 
     int CameraControlsPanel::CalculateWidth() const {
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int max_width = static_cast<int>(screen_width * MAX_WIDTH_PERCENT);
         return std::min(BASE_WIDTH, max_width);
     }
@@ -148,7 +151,10 @@ namespace towerforge::ui {
     }
 
     int CameraControlsPanel::CalculateY() const {
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int height = CalculateHeight();
         // Position above speed controls (60px margin for action bar + speed panel height)
         return screen_height - height - 60;

@@ -129,8 +129,9 @@ namespace towerforge::ui {
             return;
         }
 
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Semi-transparent background overlay
         DrawRectangle(0, 0, screen_width, screen_height, Fade(BLACK, 0.7f));
@@ -163,8 +164,10 @@ namespace towerforge::ui {
     }
 
     void SaveLoadMenu::RenderSlotList() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int menu_x = (screen_width - MENU_WIDTH) / 2;
         const int menu_y = (screen_height - MENU_HEIGHT) / 2;
 
@@ -219,8 +222,9 @@ namespace towerforge::ui {
     }
 
     void SaveLoadMenu::RenderActionButtons() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
         const int menu_x = (screen_width - MENU_WIDTH) / 2;
         const int menu_y = (screen_height - MENU_HEIGHT) / 2;
 
@@ -260,8 +264,10 @@ namespace towerforge::ui {
     }
 
     void SaveLoadMenu::RenderStatusBar() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         const int menu_x = (screen_width - MENU_WIDTH) / 2;
         const int menu_y = (screen_height - MENU_HEIGHT) / 2;
 
@@ -295,8 +301,10 @@ namespace towerforge::ui {
     }
 
     void SaveLoadMenu::RenderConfirmDialog() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         constexpr int dialog_width = 400;
         constexpr int dialog_height = 150;
         const int dialog_x = (screen_width - dialog_width) / 2;
@@ -335,8 +343,10 @@ namespace towerforge::ui {
     }
 
     void SaveLoadMenu::RenderRenameDialog() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         constexpr int dialog_width = 400;
         constexpr int dialog_height = 180;
         const int dialog_x = (screen_width - dialog_width) / 2;
@@ -371,8 +381,10 @@ namespace towerforge::ui {
     }
 
     void SaveLoadMenu::RenderErrorDialog() const {
-        const int screen_width = GetScreenWidth();
-        const int screen_height = GetScreenHeight();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         constexpr int dialog_width = 450;
         constexpr int dialog_height = 200;
         const int dialog_x = (screen_width - dialog_width) / 2;

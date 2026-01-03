@@ -27,7 +27,10 @@ namespace towerforge::ui {
     }
 
     void TopBar::BuildPanel() {
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
         constexpr int TEXT_Y = 10;
         constexpr int FONT_SIZE = 20;
 
@@ -124,7 +127,11 @@ namespace towerforge::ui {
     }
 
     void TopBar::Update([[maybe_unused]] float delta_time) {
-        if (const int screen_width = GetScreenWidth(); screen_width != last_screen_width_) {
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
+
+        if (screen_width != last_screen_width_) {
             UpdateLayout();
         }
 
@@ -193,7 +200,9 @@ namespace towerforge::ui {
     void TopBar::UpdateLayout() {
         if (!panel_) return;
 
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
         panel_->SetSize(static_cast<float>(screen_width), static_cast<float>(HEIGHT));
 
         if (notification_button_) {
@@ -217,7 +226,9 @@ namespace towerforge::ui {
     void TopBar::Render() const {
         if (!panel_) return;
 
-        const int screen_width = GetScreenWidth();
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
         // Render panel and all children (including text elements)
         panel_->Render();
