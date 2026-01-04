@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <ctime>
 
+import engine;
+
 namespace towerforge::ui {
     std::string NotificationEntry::GetTimestampString() const {
         auto time_t_val = std::chrono::system_clock::to_time_t(timestamp);
@@ -87,36 +89,45 @@ namespace towerforge::ui {
                 const Color bg_color = ColorAlpha(GetTypeColor(it->type), 0.9f * alpha);
                 const Color border_color = ColorAlpha(UITheme::TEXT_PRIMARY, 0.5f * alpha);
 
-                DrawRectangle(x, y, TOAST_WIDTH, TOAST_HEIGHT, bg_color);
-                DrawRectangleLinesEx(Rectangle{
-                                         static_cast<float>(x), static_cast<float>(y),
-                                         static_cast<float>(TOAST_WIDTH), static_cast<float>(TOAST_HEIGHT)
-                                     },
-                                     UITheme::BORDER_THIN, border_color);
+                engine::ui::BatchRenderer::SubmitQuad(
+                    engine::ui::Rectangle(static_cast<float>(x), static_cast<float>(y),
+                                          static_cast<float>(TOAST_WIDTH), static_cast<float>(TOAST_HEIGHT)),
+                    UITheme::ToEngineColor(bg_color)
+                );
+
+                // Draw border using 4 lines (since DrawRectangleLinesEx equivalent may not exist)
+                const auto border_col = UITheme::ToEngineColor(border_color);
+                engine::ui::BatchRenderer::SubmitLine(x, y, x + TOAST_WIDTH, y, UITheme::BORDER_THIN, border_col);
+                engine::ui::BatchRenderer::SubmitLine(x + TOAST_WIDTH, y, x + TOAST_WIDTH, y + TOAST_HEIGHT, UITheme::BORDER_THIN, border_col);
+                engine::ui::BatchRenderer::SubmitLine(x + TOAST_WIDTH, y + TOAST_HEIGHT, x, y + TOAST_HEIGHT, UITheme::BORDER_THIN, border_col);
+                engine::ui::BatchRenderer::SubmitLine(x, y + TOAST_HEIGHT, x, y, UITheme::BORDER_THIN, border_col);
 
                 // Icon (smaller)
                 const char *icon = GetTypeIcon(it->type);
-                DrawText(icon, x + 5, y + 5,
-                         14, ColorAlpha(UITheme::TEXT_PRIMARY, alpha));
+                engine::ui::BatchRenderer::SubmitText(icon, static_cast<float>(x + 5), static_cast<float>(y + 5),
+                                                      14, UITheme::ToEngineColor(ColorAlpha(UITheme::TEXT_PRIMARY, alpha)));
 
                 // Title (smaller font)
-                DrawText(it->title.c_str(), x + 25, y + 5,
-                         12, ColorAlpha(UITheme::TEXT_PRIMARY, alpha));
+                engine::ui::BatchRenderer::SubmitText(it->title, static_cast<float>(x + 25), static_cast<float>(y + 5),
+                                                      12, UITheme::ToEngineColor(ColorAlpha(UITheme::TEXT_PRIMARY, alpha)));
 
                 // Message (truncated if too long, smaller font)
                 std::string display_msg = it->message;
                 if (display_msg.length() > 25) {
                     display_msg = display_msg.substr(0, 22) + "...";
                 }
-                DrawText(display_msg.c_str(), x + 25, y + 18,
-                         10, ColorAlpha(UITheme::TEXT_SECONDARY, 0.9f * alpha));
+                engine::ui::BatchRenderer::SubmitText(display_msg, static_cast<float>(x + 25), static_cast<float>(y + 18),
+                                                      10, UITheme::ToEngineColor(ColorAlpha(UITheme::TEXT_SECONDARY, 0.9f * alpha)));
 
                 // Time remaining indicator
                 if (it->time_remaining > 0.0f) {
                     const int bar_width = static_cast<int>(
                         (it->time_remaining / UITheme::NOTIFICATION_DURATION_NORMAL) * TOAST_WIDTH);
-                    DrawRectangle(x, y + TOAST_HEIGHT - 2, bar_width, 2,
-                                  ColorAlpha(UITheme::TEXT_PRIMARY, 0.7f * alpha));
+                    engine::ui::BatchRenderer::SubmitQuad(
+                        engine::ui::Rectangle(static_cast<float>(x), static_cast<float>(y + TOAST_HEIGHT - 2),
+                                              static_cast<float>(bar_width), 2.0f),
+                        UITheme::ToEngineColor(ColorAlpha(UITheme::TEXT_PRIMARY, 0.7f * alpha))
+                    );
                 }
 
                 y += TOAST_HEIGHT + TOAST_SPACING;
@@ -345,14 +356,23 @@ namespace towerforge::ui {
         const Rectangle bounds = GetBounds();
 
         // Background with theme colors
-        DrawRectangle(static_cast<int>(bounds.x), static_cast<int>(bounds.y),
-                      static_cast<int>(bounds.width), static_cast<int>(bounds.height),
-                      ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f));
-        DrawRectangleLinesEx(bounds, UITheme::BORDER_NORMAL, UITheme::PRIMARY);
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(bounds.x, bounds.y, bounds.width, bounds.height),
+            UITheme::ToEngineColor(ColorAlpha(UITheme::BACKGROUND_PANEL, 0.95f))
+        );
+
+        // Draw border using 4 lines
+        const auto border_col = UITheme::ToEngineColor(UITheme::PRIMARY);
+        engine::ui::BatchRenderer::SubmitLine(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y, UITheme::BORDER_NORMAL, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bounds.x + bounds.width, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, UITheme::BORDER_NORMAL, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bounds.x + bounds.width, bounds.y + bounds.height, bounds.x, bounds.y + bounds.height, UITheme::BORDER_NORMAL, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bounds.x, bounds.y + bounds.height, bounds.x, bounds.y, UITheme::BORDER_NORMAL, border_col);
 
         // Title bar
-        DrawText("Notifications", static_cast<int>(bounds.x) + UITheme::PADDING_SMALL,
-                 static_cast<int>(bounds.y) + UITheme::PADDING_TINY, UITheme::FONT_SIZE_MEDIUM, UITheme::PRIMARY);
+        engine::ui::BatchRenderer::SubmitText("Notifications", 
+                                              static_cast<float>(static_cast<int>(bounds.x) + UITheme::PADDING_SMALL),
+                                              static_cast<float>(static_cast<int>(bounds.y) + UITheme::PADDING_TINY),
+                                              UITheme::FONT_SIZE_MEDIUM, UITheme::ToEngineColor(UITheme::PRIMARY));
 
         // Unread count badge
         const int unread_count = GetUnreadCount();
@@ -360,16 +380,24 @@ namespace towerforge::ui {
             std::string count_str = std::to_string(unread_count);
             const int badge_x = static_cast<int>(bounds.x) + 160;
             const int badge_y = static_cast<int>(bounds.y) + 8;
-            DrawCircle(badge_x, badge_y, 12, UITheme::ERROR);
+            // Draw circle using a quad as an approximation (TODO: need circle support in engine)
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(badge_x - 12), static_cast<float>(badge_y - 12), 24.0f, 24.0f),
+                UITheme::ToEngineColor(UITheme::ERROR)
+            );
             const int text_width = MeasureText(count_str.c_str(), UITheme::FONT_SIZE_SMALL);
-            DrawText(count_str.c_str(), badge_x - text_width / 2, badge_y - 7, UITheme::FONT_SIZE_SMALL,
-                     UITheme::TEXT_PRIMARY);
+            engine::ui::BatchRenderer::SubmitText(count_str,
+                                                  static_cast<float>(badge_x - text_width / 2),
+                                                  static_cast<float>(badge_y - 7),
+                                                  UITheme::FONT_SIZE_SMALL,
+                                                  UITheme::ToEngineColor(UITheme::TEXT_PRIMARY));
         }
 
         // Close button
         const int close_x = static_cast<int>(bounds.x + bounds.width - UITheme::PADDING_LARGE - UITheme::PADDING_SMALL);
         const int close_y = static_cast<int>(bounds.y + UITheme::PADDING_TINY);
-        DrawText("X", close_x, close_y, UITheme::FONT_SIZE_MEDIUM, UITheme::ERROR);
+        engine::ui::BatchRenderer::SubmitText("X", static_cast<float>(close_x), static_cast<float>(close_y),
+                                              UITheme::FONT_SIZE_MEDIUM, UITheme::ToEngineColor(UITheme::ERROR));
 
         // Render filter controls
         RenderFilterControls();
@@ -429,8 +457,16 @@ namespace towerforge::ui {
             const int thumb_y = list_y + (scrollbar_height - thumb_height) * scroll_offset_ / std::max(
                                     1, filtered_count - visible_count);
 
-            DrawRectangle(scrollbar_x, list_y, 5, scrollbar_height, ColorAlpha(DARKGRAY, 0.5f));
-            DrawRectangle(scrollbar_x, thumb_y, 5, thumb_height, ColorAlpha(LIGHTGRAY, 0.8f));
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(scrollbar_x), static_cast<float>(list_y),
+                                      5.0f, static_cast<float>(scrollbar_height)),
+                UITheme::ToEngineColor(ColorAlpha(DARKGRAY, 0.5f))
+            );
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(scrollbar_x), static_cast<float>(thumb_y),
+                                      5.0f, static_cast<float>(thumb_height)),
+                UITheme::ToEngineColor(ColorAlpha(LIGHTGRAY, 0.8f))
+            );
         }
 
         // Bottom buttons
@@ -439,14 +475,26 @@ namespace towerforge::ui {
         const int button2_x = button1_x + 120;
         const int button3_x = button2_x + 120;
 
-        DrawRectangle(button1_x, button_y, 110, 25, DARKGRAY);
-        DrawText("Clear Read", button1_x + 10, button_y + 5, 14, WHITE);
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(button1_x), static_cast<float>(button_y), 110.0f, 25.0f),
+            UITheme::ToEngineColor(DARKGRAY)
+        );
+        engine::ui::BatchRenderer::SubmitText("Clear Read", static_cast<float>(button1_x + 10), static_cast<float>(button_y + 5),
+                                              14, UITheme::ToEngineColor(WHITE));
 
-        DrawRectangle(button2_x, button_y, 110, 25, DARKGRAY);
-        DrawText("Clear All", button2_x + 15, button_y + 5, 14, WHITE);
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(button2_x), static_cast<float>(button_y), 110.0f, 25.0f),
+            UITheme::ToEngineColor(DARKGRAY)
+        );
+        engine::ui::BatchRenderer::SubmitText("Clear All", static_cast<float>(button2_x + 15), static_cast<float>(button_y + 5),
+                                              14, UITheme::ToEngineColor(WHITE));
 
-        DrawRectangle(button3_x, button_y, 110, 25, DARKGRAY);
-        DrawText("Mark All Read", button3_x + 5, button_y + 5, 14, WHITE);
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(button3_x), static_cast<float>(button_y), 110.0f, 25.0f),
+            UITheme::ToEngineColor(DARKGRAY)
+        );
+        engine::ui::BatchRenderer::SubmitText("Mark All Read", static_cast<float>(button3_x + 5), static_cast<float>(button_y + 5),
+                                              14, UITheme::ToEngineColor(WHITE));
     }
 
     void NotificationCenter::RenderNotificationEntry(const NotificationEntry &entry,
@@ -457,22 +505,34 @@ namespace towerforge::ui {
         if (hovered) {
             bg_color = ColorAlpha(SKYBLUE, 0.3f);
         }
-        DrawRectangleRec(bounds, bg_color);
-        DrawRectangleLinesEx(bounds, 1, ColorAlpha(GetTypeColor(entry.type), 0.5f));
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(bounds.x, bounds.y, bounds.width, bounds.height),
+            UITheme::ToEngineColor(bg_color)
+        );
+
+        // Draw border using 4 lines
+        const auto border_col = UITheme::ToEngineColor(ColorAlpha(GetTypeColor(entry.type), 0.5f));
+        engine::ui::BatchRenderer::SubmitLine(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bounds.x + bounds.width, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bounds.x + bounds.width, bounds.y + bounds.height, bounds.x, bounds.y + bounds.height, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bounds.x, bounds.y + bounds.height, bounds.x, bounds.y, 1.0f, border_col);
 
         const int x = static_cast<int>(bounds.x) + 5;
         int y = static_cast<int>(bounds.y) + 5;
 
         // Type icon
         const char *icon = GetTypeIcon(entry.type);
-        DrawText(icon, x, y, 20, GetTypeColor(entry.type));
+        engine::ui::BatchRenderer::SubmitText(icon, static_cast<float>(x), static_cast<float>(y),
+                                              20, UITheme::ToEngineColor(GetTypeColor(entry.type)));
 
         // Title
-        DrawText(entry.title.c_str(), x + 30, y, 14, WHITE);
+        engine::ui::BatchRenderer::SubmitText(entry.title, static_cast<float>(x + 30), static_cast<float>(y),
+                                              14, UITheme::ToEngineColor(WHITE));
 
         // Pin indicator
         if (entry.pinned) {
-            DrawText("P", static_cast<int>(bounds.x + bounds.width - 50), y, 14, YELLOW);
+            engine::ui::BatchRenderer::SubmitText("P", bounds.x + bounds.width - 50.0f, static_cast<float>(y),
+                                                  14, UITheme::ToEngineColor(YELLOW));
         }
 
         y += 20;
@@ -482,12 +542,14 @@ namespace towerforge::ui {
         if (display_msg.length() > 60) {
             display_msg = display_msg.substr(0, 57) + "...";
         }
-        DrawText(display_msg.c_str(), x + 30, y, 11, LIGHTGRAY);
+        engine::ui::BatchRenderer::SubmitText(display_msg, static_cast<float>(x + 30), static_cast<float>(y),
+                                              11, UITheme::ToEngineColor(LIGHTGRAY));
 
         y += 18;
 
         // Timestamp
-        DrawText(entry.GetTimestampString().c_str(), x + 30, y, 10, GRAY);
+        engine::ui::BatchRenderer::SubmitText(entry.GetTimestampString(), static_cast<float>(x + 30), static_cast<float>(y),
+                                              10, UITheme::ToEngineColor(GRAY));
 
         // Action buttons (only show on hover)
         if (hovered) {
@@ -496,12 +558,21 @@ namespace towerforge::ui {
 
             // Pin/Unpin button
             const char *pin_text = entry.pinned ? "U" : "P";
-            DrawRectangle(button_x, button_y, 30, 25, entry.pinned ? YELLOW : DARKGRAY);
-            DrawText(pin_text, button_x + 10, button_y + 5, 14, BLACK);
+            const Color pin_bg = entry.pinned ? YELLOW : DARKGRAY;
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(button_x), static_cast<float>(button_y), 30.0f, 25.0f),
+                UITheme::ToEngineColor(pin_bg)
+            );
+            engine::ui::BatchRenderer::SubmitText(pin_text, static_cast<float>(button_x + 10), static_cast<float>(button_y + 5),
+                                                  14, UITheme::ToEngineColor(BLACK));
 
             // Dismiss button
-            DrawRectangle(button_x + 35, button_y, 30, 25, MAROON);
-            DrawText("X", button_x + 45, button_y + 5, 14, WHITE);
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(button_x + 35), static_cast<float>(button_y), 30.0f, 25.0f),
+                UITheme::ToEngineColor(MAROON)
+            );
+            engine::ui::BatchRenderer::SubmitText("X", static_cast<float>(button_x + 45), static_cast<float>(button_y + 5),
+                                                  14, UITheme::ToEngineColor(WHITE));
         }
     }
 
@@ -510,7 +581,8 @@ namespace towerforge::ui {
         const int filter_y = static_cast<int>(bounds.y) + 30;
         const int filter_x = static_cast<int>(bounds.x) + PANEL_PADDING;
 
-        DrawText("Filter:", filter_x, filter_y + 5, 12, LIGHTGRAY);
+        engine::ui::BatchRenderer::SubmitText("Filter:", static_cast<float>(filter_x), static_cast<float>(filter_y + 5),
+                                              12, UITheme::ToEngineColor(LIGHTGRAY));
 
         // Type filter buttons
         const int button_size = 30;
@@ -533,9 +605,21 @@ namespace towerforge::ui {
 
         for (const auto &button: buttons) {
             const Color btn_color = *button.flag ? button.color : ColorAlpha(DARKGRAY, 0.5f);
-            DrawRectangle(x, filter_y, button_size, button_size, btn_color);
-            DrawRectangleLines(x, filter_y, button_size, button_size, WHITE);
-            DrawText(button.label, x + 10, filter_y + 8, 14, WHITE);
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(x), static_cast<float>(filter_y),
+                                      static_cast<float>(button_size), static_cast<float>(button_size)),
+                UITheme::ToEngineColor(btn_color)
+            );
+
+            // Draw border using 4 lines
+            const auto border_col = UITheme::ToEngineColor(WHITE);
+            engine::ui::BatchRenderer::SubmitLine(x, filter_y, x + button_size, filter_y, 1.0f, border_col);
+            engine::ui::BatchRenderer::SubmitLine(x + button_size, filter_y, x + button_size, filter_y + button_size, 1.0f, border_col);
+            engine::ui::BatchRenderer::SubmitLine(x + button_size, filter_y + button_size, x, filter_y + button_size, 1.0f, border_col);
+            engine::ui::BatchRenderer::SubmitLine(x, filter_y + button_size, x, filter_y, 1.0f, border_col);
+
+            engine::ui::BatchRenderer::SubmitText(button.label, static_cast<float>(x + 10), static_cast<float>(filter_y + 8),
+                                                  14, UITheme::ToEngineColor(WHITE));
             x += button_size + 3;
         }
     }

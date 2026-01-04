@@ -178,8 +178,12 @@ namespace towerforge::ui {
             UITheme::ToEngineColor(ColorAlpha(BLACK, 0.95f))
         );
 
-        // Draw border
-        DrawRectangleLines(x, y, tooltip_width, tooltip_height, UITheme::PRIMARY);
+        // Draw border using 4 lines
+        const auto border_col = UITheme::ToEngineColor(UITheme::PRIMARY);
+        engine::ui::BatchRenderer::SubmitLine(x, y, x + tooltip_width, y, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(x + tooltip_width, y, x + tooltip_width, y + tooltip_height, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(x + tooltip_width, y + tooltip_height, x, y + tooltip_height, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(x, y + tooltip_height, x, y, 1.0f, border_col);
 
         // Draw text using engine BatchRenderer
         int text_y = y + TOOLTIP_PADDING;
