@@ -10,7 +10,6 @@ import engine;
 
 namespace towerforge::ui {
 	// Forward declarations
-	class UIWindowManager;
 	class TooltipManager;
 	class NotificationCenter;
 	class ActionBar;
@@ -25,6 +24,9 @@ namespace towerforge::ui {
 	class FacilityWindow;
 	class PersonWindow;
 	class ElevatorWindow;
+	class IncomeAnalyticsOverlay;
+	class ElevatorAnalyticsOverlay;
+	class PopulationAnalyticsOverlay;
 
 	/**
  * @brief Structure to hold tower rating information
@@ -199,11 +201,6 @@ namespace towerforge::ui {
 		void HideInfoPanels() const;
 
 		/**
-	 * @brief Get the window manager
-	 */
-		UIWindowManager *GetWindowManager() const { return window_manager_.get(); }
-
-		/**
 	 * @brief Add a notification
 	 */
 		void AddNotification(Notification::Type type, const std::string &message, float duration = 5.0f);
@@ -303,9 +300,6 @@ namespace towerforge::ui {
 
 		GameState game_state_;
 
-		// Window manager for info windows
-		std::unique_ptr<UIWindowManager> window_manager_;
-
 		// Tooltip manager
 		std::unique_ptr<TooltipManager> tooltip_manager_;
 
@@ -330,6 +324,11 @@ namespace towerforge::ui {
 		// Analytics callbacks
 		std::function<IncomeBreakdown()> income_analytics_callback_;
 		std::function<PopulationBreakdown()> population_analytics_callback_;
+
+		// Analytics overlays (managed directly, not through window manager)
+		mutable std::unique_ptr<IncomeAnalyticsOverlay> income_overlay_;
+		mutable std::unique_ptr<ElevatorAnalyticsOverlay> elevator_overlay_;
+		mutable std::unique_ptr<PopulationAnalyticsOverlay> population_overlay_;
 
 		// Current info window (using variant for type-safe polymorphism)
 		using InfoWindowVariant = std::variant<

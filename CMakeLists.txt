@@ -40,10 +40,11 @@ set(SOURCE_FILES
     src/ui/tutorial_manager.cpp
     src/ui/mods_menu.cpp
     src/ui/ui_window.cpp
-    src/ui/ui_window_manager.cpp
     src/ui/window_chrome.cpp
     src/ui/info_windows.cpp
-    src/ui/analytics_overlay.cpp
+    src/ui/income_analytics_overlay.cpp
+    src/ui/elevator_analytics_overlay.cpp
+    src/ui/population_analytics_overlay.cpp
     src/ui/tooltip.cpp
     src/ui/notification_center.cpp
     src/ui/ui_element.cpp

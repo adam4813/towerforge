@@ -2,11 +2,12 @@
 #include "ui/hud/top_bar.h"
 #include "ui/hud/star_rating_panel.h"
 #include "ui/hud/end_game_summary.h"
-#include "ui/ui_window_manager.h"
 #include "ui/info_windows.h"
 #include "ui/tooltip.h"
 #include "ui/notification_center.h"
-#include "ui/analytics_overlay.h"
+#include "ui/income_analytics_overlay.h"
+#include "ui/elevator_analytics_overlay.h"
+#include "ui/population_analytics_overlay.h"
 #include "ui/action_bar.h"
 #include "ui/speed_control_panel.h"
 #include "ui/camera_controls_panel.h"
@@ -20,7 +21,6 @@
 namespace towerforge::ui {
     HUD::HUD()
         : action_bar_callback_(nullptr) {
-        window_manager_ = std::make_unique<UIWindowManager>();
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
 
@@ -64,9 +64,6 @@ namespace towerforge::ui {
     void HUD::Update(const float delta_time) {
         // Update notification center
         notification_center_->Update(delta_time);
-
-        // Update window manager (handles repositioning on resize)
-        window_manager_->Update(delta_time);
 
         // Update current info window and reposition on screen resize
         std::uint32_t screen_width;
@@ -122,8 +119,16 @@ namespace towerforge::ui {
             star_rating_panel_->Render();
         }
 
-        // Render all info windows through the window manager
-        window_manager_->Render();
+        // Render analytics overlays
+        if (income_overlay_ && income_overlay_->IsVisible()) {
+            income_overlay_->Render();
+        }
+        if (elevator_overlay_ && elevator_overlay_->IsVisible()) {
+            elevator_overlay_->Render();
+        }
+        if (population_overlay_ && population_overlay_->IsVisible()) {
+            population_overlay_->Render();
+        }
 
         // Render current info window
         std::visit([](const auto &window) {
@@ -220,7 +225,16 @@ namespace towerforge::ui {
 
     void HUD::HideInfoPanels() const {
         current_info_window_ = std::monostate{};
-        window_manager_->Clear();
+        // Hide analytics overlays
+        if (income_overlay_) {
+            income_overlay_->Hide();
+        }
+        if (elevator_overlay_) {
+            elevator_overlay_->Hide();
+        }
+        if (population_overlay_) {
+            population_overlay_->Hide();
+        }
     }
 
     void HUD::AddNotification(Notification::Type type, const std::string &message, float duration) {
@@ -248,7 +262,24 @@ namespace towerforge::ui {
     }
 
     bool HUD::ProcessMouseEvent(const engine::ui::MouseEvent &event) const {
-        // Forward to current info window first (highest priority for close button)
+        // Forward to analytics overlays first (highest priority - they are modal)
+        if (income_overlay_ && income_overlay_->IsVisible()) {
+            if (income_overlay_->ProcessMouseEvent(event)) {
+                return true;
+            }
+        }
+        if (elevator_overlay_ && elevator_overlay_->IsVisible()) {
+            if (elevator_overlay_->ProcessMouseEvent(event)) {
+                return true;
+            }
+        }
+        if (population_overlay_ && population_overlay_->IsVisible()) {
+            if (population_overlay_->ProcessMouseEvent(event)) {
+                return true;
+            }
+        }
+
+        // Forward to current info window (highest priority for close button)
         bool info_window_handled = false;
         std::visit([&event, &info_window_handled](auto &window) {
             using T = std::decay_t<decltype(window)>;
@@ -293,11 +324,6 @@ namespace towerforge::ui {
 
         // Consume any other clicks on top bar
         if (event.left_pressed && event.y <= TOP_BAR_HEIGHT) {
-            return true;
-        }
-
-        // Handle info window clicks
-        if (event.left_pressed && window_manager_->HandleClick(static_cast<int>(event.x), static_cast<int>(event.y))) {
             return true;
         }
 
@@ -463,18 +489,27 @@ namespace towerforge::ui {
     }
 
     void HUD::ShowIncomeAnalytics(const IncomeBreakdown &data) const {
-        auto window = std::make_unique<IncomeAnalyticsOverlay>(data);
-        window_manager_->AddAnalyticsWindow(std::move(window));
+        if (!income_overlay_) {
+            income_overlay_ = std::make_unique<IncomeAnalyticsOverlay>(data);
+            income_overlay_->Initialize();
+        }
+        income_overlay_->Show(data);
     }
 
     void HUD::ShowElevatorAnalytics(const ElevatorAnalytics &data) const {
-        auto window = std::make_unique<ElevatorAnalyticsOverlay>(data);
-        window_manager_->AddAnalyticsWindow(std::move(window));
+        if (!elevator_overlay_) {
+            elevator_overlay_ = std::make_unique<ElevatorAnalyticsOverlay>(data);
+            elevator_overlay_->Initialize();
+        }
+        elevator_overlay_->Show(data);
     }
 
     void HUD::ShowPopulationAnalytics(const PopulationBreakdown &data) const {
-        auto window = std::make_unique<PopulationAnalyticsOverlay>(data);
-        window_manager_->AddAnalyticsWindow(std::move(window));
+        if (!population_overlay_) {
+            population_overlay_ = std::make_unique<PopulationAnalyticsOverlay>(data);
+            population_overlay_->Initialize();
+        }
+        population_overlay_->Show(data);
     }
 
     void HUD::SetIncomeAnalyticsCallback(std::function<IncomeBreakdown()> callback) {
