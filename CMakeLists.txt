@@ -46,7 +46,6 @@ set(SOURCE_FILES
     src/ui/tooltip.cpp
     src/ui/notification_center.cpp
     src/ui/help_system.cpp
-    src/ui/batch_renderer/batch_renderer.cpp
     src/audio/audio_manager.cpp
 )
 

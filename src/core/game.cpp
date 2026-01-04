@@ -1,7 +1,5 @@
 #include <iostream>
 #include "core/game.h"
-#include "core/components.hpp"
-#include "core/ecs_world.hpp"
 #include "core/user_preferences.hpp"
 #include "core/scenes/title_scene.hpp"
 #include "core/scenes/achievements_scene.hpp"
@@ -9,11 +7,7 @@
 #include "core/scenes/credits_scene.hpp"
 #include "core/scenes/ingame_scene.hpp"
 #include "core/scenes/tutorial_scene.hpp"
-#include "ui/notification_center.h"
 #include "ui/action_bar.h"
-#include "ui/speed_control_panel.h"
-#include "ui/mouse_interface.h"
-#include "ui/batch_renderer/batch_renderer.h"
 
 #ifndef __EMSCRIPTEN__
 #include <glad/glad.h>
@@ -63,10 +57,6 @@ namespace towerforge::core {
 		const auto renderer = &engine::rendering::GetRenderer();
 		// Initialize renderer (if needed)
 		renderer->Initialize(800, 600);
-
-		// Initialize batch renderer
-		batch_renderer::BatchRenderer::Initialize();
-		std::cout << "Batch renderer initialized" << std::endl;
 
 		// Set up main menu callback
 		main_menu_.SetStateChangeCallback([this](const GameState new_state) {
@@ -247,9 +237,6 @@ namespace towerforge::core {
 		}
 
 		engine.Shutdown();
-
-		// Shutdown batch renderer
-		batch_renderer::BatchRenderer::Shutdown();
 
 		renderer_.Shutdown();
 		std::cout << "Exiting TowerForge..." << std::endl;

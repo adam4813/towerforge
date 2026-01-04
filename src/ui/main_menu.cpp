@@ -1,5 +1,4 @@
 #include <cmath>
-#include "ui/batch_renderer/batch_adapter.h"
 #include "ui/main_menu.h"
 #include "ui/ui_theme.h"
 #include "core/game.h"
@@ -80,6 +79,7 @@ namespace towerforge::ui {
 	}
 
 	void MainMenu::RenderBackground() const {
+		using namespace engine::ui::batch_renderer;
 		// Clear with theme background color
 		ClearBackground(UITheme::BACKGROUND_DARK);
 
@@ -89,28 +89,45 @@ namespace towerforge::ui {
 		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
 		for (int i = 0; i < screen_height; i += 40) {
-			batch_renderer::adapter::DrawLine(0, i, screen_width, i, UITheme::DECORATIVE_GRID);
+			BatchRenderer::SubmitLine(
+				0, i,
+				screen_width, i,
+				1,
+				{0.3f, 0.3f, 0.3f, 1.0f});
 		}
 		for (int i = 0; i < screen_width; i += 40) {
-			batch_renderer::adapter::DrawLine(i, 0, i, screen_height, UITheme::DECORATIVE_GRID);
+			BatchRenderer::SubmitLine(
+				i, 0,
+				i, screen_height,
+				1,
+				{0.3f, 0.3f, 0.3f, 1.0f});
 		}
-
-		// Draw simple tower silhouettes on the sides
-		batch_renderer::adapter::DrawRectangle(50, 300, 60, 300, ColorAlpha(UITheme::DECORATIVE_WINDOW, 0.3f));
-		batch_renderer::adapter::DrawRectangle(screen_width - 110, 250, 60, 350,
-		                                       ColorAlpha(UITheme::DECORATIVE_WINDOW, 0.3f));
+		BatchRenderer::SubmitQuad(
+			{50, 300, 60, 300},
+			UITheme::ToEngineColor(UITheme::DECORATIVE_WINDOW));
+		BatchRenderer::SubmitQuad(
+			{screen_width - 110.f, 250, 60, 350},
+			UITheme::ToEngineColor(UITheme::DECORATIVE_WINDOW));
 
 		// Add some "windows" to the silhouettes
 		for (int y = 320; y < 580; y += 30) {
 			for (int x = 60; x < 100; x += 20) {
 				const float pulse = sin(animation_time_ * 2.0f + y * 0.1f) * 0.5f + 0.5f;
-				batch_renderer::adapter::DrawRectangle(x, y, 10, 15, ColorAlpha(YELLOW, 0.2f + pulse * 0.1f));
+				BatchRenderer::SubmitQuad(
+					{static_cast<float>(x), static_cast<float>(y), 10, 15},
+					engine::ui::batch_renderer::Color::Alpha(
+						{1.0f, 1.0f, 0.0f, 1.0f},
+						0.5f + pulse * 0.1f));
 			}
 		}
 		for (int y = 270; y < 580; y += 30) {
 			for (int x = screen_width - 100; x < screen_width - 60; x += 20) {
 				const float pulse = sin(animation_time_ * 2.0f + y * 0.1f + 1.0f) * 0.5f + 0.5f;
-				batch_renderer::adapter::DrawRectangle(x, y, 10, 15, ColorAlpha(YELLOW, 0.2f + pulse * 0.1f));
+				BatchRenderer::SubmitQuad(
+					{static_cast<float>(x), static_cast<float>(y), 10, 15},
+					engine::ui::batch_renderer::Color::Alpha(
+						{1.0f, 1.0f, 0.0f, 1.0f},
+						0.5f + pulse * 0.1f));
 			}
 		}
 	}
@@ -168,7 +185,7 @@ namespace towerforge::ui {
 		std::uint32_t screen_height;
 		engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
 
-		main_panel_ = std::make_unique<engine::ui::elements::Panel>();
+		main_panel_ = std::make_unique<Panel>();
 		main_panel_->SetSize(screen_width, screen_height);
 		main_panel_->SetOpacity(0);
 		main_panel_->SetPadding(64.0f);
@@ -221,7 +238,7 @@ namespace towerforge::ui {
 				.Layout(std::make_unique<VerticalLayout>(UITheme::MARGIN_SMALL, Alignment::Center))
 				.Build();
 		for (auto &[label, target_state]: menu_items_) {
-			auto button = std::make_unique<engine::ui::elements::Button>(
+			auto button = std::make_unique<Button>(
 				item_width, item_height, label, UITheme::FONT_SIZE_MEDIUM);
 			button->SetBorderColor(UITheme::ToEngineColor(UITheme::BUTTON_BORDER));
 			button->SetTextColor(UITheme::ToEngineColor(UITheme::TEXT_SECONDARY));
