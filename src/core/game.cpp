@@ -150,8 +150,8 @@ namespace towerforge::core {
 			case GameState::Credits:
 				if (!credits_scene_) {
 					credits_scene_ = std::make_unique<CreditsScene>(this);
-					credits_scene_->Initialize();
 				}
+				credits_scene_->Initialize();
 				active_scene_ = credits_scene_.get();
 				break;
 
