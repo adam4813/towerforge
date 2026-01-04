@@ -26,15 +26,15 @@ jobs:
             build_type: Release
             vcpkg_triplet: x64-windows
 
-          # Linux builds - GCC
+          # Linux builds - Clang
           - os: ubuntu-latest
-            compiler: gcc
+            compiler: llvm-18
             build_type: Release
             vcpkg_triplet: x64-linux
 
-          # Linux builds - Clang (temporarily disabled)
+          # Linux builds - GCC (temporarily disabled)
           # - os: ubuntu-latest
-          #   compiler: clang
+          #   compiler: gcc
           #   build_type: Release
           #   vcpkg_triplet: x64-linux
 
