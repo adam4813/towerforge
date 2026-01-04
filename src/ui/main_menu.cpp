@@ -1,7 +1,6 @@
 #include <cmath>
 #include "ui/batch_renderer/batch_adapter.h"
 #include "ui/main_menu.h"
-#include "ui/ui_element.h"
 #include "ui/ui_theme.h"
 #include "core/game.h"
 

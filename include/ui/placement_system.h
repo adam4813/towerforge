@@ -7,7 +7,6 @@
 #include "core/components.hpp"
 #include "core/command_history.hpp"
 #include "ui/build_menu.h"
-#include "ui/ui_element.h"
 
 // Forward declaration
 namespace towerforge::rendering {

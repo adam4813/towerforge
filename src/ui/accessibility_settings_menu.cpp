@@ -1,5 +1,4 @@
 #include "ui/accessibility_settings_menu.h"
-#include "ui/ui_element.h"
 #include "ui/ui_theme.h"
 #include "ui/mouse_interface.h"
 #include "core/accessibility_settings.hpp"

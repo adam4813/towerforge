@@ -11,8 +11,6 @@
 #include "ui/action_bar.h"
 #include "ui/speed_control_panel.h"
 #include "ui/camera_controls_panel.h"
-#include "ui/mouse_interface.h"
-#include "ui/ui_element.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>

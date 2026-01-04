@@ -1,6 +1,5 @@
 #include "ui/build_menu.h"
 #include "ui/tooltip.h"
-#include "ui/ui_element.h"
 #include "ui/ui_theme.h"
 #include "ui/mouse_interface.h"
 #include "ui/help_system.h"
@@ -57,7 +56,7 @@ namespace towerforge::ui {
         std::uint32_t screen_width;
         std::uint32_t screen_height;
         engine::rendering::GetRenderer().GetFramebufferSize(screen_width, screen_height);
- const int menu_width = ActionBar::CalculateBarWidth();
+        const int menu_width = ActionBar::CalculateBarWidth();
         const float x = static_cast<float>((screen_width - menu_width) / 2);
         const float y = static_cast<float>(screen_height - MENU_HEIGHT - 60);
 
