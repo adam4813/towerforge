@@ -92,6 +92,7 @@ jobs:
       with:
         compiler: ${{ matrix.compiler }}
         vcvarsall: ${{ runner.os == 'Windows' }}
+        ninja: true
 
     - name: Restore artifacts, or run vcpkg, build and cache artifacts
       uses: lukka/run-vcpkg@v11
@@ -120,7 +121,7 @@ jobs:
       shell: bash
       run: |
         echo "=== Build directory structure ==="
-        ls -R build/native/bin/Release || true
+        ls -R build/native/Release || true
 
     - name: Prepare artifacts (Windows)
       if: runner.os == 'Windows'
@@ -128,9 +129,9 @@ jobs:
       run: |
         mkdir -p artifacts
         # Copy executables from Release folder
-        cp build/native/bin/Release/towerforge.exe artifacts/
-        cp build/native/bin/Release/screenshot_app.exe artifacts/ || true
-        cp build/native/bin/Release/*.dll artifacts/ || true
+        cp build/native/Release/towerforge.exe artifacts/
+        cp build/native/Release/screenshot_app.exe artifacts/ || true
+        cp build/native/Release/*.dll artifacts/ || true
         
         # Copy lua mods
         mkdir -p artifacts/mods
@@ -143,8 +144,8 @@ jobs:
       run: |
         mkdir -p artifacts
         # Copy executables from Release folder
-        cp build/native/bin/Release/towerforge artifacts/
-        cp build/native/bin/Release/screenshot_app artifacts/ || true
+        cp build/native/Release/towerforge artifacts/
+        cp build/native/Release/screenshot_app artifacts/ || true
         
         # Copy lua mods
         mkdir -p artifacts/mods
