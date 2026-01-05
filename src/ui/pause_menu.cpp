@@ -1,5 +1,6 @@
 #include "ui/pause_menu.h"
 #include "audio/audio_manager.h"
+#include <cmath>
 
 namespace towerforge::ui {
     PauseMenu::PauseMenu()

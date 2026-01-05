@@ -250,12 +250,16 @@ namespace towerforge::ui {
         // Status line: unlock date for unlocked, progress for locked
         if (is_unlocked && achievement.unlock_time.has_value()) {
             const auto time = achievement.unlock_time.value();
-            const std::time_t tt = std::chrono::system_clock::to_time_t(time);
-            std::tm local_tm{};
-            localtime_s(&local_tm, &tt);
+            const std::time_t time_t_val = std::chrono::system_clock::to_time_t(time);
+            std::tm tm_val;
+#ifdef _WIN32
+            localtime_s(&tm_val, &time_t_val);
+#else
+            localtime_r(&time_t_val, &tm_val);
+#endif
 
             std::stringstream ss;
-            ss << "Unlocked: " << std::put_time(&local_tm, "%Y-%m-%d");
+            ss << "Unlocked: " << std::put_time(&tm_val, "%Y-%m-%d");
             auto date_text = std::make_unique<Text>(
                 0, 0, ss.str(), UITheme::FONT_SIZE_SMALL, UITheme::ToEngineColor(GREEN)
             );
