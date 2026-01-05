@@ -1,14 +1,19 @@
 cmake_minimum_required(VERSION 3.28)
 
+# Disable C++20 module scanning for compatibility with GCC/Clang (CMake 3.31+)
+# CMP0155: C++ module dependencies are supported by Ninja Generators
+if (POLICY CMP0155)
+    cmake_policy(SET CMP0155 OLD)
+endif ()
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF CACHE BOOL "Disable C++20 module scanning" FORCE)
+
 project(towerforge VERSION 0.1.0 LANGUAGES CXX)
 
 # Enable testing at the root level for CTest to work with presets
 enable_testing()
 
-
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
-
 
 # Subdirectories for modules
 add_subdirectory(src/core)
