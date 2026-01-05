@@ -1,7 +1,6 @@
 #include "ui/accessibility_settings_menu.h"
 #include "ui/ui_theme.h"
 #include "ui/mouse_interface.h"
-#include "core/accessibility_settings.hpp"
 #include "core/user_preferences.hpp"
 
 import engine;
