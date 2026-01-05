@@ -4,9 +4,15 @@
 #include <vector>
 #include <memory>
 #include <functional>
-#include "core/game.h"
 
-import engine;
+namespace engine::ui {
+    struct MouseEvent;
+
+    namespace elements {
+        class Panel;
+        class Button;
+    }
+}
 
 namespace towerforge::core {
     enum class GameState;

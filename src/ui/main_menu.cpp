@@ -1,4 +1,5 @@
 #include <cmath>
+#include "core/game.h"
 #include "ui/main_menu.h"
 #include "ui/ui_theme.h"
 
