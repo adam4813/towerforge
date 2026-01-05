@@ -9,6 +9,12 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF CACHE BOOL "Disable C++20 module scanning" FO
 
 project(towerforge VERSION 0.1.0 LANGUAGES CXX)
 
+# C++20 requirements
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+
 # Enable testing at the root level for CTest to work with presets
 enable_testing()
 
