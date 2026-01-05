@@ -26,8 +26,6 @@ add_library(towerforge_core
     systems/staff_systems.cpp
 )
 
-find_package(citrus-engine CONFIG REQUIRED)
-
 # Find flecs package
 find_package(flecs CONFIG REQUIRED)
 
@@ -43,13 +41,16 @@ find_package(raylib CONFIG REQUIRED)
 # Find glfw3 package (needed for rendering dependencies)
 find_package(glfw3 CONFIG REQUIRED)
 
+find_package(citrus-engine CONFIG REQUIRED)
+
 # Link flecs, nlohmann-json, Lua, raylib, and glfw to the core library
-target_link_libraries(towerforge_core 
-    PUBLIC citrus-engine::engine-core
-    PUBLIC flecs::flecs_static
-    PUBLIC nlohmann_json::nlohmann_json
-    PUBLIC ${LUA_LIBRARIES}
-    PUBLIC raylib
+target_link_libraries(towerforge_core
+    PUBLIC
+    flecs::flecs_static
+    nlohmann_json::nlohmann_json
+    ${LUA_LIBRARIES}
+    raylib
+    citrus-engine::engine-core
 )
 
 # Add Lua include directories
