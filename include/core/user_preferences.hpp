@@ -1,12 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <fstream>
-#include <nlohmann/json.hpp>
 #include "ui/notification_center.h"
 
 namespace towerforge::core {
-
     /**
      * @brief Color/theme mode options
      */
@@ -18,62 +17,72 @@ namespace towerforge::core {
 
     /**
      * @brief Unified user preferences manager
-     * 
+     *
      * Manages all user preferences including audio, UI scaling, color mode,
      * notification preferences, and accessibility settings. Settings are persisted
      * to disk and loaded on startup.
      */
     class UserPreferences {
     public:
-        static UserPreferences& GetInstance() {
+        static UserPreferences &GetInstance() {
             static UserPreferences instance;
             return instance;
         }
 
         // Delete copy/move constructors for singleton
-        UserPreferences(const UserPreferences&) = delete;
-        UserPreferences& operator=(const UserPreferences&) = delete;
-        UserPreferences(UserPreferences&&) = delete;
-        UserPreferences& operator=(UserPreferences&&) = delete;
+        UserPreferences(const UserPreferences &) = delete;
+
+        UserPreferences &operator=(const UserPreferences &) = delete;
+
+        UserPreferences(UserPreferences &&) = delete;
+
+        UserPreferences &operator=(UserPreferences &&) = delete;
 
         // Audio settings
         float GetMasterVolume() const { return master_volume_; }
+
         void SetMasterVolume(const float volume) {
             master_volume_ = std::clamp(volume, 0.0f, 1.0f);
             SaveSettings();
         }
 
         float GetMusicVolume() const { return music_volume_; }
+
         void SetMusicVolume(const float volume) {
             music_volume_ = std::clamp(volume, 0.0f, 1.0f);
             SaveSettings();
         }
 
         float GetSFXVolume() const { return sfx_volume_; }
+
         void SetSFXVolume(const float volume) {
             sfx_volume_ = std::clamp(volume, 0.0f, 1.0f);
             SaveSettings();
         }
 
         bool GetMuteAll() const { return mute_all_; }
+
         void SetMuteAll(const bool mute) {
             mute_all_ = mute;
             SaveSettings();
         }
 
         bool GetMuteMusic() const { return mute_music_; }
+
         void SetMuteMusic(const bool mute) {
             mute_music_ = mute;
             SaveSettings();
         }
 
         bool GetMuteSFX() const { return mute_sfx_; }
+
         void SetMuteSFX(const bool mute) {
             mute_sfx_ = mute;
             SaveSettings();
         }
 
         bool GetEnableAmbient() const { return enable_ambient_; }
+
         void SetEnableAmbient(const bool enable) {
             enable_ambient_ = enable;
             SaveSettings();
@@ -81,6 +90,7 @@ namespace towerforge::core {
 
         // UI Scaling (1.0 = 100%, 1.5 = 150%, etc.)
         float GetUIScale() const { return ui_scale_; }
+
         void SetUIScale(const float scale) {
             ui_scale_ = std::clamp(scale, 0.5f, 2.0f);
             SaveSettings();
@@ -88,33 +98,38 @@ namespace towerforge::core {
 
         // Color mode
         ColorMode GetColorMode() const { return color_mode_; }
+
         void SetColorMode(const ColorMode mode) {
             color_mode_ = mode;
             SaveSettings();
         }
 
         // Notification preferences
-        towerforge::ui::NotificationFilter& GetNotificationFilter() { return notification_filter_; }
-        const towerforge::ui::NotificationFilter& GetNotificationFilter() const { return notification_filter_; }
-        void SetNotificationFilter(const towerforge::ui::NotificationFilter& filter) {
+        towerforge::ui::NotificationFilter &GetNotificationFilter() { return notification_filter_; }
+        const towerforge::ui::NotificationFilter &GetNotificationFilter() const { return notification_filter_; }
+
+        void SetNotificationFilter(const towerforge::ui::NotificationFilter &filter) {
             notification_filter_ = filter;
             SaveSettings();
         }
 
         // Accessibility settings
         bool IsHighContrastEnabled() const { return high_contrast_enabled_; }
+
         void SetHighContrastEnabled(const bool enabled) {
             high_contrast_enabled_ = enabled;
             SaveSettings();
         }
 
         float GetFontScale() const { return font_scale_; }
+
         void SetFontScale(const float scale) {
             font_scale_ = std::clamp(scale, 0.5f, 3.0f);
             SaveSettings();
         }
 
         bool IsKeyboardNavigationEnabled() const { return keyboard_navigation_enabled_; }
+
         void SetKeyboardNavigationEnabled(const bool enabled) {
             keyboard_navigation_enabled_ = enabled;
             SaveSettings();
@@ -122,22 +137,23 @@ namespace towerforge::core {
 
         // Load and save settings
         void LoadSettings();
+
         void SaveSettings() const;
 
     private:
         UserPreferences()
             : master_volume_(0.7f)
-            , music_volume_(0.5f)
-            , sfx_volume_(0.6f)
-            , mute_all_(false)
-            , mute_music_(false)
-            , mute_sfx_(false)
-            , enable_ambient_(true)
-            , ui_scale_(1.0f)
-            , color_mode_(ColorMode::Dark)
-            , high_contrast_enabled_(false)
-            , font_scale_(1.0f)
-            , keyboard_navigation_enabled_(true) {
+              , music_volume_(0.5f)
+              , sfx_volume_(0.6f)
+              , mute_all_(false)
+              , mute_music_(false)
+              , mute_sfx_(false)
+              , enable_ambient_(true)
+              , ui_scale_(1.0f)
+              , color_mode_(ColorMode::Dark)
+              , high_contrast_enabled_(false)
+              , font_scale_(1.0f)
+              , keyboard_navigation_enabled_(true) {
             LoadSettings();
         }
 
@@ -164,7 +180,6 @@ namespace towerforge::core {
         float font_scale_;
         bool keyboard_navigation_enabled_;
 
-        static constexpr const char* SETTINGS_FILE = "user_preferences.json";
+        static constexpr const char *SETTINGS_FILE = "user_preferences.json";
     };
-
 } // namespace towerforge::core
