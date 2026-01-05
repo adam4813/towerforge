@@ -6,9 +6,9 @@ concurrency:
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main, develop]
+    branches: [ main, develop ]
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
 
           # Linux builds - Clang
           - os: ubuntu-latest
-            compiler: llvm-18
+            compiler: llvm-21
             build_type: Release
             vcpkg_triplet: x64-linux
 
@@ -45,140 +45,140 @@ jobs:
           #   vcpkg_triplet: x64-osx
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Checkout citrus-engine
-      uses: actions/checkout@v4
-      with:
-        repository: adam4813/citrus-engine
-        path: citrus-engine
+      - name: Checkout citrus-engine
+        uses: actions/checkout@v4
+        with:
+          repository: adam4813/citrus-engine
+          path: citrus-engine
 
-    - name: Create vcpkg-configuration.json
-      shell: bash
-      run: |
-        cat > vcpkg-configuration.json << 'EOF'
-        {
-          "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg-configuration.schema.json",
-          "overlay-ports": [
-            "citrus-engine/ports"
-          ]
-        }
-        EOF
+      - name: Create vcpkg-configuration.json
+        shell: bash
+        run: |
+          cat > vcpkg-configuration.json << 'EOF'
+          {
+            "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg-configuration.schema.json",
+            "overlay-ports": [
+              "citrus-engine/ports"
+            ]
+          }
+          EOF
 
-    - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@latest
 
-    - name: Install system dependencies (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          pkg-config \
-          libx11-dev \
-          libxrandr-dev \
-          libxinerama-dev \
-          libxcursor-dev \
-          libxi-dev \
-          libgl1-mesa-dev \
-          libglu1-mesa-dev \
-          xvfb
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            xvfb
 
-    - name: Setup Cpp
-      if: matrix.compiler != 'msvc'
-      uses: aminya/setup-cpp@v1
-      with:
-        compiler: ${{ matrix.compiler }}
-        vcvarsall: ${{ runner.os == 'Windows' }}
-        ninja: true
+      - name: Setup Cpp
+        if: matrix.compiler != 'msvc'
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          vcvarsall: ${{ runner.os == 'Windows' }}
+          ninja: true
 
-    - name: Restore artifacts, or run vcpkg, build and cache artifacts
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: dd3097e305afa53f7b4312371f62058d2e665320
+      - name: Restore artifacts, or run vcpkg, build and cache artifacts
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: dd3097e305afa53f7b4312371f62058d2e665320
 
-    - name: Run CMake with Presets (Build)
-      uses: lukka/run-cmake@v10
-      with:
-        configurePreset: native
-        buildPreset: native-release
+      - name: Run CMake with Presets (Build)
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: native
+          buildPreset: native-release
 
-    - name: Run CMake with Presets (Tests)
-      uses: lukka/run-cmake@v10
-      with:
-        configurePreset: test
-        buildPreset: test-release
+      - name: Run CMake with Presets (Tests)
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: test
+          buildPreset: test-release
 
-    - name: Run Tests
-      shell: bash
-      run: |
-        cd build/test/tests
-        ctest -C Release --output-on-failure || echo "Some tests may fail - test infrastructure is functional"
+      - name: Run Tests
+        shell: bash
+        run: |
+          cd build/test/tests
+          ctest -C Release --output-on-failure || echo "Some tests may fail - test infrastructure is functional"
 
-    - name: List build outputs
-      shell: bash
-      run: |
-        echo "=== Build directory structure ==="
-        ls -R build/native/Release || true
+      - name: List build outputs
+        shell: bash
+        run: |
+          echo "=== Build directory structure ==="
+          ls -R build/native/Release || true
 
-    - name: Prepare artifacts (Windows)
-      if: runner.os == 'Windows'
-      shell: bash
-      run: |
-        mkdir -p artifacts
-        # Copy executables from Release folder
-        cp build/native/Release/towerforge.exe artifacts/
-        cp build/native/Release/screenshot_app.exe artifacts/ || true
-        cp build/native/Release/*.dll artifacts/ || true
-        
-        # Copy lua mods
-        mkdir -p artifacts/mods
-        cp mods/*.lua artifacts/mods || true
-        
-        ls -laR artifacts/
+      - name: Prepare artifacts (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          # Copy executables from Release folder
+          cp build/native/Release/towerforge.exe artifacts/
+          cp build/native/Release/screenshot_app.exe artifacts/ || true
+          cp build/native/Release/*.dll artifacts/ || true
+          
+          # Copy lua mods
+          mkdir -p artifacts/mods
+          cp mods/*.lua artifacts/mods || true
+          
+          ls -laR artifacts/
 
-    - name: Prepare artifacts (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        mkdir -p artifacts
-        # Copy executables from Release folder
-        cp build/native/Release/towerforge artifacts/
-        cp build/native/Release/screenshot_app artifacts/ || true
-        
-        # Copy lua mods
-        mkdir -p artifacts/mods
-        cp mods/*.lua artifacts/mods || true
-        
-        chmod +x artifacts/* || true
-        ls -laR artifacts/
+      - name: Prepare artifacts (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p artifacts
+          # Copy executables from Release folder
+          cp build/native/Release/towerforge artifacts/
+          cp build/native/Release/screenshot_app artifacts/ || true
+          
+          # Copy lua mods
+          mkdir -p artifacts/mods
+          cp mods/*.lua artifacts/mods || true
+          
+          chmod +x artifacts/* || true
+          ls -laR artifacts/
 
-    - name: Create archive (Windows)
-      if: runner.os == 'Windows'
-      shell: bash
-      run: |
-        cd artifacts
-        7z a ../TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.zip *
+      - name: Create archive (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cd artifacts
+          7z a ../TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.zip *
 
-    - name: Create archive (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        cd artifacts
-        tar -czf ../TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.tar.gz *
+      - name: Create archive (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd artifacts
+          tar -czf ../TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.tar.gz *
 
-    - name: Upload artifact (Windows)
-      if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v4
-      with:
-        name: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}
-        path: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.zip
-        retention-days: 30
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}
+          path: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.zip
+          retention-days: 30
 
-    - name: Upload artifact (Linux/macOS)
-      if: runner.os != 'Windows'
-      uses: actions/upload-artifact@v4
-      with:
-        name: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}
-        path: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.tar.gz
-        retention-days: 30
+      - name: Upload artifact (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}
+          path: TowerForge-${{ matrix.os }}-${{ matrix.compiler }}.tar.gz
+          retention-days: 30
