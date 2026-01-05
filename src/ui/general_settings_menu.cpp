@@ -3,7 +3,6 @@
 #include "audio/audio_manager.h"
 #include "ui/ui_theme.h"
 #include "ui/mouse_interface.h"
-#include "core/accessibility_settings.hpp"
 
 import engine;
 
