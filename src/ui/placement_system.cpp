@@ -1,10 +1,13 @@
 #include "ui/placement_system.h"
+#include "ui/ui_theme.h"
 #include "rendering/camera.h"
 #include "core/command.hpp"
 #include <iostream>
 #include <sstream>
 
 #include "ui/tooltip.h"
+
+import engine;
 
 namespace towerforge::ui {
     PlacementSystem::PlacementSystem(core::TowerGrid &grid, core::FacilityManager &facility_mgr, BuildMenu &build_menu)
@@ -84,17 +87,35 @@ namespace towerforge::ui {
             const Color preview_color = hover_valid_ ? ColorAlpha(GREEN, 0.3f) : ColorAlpha(RED, 0.3f);
             const Color outline_color = hover_valid_ ? GREEN : RED;
 
-            DrawRectangle(x, y, facility_type.width * cell_width, cell_height, preview_color);
-            DrawRectangleLines(x, y, facility_type.width * cell_width, cell_height, outline_color);
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(x), static_cast<float>(y),
+                                      static_cast<float>(facility_type.width * cell_width), static_cast<float>(cell_height)),
+                UITheme::ToEngineColor(preview_color)
+            );
+
+            // Draw border using 4 lines
+            const auto border_col = UITheme::ToEngineColor(outline_color);
+            const float width_f = static_cast<float>(facility_type.width * cell_width);
+            const float height_f = static_cast<float>(cell_height);
+            engine::ui::BatchRenderer::SubmitLine(x, y, x + width_f, y, 1.0f, border_col);
+            engine::ui::BatchRenderer::SubmitLine(x + width_f, y, x + width_f, y + height_f, 1.0f, border_col);
+            engine::ui::BatchRenderer::SubmitLine(x + width_f, y + height_f, x, y + height_f, 1.0f, border_col);
+            engine::ui::BatchRenderer::SubmitLine(x, y + height_f, x, y, 1.0f, border_col);
 
             // Draw icon
-            DrawText(facility_type.icon.c_str(), x + 5, y + 5, 20, WHITE);
+            engine::ui::BatchRenderer::SubmitText(facility_type.icon, static_cast<float>(x + 5), static_cast<float>(y + 5),
+                                                  20, UITheme::ToEngineColor(WHITE));
 
             // Draw cost indicator
             if (hover_valid_) {
-                DrawText(TextFormat("$%d", facility_type.cost), x + 5, y + cell_height - 20, 12, GREEN);
+                const std::string cost_text = "$" + std::to_string(facility_type.cost);
+                engine::ui::BatchRenderer::SubmitText(cost_text, static_cast<float>(x + 5),
+                                                      static_cast<float>(y + cell_height - 20),
+                                                      12, UITheme::ToEngineColor(GREEN));
             } else {
-                DrawText("INVALID", x + 5, y + cell_height - 20, 12, RED);
+                engine::ui::BatchRenderer::SubmitText("INVALID", static_cast<float>(x + 5),
+                                                      static_cast<float>(y + cell_height - 20),
+                                                      12, UITheme::ToEngineColor(RED));
             }
         }
 
@@ -106,8 +127,11 @@ namespace towerforge::ui {
             const int y = ground_floor_screen_y - (construction.floor * cell_height);
 
             // Draw construction overlay
-            DrawRectangle(x, y, construction.width * cell_width, cell_height,
-                          ColorAlpha(ORANGE, 0.4f));
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(x), static_cast<float>(y),
+                                      static_cast<float>(construction.width * cell_width), static_cast<float>(cell_height)),
+                UITheme::ToEngineColor(ColorAlpha(ORANGE, 0.4f))
+            );
 
             // Draw progress bar
             const int bar_width = construction.width * cell_width - 10;
@@ -115,13 +139,22 @@ namespace towerforge::ui {
             const int bar_x = x + 5;
             const int bar_y = y + cell_height / 2 - bar_height / 2;
 
-            DrawRectangle(bar_x, bar_y, bar_width, bar_height, DARKGRAY);
-            DrawRectangle(bar_x, bar_y, static_cast<int>(bar_width * construction.GetProgress()),
-                          bar_height, YELLOW);
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(bar_x), static_cast<float>(bar_y),
+                                      static_cast<float>(bar_width), static_cast<float>(bar_height)),
+                UITheme::ToEngineColor(DARKGRAY)
+            );
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(static_cast<float>(bar_x), static_cast<float>(bar_y),
+                                      static_cast<float>(bar_width * construction.GetProgress()),
+                                      static_cast<float>(bar_height)),
+                UITheme::ToEngineColor(YELLOW)
+            );
 
             // Draw construction text
-            DrawText(TextFormat("Building... %d%%", static_cast<int>(construction.GetProgress() * 100)),
-                     x + 5, y + 5, 10, WHITE);
+            const std::string progress_text = "Building... " + std::to_string(static_cast<int>(construction.GetProgress() * 100)) + "%";
+            engine::ui::BatchRenderer::SubmitText(progress_text, static_cast<float>(x + 5), static_cast<float>(y + 5),
+                                                  10, UITheme::ToEngineColor(WHITE));
         }
     }
 

@@ -52,15 +52,28 @@ namespace towerforge::ui {
         constexpr int overlay_y = 20;
 
         // Draw background with border
-        DrawRectangle(overlay_x, overlay_y, OVERLAY_WIDTH, OVERLAY_HEIGHT,
-                      ColorAlpha(BLACK, 0.85f));
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(overlay_x), static_cast<float>(overlay_y),
+                                  static_cast<float>(OVERLAY_WIDTH), static_cast<float>(OVERLAY_HEIGHT)),
+            engine::ui::Color{0.0f, 0.0f, 0.0f, 0.85f}
+        );
 
         // Draw gold border with pulsing effect
         const float pulse = sin(animation_time_ * 2.0f) * 0.2f + 0.8f;
-        DrawRectangleLines(overlay_x, overlay_y, OVERLAY_WIDTH, OVERLAY_HEIGHT,
-                           ColorAlpha(GOLD, pulse));
-        DrawRectangleLines(overlay_x + 1, overlay_y + 1, OVERLAY_WIDTH - 2, OVERLAY_HEIGHT - 2,
-                           ColorAlpha(GOLD, pulse * 0.5f));
+        const auto border_col = engine::ui::Color{220.0f / 255.0f, 180.0f / 255.0f, 70.0f / 255.0f, pulse};
+        
+        // Outer border
+        engine::ui::BatchRenderer::SubmitLine(overlay_x, overlay_y, overlay_x + OVERLAY_WIDTH, overlay_y, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(overlay_x + OVERLAY_WIDTH, overlay_y, overlay_x + OVERLAY_WIDTH, overlay_y + OVERLAY_HEIGHT, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(overlay_x + OVERLAY_WIDTH, overlay_y + OVERLAY_HEIGHT, overlay_x, overlay_y + OVERLAY_HEIGHT, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(overlay_x, overlay_y + OVERLAY_HEIGHT, overlay_x, overlay_y, 1.0f, border_col);
+        
+        // Inner border
+        const auto inner_col = engine::ui::Color{220.0f / 255.0f, 180.0f / 255.0f, 70.0f / 255.0f, pulse * 0.5f};
+        engine::ui::BatchRenderer::SubmitLine(overlay_x + 1, overlay_y + 1, overlay_x + OVERLAY_WIDTH - 1, overlay_y + 1, 1.0f, inner_col);
+        engine::ui::BatchRenderer::SubmitLine(overlay_x + OVERLAY_WIDTH - 1, overlay_y + 1, overlay_x + OVERLAY_WIDTH - 1, overlay_y + OVERLAY_HEIGHT - 1, 1.0f, inner_col);
+        engine::ui::BatchRenderer::SubmitLine(overlay_x + OVERLAY_WIDTH - 1, overlay_y + OVERLAY_HEIGHT - 1, overlay_x + 1, overlay_y + OVERLAY_HEIGHT - 1, 1.0f, inner_col);
+        engine::ui::BatchRenderer::SubmitLine(overlay_x + 1, overlay_y + OVERLAY_HEIGHT - 1, overlay_x + 1, overlay_y + 1, 1.0f, inner_col);
     }
 
     void TutorialManager::RenderStepInfo() const {
@@ -78,18 +91,24 @@ namespace towerforge::ui {
         constexpr int title_font_size = 28;
         const int title_width = MeasureText(title.c_str(), title_font_size);
         const int title_x = overlay_x + (OVERLAY_WIDTH - title_width) / 2;
-        DrawText(title.c_str(), title_x, overlay_y + 20, title_font_size, GOLD);
+        engine::ui::BatchRenderer::SubmitText(title, static_cast<float>(title_x), static_cast<float>(overlay_y + 20),
+                                              title_font_size, engine::ui::Color{220.0f / 255.0f, 180.0f / 255.0f, 70.0f / 255.0f, 1.0f});
 
         // Draw decorative line
         constexpr int line_width = OVERLAY_WIDTH - 80;
         const int line_x = overlay_x + 40;
-        DrawRectangle(line_x, overlay_y + 55, line_width, 2, GOLD);
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(line_x), static_cast<float>(overlay_y + 55),
+                                  static_cast<float>(line_width), 2.0f),
+            engine::ui::Color{220.0f / 255.0f, 180.0f / 255.0f, 70.0f / 255.0f, 1.0f}
+        );
 
         // Draw hint
         constexpr int hint_font_size = 18;
         const int hint_width = MeasureText(hint.c_str(), hint_font_size);
         const int hint_x = overlay_x + (OVERLAY_WIDTH - hint_width) / 2;
-        DrawText(hint.c_str(), hint_x, overlay_y + 70, hint_font_size, LIGHTGRAY);
+        engine::ui::BatchRenderer::SubmitText(hint, static_cast<float>(hint_x), static_cast<float>(overlay_y + 70),
+                                              hint_font_size, engine::ui::Color{211.0f / 255.0f, 211.0f / 255.0f, 211.0f / 255.0f, 1.0f});
 
         // Draw highlighted facility indicator
         if (const std::string required = GetRequiredFacility(); !required.empty()) {
@@ -97,7 +116,8 @@ namespace towerforge::ui {
             constexpr int indicator_font_size = 16;
             const int indicator_width = MeasureText(indicator.c_str(), indicator_font_size);
             const int indicator_x = overlay_x + (OVERLAY_WIDTH - indicator_width) / 2;
-            DrawText(indicator.c_str(), indicator_x, overlay_y + 100, indicator_font_size, SKYBLUE);
+            engine::ui::BatchRenderer::SubmitText(indicator, static_cast<float>(indicator_x), static_cast<float>(overlay_y + 100),
+                                                  indicator_font_size, engine::ui::Color{135.0f / 255.0f, 206.0f / 255.0f, 235.0f / 255.0f, 1.0f});
         }
     }
 
@@ -117,7 +137,8 @@ namespace towerforge::ui {
         constexpr int progress_font_size = 16;
         const int progress_width = MeasureText(progress_text.c_str(), progress_font_size);
         const int progress_x = overlay_x + (OVERLAY_WIDTH - progress_width) / 2;
-        DrawText(progress_text.c_str(), progress_x, overlay_y + 130, progress_font_size, YELLOW);
+        engine::ui::BatchRenderer::SubmitText(progress_text, static_cast<float>(progress_x), static_cast<float>(overlay_y + 130),
+                                              progress_font_size, engine::ui::Color{1.0f, 1.0f, 0.0f, 1.0f});
 
         // Draw progress bar
         constexpr int bar_width = OVERLAY_WIDTH - 100;
@@ -126,15 +147,27 @@ namespace towerforge::ui {
         constexpr int bar_y = overlay_y + 155;
 
         // Background
-        DrawRectangle(bar_x, bar_y, bar_width, bar_height, ColorAlpha(DARKGRAY, 0.5f));
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(bar_x), static_cast<float>(bar_y),
+                                  static_cast<float>(bar_width), static_cast<float>(bar_height)),
+            engine::ui::Color{169.0f / 255.0f, 169.0f / 255.0f, 169.0f / 255.0f, 0.5f}
+        );
 
         // Progress fill
         const float progress = (float) (current + 1) / (float) total_steps;
         const int fill_width = (int) (bar_width * progress);
-        DrawRectangle(bar_x, bar_y, fill_width, bar_height, GOLD);
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(bar_x), static_cast<float>(bar_y),
+                                  static_cast<float>(fill_width), static_cast<float>(bar_height)),
+            engine::ui::Color{220.0f / 255.0f, 180.0f / 255.0f, 70.0f / 255.0f, 1.0f}
+        );
 
         // Border
-        DrawRectangleLines(bar_x, bar_y, bar_width, bar_height, GOLD);
+        const auto border_col = engine::ui::Color{220.0f / 255.0f, 180.0f / 255.0f, 70.0f / 255.0f, 1.0f};
+        engine::ui::BatchRenderer::SubmitLine(bar_x, bar_y, bar_x + bar_width, bar_y, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bar_x + bar_width, bar_y, bar_x + bar_width, bar_y + bar_height, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bar_x + bar_width, bar_y + bar_height, bar_x, bar_y + bar_height, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(bar_x, bar_y + bar_height, bar_x, bar_y, 1.0f, border_col);
     }
 
     void TutorialManager::RenderButtons() {
@@ -158,15 +191,26 @@ namespace towerforge::ui {
         // Draw button
         const Color skip_bg = skip_hover ? ColorAlpha(RED, 0.4f) : ColorAlpha(DARKGRAY, 0.3f);
         const Color skip_border = skip_hover ? RED : GRAY;
-        DrawRectangle(skip_x, skip_y, BUTTON_WIDTH, BUTTON_HEIGHT, skip_bg);
-        DrawRectangleLines(skip_x, skip_y, BUTTON_WIDTH, BUTTON_HEIGHT, skip_border);
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(static_cast<float>(skip_x), static_cast<float>(skip_y),
+                                  static_cast<float>(BUTTON_WIDTH), static_cast<float>(BUTTON_HEIGHT)),
+            engine::ui::Color{skip_bg.r / 255.0f, skip_bg.g / 255.0f, skip_bg.b / 255.0f, skip_bg.a / 255.0f}
+        );
+
+        // Draw border using 4 lines
+        const auto border_col = engine::ui::Color{skip_border.r / 255.0f, skip_border.g / 255.0f, skip_border.b / 255.0f, skip_border.a / 255.0f};
+        engine::ui::BatchRenderer::SubmitLine(skip_x, skip_y, skip_x + BUTTON_WIDTH, skip_y, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(skip_x + BUTTON_WIDTH, skip_y, skip_x + BUTTON_WIDTH, skip_y + BUTTON_HEIGHT, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(skip_x + BUTTON_WIDTH, skip_y + BUTTON_HEIGHT, skip_x, skip_y + BUTTON_HEIGHT, 1.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(skip_x, skip_y + BUTTON_HEIGHT, skip_x, skip_y, 1.0f, border_col);
 
         const auto skip_text = "Skip Tutorial";
         constexpr int skip_text_size = 18;
         const int skip_text_width = MeasureText(skip_text, skip_text_size);
         const int skip_text_x = skip_x + (BUTTON_WIDTH - skip_text_width) / 2;
         constexpr int skip_text_y = skip_y + (BUTTON_HEIGHT - skip_text_size) / 2;
-        DrawText(skip_text, skip_text_x, skip_text_y, skip_text_size, WHITE);
+        engine::ui::BatchRenderer::SubmitText(skip_text, static_cast<float>(skip_text_x), static_cast<float>(skip_text_y),
+                                              skip_text_size, engine::ui::Color{1.0f, 1.0f, 1.0f, 1.0f});
     }
 
     bool TutorialManager::HandleInput() {

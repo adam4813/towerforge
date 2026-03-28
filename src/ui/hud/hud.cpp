@@ -21,6 +21,7 @@ namespace towerforge::ui {
         : action_bar_callback_(nullptr) {
         tooltip_manager_ = std::make_unique<TooltipManager>();
         notification_center_ = std::make_unique<NotificationCenter>();
+        notification_center_->Initialize();
 
         // Create action bar - position will be set in Update()
         action_bar_ = std::make_unique<ActionBar>();
@@ -309,9 +310,8 @@ namespace towerforge::ui {
         }
 
         // Handle notification center clicks
-        if (notification_center_ && notification_center_->IsVisible() && event.left_pressed &&
-            notification_center_.get()->HandleClick(
-                static_cast<int>(event.x), static_cast<int>(event.y))) {
+        if (notification_center_ && notification_center_->IsVisible() &&
+            notification_center_->ProcessMouseEvent(event)) {
             return true;
         }
 

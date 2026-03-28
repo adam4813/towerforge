@@ -1,5 +1,6 @@
 #include "ui/history_panel.h"
 #include "ui/mouse_interface.h"
+#include "ui/ui_theme.h"
 #include "core/command_history.hpp"
 #include <sstream>
 #include <iomanip>
@@ -44,26 +45,43 @@ namespace towerforge::ui {
         panel_bounds_.x = static_cast<float>(screen_width - PANEL_WIDTH - 10);
 
         // Draw semi-transparent background
-        DrawRectangleRec(panel_bounds_, ColorAlpha(BLACK, 0.85f));
-        DrawRectangleLinesEx(panel_bounds_, 2, GOLD);
+        engine::ui::BatchRenderer::SubmitQuad(
+            engine::ui::Rectangle(panel_bounds_.x, panel_bounds_.y, panel_bounds_.width, panel_bounds_.height),
+            UITheme::ToEngineColor(ColorAlpha(BLACK, 0.85f))
+        );
+
+        // Draw border using 4 lines
+        const auto border_col = UITheme::ToEngineColor(GOLD);
+        engine::ui::BatchRenderer::SubmitLine(panel_bounds_.x, panel_bounds_.y, 
+                                              panel_bounds_.x + panel_bounds_.width, panel_bounds_.y, 
+                                              2.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(panel_bounds_.x + panel_bounds_.width, panel_bounds_.y, 
+                                              panel_bounds_.x + panel_bounds_.width, panel_bounds_.y + panel_bounds_.height, 
+                                              2.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(panel_bounds_.x + panel_bounds_.width, panel_bounds_.y + panel_bounds_.height, 
+                                              panel_bounds_.x, panel_bounds_.y + panel_bounds_.height, 
+                                              2.0f, border_col);
+        engine::ui::BatchRenderer::SubmitLine(panel_bounds_.x, panel_bounds_.y + panel_bounds_.height, 
+                                              panel_bounds_.x, panel_bounds_.y, 
+                                              2.0f, border_col);
 
         // Draw header
-        DrawText("Action History",
-                 static_cast<int>(panel_bounds_.x + PADDING),
-                 static_cast<int>(panel_bounds_.y + PADDING),
-                 16, GOLD);
+        engine::ui::BatchRenderer::SubmitText("Action History",
+                                              panel_bounds_.x + PADDING,
+                                              panel_bounds_.y + PADDING,
+                                              16, border_col);
 
         // Draw help text
-        DrawText("Click to undo/redo",
-                 static_cast<int>(panel_bounds_.x + PADDING),
-                 static_cast<int>(panel_bounds_.y + PADDING + 16),
-                 10, GRAY);
+        engine::ui::BatchRenderer::SubmitText("Click to undo/redo",
+                                              panel_bounds_.x + PADDING,
+                                              panel_bounds_.y + PADDING + 16.0f,
+                                              10, UITheme::ToEngineColor(GRAY));
 
         if (entries_.empty()) {
-            DrawText("No actions yet",
-                     static_cast<int>(content_bounds_.x + PADDING),
-                     static_cast<int>(content_bounds_.y + 20),
-                     12, GRAY);
+            engine::ui::BatchRenderer::SubmitText("No actions yet",
+                                                  content_bounds_.x + PADDING,
+                                                  content_bounds_.y + 20.0f,
+                                                  12, UITheme::ToEngineColor(GRAY));
             return;
         }
 
@@ -90,17 +108,21 @@ namespace towerforge::ui {
             // Highlight on hover
             const bool is_hovered = (i == hovered_index_);
             if (is_hovered) {
-                DrawRectangleRec(item_bounds, ColorAlpha(GOLD, 0.2f));
+                engine::ui::BatchRenderer::SubmitQuad(
+                    engine::ui::Rectangle(item_bounds.x, item_bounds.y, item_bounds.width, item_bounds.height),
+                    UITheme::ToEngineColor(ColorAlpha(GOLD, 0.2f))
+                );
             }
 
             // Draw separator line
             if (i > start_index) {
-                DrawLine(
-                    static_cast<int>(item_bounds.x),
-                    static_cast<int>(item_bounds.y),
-                    static_cast<int>(item_bounds.x + item_bounds.width),
-                    static_cast<int>(item_bounds.y),
-                    ColorAlpha(GRAY, 0.5f)
+                engine::ui::BatchRenderer::SubmitLine(
+                    item_bounds.x,
+                    item_bounds.y,
+                    item_bounds.x + item_bounds.width,
+                    item_bounds.y,
+                    1.0f,
+                    UITheme::ToEngineColor(ColorAlpha(GRAY, 0.5f))
                 );
             }
 
@@ -108,16 +130,16 @@ namespace towerforge::ui {
             const Color action_color = entry.is_redo ? ColorAlpha(SKYBLUE, 0.7f) : WHITE;
 
             // Draw description
-            DrawText(entry.description.c_str(),
-                     static_cast<int>(item_bounds.x + 5),
-                     static_cast<int>(item_bounds.y + 5),
-                     11, action_color);
+            engine::ui::BatchRenderer::SubmitText(entry.description,
+                                                  item_bounds.x + 5.0f,
+                                                  item_bounds.y + 5.0f,
+                                                  11, UITheme::ToEngineColor(action_color));
 
             // Draw timestamp
-            DrawText(entry.time_str.c_str(),
-                     static_cast<int>(item_bounds.x + 5),
-                     static_cast<int>(item_bounds.y + 20),
-                     9, GRAY);
+            engine::ui::BatchRenderer::SubmitText(entry.time_str,
+                                                  item_bounds.x + 5.0f,
+                                                  item_bounds.y + 20.0f,
+                                                  9, UITheme::ToEngineColor(GRAY));
 
             // Draw cost change
             const Color cost_color = entry.cost_change >= 0 ? GREEN : RED;
@@ -127,18 +149,18 @@ namespace towerforge::ui {
             } else {
                 cost_ss << "-$" << -entry.cost_change;
             }
-            DrawText(cost_ss.str().c_str(),
-                     static_cast<int>(item_bounds.x + 5),
-                     static_cast<int>(item_bounds.y + 33),
-                     10, cost_color);
+            engine::ui::BatchRenderer::SubmitText(cost_ss.str(),
+                                                  item_bounds.x + 5.0f,
+                                                  item_bounds.y + 33.0f,
+                                                  10, UITheme::ToEngineColor(cost_color));
 
             // Draw redo/undo indicator
             const char *status = entry.is_redo ? "[Can Redo]" : "[Can Undo]";
             const int status_width = MeasureText(status, 9);
-            DrawText(status,
-                     static_cast<int>(item_bounds.x + item_bounds.width - status_width - 5),
-                     static_cast<int>(item_bounds.y + 5),
-                     9, entry.is_redo ? SKYBLUE : GOLD);
+            engine::ui::BatchRenderer::SubmitText(status,
+                                                  item_bounds.x + item_bounds.width - static_cast<float>(status_width) - 5.0f,
+                                                  item_bounds.y + 5.0f,
+                                                  9, UITheme::ToEngineColor(entry.is_redo ? SKYBLUE : GOLD));
 
             y_offset += ITEM_HEIGHT;
         }
@@ -150,12 +172,12 @@ namespace towerforge::ui {
             const float scroll_bar_y = content_bounds_.y + (static_cast<float>(scroll_offset_) / entries_.size()) *
                                        content_bounds_.height;
 
-            DrawRectangle(
-                static_cast<int>(panel_bounds_.x + panel_bounds_.width - 8),
-                static_cast<int>(scroll_bar_y),
-                4,
-                static_cast<int>(scroll_bar_height),
-                ColorAlpha(GOLD, 0.6f)
+            engine::ui::BatchRenderer::SubmitQuad(
+                engine::ui::Rectangle(panel_bounds_.x + panel_bounds_.width - 8.0f,
+                                      scroll_bar_y,
+                                      4.0f,
+                                      scroll_bar_height),
+                UITheme::ToEngineColor(ColorAlpha(GOLD, 0.6f))
             );
         }
     }
